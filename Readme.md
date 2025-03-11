@@ -1,4 +1,4 @@
-# RustyX
+# Ripress
 
 ### An express inspired rust based web framework
 

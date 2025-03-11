@@ -1,8 +1,8 @@
 [package]
-name = "rusty_x"
+name = "ripress"
 version = "0.1.0"
 edition = "2021"
-description = "An attemp to make an http server library like express.js in rust"
+description = "An attempt to make an http server library like express.js in rust"
 license = "MIT"
 
 [dependencies]
