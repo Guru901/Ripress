@@ -32,7 +32,7 @@ async fn main() {
     let mut app = App::new();
 
     app.get("/", index);
-    app.get("/user/:id", find_user);
+    app.get("/user/{id}", find_user);
     app.get("/search", search);
 
     app.listen("127.0.0.1:3000").await;
