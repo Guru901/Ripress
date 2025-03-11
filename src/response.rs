@@ -1,4 +1,4 @@
-use actix_web::{body::MessageBody, Responder};
+use actix_web::Responder;
 use serde::Serialize;
 
 pub struct HttpResponse {

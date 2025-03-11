@@ -1,8 +1,24 @@
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
+enum RequestBodyType {
+    JSON,
+    TEXT,
+}
+
+impl Copy for RequestBodyType {}
+
+#[derive(Debug)]
+struct RequestBody {
+    content: String,
+    content_type: RequestBodyType,
+}
+
+#[derive(Debug)]
 pub struct HttpRequest {
     params: HashMap<String, String>,
     queries: HashMap<String, String>,
+    body: RequestBody,
 }
 
 impl HttpRequest {
@@ -26,6 +42,11 @@ impl HttpRequest {
         return None;
     }
 
+    pub fn get_body(&self) -> Option<String> {
+        let body = self.body.content.clone();
+        Some(body)
+    }
+
     pub fn from_actix_request(req: &actix_web::HttpRequest) -> Self {
         let mut queries = HashMap::new();
         if let Some(query_string) = req.query_string().split("?").next() {
@@ -43,6 +64,10 @@ impl HttpRequest {
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
             queries,
+            body: RequestBody {
+                content: String::new(),
+                content_type: RequestBodyType::TEXT,
+            },
         }
     }
 }
