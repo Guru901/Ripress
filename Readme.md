@@ -23,7 +23,7 @@
 ### Public Api
 
 ```rust
-use rustyX::{App, HttpRequest, HttpResponse};
+use ripress::{App, HttpRequest, HttpResponse};
 use serde_json::json;
 
 #[tokio::main]
