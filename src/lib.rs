@@ -165,8 +165,8 @@ impl App {
 }
 
 pub struct HttpResponse {
-    pub status_code: i32,
-    pub body: String,
+    status_code: i32,
+    body: String,
 }
 
 impl HttpResponse {
@@ -235,8 +235,4 @@ impl HttpRequest {
             queries: HashMap::new(),
         }
     }
-}
-
-async fn index() -> impl actix_web::Responder {
-    format!("Hello world!")
 }
