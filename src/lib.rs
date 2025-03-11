@@ -218,7 +218,13 @@ pub struct HttpRequest {
 
 impl HttpRequest {
     pub fn get_params(&self, param_name: &str) -> Option<String> {
-        return Some(String::new());
+        let param = self.params.get(param_name).map(|v| v.to_string());
+
+        if let Some(param) = param {
+            return Some(param);
+        }
+
+        return None;
     }
 
     pub fn get_query(&self, query_name: &str) -> Option<String> {
