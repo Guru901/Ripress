@@ -228,7 +228,13 @@ impl HttpRequest {
     }
 
     pub fn get_query(&self, query_name: &str) -> Option<String> {
-        return Some(String::new());
+        let query = self.queries.get(query_name).map(|v| v.to_string());
+
+        if let Some(query) = query {
+            return Some(query);
+        }
+
+        return None;
     }
 
     fn from_actix_request(req: &actix_web::HttpRequest) -> Self {
