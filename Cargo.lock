@@ -995,6 +995,7 @@ name = "ripress"
 version = "0.2.1"
 dependencies = [
  "actix-web",
+ "serde",
  "serde_json",
  "tokio",
 ]

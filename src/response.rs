@@ -1,15 +1,30 @@
-use actix_web::Responder;
+use actix_web::{body::MessageBody, Responder};
+use serde::Serialize;
 
 pub struct HttpResponse {
     status_code: i32,
-    body: String,
+    body: ContentBody,
+    content_type: ContentType,
+}
+
+#[derive(PartialEq)]
+enum ContentType {
+    JSON,
+    TEXT,
+}
+
+#[derive(Serialize)]
+enum ContentBody {
+    JSON(serde_json::Value),
+    TEXT(String),
 }
 
 impl HttpResponse {
     pub fn new() -> Self {
         HttpResponse {
             status_code: 200,
-            body: String::new(),
+            body: ContentBody::TEXT(String::new()),
+            content_type: ContentType::JSON,
         }
     }
 
@@ -19,19 +34,28 @@ impl HttpResponse {
     }
 
     pub fn json(mut self, json: serde_json::Value) -> Self {
-        self.body = json.to_string();
+        self.body = ContentBody::JSON(json);
+        self.content_type = ContentType::JSON;
         return self;
     }
 
     pub fn text(mut self, text: String) -> Self {
-        self.body = text;
+        self.body = ContentBody::TEXT(text);
+        self.content_type = ContentType::TEXT;
         return self;
     }
 
     pub fn to_responder(self) -> actix_web::HttpResponse {
         let body = self.body;
         actix_web::http::StatusCode::from_u16(self.status_code as u16)
-            .map(|status| actix_web::HttpResponse::build(status).body(body))
+            .map(|status| match body {
+                ContentBody::JSON(json) => actix_web::HttpResponse::build(status)
+                    .content_type("application/json")
+                    .json(json),
+                ContentBody::TEXT(text) => actix_web::HttpResponse::build(status)
+                    .content_type("text/plain")
+                    .body(text),
+            })
             .unwrap_or_else(|_| {
                 actix_web::HttpResponse::InternalServerError().body("Invalid status code")
             })
