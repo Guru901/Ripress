@@ -4,6 +4,7 @@ version = "0.2.2"
 edition = "2021"
 description = "An attempt to make an http server library like express.js in rust"
 license = "MIT"
+repository = "https://github.com/guru901/ripress"
 
 [dependencies]
 serde_json = "1.0.140"
