@@ -25,28 +25,41 @@
 ```rust
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
-use serde_json::json;
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct User {
+    name: String,
+    username: String,
+    password: String,
+}
 
 #[tokio::main]
 async fn main() {
     let mut app = App::new();
-
-    app.get("/", index);
-    app.get("/user/{id}", find_user);
+    app.get("/user/{id}", get_user);
+    app.post("/user", save_user);
     app.get("/search", search);
 
     app.listen("127.0.0.1:3000").await;
 }
 
-async fn index(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    return res.status(200).json(json!({
-        "hehehe": "hehehe"
-    }));
+async fn get_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let user_id = req.get_params("id").unwrap();
+    return res.status(200).text(format!("Hello, {user_id}"));
 }
 
-async fn find_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let user_id = req.get_params("id").unwrap_or(String::new());
-    return res.status(200).text(format!("Hello, {user_id}"));
+async fn save_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let user = req.json::<User>().unwrap();
+
+    // Make db call
+
+    println!("name = {}", user.name);
+    println!("username = {}", user.username);
+    println!("password = {}", user.password);
+
+    // Save user
+
+    return res.status(200).text("User Saved");
 }
 
 async fn search(req: HttpRequest, res: HttpResponse) -> HttpResponse {
