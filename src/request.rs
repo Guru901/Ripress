@@ -2,7 +2,7 @@ use futures_util::stream::StreamExt;
 use std::{collections::HashMap, future::Future};
 
 #[derive(Debug, Clone, PartialEq)]
-enum RequestBodyType {
+pub enum RequestBodyType {
     JSON,
     TEXT,
     FORM,
@@ -40,6 +40,13 @@ impl HttpRequest {
                 content: RequestBodyContent::TEXT(String::new()),
             },
         }
+    }
+
+    pub fn is(&self, content_type: RequestBodyType) -> bool {
+        if self.body.content_type == content_type {
+            return true;
+        }
+        return false;
     }
 
     pub fn get_params(&self, param_name: &str) -> Option<String> {
