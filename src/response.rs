@@ -19,6 +19,12 @@ enum ContentBody {
     TEXT(String),
 }
 
+impl ContentBody {
+    fn new_text<T: Into<String>>(text: T) -> Self {
+        ContentBody::TEXT(text.into())
+    }
+}
+
 impl HttpResponse {
     pub fn new() -> Self {
         HttpResponse {
@@ -39,8 +45,8 @@ impl HttpResponse {
         return self;
     }
 
-    pub fn text(mut self, text: String) -> Self {
-        self.body = ContentBody::TEXT(text);
+    pub fn text<T: Into<String>>(mut self, text: T) -> Self {
+        self.body = ContentBody::new_text(text);
         self.content_type = ContentType::TEXT;
         return self;
     }
