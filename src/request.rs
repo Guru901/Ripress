@@ -30,6 +30,7 @@ pub struct HttpRequest {
     body: RequestBody,
     ip: String,
     method: String,
+    origin_url: String,
 }
 
 impl HttpRequest {
@@ -43,6 +44,7 @@ impl HttpRequest {
             },
             ip: String::new(),
             method: String::new(),
+            origin_url: String::new(),
         }
     }
 
@@ -52,6 +54,10 @@ impl HttpRequest {
 
     pub fn get_method(&self) -> String {
         self.method.to_string()
+    }
+
+    pub fn get_origin_url(&self) -> Option<String> {
+        Some(self.origin_url.to_string())
     }
 
     pub fn ip(&self) -> Option<String> {
@@ -137,6 +143,7 @@ impl HttpRequest {
 
         let ip = get_real_ip(&req);
         let method = req.method().to_string();
+        let origin_url = req.uri().to_string();
 
         let params: HashMap<String, String> = req
             .match_info()
@@ -212,6 +219,7 @@ impl HttpRequest {
             body: request_body,
             ip,
             method,
+            origin_url,
         })
     }
 }
