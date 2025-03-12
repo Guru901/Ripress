@@ -31,6 +31,17 @@ pub struct HttpRequest {
 }
 
 impl HttpRequest {
+    pub fn new() -> Self {
+        Self {
+            params: HashMap::new(),
+            queries: HashMap::new(),
+            body: RequestBody {
+                content_type: RequestBodyType::TEXT,
+                content: RequestBodyContent::TEXT(String::new()),
+            },
+        }
+    }
+
     pub fn get_params(&self, param_name: &str) -> Option<String> {
         let param = self.params.get(param_name).map(|v| v.to_string());
 
@@ -211,4 +222,33 @@ fn determine_content_type(req: &actix_web::HttpRequest) -> RequestBodyType {
         }
     }
     RequestBodyType::TEXT
+}
+
+#[cfg(test)]
+impl HttpRequest {
+    pub fn set_query(&mut self, key: &str, value: &str) {
+        self.queries.insert(key.to_string(), value.to_string());
+    }
+
+    pub fn set_param(&mut self, key: &str, value: &str) {
+        self.params.insert(key.to_string(), value.to_string());
+    }
+
+    pub fn set_json<J>(&mut self, json: J)
+    where
+        J: serde::de::DeserializeOwned + serde::Serialize,
+    {
+        self.body.content_type = RequestBodyType::JSON;
+        self.body.content = RequestBodyContent::JSON(serde_json::to_value(json).unwrap());
+    }
+
+    pub fn set_text(&mut self, text: &str) {
+        self.body.content_type = RequestBodyType::TEXT;
+        self.body.content = RequestBodyContent::TEXT(text.to_string());
+    }
+
+    pub fn set_form(&mut self, key: &str, value: &str) {
+        self.body.content_type = RequestBodyType::FORM;
+        self.body.content = RequestBodyContent::FORM(format!("{key}={value}"));
+    }
 }
