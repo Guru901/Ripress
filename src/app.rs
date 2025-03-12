@@ -88,45 +88,51 @@ impl App {
 
             for (path, methods) in &routes {
                 for (method, handler) in methods {
-                    let handler_clone = handler.clone();
+                    let method = method.clone();
 
                     match method {
                         HttpMethods::GET => {
                             app = app.route(
                                 &path,
-                                actix_web::web::get().to(move |req: actix_web::HttpRequest| {
-                                    let our_req = HttpRequest::from_actix_request(&req);
-                                    let our_res = HttpResponse::new();
-                                    let future = handler_clone(our_req, our_res);
-                                    async move {
-                                        let response = future.await;
-                                        response.to_responder()
-                                    }
-                                }),
+                                actix_web::web::get().to(
+                                     move |req: actix_web::HttpRequest, mut payload: actix_web::web::Payload|  {
+                                        let handler_clone = handler.clone();
+                                        async move {
+                                            let our_req = HttpRequest::from_actix_request(&req, &mut payload).await.unwrap();
+                                            let our_res = HttpResponse::new();
+                                            let future = handler_clone(our_req, our_res);
+                                            let response = future.await;
+                                            response.to_responder()
+                                        }
+                                    },
+                                ),
                             );
                         }
                         HttpMethods::POST => {
                             app = app.route(
                                 &path,
-                                actix_web::web::post().to(move |req: actix_web::HttpRequest| {
-                                    let our_req = HttpRequest::from_actix_request(&req);
-                                    let our_res = HttpResponse::new();
-                                    let future = handler_clone(our_req, our_res);
-                                    async move {
-                                        let response = future.await;
-                                        response.to_responder()
-                                    }
+                                actix_web::web::post().to( move |req: actix_web::HttpRequest, mut payload: actix_web::web::Payload| {
+                                        let handler_clone = handler.clone();
+                                        async move {
+                                        let our_req = HttpRequest::from_actix_request(&req, &mut payload).await.unwrap();
+                                        let our_res = HttpResponse::new();
+                                        let future = handler_clone(our_req, our_res);
+                                            let response = future.await;
+                                            response.to_responder()
+                                        }
                                 }),
                             );
                         }
                         HttpMethods::PUT => {
                             app = app.route(
                                 &path,
-                                actix_web::web::put().to(move |req: actix_web::HttpRequest| {
-                                    let our_req = HttpRequest::from_actix_request(&req);
+                                actix_web::web::post().to(move |req: actix_web::HttpRequest, mut payload: actix_web::web::Payload| {
+                                    let handler_clone = handler.clone();
+                                    async move {
+
+                                    let our_req = HttpRequest::from_actix_request(&req, &mut payload).await.unwrap();
                                     let our_res = HttpResponse::new();
                                     let future = handler_clone(our_req, our_res);
-                                    async move {
                                         let response = future.await;
                                         response.to_responder()
                                     }
@@ -136,11 +142,12 @@ impl App {
                         HttpMethods::DELETE => {
                             app = app.route(
                                 &path,
-                                actix_web::web::delete().to(move |req: actix_web::HttpRequest| {
-                                    let our_req = HttpRequest::from_actix_request(&req);
+                                actix_web::web::post().to(move |req: actix_web::HttpRequest, mut payload: actix_web::web::Payload| {
+                                    let handler_clone = handler.clone();
+                                    async move {
+                                    let our_req = HttpRequest::from_actix_request(&req, &mut payload).await.unwrap();
                                     let our_res = HttpResponse::new();
                                     let future = handler_clone(our_req, our_res);
-                                    async move {
                                         let response = future.await;
                                         response.to_responder()
                                     }
