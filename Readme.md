@@ -4,8 +4,6 @@
 
 #### NOTE: This still is an experiment don't think i will be able to complete it
 
-### [Docs](./docs/getting-started.md)
-
 ### What am i making
 
 - So it's basically an http server
@@ -21,6 +19,10 @@
 ### What will the throwaway version have
 
 - Only focused on routing different types of requests no middleware support
+
+### [DOCS](./docs/getting-started.md)
+
+### [Changelog](./CHANGELOG.md)
 
 ### Public Api
 
