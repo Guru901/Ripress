@@ -246,9 +246,17 @@ impl HttpRequest {
         self.body.content_type = RequestBodyType::TEXT;
         self.body.content = RequestBodyContent::TEXT(text.to_string());
     }
-
     pub fn set_form(&mut self, key: &str, value: &str) {
         self.body.content_type = RequestBodyType::FORM;
-        self.body.content = RequestBodyContent::FORM(format!("{key}={value}"));
+
+        match &mut self.body.content {
+            RequestBodyContent::FORM(existing) => {
+                existing.push('&');
+                existing.push_str(&format!("{key}={value}"));
+            }
+            _ => {
+                self.body.content = RequestBodyContent::FORM(format!("{key}={value}"));
+            }
+        }
     }
 }
