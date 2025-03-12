@@ -29,6 +29,7 @@ pub struct HttpRequest {
     queries: HashMap<String, String>,
     body: RequestBody,
     ip: String,
+    method: String,
 }
 
 impl HttpRequest {
@@ -41,11 +42,16 @@ impl HttpRequest {
                 content: RequestBodyContent::TEXT(String::new()),
             },
             ip: String::new(),
+            method: String::new(),
         }
     }
 
     pub fn is(&self, content_type: RequestBodyType) -> bool {
         self.body.content_type == content_type
+    }
+
+    pub fn get_method(&self) -> String {
+        self.method.to_string()
     }
 
     pub fn ip(&self) -> Option<String> {
@@ -130,6 +136,7 @@ impl HttpRequest {
         }
 
         let ip = get_real_ip(&req);
+        let method = req.method().to_string();
 
         let params: HashMap<String, String> = req
             .match_info()
@@ -203,7 +210,8 @@ impl HttpRequest {
             params,
             queries,
             body: request_body,
-            ip: ip,
+            ip,
+            method,
         })
     }
 }
