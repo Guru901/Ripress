@@ -7,14 +7,14 @@ pub struct HttpResponse {
     content_type: ContentType,
 }
 
-#[derive(PartialEq)]
-enum ContentType {
+#[derive(PartialEq, Debug, Clone)]
+pub(crate) enum ContentType {
     JSON,
     TEXT,
 }
 
 #[derive(Serialize)]
-enum ContentBody {
+pub(crate) enum ContentBody {
     JSON(serde_json::Value),
     TEXT(String),
 }
@@ -93,5 +93,20 @@ impl Responder for HttpResponse {
 
     fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse {
         self.to_responder()
+    }
+}
+
+#[cfg(test)]
+impl HttpResponse {
+    pub fn get_status_code(&self) -> i32 {
+        self.status_code
+    }
+
+    pub fn get_content_type(&self) -> ContentType {
+        self.content_type.clone()
+    }
+
+    pub fn get_body(self) -> ContentBody {
+        self.body
     }
 }

@@ -16,7 +16,7 @@ where
 type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
 
 #[derive(Eq, Hash, PartialEq, Clone)]
-enum HttpMethods {
+pub(crate) enum HttpMethods {
     GET,
     PUT,
     POST,
@@ -167,5 +167,11 @@ impl App {
     fn add_route(&mut self, method: HttpMethods, path: &'static str, handler: Handler) {
         let path_handlers = self.routes.entry(path).or_insert_with(HashMap::new);
         path_handlers.insert(method, handler);
+    }
+}
+#[cfg(test)]
+impl App {
+    pub fn get_routes(&self) -> &Routes {
+        &self.routes
     }
 }
