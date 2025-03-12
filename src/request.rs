@@ -71,6 +71,40 @@ impl HttpRequest {
         }
     }
 
+    pub fn text(&self) -> Result<String, String> {
+        let body = self.body.clone();
+
+        if body.content_type == RequestBodyType::TEXT {
+            if let RequestBodyContent::TEXT(text_value) = body.content {
+                Ok(text_value)
+            } else {
+                Err(String::from("Invalid JSON content"))
+            }
+        } else {
+            Err(String::from("Wrong body type"))
+        }
+    }
+
+    pub fn form_data(&self) -> Result<HashMap<String, String>, String> {
+        let mut form_data: HashMap<String, String> = HashMap::new();
+        let body = self.body.clone();
+
+        if body.content_type == RequestBodyType::FORM {
+            if let RequestBodyContent::FORM(text_value) = body.content {
+                text_value.split("&").for_each(|pair| {
+                    if let Some((key, value)) = pair.split_once("=") {
+                        form_data.insert(key.to_string(), value.to_string());
+                    }
+                });
+                Ok(form_data)
+            } else {
+                Err(String::from("Invalid JSON content"))
+            }
+        } else {
+            Err(String::from("Wrong body type"))
+        }
+    }
+
     pub fn from_actix_request<'a>(
         req: &'a actix_web::HttpRequest,
         payload: &'a mut actix_web::web::Payload,
@@ -171,6 +205,8 @@ fn determine_content_type(req: &actix_web::HttpRequest) -> RequestBodyType {
                 return RequestBodyType::JSON;
             } else if content_type_str.contains("application/x-www-form-urlencoded") {
                 return RequestBodyType::FORM;
+            } else {
+                return RequestBodyType::TEXT;
             }
         }
     }
