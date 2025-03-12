@@ -12,3 +12,4 @@ actix-web = "4.9.0"
 serde = { version = "1.0.219", features = ["derive"] }
 tokio = { version = "1.44.0", features = ["full"] }
 futures-util = "0.3.31"
+jsonparser = "0.2.1"

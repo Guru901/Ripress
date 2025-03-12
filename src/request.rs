@@ -1,7 +1,7 @@
 use futures_util::stream::StreamExt;
 use std::{collections::HashMap, future::Future};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum RequestBodyType {
     JSON,
     TEXT,
@@ -10,9 +10,16 @@ enum RequestBodyType {
 
 impl Copy for RequestBodyType {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub enum RequestBodyContent {
+    TEXT(String),
+    JSON(serde_json::Value),
+    FORM(String),
+}
+
+#[derive(Debug, Clone)]
 struct RequestBody {
-    content: String,
+    content: RequestBodyContent,
     content_type: RequestBodyType,
 }
 
@@ -44,9 +51,24 @@ impl HttpRequest {
         return None;
     }
 
-    pub fn get_body(&self) -> Option<String> {
-        let body = self.body.content.clone();
-        Some(body)
+    pub fn json<J>(&self) -> Result<J, String>
+    where
+        J: serde::de::DeserializeOwned + serde::Serialize,
+    {
+        let body = self.body.clone();
+
+        if body.content_type == RequestBodyType::JSON {
+            if let RequestBodyContent::JSON(json_value) = body.content {
+                match serde_json::from_value::<J>(json_value) {
+                    Ok(serialized) => Ok(serialized),
+                    Err(e) => Err(format!("Failed to deserialize JSON: {}", e)),
+                }
+            } else {
+                Err(String::from("Invalid JSON content"))
+            }
+        } else {
+            Err(String::from("Wrong body type"))
+        }
     }
 
     pub fn from_actix_request<'a>(
@@ -73,23 +95,71 @@ impl HttpRequest {
                 body.extend_from_slice(&chunk);
             }
 
-            let body_string = match std::str::from_utf8(&body) {
-                Ok(s) => s.to_string(),
-                Err(_) => return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence")),
-            };
+            let content_type = determine_content_type(&req);
 
-            return Ok(HttpRequest {
-                params: req
-                    .match_info()
-                    .iter()
-                    .map(|(k, v)| (k.to_string(), v.to_string()))
-                    .collect(),
-                queries,
-                body: RequestBody {
-                    content: body_string,
-                    content_type: RequestBodyType::TEXT,
-                },
-            });
+            match content_type {
+                RequestBodyType::FORM => {
+                    let body_string = match std::str::from_utf8(&body) {
+                        Ok(s) => s.to_string(),
+                        Err(_) => {
+                            return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"))
+                        }
+                    };
+                    return Ok(HttpRequest {
+                        params: req
+                            .match_info()
+                            .iter()
+                            .map(|(k, v)| (k.to_string(), v.to_string()))
+                            .collect(),
+                        queries,
+                        body: RequestBody {
+                            content: RequestBodyContent::FORM(body_string),
+                            content_type: RequestBodyType::FORM,
+                        },
+                    });
+                }
+                RequestBodyType::JSON => {
+                    let body_json = match std::str::from_utf8(&body) {
+                        Ok(s) => serde_json::from_str(s),
+                        Err(_) => {
+                            return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"))
+                        }
+                    };
+                    return Ok(HttpRequest {
+                        params: req
+                            .match_info()
+                            .iter()
+                            .map(|(k, v)| (k.to_string(), v.to_string()))
+                            .collect(),
+                        queries,
+                        body: RequestBody {
+                            content: RequestBodyContent::JSON(body_json.unwrap()),
+                            content_type: RequestBodyType::JSON,
+                        },
+                    });
+                }
+                RequestBodyType::TEXT => {
+                    let body_string = match std::str::from_utf8(&body) {
+                        Ok(s) => s.to_string(),
+                        Err(_) => {
+                            return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"))
+                        }
+                    };
+
+                    return Ok(HttpRequest {
+                        params: req
+                            .match_info()
+                            .iter()
+                            .map(|(k, v)| (k.to_string(), v.to_string()))
+                            .collect(),
+                        queries,
+                        body: RequestBody {
+                            content: RequestBodyContent::TEXT(body_string),
+                            content_type: RequestBodyType::TEXT,
+                        },
+                    });
+                }
+            }
         }
     }
 }

@@ -81,12 +81,10 @@ impl App {
     pub async fn listen(self, addr: &str) {
         println!("Server listening on {}", addr);
 
-        let routes = self.routes.clone();
-
         actix_web::HttpServer::new(move || {
             let mut app = actix_web::App::new();
 
-            for (path, methods) in &routes {
+            for (path, methods) in self.routes.clone() {
                 for (method, handler) in methods {
                     let method = method.clone();
 
