@@ -4,6 +4,8 @@
 
 #### NOTE: This still is an experiment don't think i will be able to complete it
 
+### [Docs](./docs/getting-started.md)
+
 ### What am i making
 
 - So it's basically an http server
