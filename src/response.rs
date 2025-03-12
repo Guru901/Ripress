@@ -39,6 +39,26 @@ impl HttpResponse {
         return self;
     }
 
+    pub fn ok(mut self) -> Self {
+        self.status_code = 200;
+        return self;
+    }
+
+    pub fn bad_request(mut self) -> Self {
+        self.status_code = 400;
+        return self;
+    }
+
+    pub fn not_found(mut self) -> Self {
+        self.status_code = 401;
+        return self;
+    }
+
+    pub fn internal_server_error(mut self) -> Self {
+        self.status_code = 500;
+        return self;
+    }
+
     pub fn json(mut self, json: serde_json::Value) -> Self {
         self.body = ContentBody::JSON(json);
         self.content_type = ContentType::JSON;
