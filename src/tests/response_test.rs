@@ -1,16 +1,17 @@
 #[cfg(test)]
 mod tests {
-    use crate::response::{ContentBody, ContentType, HttpResponse};
+    use crate::response::HttpResponse;
+    use crate::types::{ResponseContentBody, ResponseContentType};
     use serde_json::json;
 
     #[test]
     fn test_default_response() {
         let response = HttpResponse::new();
         assert_eq!(response.get_status_code(), 200);
-        assert_eq!(response.get_content_type(), ContentType::JSON);
+        assert_eq!(response.get_content_type(), ResponseContentType::JSON);
 
         // Edge case: Check default body content
-        if let ContentBody::TEXT(body) = response.get_body() {
+        if let ResponseContentBody::TEXT(body) = response.get_body() {
             assert_eq!(body, "");
         } else {
             panic!("Expected TEXT body");
@@ -31,8 +32,8 @@ mod tests {
     fn test_json_response() {
         let json_body = json!({"key": "value"});
         let response = HttpResponse::new().json(json_body.clone());
-        assert_eq!(response.get_content_type(), ContentType::JSON);
-        if let ContentBody::JSON(body) = response.get_body() {
+        assert_eq!(response.get_content_type(), ResponseContentType::JSON);
+        if let ResponseContentBody::JSON(body) = response.get_body() {
             assert_eq!(body, json_body);
         } else {
             panic!("Expected JSON body");
@@ -41,7 +42,7 @@ mod tests {
         // Edge case: Empty JSON object
         let empty_json = json!({});
         let response = HttpResponse::new().json(empty_json.clone());
-        if let ContentBody::JSON(body) = response.get_body() {
+        if let ResponseContentBody::JSON(body) = response.get_body() {
             assert_eq!(body, empty_json);
         } else {
             panic!("Expected JSON body");
@@ -52,8 +53,8 @@ mod tests {
     fn test_text_response() {
         let text_body = "Hello, World!";
         let response = HttpResponse::new().text(text_body);
-        assert_eq!(response.get_content_type(), ContentType::TEXT);
-        if let ContentBody::TEXT(body) = response.get_body() {
+        assert_eq!(response.get_content_type(), ResponseContentType::TEXT);
+        if let ResponseContentBody::TEXT(body) = response.get_body() {
             assert_eq!(body, text_body);
         } else {
             panic!("Expected TEXT body");
@@ -61,7 +62,7 @@ mod tests {
 
         // Edge case: Empty text body
         let response = HttpResponse::new().text("");
-        if let ContentBody::TEXT(body) = response.get_body() {
+        if let ResponseContentBody::TEXT(body) = response.get_body() {
             assert_eq!(body, "");
         } else {
             panic!("Expected TEXT body");
