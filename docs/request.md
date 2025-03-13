@@ -17,23 +17,6 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
-## Checking Content-Type
-
-Checks if the `Content-Type` of the request matches the specified type.
-
-- Example
-
-```rust
-use ripress::types::RequestBodyType;
-let req = ripress::context::HttpRequest::new();
-
-if req.is(RequestBodyType::JSON) {
-    println!("Request is JSON");
-}
-```
-
-Returns `true` if the `Content-Type` matches, otherwise `false`.
-
 ## Getting Request Method
 
 Returns the request's method (GET, POST, etc.)
@@ -88,21 +71,6 @@ req.get_path();
 
 - Some(path) if available, or None if it cannot be determined.
 
-## Getting Client IP Address
-
-Returns the client's IP address.
-
-- Example
-
-```rust
-let ip = req.ip();
-println!("Client IP: {:?}", ip);
-```
-
-This function retrieves the IP address of the client making the request.
-
-Returns an `Option<String>`, where `Some(ip)` contains the IP if available, or `None` if it cannot be determined.
-
 ## Accessing URL Parameters
 
 ```rust
@@ -131,6 +99,38 @@ let value = req.get_query("key");
 ```rust
 let search_query = req.get_query("q").unwrap_or("default".to_string());
 ```
+
+## Checking Content-Type
+
+Checks if the `Content-Type` of the request matches the specified type.
+
+- Example
+
+```rust
+use ripress::types::RequestBodyType;
+let req = ripress::context::HttpRequest::new();
+
+if req.is(RequestBodyType::JSON) {
+    println!("Request is JSON");
+}
+```
+
+Returns `true` if the `Content-Type` matches, otherwise `false`.
+
+## Getting Client IP Address
+
+Returns the client's IP address.
+
+- Example
+
+```rust
+let ip = req.ip();
+println!("Client IP: {:?}", ip);
+```
+
+This function retrieves the IP address of the client making the request.
+
+Returns an `Option<String>`, where `Some(ip)` contains the IP if available, or `None` if it cannot be determined.
 
 ## Reading Request Body
 
