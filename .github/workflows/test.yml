@@ -11,7 +11,7 @@ on:
 
 jobs:
   test:
-    name: Run Cargo Tests
+    name: Run Cargo and Playwright Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -32,5 +32,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Run Cargo Test
+      - name: Run Cargo Tests
         run: cargo test --all --verbose
+
+      - name: Set up Bun
+        run: curl -fsSL https://bun.sh/install | bash
+
+      - name: Add Bun to PATH
+        run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
+
+      - name: Install Playwright Browsers
+        run: bunx playwright install --with-deps
+
+      - name: Run Playwright Tests
+        run: bunx playwright test tests
