@@ -201,8 +201,10 @@ impl HttpRequest {
     ///
     /// This function returns the value of the specified header.
     pub fn get_header(&self, header_name: &str) -> Option<&String> {
+        let header_name = header_name.to_lowercase();
         self.headers.get(&header_name.to_string())
     }
+
     /// Returns query parameters.
     ///
     /// # Example
@@ -349,7 +351,10 @@ impl HttpRequest {
         let mut cookies: HashMap<String, String> = HashMap::new();
 
         req.cookies().iter().for_each(|cookie| {
-            cookies.insert(cookie[0].name().to_string(), cookie[0].value().to_string());
+            if let Some(first_cookie) = cookie.get(0) {
+                let (name, value) = (first_cookie.name(), first_cookie.value());
+                cookies.insert(name.to_string(), value.to_string());
+            }
         });
 
         let mut headers: HashMap<String, String> = HashMap::new();
