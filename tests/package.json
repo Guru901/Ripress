@@ -1,6 +1,5 @@
 {
   "name": "tests",
-  "module": "src/main.ts",
   "type": "module",
   "devDependencies": {
     "@playwright/test": "^1.51.0",

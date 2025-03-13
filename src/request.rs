@@ -2,6 +2,7 @@ use crate::types::{HttpMethods, RequestBodyContent, RequestBodyType};
 use actix_web::http::Method;
 use futures_util::stream::StreamExt;
 use std::collections::HashMap;
+use url;
 
 #[derive(Debug, Clone)]
 struct RequestBody {
@@ -306,11 +307,12 @@ impl HttpRequest {
 
         if body.content_type == RequestBodyType::FORM {
             if let RequestBodyContent::FORM(ref text_value) = body.content {
-                text_value.split("&").for_each(|pair| {
-                    if let Some((key, value)) = pair.split_once("=") {
+                serde_urlencoded::from_str::<HashMap<String, String>>(text_value)
+                    .map_err(|e| e.to_string())?
+                    .into_iter()
+                    .for_each(|(key, value)| {
                         form_data.insert(key.to_string(), value.to_string());
-                    }
-                });
+                    });
                 Ok(form_data)
             } else {
                 Err(String::from("Invalid form content"))
@@ -325,15 +327,11 @@ impl HttpRequest {
         mut payload: actix_web::web::Payload,
     ) -> Result<Self, actix_web::Error> {
         // Extract all necessary data from the request early
-        let mut queries = HashMap::new();
         let query_string = req.query_string();
-        if !query_string.is_empty() {
-            query_string.split("&").for_each(|pair| {
-                if let Some((key, value)) = pair.split_once("=") {
-                    queries.insert(key.to_string(), value.to_string());
-                }
-            });
-        }
+
+        let queries = url::form_urlencoded::parse(query_string.as_bytes())
+            .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
+            .collect::<HashMap<String, String>>();
 
         let ip = get_real_ip(&req);
 

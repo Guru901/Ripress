@@ -11,7 +11,7 @@ on:
 
 jobs:
   test:
-    name: Run Cargo Tests
+    name: Run Cargo and Playwright Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -32,5 +32,5 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Run Cargo Test
+      - name: Run Cargo Tests
         run: cargo test --all --verbose
