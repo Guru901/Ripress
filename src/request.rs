@@ -18,8 +18,8 @@ struct RequestBody {
 /// use ripress::context::HttpRequest;
 ///
 /// let req = HttpRequest::new();
-/// println!("Request method: {}", req.method());
-/// println!("Client IP: {}", req.ip());
+/// println!("Request method: {}", req.get_method());
+/// println!("Client IP: {}", req.ip().unwrap());
 /// ```
 ///
 /// # Fields
@@ -134,6 +134,7 @@ impl HttpRequest {
     ///
     /// # Example
     /// ```
+    /// let req = ripress::context::HttpRequest::new();
     /// let ip = req.ip();
     /// println!("Client IP: {:?}", ip);
     /// ```
@@ -180,7 +181,7 @@ impl HttpRequest {
     /// Returns request's json body.
     ///
     /// # Example
-    /// ```
+    /// ```no_run
     /// #[derive(serde::Deserialize, serde::Serialize)]
     /// struct MyStruct {
     ///     name: String,
@@ -242,15 +243,15 @@ impl HttpRequest {
         }
     }
 
-    /// Returns request's text body.
+    /// Returns request's form_data body.
     ///
     /// # Example
-    /// ```
+    /// ```no_run
     /// let req = ripress::context::HttpRequest::new();
     /// // Let' say form data was sent as key=value and key2=value2
     /// let form_data = req.form_data().unwrap();
-    /// println!("key = : {:?}", form_data.get(key));
-    /// println!("key2 = : {:?}", form_data.get(key2));
+    /// println!("key = : {:?}", form_data.get("key"));
+    /// println!("key2 = : {:?}", form_data.get("key2"));
     /// ```
     ///
     /// This function returns a HashMap of the form data.
