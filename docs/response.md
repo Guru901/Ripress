@@ -1,65 +1,123 @@
-# Response Object (HttpResponse)
+# Response Examples
 
-## Overview
+The `HttpResponse` object in Ripress provides various methods for handling responses, including sending text, JSON, status codes, and cookies. This document demonstrates different response-handling scenarios.
 
-`HttpResponse` represents an outgoing HTTP response and provides utilities for sending data back to the client.
+## Basic Responses
 
-## Creating a Response Object
+### Sending a Plain Text Response
 
-HttpResponse is automatically passed to route handlers.
-The return type of a route handler is HttpResponse.
-
-Example:
+Use `.text()` to send a plain text response.
 
 ```rust
-async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let body = req.text().unwrap_or("No body".to_string());
-    res.ok().text(format!("Received: {}", body))
+async fn text_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().text("Hello, World!")
 }
 ```
 
-## Sending Status code
+### Sending a JSON Response
 
-Sends a status code to the client.
-
-- Example
+To return a JSON response, use `.json()` with a serializable Rust struct.
 
 ```rust
-let res = ripress::context::HttpResponse::new();
-res.status(code)
+#[derive(serde::Serialize)]
+struct Message {
+    message: String,
+}
+
+async fn json_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let response_body = Message {
+        message: "Success".to_string(),
+    };
+    res.ok().json(&response_body)
+}
 ```
 
-Sends the status code specified by the `code` parameter.
+---
 
-## Status code helpers
+## Status Codes
 
-- Example
+### Setting a Custom Status Code
+
+You can manually set a status code using `.status()`.
 
 ```rust
-let res = ripress::context::HttpResponse::new();
-res.ok(); // 200 OK - Request succeeded
-res.bad_request(); // 400 Bad Request - Client sent invalid data
-res.not_found(); // 404 Not Found - Resource does not exist
-res.internal_server_error(); // 500 Internal Server Error - Something went wrong on the server
+async fn custom_status(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.status(418).text("I'm a teapot")
+}
 ```
 
-## Send data to the client
+### Status Code Helpers
 
-### JSON
+Ripress provides convenient helper methods for common status codes.
 
-Sends a JSON response to the client.
+#### **200 OK**
 
 ```rust
-use serde_json::json;
-
-let json_body = json!({"key": "value"});
-let res = ripress::context::HttpResponse::new().json(json_body);
+async fn ok_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().text("Request successful")
+}
 ```
 
-### Text
-
-Sends a text response to the client.
+#### **400 Bad Request**
 
 ```rust
-let res = ripress::context::HttpResponse::new().text("Hello, World!");
+async fn bad_request(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.bad_request().text("Invalid request")
+}
+```
+
+#### **404 Not Found**
+
+```rust
+async fn not_found(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.not_found().text("Resource not found")
+}
+```
+
+#### **500 Internal Server Error**
+
+```rust
+async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.internal_server_error().text("An unexpected error occurred")
+}
+```
+
+---
+
+## Headers and Cookies
+
+### Setting a Response Header
+
+Use `.set_header()` to modify the response headers.
+
+```rust
+async fn custom_header(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_header("X-Custom-Header", "MyValue")
+        .ok()
+        .text("Header added")
+}
+```
+
+### Sending Cookies
+
+Use `.set_cookie()` to attach a cookie to the response.
+
+```rust
+async fn cookie_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_cookie("session", "abc123; HttpOnly")
+        .ok()
+        .json(json!({ "message": "Cookie set" }))
+}
+```
+
+### Removing Cookies
+
+Use `.clear_cookie(key)` to attach a cookie to the response.
+
+```rust
+async fn remove_cookie(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.clear_cookie("session")
+        .ok()
+        .json(json!({ "message": "Cookie set" }))
+}
 ```

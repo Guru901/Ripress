@@ -2,7 +2,6 @@
 mod tests {
     use crate::response::HttpResponse;
     use crate::types::{ResponseContentBody, ResponseContentType};
-    use actix_web::Responder;
     use serde_json::json;
 
     #[test]

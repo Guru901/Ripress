@@ -37,6 +37,9 @@ pub struct HttpResponse {
 
     // Sets response headers
     headers: HashMap<String, String>,
+
+    // Cookies to be removed
+    remove_cookies: Vec<String>,
 }
 
 impl HttpResponse {
@@ -47,6 +50,7 @@ impl HttpResponse {
             content_type: ResponseContentType::JSON,
             cookies: HashMap::new(),
             headers: HashMap::new(),
+            remove_cookies: Vec::new(),
         }
     }
 
@@ -61,6 +65,20 @@ impl HttpResponse {
 
     pub fn set_cookie(mut self, key: &str, value: &str) -> Self {
         self.cookies.insert(key.to_string(), value.to_string());
+        return self;
+    }
+
+    /// Removes a cookie from the response.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::context::HttpResponse;
+    /// let res = HttpResponse::new();
+    /// res.clear_cookie("key"); // The cookie gets removed
+    /// ```
+
+    pub fn clear_cookie(mut self, key: &str) -> Self {
+        self.remove_cookies.push(key.to_string());
         return self;
     }
 
@@ -199,17 +217,23 @@ impl HttpResponse {
                 actix_web::HttpResponse::InternalServerError().body("Invalid status code")
             });
 
-        self.cookies.iter().for_each(|(key, value)| {
-            actix_res
-                .add_cookie(&actix_web::cookie::Cookie::build(key, value).finish())
-                .expect("Failed to add cookie");
-        });
-
         self.headers.iter().for_each(|(key, value)| {
             actix_res.headers_mut().append(
                 HeaderName::from_bytes(key.as_bytes()).unwrap(),
                 HeaderValue::from_str(value).unwrap(),
             )
+        });
+
+        self.remove_cookies.iter().for_each(|key| {
+            actix_res
+                .add_cookie(&actix_web::cookie::Cookie::build(key, "").finish())
+                .unwrap();
+        });
+
+        self.cookies.iter().for_each(|(key, value)| {
+            actix_res
+                .add_cookie(&actix_web::cookie::Cookie::build(key, value).finish())
+                .expect("Failed to add cookie");
         });
 
         return actix_res;
