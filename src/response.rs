@@ -1,4 +1,9 @@
-use actix_web::Responder;
+use std::collections::HashMap;
+
+use actix_web::{
+    http::header::{HeaderName, HeaderValue},
+    Responder,
+};
 
 use crate::types::{ResponseContentBody, ResponseContentType};
 
@@ -26,6 +31,15 @@ pub struct HttpResponse {
 
     // Content type of the response
     content_type: ResponseContentType,
+
+    // Sets response cookies
+    cookies: HashMap<String, String>,
+
+    // Sets response headers
+    headers: HashMap<String, String>,
+
+    // Cookies to be removed
+    remove_cookies: Vec<String>,
 }
 
 impl HttpResponse {
@@ -34,7 +48,52 @@ impl HttpResponse {
             status_code: 200,
             body: ResponseContentBody::TEXT(String::new()),
             content_type: ResponseContentType::JSON,
+            cookies: HashMap::new(),
+            headers: HashMap::new(),
+            remove_cookies: Vec::new(),
         }
+    }
+
+    /// Sets a cookie in the response.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::context::HttpResponse;
+    /// let res = HttpResponse::new();
+    /// res.set_cookie("key", "value"); // Sets the key cookie to value
+    /// ```
+
+    pub fn set_cookie(mut self, key: &str, value: &str) -> Self {
+        self.cookies.insert(key.to_string(), value.to_string());
+        return self;
+    }
+
+    /// Removes a cookie from the response.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::context::HttpResponse;
+    /// let res = HttpResponse::new();
+    /// res.clear_cookie("key"); // The cookie gets removed
+    /// ```
+
+    pub fn clear_cookie(mut self, key: &str) -> Self {
+        self.remove_cookies.push(key.to_string());
+        return self;
+    }
+
+    /// Sets a header in the response.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::context::HttpResponse;
+    /// let res = HttpResponse::new();
+    /// res.set_header("key", "value"); // Sets the key cookie to value
+    /// ```
+
+    pub fn set_header(mut self, key: &str, value: &str) -> Self {
+        self.headers.insert(key.to_string(), value.to_string());
+        return self;
     }
 
     /// Sets the status code of the response.
@@ -145,7 +204,7 @@ impl HttpResponse {
 
     pub fn to_responder(self) -> actix_web::HttpResponse {
         let body = self.body;
-        actix_web::http::StatusCode::from_u16(self.status_code as u16)
+        let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code as u16)
             .map(|status| match body {
                 ResponseContentBody::JSON(json) => actix_web::HttpResponse::build(status)
                     .content_type("application/json")
@@ -156,7 +215,28 @@ impl HttpResponse {
             })
             .unwrap_or_else(|_| {
                 actix_web::HttpResponse::InternalServerError().body("Invalid status code")
-            })
+            });
+
+        self.headers.iter().for_each(|(key, value)| {
+            actix_res.headers_mut().append(
+                HeaderName::from_bytes(key.as_bytes()).unwrap(),
+                HeaderValue::from_str(value).unwrap(),
+            )
+        });
+
+        self.remove_cookies.iter().for_each(|key| {
+            actix_res
+                .add_cookie(&actix_web::cookie::Cookie::build(key, "").finish())
+                .unwrap();
+        });
+
+        self.cookies.iter().for_each(|(key, value)| {
+            actix_res
+                .add_cookie(&actix_web::cookie::Cookie::build(key, value).finish())
+                .expect("Failed to add cookie");
+        });
+
+        return actix_res;
     }
 }
 
@@ -180,5 +260,12 @@ impl HttpResponse {
 
     pub(crate) fn get_body(self) -> ResponseContentBody {
         self.body
+    }
+
+    pub(crate) fn get_header(self, key: String) -> Option<String> {
+        self.headers.get(&key).cloned()
+    }
+    pub(crate) fn get_cookie(self, key: String) -> Option<String> {
+        self.cookies.get(&key).cloned()
     }
 }

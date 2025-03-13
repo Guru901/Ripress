@@ -61,7 +61,7 @@ async fn hello_world(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
-View more examples in the [examples](./docs/examples) directory.
+View more examples in the [examples](./docs/example/basic-routing.md) directory.
 
 ## Roadmap
 

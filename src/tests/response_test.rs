@@ -84,6 +84,20 @@ mod tests {
     }
 
     #[test]
+    fn test_cookies() {
+        let response = HttpResponse::new();
+        let response = response.set_cookie("key", "value");
+        assert_eq!(response.get_cookie("key".to_string()).unwrap(), "value");
+    }
+
+    #[test]
+    fn test_headers() {
+        let response = HttpResponse::new();
+        let response = response.set_header("key", "value");
+        assert_eq!(response.get_header("key".to_string()).unwrap(), "value");
+    }
+
+    #[test]
     fn test_to_responder() {
         let response = HttpResponse::new().ok().text("OK");
         let actix_response = response.to_responder();
