@@ -20,12 +20,26 @@ mod tests {
 
     #[test]
     fn test_status_code() {
-        let response = HttpResponse::new().status(404);
-        assert_eq!(response.get_status_code(), 404);
+        let response = HttpResponse::new().status(200);
+        assert_eq!(response.get_status_code(), 200);
 
-        // Edge case: Invalid status code
         let response = HttpResponse::new().status(999);
-        assert_eq!(response.get_status_code(), 999); // Assuming the implementation allows any integer
+        assert_eq!(response.get_status_code(), 999);
+    }
+
+    #[test]
+    fn test_status_code_helpers() {
+        let response = HttpResponse::new();
+        assert_eq!(response.ok().get_status_code(), 200);
+
+        let response = HttpResponse::new();
+        assert_eq!(response.bad_request().get_status_code(), 400);
+
+        let response = HttpResponse::new();
+        assert_eq!(response.internal_server_error().get_status_code(), 500);
+
+        let response = HttpResponse::new();
+        assert_eq!(response.not_found().get_status_code(), 404);
     }
 
     #[test]
