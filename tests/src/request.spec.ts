@@ -38,4 +38,62 @@ test.describe("Request Tests", () => {
     expect(body.param === "test");
     expect(body.query === "test-query");
   });
+
+  test("Set and get origin_url and path", async ({ request }) => {
+    const originUrlAndPathResponse = await request.get(
+      "/origin-url-and-path/test?q=test"
+    );
+
+    expect(originUrlAndPathResponse.status()).toBe(200);
+
+    const body = await originUrlAndPathResponse.json();
+    expect(
+      body.originUrl === "http://localhost:3000/origin-url-and-path/test?q=test"
+    );
+    expect(body.path === "/origin-url-and-path/test");
+  });
+
+  test("Test Ip", async ({ request }) => {
+    const ipResponse = await request.get("/ip-test");
+
+    expect(ipResponse.status()).toBe(200);
+
+    const body = await ipResponse.json();
+
+    expect(body.ip === "127.0.0.1");
+  });
+
+  test("Set and get json body", async ({ request }) => {
+    const jsonResponse = await request.post("/json-test", {
+      data: { name: "test", age: 123 },
+    });
+
+    expect(jsonResponse.status()).toBe(200);
+
+    const body = await jsonResponse.json();
+    expect(body.name === "test");
+    expect(body.age === 123);
+  });
+
+  test("Set and get text body", async ({ request }) => {
+    const textResponse = await request.post("/text-test", {
+      data: "test",
+    });
+
+    expect(textResponse.status()).toBe(200);
+
+    const body = await textResponse.text();
+    expect(body === "test");
+  });
+
+  test("Set and get form data", async ({ request }) => {
+    const jsonResponse = await request.post("/form-test", {
+      form: { name: "test" },
+    });
+
+    expect(jsonResponse.status()).toBe(200);
+
+    const body = await jsonResponse.json();
+    expect(body.name === "test");
+  });
 });
