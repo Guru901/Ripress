@@ -1,4 +1,8 @@
+use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
+
 use serde::Serialize;
+
+use crate::{context::HttpResponse, request::HttpRequest};
 
 // HttpRequest types
 
@@ -37,3 +41,17 @@ impl ResponseContentBody {
         ResponseContentBody::TEXT(text.into())
     }
 }
+
+// App types
+
+#[derive(Eq, Hash, PartialEq, Clone)]
+pub(crate) enum HttpMethods {
+    GET,
+    PUT,
+    POST,
+    DELETE,
+}
+
+pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
+pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
+pub type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
