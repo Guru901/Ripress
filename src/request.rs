@@ -53,6 +53,9 @@ pub struct HttpRequest {
 
     /// The requested endpoint path.
     path: String,
+
+    /// The request's headers
+    headers: HashMap<String, String>,
 }
 
 impl HttpRequest {
@@ -68,6 +71,7 @@ impl HttpRequest {
             method: String::new(),
             origin_url: String::new(),
             path: String::new(),
+            headers: HashMap::new(),
         }
     }
 
@@ -162,6 +166,20 @@ impl HttpRequest {
         self.params.get(param_name).map(|v| v.to_string())
     }
 
+    /// Returns header based on the key.
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// let header = req.get_header("id");
+    /// println!("header: {:?}", header.unwrap());
+    /// ```
+    ///
+    /// This function returns the value of the specified parameter from the URL.
+    /// Returns an `Option<String>`, where `Some(id)` contains the id if available, or `None` if it cannot be determined.
+    pub fn get_header(&self, header_name: &str) -> Option<&String> {
+        self.headers.get(&header_name.to_string())
+    }
     /// Returns query parameters.
     ///
     /// # Example
@@ -296,6 +314,11 @@ impl HttpRequest {
         let method = req.method().to_string();
         let origin_url = req.uri().to_string();
         let path = req.path().to_string();
+        let mut headers: HashMap<String, String> = HashMap::new();
+
+        req.headers().iter().for_each(|(key, value)| {
+            headers.insert(key.to_string(), value.to_str().unwrap().to_string());
+        });
 
         let params: HashMap<String, String> = req
             .match_info()
@@ -373,6 +396,7 @@ impl HttpRequest {
             method,
             origin_url,
             path,
+            headers,
         })
     }
 }
@@ -406,6 +430,10 @@ fn get_real_ip(req: &actix_web::HttpRequest) -> String {
 impl HttpRequest {
     pub fn set_query(&mut self, key: &str, value: &str) {
         self.queries.insert(key.to_string(), value.to_string());
+    }
+
+    pub fn set_header(&mut self, key: &str, value: &str) {
+        self.headers.insert(key.to_string(), value.to_string());
     }
 
     pub fn set_param(&mut self, key: &str, value: &str) {
