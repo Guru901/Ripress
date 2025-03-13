@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.2.4] - 2025-03-14
+
+### Added
+
+- Request Methods
+
+  - Added res.is method
+  - Added res.get_method method
+  - Added res.get_origin_url method
+  - Added res.get_cookie method
+  - Added res.get_path method
+  - Added res.ip method
+  - Added res.get_header method
+
+- Response Methods
+
+  - Added various helpers for status codes
+    - res.ok()
+    - res.bad_request()
+    - res.not_found()
+    - res.internal_server_error()
+
+- Added Docs
+- Added Unit Tests
+
+### Changed
+
+- Added a types module to make the codebase more readable and maintainable.
+
 ## [0.2.3] - 2025-03-12
 
 ### Added
