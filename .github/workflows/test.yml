@@ -1,0 +1,40 @@
+name: Rust CI
+
+on:
+  push:
+    branches:
+      - main
+      - guru/req
+      - guru/res
+      - guru/app
+      - guru/tests
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Cargo Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run Cargo Test
+        run: cargo test --all --verbose
