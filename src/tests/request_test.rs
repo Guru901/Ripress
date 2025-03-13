@@ -72,4 +72,30 @@ mod tests {
         assert_eq!(form_data.get("key").unwrap(), "value");
         assert_eq!(form_data.get("another_key").unwrap(), "another_value");
     }
+
+    #[test]
+    fn test_header() {
+        let mut req = HttpRequest::new();
+        req.set_header("key", "value");
+
+        assert_eq!(req.get_header("key").unwrap(), "value");
+        assert_eq!(req.get_header("non-existent"), None);
+
+        req.set_header("another_key", "another_value");
+        let header = req.get_header("another_key").unwrap();
+        assert_eq!(header, "another_value");
+    }
+
+    #[test]
+    fn text_cookie() {
+        let mut req = HttpRequest::new();
+        req.set_cookie("key", "value");
+
+        assert_eq!(req.get_cookie("key").unwrap(), "value");
+        assert_eq!(req.get_cookie("nonexistent"), None);
+
+        req.set_cookie("another_key", "another_value");
+        let cookie = req.get_cookie("another_key").unwrap();
+        assert_eq!(cookie, "another_value");
+    }
 }

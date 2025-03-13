@@ -56,6 +56,9 @@ pub struct HttpRequest {
 
     /// The request's headers
     headers: HashMap<String, String>,
+
+    /// The request's cookies
+    cookies: HashMap<String, String>,
 }
 
 impl HttpRequest {
@@ -72,6 +75,7 @@ impl HttpRequest {
             origin_url: String::new(),
             path: String::new(),
             headers: HashMap::new(),
+            cookies: HashMap::new(),
         }
     }
 
@@ -117,6 +121,19 @@ impl HttpRequest {
 
     pub fn get_origin_url(&self) -> Option<String> {
         Some(self.origin_url.to_string())
+    }
+
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// let cookie = req.get_cookie("value").unwrap();
+    /// println!("cookie: {}", cookie);
+    /// ```
+    /// This function returns the value of the specified cookie.
+
+    pub fn get_cookie(&self, name: &str) -> Option<String> {
+        self.cookies.get(name).map(|c| c.to_string())
     }
 
     /// Returns the request's path.
@@ -175,8 +192,7 @@ impl HttpRequest {
     /// println!("header: {:?}", header.unwrap());
     /// ```
     ///
-    /// This function returns the value of the specified parameter from the URL.
-    /// Returns an `Option<String>`, where `Some(id)` contains the id if available, or `None` if it cannot be determined.
+    /// This function returns the value of the specified header.
     pub fn get_header(&self, header_name: &str) -> Option<&String> {
         self.headers.get(&header_name.to_string())
     }
@@ -314,6 +330,13 @@ impl HttpRequest {
         let method = req.method().to_string();
         let origin_url = req.uri().to_string();
         let path = req.path().to_string();
+
+        let mut cookies: HashMap<String, String> = HashMap::new();
+
+        req.cookies().iter().for_each(|cookie| {
+            cookies.insert(cookie[0].name().to_string(), cookie[0].value().to_string());
+        });
+
         let mut headers: HashMap<String, String> = HashMap::new();
 
         req.headers().iter().for_each(|(key, value)| {
@@ -397,6 +420,7 @@ impl HttpRequest {
             origin_url,
             path,
             headers,
+            cookies,
         })
     }
 }
@@ -434,6 +458,10 @@ impl HttpRequest {
 
     pub fn set_header(&mut self, key: &str, value: &str) {
         self.headers.insert(key.to_string(), value.to_string());
+    }
+
+    pub fn set_cookie(&mut self, key: &str, value: &str) {
+        self.cookies.insert(key.to_string(), value.to_string());
     }
 
     pub fn set_param(&mut self, key: &str, value: &str) {
