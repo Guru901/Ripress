@@ -40,7 +40,7 @@ impl App {
     /// # Example
     ///
     /// ```
-    /// use ripress::{app::App, context::HttpResponse, request::HttpRequest};
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -69,7 +69,7 @@ impl App {
     /// # Example
     ///
     /// ```
-    /// use ripress::{app::App, context::HttpResponse, request::HttpRequest};
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -98,7 +98,7 @@ impl App {
     /// # Example
     ///
     /// ```
-    /// use ripress::{app::App, context::HttpResponse, request::HttpRequest};
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -127,7 +127,7 @@ impl App {
     /// # Example
     ///
     /// ```
-    /// use ripress::{app::App, context::HttpResponse, request::HttpRequest};
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -154,12 +154,16 @@ impl App {
     ///
     /// # Example
     ///
-    /// ```
-    /// use ripress::{app::App, context::HttpResponse, request::HttpRequest};
+    /// ```no_run
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
+    /// use tokio;
     ///
-    /// let mut app = App::new();
-    /// app.get("/hello", handler);
-    /// app.listen("127.0.0.1:3000").await;
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let mut app = App::new();
+    ///     app.listen("127.0.0.1:3000").await;
+    /// }
+    ///
     /// ```
 
     pub async fn listen(self, addr: &str) {
