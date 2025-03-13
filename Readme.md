@@ -1,75 +1,77 @@
 # Ripress
 
-### An express inspired rust based web framework
+### An express-inspired Rust-based web framework
 
-#### NOTE: This still is an experiment don't think i will be able to complete it
+"This is an experimental project, and its development may change over time."
 
-### What am i making
+## Table of Contents
 
-- So it's basically an http server
-- Written in rust
-- Inspired by express
-- First throwaway version will be built on top of actix web and then will see
+- [Overview](#overview)
+- [Goals](#goals)
+- [Installation](#installation)
+- [Examples](#basic-example)
+- [Roadmap](#roadmap)
+- [Documentation](#documentation)
+- [Changelog](#changelog)
 
-### What are my goals for the project
+---
 
-- I want the end user experience to be simple and intuitive like in express
-- I don't care much about performance in the starting as no matter how shitty my code will be it will be faster than actual express in typescript so, yeah
+## Overview
 
-### What will the throwaway version have
+Ripress is a web framework inspired by Express.js.
 
-- Only focused on routing different types of requests no middleware support
+## Goals
 
-### [DOCS](./docs/getting-started.md)
+- Provide an intuitive and simple API like Express.js
+- Focus on developer experience first; performance optimizations will come later
+- Prioritize ease of use over low-level control initially
 
-### [Changelog](./CHANGELOG.md)
+---
 
-### Public Api
+## Installation
+
+You can add `ripress` to your project using Cargo:
+
+```sh
+cargo add ripress
+```
+
+Or manually add it to your `Cargo.toml`:
+
+```toml
+[dependencies]
+ripress = "0.3.0"
+```
+
+## Basic Example
 
 ```rust
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
 
-#[derive(serde::Serialize, serde::Deserialize)]
-struct User {
-    name: String,
-    username: String,
-    password: String,
-}
-
 #[tokio::main]
 async fn main() {
     let mut app = App::new();
-    app.get("/user/{id}", get_user);
-    app.post("/user", save_user);
-    app.get("/search", search);
-
+    app.get("/", hello_world);
     app.listen("127.0.0.1:3000").await;
 }
 
-async fn get_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let user_id = req.get_params("id").unwrap();
-    return res.status(200).text(format!("Hello, {user_id}"));
-}
-
-async fn save_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let user = req.json::<User>().unwrap();
-
-    // Make db call
-
-    println!("name = {}", user.name);
-    println!("username = {}", user.username);
-    println!("password = {}", user.password);
-
-    // Save user
-
-    return res.status(200).text("User Saved");
-}
-
-async fn search(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let q = req.get_query("q").unwrap_or(String::new());
-    return res
-        .status(200)
-        .text(format!("Nothing found for search: {q}"));
+async fn hello_world(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().text("Hello, world!")
 }
 ```
+
+View more examples in the [examples](./docs/examples) directory.
+
+## Roadmap
+
+- **Middleware support** (Planned for next week)
+- **Playwright-based testing** (Coming in the next release)
+
+## Documentation
+
+[Getting Started Guide](./docs/getting-started.md)
+
+## Changelog
+
+[View Changelog](./CHANGELOG.md)

@@ -1,5 +1,7 @@
 # Changelog
 
+## Move the 0.2.4 changes under 0.3.0 and note that 0.2.4 was an accidental release.
+
 ## [0.2.4] - 2025-03-14
 
 ### Added
@@ -9,8 +11,8 @@
   - Added res.is method
   - Added res.get_method method
   - Added res.get_origin_url method
-  - Added res.get_cookie method
   - Added res.get_path method
+  - Added res.get_cookie method
   - Added res.ip method
   - Added res.get_header method
 

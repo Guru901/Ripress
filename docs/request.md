@@ -17,6 +17,19 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
+## Checking Content-Type
+
+Checks if the `Content-Type` of the request matches the specified type.
+
+- Example
+
+```rust
+let req = ripress::context::HttpRequest::new();
+req.is(RequestBodyType::JSON);
+```
+
+Returns `true` if the `Content-Type` matches, otherwise `false`.
+
 ## Getting Request Method
 
 Returns the request's method (GET, POST, etc.)
@@ -27,6 +40,8 @@ Returns the request's method (GET, POST, etc.)
 let req = ripress::context::HttpRequest::new();
 req.get_method(); // returns (GET, POST, etc.)
 ```
+
+Returns and enum `HttpMethods`
 
 ## Getting Request Origin URL
 
@@ -47,9 +62,7 @@ req.get_origin_url();
 - For request: GET /user/123?q=hello
 - origin_url → /user/123?q=hello
 
-- Returns: Option<String>
-
-Some(url) if available, or None if it cannot be determined.
+Returns `Some(String)` if available, or `None` if it cannot be determined.
 
 ## Getting Request Path
 
@@ -67,9 +80,46 @@ req.get_path();
 - For request: GET /user/123?q=hello
 - path → /user/123
 
-- Returns: Option<String>
+Returns `Some(String)` if available, or `None` if it cannot be determined.
 
-- Some(path) if available, or None if it cannot be determined.
+## Getting Request Cookies
+
+Returns the specified cookie, if available.
+
+- Example
+
+```rust
+let req = ripress::context::HttpRequest::new();
+req.get_cookie("key");
+```
+
+Returns a `Some(String)` if the cookie is available, or `None` if it is not.
+
+## Getting Client's IP Address
+
+Returns the client's IP address.
+
+- Example
+
+```rust
+let req = ripress::context::HttpRequest::new();
+req.ip();
+```
+
+Returns a `Some(String)` if the ip could be determined, or `None` if it could not be determined.
+
+## Getting Request Headers
+
+Returns the specified header, if available.
+
+- Example
+
+```rust
+let req = ripress::context::HttpRequest::new();
+req.get_header("key");
+```
+
+Returns a `Some(String)` if the header is available, or `None` if it is not.
 
 ## Accessing URL Parameters
 
@@ -86,6 +136,8 @@ let value = req.get_params("key");
 let user_id = req.get_params("id").unwrap_or("unknown".to_string());
 ```
 
+Returns `Some(String)` if the parameter exists, otherwise `None`.
+
 ## Accessing Query Parameters
 
 ```rust
@@ -99,6 +151,8 @@ let value = req.get_query("key");
 ```rust
 let search_query = req.get_query("q").unwrap_or("default".to_string());
 ```
+
+Returns `Some(String)` if the query parameter exists, otherwise `None`.
 
 ## Checking Content-Type
 
@@ -140,7 +194,6 @@ Returns an `Option<String>`, where `Some(ip)` contains the IP if available, or `
 let data = req.json::<MyDataType>();
 ```
 
-- Returns: `Ok(value)` if the URL parameter exists, otherwise `Err(error)`.
 - Example: `POST /submit/json` with `{"name": "John Doe", "age": 30}`
 - Usage:
 
@@ -156,13 +209,14 @@ println!("Name: {}", user.name); // Prints "John Doe"
 println!("Age : {}", user.age); // Prints "30"
 ```
 
+Returns `Ok(value)` if the URL parameter exists, otherwise `Err(error)`.
+
 ### Text Body
 
 ```rust
 let data = req.text();
 ```
 
-- Returns: `Ok(value)` if the URL parameter exists, otherwise `Err(error)`.
 - Example: `POST /submit/text` with `"Hello, world!"`
 - Usage:
 
@@ -170,6 +224,8 @@ let data = req.text();
 let text = req.text().unwrap_or("No text".to_string());
 println!("Text: {}", text); // Prints "Hello, world!"
 ```
+
+Returns `Ok(value)` if the URL parameter exists, otherwise `Err(error)`.
 
 ### Form Data
 
@@ -179,7 +235,6 @@ This function parses the request body as form-encoded data (application/x-www-fo
 let data = req.form_data();
 ```
 
-- Returns: `Ok(value)` if the URL parameter exists, otherwise `Err(error)`.
 - Example: `POST /submit/form` with `key=value&key2=value2`
 - Usage:
 
@@ -188,3 +243,5 @@ let form_data = req.form_data().unwrap_or(HashMap::new());
 println!("Key: {}", form_data.get("key").unwrap_or("No key")); // Prints "value"
 println!("Key2: {}", form_data.get("key2").unwrap_or("No key2")); // Prints "value2"
 ```
+
+Returns`Ok(value)` if the URL parameter exists, otherwise `Err(error)`.
