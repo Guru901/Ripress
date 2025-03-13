@@ -1,26 +1,14 @@
-use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
+use std::{collections::HashMap, future::Future, sync::Arc};
 
 use crate::request::HttpRequest;
 use crate::response::HttpResponse;
-
-type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
-type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
+use crate::types::{Fut, Handler, HttpMethods, Routes};
 
 fn box_future<F>(future: F) -> Fut
 where
     F: Future<Output = HttpResponse> + Send + 'static,
 {
     Box::pin(future)
-}
-
-type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
-
-#[derive(Eq, Hash, PartialEq, Clone)]
-pub(crate) enum HttpMethods {
-    GET,
-    PUT,
-    POST,
-    DELETE,
 }
 
 pub struct App {
@@ -42,6 +30,26 @@ impl App {
         };
     }
 
+    /// Add a GET route to the application.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::{app::App, context::HttpResponse, request::HttpRequest};
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.get("/hello", handler);
+    /// ```
+
     pub fn get<F, Fut>(&mut self, path: &'static str, handler: F)
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
@@ -50,6 +58,26 @@ impl App {
         let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
         self.add_route(HttpMethods::GET, path, wrapped_handler);
     }
+
+    /// Add a POST route to the application.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::{app::App, context::HttpResponse, request::HttpRequest};
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.post("/hello", handler);
+    /// ```
 
     pub fn post<F, Fut>(&mut self, path: &'static str, handler: F)
     where
@@ -60,6 +88,26 @@ impl App {
         self.add_route(HttpMethods::POST, path, wrapped_handler);
     }
 
+    /// Add a PUT route to the application.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::{app::App, context::HttpResponse, request::HttpRequest};
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.put("/hello", handler);
+    /// ```
+
     pub fn put<F, Fut>(&mut self, path: &'static str, handler: F)
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
@@ -69,6 +117,26 @@ impl App {
         self.add_route(HttpMethods::PUT, path, wrapped_handler);
     }
 
+    /// Add a DELETE route to the application.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::{app::App, context::HttpResponse, request::HttpRequest};
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.delete("/hello", handler);
+    /// ```
+
     pub fn delete<F, Fut>(&mut self, path: &'static str, handler: F)
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
@@ -77,6 +145,22 @@ impl App {
         let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
         self.add_route(HttpMethods::DELETE, path, wrapped_handler);
     }
+
+    /// Starts the server and listens on the specified address.
+    ///
+    /// # Arguments
+    ///
+    /// * `addr` - The address to listen on e.g. "127.0.0.1:3000".
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::{app::App, context::HttpResponse, request::HttpRequest};
+    ///
+    /// let mut app = App::new();
+    /// app.get("/hello", handler);
+    /// app.listen("127.0.0.1:3000").await;
+    /// ```
 
     pub async fn listen(self, addr: &str) {
         println!("Server listening on {}", addr);
@@ -164,6 +248,14 @@ impl App {
         .unwrap();
     }
 
+    /// Adds a route to the application.
+    ///
+    /// # Arguments
+    ///
+    /// * `method` - The HTTP method (GET, POST, PUT, DELETE) of the route.
+    /// * `path` - The path of the route.
+    /// * `handler` - The handler function for the route.
+    ///
     fn add_route(&mut self, method: HttpMethods, path: &'static str, handler: Handler) {
         let path_handlers = self.routes.entry(path).or_insert_with(HashMap::new);
         path_handlers.insert(method, handler);
