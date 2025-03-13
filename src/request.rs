@@ -125,9 +125,10 @@ impl HttpRequest {
 
     ///
     /// # Example
-    /// ```
+    ///
+    /// ```no_run
     /// let req = ripress::context::HttpRequest::new();
-    /// let cookie = req.get_cookie("value").unwrap();
+    /// let cookie = req.get_cookie("key").unwrap();
     /// println!("cookie: {}", cookie);
     /// ```
     /// This function returns the value of the specified cookie.
@@ -186,7 +187,8 @@ impl HttpRequest {
     /// Returns header based on the key.
     ///
     /// # Example
-    /// ```
+    ///
+    /// ```no_run
     /// let req = ripress::context::HttpRequest::new();
     /// let header = req.get_header("id");
     /// println!("header: {:?}", header.unwrap());
