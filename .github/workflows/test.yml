@@ -45,7 +45,7 @@ jobs:
         run: bunx playwright install --with-deps
 
       - name: Install deps in tests
-      - run: cd tests && bun install
+        run: cd tests && bun install
 
       - name: Run Playwright Tests
         run: bunx playwright test tests
