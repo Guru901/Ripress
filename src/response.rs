@@ -120,7 +120,8 @@ impl HttpResponse {
     /// res.json(json_body); // Sets the response body to JSON
     /// ```
 
-    pub fn json(mut self, json: serde_json::Value) -> Self {
+    pub fn json(mut self, json: impl serde::Serialize) -> Self {
+        let json = serde_json::to_value(json).unwrap();
         self.body = ResponseContentBody::JSON(json);
         self.content_type = ResponseContentType::JSON;
         return self;
