@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - main
-      - guru/req
-      - guru/res
-      - guru/app
-      - guru/tests
 
   pull_request:
     branches:
