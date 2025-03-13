@@ -44,8 +44,8 @@ impl ResponseContentBody {
 
 // App types
 
-#[derive(Eq, Hash, PartialEq, Clone)]
-pub(crate) enum HttpMethods {
+#[derive(Eq, Hash, PartialEq, Clone, Debug)]
+pub enum HttpMethods {
     GET,
     PUT,
     POST,

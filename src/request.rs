@@ -1,4 +1,5 @@
-use crate::types::{RequestBodyContent, RequestBodyType};
+use crate::types::{HttpMethods, RequestBodyContent, RequestBodyType};
+use actix_web::http::Method;
 use futures_util::stream::StreamExt;
 use std::collections::HashMap;
 
@@ -18,7 +19,7 @@ struct RequestBody {
 /// use ripress::context::HttpRequest;
 ///
 /// let req = HttpRequest::new();
-/// println!("Request method: {}", req.get_method());
+/// println!("Request method: {:?}", req.get_method());
 /// println!("Client IP: {}", req.ip().unwrap());
 /// ```
 ///
@@ -46,7 +47,7 @@ pub struct HttpRequest {
     ip: String,
 
     /// The HTTP method used for the request (e.g., GET, POST, PUT, DELETE).
-    method: String,
+    method: HttpMethods,
 
     /// The full URL of the incoming request.
     origin_url: String,
@@ -71,7 +72,7 @@ impl HttpRequest {
                 content: RequestBodyContent::TEXT(String::new()),
             },
             ip: String::new(),
-            method: String::new(),
+            method: HttpMethods::GET,
             origin_url: String::new(),
             path: String::new(),
             headers: HashMap::new(),
@@ -93,7 +94,11 @@ impl HttpRequest {
     /// Returns `true` if the `Content-Type` matches, otherwise `false`.
 
     pub fn is(&self, content_type: RequestBodyType) -> bool {
-        self.body.content_type == content_type
+        if self.body.content_type == content_type {
+            true
+        } else {
+            false
+        }
     }
 
     /// Returns the request's method (GET, POST, etc.)
@@ -104,8 +109,8 @@ impl HttpRequest {
     /// req.get_method(); // returns (GET, POST, etc.)
     /// ```
 
-    pub fn get_method(&self) -> String {
-        self.method.to_string()
+    pub fn get_method(&self) -> &HttpMethods {
+        &self.method
     }
 
     /// Returns the request's origin URL.
@@ -329,7 +334,15 @@ impl HttpRequest {
         }
 
         let ip = get_real_ip(&req);
-        let method = req.method().to_string();
+
+        let method = match req.method() {
+            &Method::GET => HttpMethods::GET,
+            &Method::POST => HttpMethods::POST,
+            &Method::PUT => HttpMethods::PUT,
+            &Method::DELETE => HttpMethods::DELETE,
+            _ => HttpMethods::GET,
+        };
+
         let origin_url = req.uri().to_string();
         let path = req.path().to_string();
 
@@ -495,5 +508,25 @@ impl HttpRequest {
                 self.body.content = RequestBodyContent::FORM(format!("{key}={value}"));
             }
         }
+    }
+
+    pub fn set_content_type(&mut self, content_type: RequestBodyType) {
+        self.body.content_type = content_type;
+    }
+
+    pub fn set_method(&mut self, method: HttpMethods) {
+        self.method = method;
+    }
+
+    pub fn set_ip(&mut self, ip: String) {
+        self.ip = ip;
+    }
+
+    pub fn set_path(&mut self, path: String) {
+        self.path = path;
+    }
+
+    pub fn set_origin_url(&mut self, origin_url: String) {
+        self.origin_url = origin_url;
     }
 }

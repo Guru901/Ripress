@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use crate::request::HttpRequest;
+    use crate::{
+        request::HttpRequest,
+        types::{HttpMethods, RequestBodyType},
+    };
 
     #[test]
     fn test_get_query() {
@@ -97,5 +100,71 @@ mod tests {
         req.set_cookie("another_key", "another_value");
         let cookie = req.get_cookie("another_key").unwrap();
         assert_eq!(cookie, "another_value");
+    }
+
+    #[test]
+    fn test_is_method() {
+        let mut req = HttpRequest::new();
+
+        req.set_content_type(RequestBodyType::JSON);
+        assert!(req.is(RequestBodyType::JSON));
+
+        req.set_content_type(RequestBodyType::FORM);
+        assert!(req.is(RequestBodyType::FORM));
+
+        req.set_content_type(RequestBodyType::TEXT);
+        assert!(req.is(RequestBodyType::TEXT));
+
+        req.set_content_type(RequestBodyType::TEXT);
+        assert_ne!(req.is(RequestBodyType::FORM), true);
+    }
+
+    #[test]
+    fn test_get_method() {
+        let mut req = HttpRequest::new();
+
+        req.set_method(HttpMethods::GET);
+        assert_eq!(req.get_method(), &HttpMethods::GET);
+
+        req.set_method(HttpMethods::POST);
+        assert_eq!(req.get_method(), &HttpMethods::POST);
+
+        req.set_method(HttpMethods::PUT);
+        assert_eq!(req.get_method(), &HttpMethods::PUT);
+
+        req.set_method(HttpMethods::DELETE);
+        assert_eq!(req.get_method(), &HttpMethods::DELETE);
+
+        req.set_method(HttpMethods::DELETE);
+        assert_ne!(req.get_method(), &HttpMethods::GET);
+    }
+
+    #[test]
+    fn test_ip_method() {
+        let mut req = HttpRequest::new();
+
+        req.set_ip("127.0.0.1".to_string());
+        assert_eq!(req.ip().unwrap(), "127.0.0.1");
+
+        req.set_ip("127.0.0.2".to_string());
+        assert_eq!(req.ip().unwrap(), "127.0.0.2");
+    }
+
+    #[test]
+    fn test_get_path() {
+        let mut req = HttpRequest::new();
+        req.set_path("/user/1".to_string());
+
+        assert_eq!(req.get_path().unwrap(), "/user/1");
+    }
+
+    #[test]
+    fn test_get_origin_url() {
+        let mut req = HttpRequest::new();
+        req.set_origin_url("/user/1".to_string());
+        assert_eq!(req.get_origin_url().unwrap(), "/user/1");
+
+        req.set_origin_url("/user/1?q=hello".to_string());
+        assert_eq!(req.get_origin_url().unwrap(), "/user/1?q=hello");
     }
 }
