@@ -1,21 +1,6 @@
+use crate::types::{RequestBodyContent, RequestBodyType};
 use futures_util::stream::StreamExt;
 use std::collections::HashMap;
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum RequestBodyType {
-    JSON,
-    TEXT,
-    FORM,
-}
-
-impl Copy for RequestBodyType {}
-
-#[derive(Debug, Clone)]
-pub enum RequestBodyContent {
-    TEXT(String),
-    JSON(serde_json::Value),
-    FORM(String),
-}
 
 #[derive(Debug, Clone)]
 struct RequestBody {
