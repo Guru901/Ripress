@@ -8,14 +8,50 @@ struct RequestBody {
     content_type: RequestBodyType,
 }
 
+/// Represents an incoming HTTP request.
+///
+/// This struct holds various properties of an HTTP request, such as
+/// query parameters, request body, HTTP method, and client IP address.
+///
+/// # Example
+/// ```
+/// use ripress::context::HttpRequest;
+///
+/// let req = HttpRequest::new();
+/// println!("Request method: {}", req.method());
+/// println!("Client IP: {}", req.ip());
+/// ```
+///
+/// # Fields
+/// - `params`: Stores dynamic route parameters extracted from the URL.
+/// - `queries`: Stores query parameters from the request URL.
+/// - `body`: Contains the request body, which may be JSON, text, or form data.
+/// - `ip`: The client's IP address.
+/// - `method`: The HTTP method used (e.g., GET, POST, PUT, DELETE).
+/// - `origin_url`: The full URL of the incoming request.
+/// - `path`: The requested endpoint path.
+
 #[derive(Debug, Clone)]
 pub struct HttpRequest {
+    /// Dynamic route parameters extracted from the URL.
     params: HashMap<String, String>,
+
+    /// Query parameters from the request URL.
     queries: HashMap<String, String>,
+
+    /// The request body, which may contain JSON, text, or form data.
     body: RequestBody,
+
+    /// The IP address of the client making the request.
     ip: String,
+
+    /// The HTTP method used for the request (e.g., GET, POST, PUT, DELETE).
     method: String,
+
+    /// The full URL of the incoming request.
     origin_url: String,
+
+    /// The requested endpoint path.
     path: String,
 }
 
@@ -35,33 +71,130 @@ impl HttpRequest {
         }
     }
 
+    /// Checks if the `Content-Type` of the request matches the specified type.
+    /// # Example
+    /// ```
+    /// use ripress::types::RequestBodyType;
+    /// let req = ripress::context::HttpRequest::new();
+    ///
+    /// if req.is(RequestBodyType::JSON) {
+    ///     println!("Request is JSON");
+    /// }
+    /// ```
+    ///
+    /// Returns `true` if the `Content-Type` matches, otherwise `false`.
+
     pub fn is(&self, content_type: RequestBodyType) -> bool {
         self.body.content_type == content_type
     }
+
+    /// Returns the request's method (GET, POST, etc.)
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// req.get_method(); // returns (GET, POST, etc.)
+    /// ```
 
     pub fn get_method(&self) -> String {
         self.method.to_string()
     }
 
+    /// Returns the request's origin URL.
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// req.get_origin_url();
+    /// ```
+    /// For example the request is made to /user/{id} and the id is 123, the origin URL will be /user/123
+    /// If the request is made to /user/123 with query params ?q=hello, the origin url will be /user/123?q=hello
+    /// Returns an `Option<String>`, where `Some(url)` contains the origin_url is available, or `None` if it cannot be determined.
+
     pub fn get_origin_url(&self) -> Option<String> {
         Some(self.origin_url.to_string())
     }
+
+    /// Returns the request's path.
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// req.get_path();
+    /// ```
+    /// For example the request is made to /user/{id} and the id is 123, the origin URL will be /user/123
+    /// If the request is made to /user/123 with query params ?q=hello, the origin url will be /user/123
+    /// Returns an `Option<String>`, where `Some(path)` contains the path is available, or `None` if it cannot be determined.
 
     pub fn get_path(&self) -> Option<String> {
         Some(self.path.to_string())
     }
 
+    /// Returns the client's IP address.
+    ///
+    /// # Example
+    /// ```
+    /// let ip = req.ip();
+    /// println!("Client IP: {:?}", ip);
+    /// ```
+    ///
+    /// This function retrieves the IP address of the client making the request.
+    /// Returns an `Option<String>`, where `Some(ip)` contains the IP if available, or `None` if it cannot be determined.
+
     pub fn ip(&self) -> Option<String> {
         Some(self.ip.to_string())
     }
+
+    /// Returns url parameters.
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// let id = req.get_params("id");
+    /// println!("Id: {:?}", id);
+    /// ```
+    ///
+    /// This function returns the value of the specified parameter from the URL.
+    /// Returns an `Option<String>`, where `Some(id)` contains the id if available, or `None` if it cannot be determined.
 
     pub fn get_params(&self, param_name: &str) -> Option<String> {
         self.params.get(param_name).map(|v| v.to_string())
     }
 
+    /// Returns query parameters.
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// let id = req.get_query("id");
+    /// println!("Id: {:?}", id);
+    /// ```
+    ///
+    /// This function returns the value of the specified parameter from the URL.
+    /// Returns an `Option<String>`, where `Some(id)` contains the id if available, or `None` if it cannot be determined.
+
     pub fn get_query(&self, query_name: &str) -> Option<String> {
         self.queries.get(query_name).map(|v| v.to_string())
     }
+
+    /// Returns request's json body.
+    ///
+    /// # Example
+    /// ```
+    /// #[derive(serde::Deserialize, serde::Serialize)]
+    /// struct MyStruct {
+    ///     name: String,
+    ///     age: u8,
+    /// }
+    ///
+    /// let req = ripress::context::HttpRequest::new();
+    /// let body = req.json::<MyStruct>().unwrap();
+    /// println!("name: {:?}", body.name);
+    /// println!("age : {:?}", body.age);
+    /// ```
+    ///
+    /// This function returns the json body of the request.
+    /// Returns an `Result<J>`, where `Ok(J)` contains the body if it is valid json, or `Err(error)` if it is not.
 
     pub fn json<J>(&self) -> Result<J, String>
     where
@@ -83,6 +216,18 @@ impl HttpRequest {
         }
     }
 
+    /// Returns request's text body.
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// let text = req.text().unwrap();
+    /// println!("text : {:?}", text);
+    /// ```
+    ///
+    /// This function returns the text body of the request.
+    /// Returns an `Result<String>`, where `Ok(String)` contains the body if it is valid text, or `Err(error)` if it is not.
+
     pub fn text(&self) -> Result<String, String> {
         let body = &self.body;
 
@@ -96,6 +241,20 @@ impl HttpRequest {
             Err(String::from("Wrong body type"))
         }
     }
+
+    /// Returns request's text body.
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// // Let' say form data was sent as key=value and key2=value2
+    /// let form_data = req.form_data().unwrap();
+    /// println!("key = : {:?}", form_data.get(key));
+    /// println!("key2 = : {:?}", form_data.get(key2));
+    /// ```
+    ///
+    /// This function returns a HashMap of the form data.
+    /// Returns an `Result<HashMap<String, String>>`, where `Ok(HashMap<String, String>)` contains the form_data if it is valid form data, or `Err(error)` if it is not.
 
     pub fn form_data(&self) -> Result<HashMap<String, String>, String> {
         let mut form_data: HashMap<String, String> = HashMap::new();
@@ -230,6 +389,18 @@ fn determine_content_type(req: &actix_web::HttpRequest) -> RequestBodyType {
     RequestBodyType::TEXT
 }
 
+fn get_real_ip(req: &actix_web::HttpRequest) -> String {
+    req.headers()
+        .get("X-Forwarded-For")
+        .and_then(|val| val.to_str().ok())
+        .map(|s| s.split(',').next().unwrap_or("").trim().to_string())
+        .unwrap_or_else(|| {
+            req.peer_addr()
+                .map(|addr| addr.ip().to_string())
+                .unwrap_or("unknown".to_string())
+        })
+}
+
 #[cfg(test)]
 impl HttpRequest {
     pub fn set_query(&mut self, key: &str, value: &str) {
@@ -266,16 +437,4 @@ impl HttpRequest {
             }
         }
     }
-}
-
-fn get_real_ip(req: &actix_web::HttpRequest) -> String {
-    req.headers()
-        .get("X-Forwarded-For")
-        .and_then(|val| val.to_str().ok())
-        .map(|s| s.split(',').next().unwrap_or("").trim().to_string())
-        .unwrap_or_else(|| {
-            req.peer_addr()
-                .map(|addr| addr.ip().to_string())
-                .unwrap_or("unknown".to_string())
-        })
 }
