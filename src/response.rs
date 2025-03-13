@@ -162,7 +162,7 @@ impl HttpResponse {
 impl Responder for HttpResponse {
     type Body = actix_web::body::BoxBody;
 
-    fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse {
+    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse {
         self.to_responder()
     }
 }
@@ -173,11 +173,11 @@ impl HttpResponse {
         self.status_code
     }
 
-    pub fn get_content_type(&self) -> ResponseContentType {
+    pub(crate) fn get_content_type(&self) -> ResponseContentType {
         self.content_type.clone()
     }
 
-    pub fn get_body(self) -> ResponseContentBody {
+    pub(crate) fn get_body(self) -> ResponseContentBody {
         self.body
     }
 }

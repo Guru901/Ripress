@@ -54,4 +54,4 @@ pub(crate) enum HttpMethods {
 
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
-pub type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
+pub(crate) type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;

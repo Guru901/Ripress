@@ -267,7 +267,7 @@ impl App {
 }
 #[cfg(test)]
 impl App {
-    pub fn get_routes(&self) -> &Routes {
+    pub(crate) fn get_routes(&self) -> &Routes {
         &self.routes
     }
 }
