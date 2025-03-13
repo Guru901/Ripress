@@ -42,7 +42,7 @@ jobs:
         run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
       - name: Install Playwright Browsers
-        run: bunx playwright install --with-deps
+        run: bunx playwright install
 
       - name: Install deps in tests
         run: cd tests && bun install
