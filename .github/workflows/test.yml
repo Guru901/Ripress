@@ -48,4 +48,4 @@ jobs:
         run: cd tests && bun install
 
       - name: Run Playwright Tests
-        run: bunx playwright test tests
+        run: cd tests && bunx playwright test
