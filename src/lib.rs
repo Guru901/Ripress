@@ -10,6 +10,4 @@ pub mod context {
     pub use super::response::HttpResponse;
 }
 
-pub mod types {
-    pub use super::request::RequestBodyType;
-}
+pub mod types;
