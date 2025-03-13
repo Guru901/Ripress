@@ -89,7 +89,7 @@ impl HttpResponse {
     /// ```
 
     pub fn not_found(mut self) -> Self {
-        self.status_code = 401;
+        self.status_code = 404;
         return self;
     }
 
