@@ -171,20 +171,31 @@ if req.is(RequestBodyType::JSON) {
 
 Returns `true` if the `Content-Type` matches, otherwise `false`.
 
-## Getting Client IP Address
+## Getting Request Protocol
 
-Returns the client's IP address.
+Returns the request's protocol.
 
 - Example
 
 ```rust
-let ip = req.ip();
-println!("Client IP: {:?}", ip);
+let protocol = req.get_protocol();
+println!("Protocol: {}", protocol);
 ```
 
-This function retrieves the IP address of the client making the request.
+Returns a `String` contianing the protocol (http or https).
 
-Returns an `Option<String>`, where `Some(ip)` contains the IP if available, or `None` if it cannot be determined.
+## Getting IS Secure
+
+Returns a boolean indicating if the request is secure (https).
+
+- Example
+
+```rust
+let is_secure = req.is_secure();
+println!("Is Secure: {}", is_secure);
+```
+
+Returns `true` if the request is secure, otherwise `false`.
 
 ## Reading Request Body
 

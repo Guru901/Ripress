@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use crate::{
-        request::HttpRequest,
+        request::{determine_content_type, get_real_ip, HttpRequest},
         types::{HttpMethods, RequestBodyType},
     };
 
@@ -27,6 +29,7 @@ mod tests {
 
     #[test]
     fn test_json_body() {
+        // Test 1 - Everything Is Correct
         #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
         struct User {
             id: u32,
@@ -34,10 +37,14 @@ mod tests {
         }
 
         let mut req = HttpRequest::new();
-        req.set_json(User {
-            id: 1,
-            name: "John Doe".to_string(),
-        });
+
+        req.set_json(
+            User {
+                id: 1,
+                name: "John Doe".to_string(),
+            },
+            RequestBodyType::JSON,
+        );
 
         assert_eq!(
             req.json::<User>().unwrap(),
@@ -47,33 +54,73 @@ mod tests {
             }
         );
 
-        assert!(req.json::<String>().is_err());
+        // Test 2 - Invalid Body Type
+
+        req.set_json(
+            User {
+                id: 1,
+                name: "John Doe".to_string(),
+            },
+            RequestBodyType::FORM,
+        );
+
+        assert!(req.json::<User>().is_err());
+
+        // Test 3 - Invalid JSON Content
+
+        req.set_text("{invalid json}", RequestBodyType::JSON);
+
+        assert!(req.json::<User>().is_err());
     }
 
     #[test]
     fn test_text_body() {
+        // Test 1 - Everything Is Correct
+
         let mut req = HttpRequest::new();
-        req.set_text("Ripress");
+
+        req.set_text("Ripress", RequestBodyType::TEXT);
 
         assert_eq!(req.text(), Ok("Ripress".to_string()));
 
-        req.set_text("");
-        assert_eq!(req.text(), Ok("".to_string()));
+        // Test 2 - Invalid Body Type
+
+        req.set_text("", RequestBodyType::JSON);
+
+        assert!(req.text().is_err());
+
+        // Test 3 - Invalid Text Content
+
+        req.set_json(json!({"key": "value"}), RequestBodyType::TEXT);
+
+        assert!(req.text().is_err());
     }
 
     #[test]
     fn test_form_data() {
+        // Test 1 - Everything Is Correct
+
         let mut req = HttpRequest::new();
-        req.set_form("key", "value");
+        req.set_form("key", "value", RequestBodyType::FORM);
 
         assert_eq!(req.form_data().unwrap().get("key").unwrap(), "value");
         assert_eq!(req.form_data().unwrap().get("nonexistent"), None);
 
-        req.set_form("another_key", "another_value");
-        let form_data = req.form_data().unwrap();
-        dbg!(&form_data);
-        assert_eq!(form_data.get("key").unwrap(), "value");
-        assert_eq!(form_data.get("another_key").unwrap(), "another_value");
+        // Test 2 - Invalid Body Type
+
+        req.set_form("another_key", "another_value", RequestBodyType::JSON);
+        assert!(req.form_data().is_err());
+
+        // Test 3 - Invalid Form Content
+
+        req.set_json(json!({"key": "value"}), RequestBodyType::FORM);
+        assert!(req.form_data().is_err());
+
+        req.set_form("invalid", "%%form%data", RequestBodyType::FORM);
+        assert_ne!(
+            req.form_data().unwrap().get("invalid").unwrap(),
+            "%%form%data"
+        );
     }
 
     #[test]
@@ -167,4 +214,36 @@ mod tests {
         req.set_origin_url("/user/1?q=hello".to_string());
         assert_eq!(req.get_origin_url().unwrap(), "/user/1?q=hello");
     }
+
+    #[test]
+    fn test_is_secure_and_protocol() {
+        let req = HttpRequest::new();
+        let is_secure = req.is_secure();
+        let protocol = req.get_protocol();
+
+        assert_ne!(is_secure, true);
+        assert_ne!(protocol, &String::from("https"));
+    }
+
+    #[test]
+    fn test_get_real_ip() {
+        let req = actix_web::test::TestRequest::default().to_http_request();
+
+        let ip = get_real_ip(&req);
+
+        assert_eq!(ip, String::from("unknown"));
+    }
+
+    #[test]
+    fn test_content_type() {
+        let content_type = determine_content_type("application/json");
+        assert_eq!(content_type, RequestBodyType::JSON);
+
+        let content_type = determine_content_type("");
+        assert_eq!(content_type, RequestBodyType::TEXT);
+
+        let content_type = determine_content_type("application/x-www-form-urlencoded");
+        assert_eq!(content_type, RequestBodyType::FORM);
+    }
+    // test from actix request
 }
