@@ -121,3 +121,16 @@ async fn remove_cookie(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
         .json(json!({ "message": "Cookie set" }))
 }
 ```
+
+### Setting Content Type
+
+Use `.set_content_type(content_type: ResponseContentType)` to attach a cookie to the response.
+
+```rust
+async fn set_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_content_type(ResponseContentType::JSON)
+        .ok()
+        .json(json!({ "message": "Content type set" }))
+}
+```
+It is optional, and is set by the response body
