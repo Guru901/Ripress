@@ -91,12 +91,24 @@ async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Use `.set_header()` to modify the response headers.
 
 ```rust
-async fn custom_header(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn set_custom_header(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_header("X-Custom-Header", "MyValue")
         .ok()
         .text("Header added")
 }
 ```
+
+### Getting a Response Header
+
+Use `.get_header()` to modify the response headers.
+
+```rust
+async fn get_custom_header(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.get_header("X-Custom-Header")
+}
+```
+
+Returns an `Option<String>`, where `Some(header)` contains the header if it exists, or `None` if it doesn't.
 
 ### Sending Cookies
 
@@ -133,4 +145,5 @@ async fn set_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse 
         .json(json!({ "message": "Content type set" }))
 }
 ```
+
 It is optional, and is set by the response body

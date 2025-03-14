@@ -97,6 +97,19 @@ impl HttpResponse {
         return self;
     }
 
+    /// Gets a header from the response.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::context::HttpResponse;
+    /// let res = HttpResponse::new();
+    /// res.get_header("key"); // Gets the key header
+    /// ```
+
+    pub fn get_header(self, key: String) -> Option<String> {
+        self.headers.get(&key).cloned()
+    }
+
     /// Sets the status code of the response.
     ///
     /// # Example
@@ -268,9 +281,6 @@ impl HttpResponse {
         self.body
     }
 
-    pub(crate) fn get_header(self, key: String) -> Option<String> {
-        self.headers.get(&key).cloned()
-    }
     pub(crate) fn get_cookie(self, key: String) -> Option<String> {
         self.cookies.get(&key).cloned()
     }
