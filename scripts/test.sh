@@ -81,8 +81,8 @@ async fn check_status_code(_req: HttpRequest, res: HttpResponse) -> HttpResponse
 }
 ' > main.rs
 
-cargo run &  # Run the server in the background
-sleep 2      # Wait for the server to start
+cargo run & 
+sleep 2     
 
 cd ../tests
 bunx playwright test
