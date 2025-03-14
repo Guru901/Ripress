@@ -85,6 +85,7 @@ cargo run &
 sleep 2     
 
 cd ../tests
+bun install
 bunx playwright test
 
 kill %1
