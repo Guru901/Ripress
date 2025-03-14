@@ -3,7 +3,8 @@ cargo test
 cd src
 touch main.rs
 
-echo 'use ripress::{
+echo '
+use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
 };
@@ -24,6 +25,9 @@ async fn main() {
     app.post("/form-test", form_test);
 
     app.get("/check-status-code", check_status_code);
+
+    app.get("/get-cookie-test", get_cookie_test);
+    app.get("/check-content-type", check_content_type);
 
     app.listen("127.0.0.1:8080").await;
 }
@@ -79,6 +83,11 @@ async fn form_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 async fn check_status_code(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.status(900)
 }
+
+async fn get_cookie_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().set_cookie("test-cookie", "value").text("hehe")
+}
+
 ' > main.rs
 
 cargo run & 

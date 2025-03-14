@@ -91,10 +91,20 @@ async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Use `.set_header()` to modify the response headers.
 
 ```rust
-async fn custom_header(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn set_custom_header(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_header("X-Custom-Header", "MyValue")
         .ok()
         .text("Header added")
+}
+```
+
+### Getting a Response Header
+
+Use `.get_header()` to get the response headers.
+
+```rust
+async fn get_custom_header(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.get_header("X-Custom-Header")
 }
 ```
 
