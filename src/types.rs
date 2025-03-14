@@ -30,7 +30,7 @@ pub enum ResponseContentType {
     TEXT,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub(crate) enum ResponseContentBody {
     JSON(serde_json::Value),
     TEXT(String),
@@ -50,6 +50,7 @@ pub enum HttpMethods {
     PUT,
     POST,
     DELETE,
+    PATCH,
 }
 
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
