@@ -117,4 +117,28 @@ mod tests {
         let response = response.set_content_type(ResponseContentType::JSON);
         assert_eq!(response.get_content_type(), ResponseContentType::JSON);
     }
+    #[test]
+    fn test_clear_cookie() {
+        let response = HttpResponse::new();
+        let response = response.set_cookie("session", "abc123");
+
+        assert_eq!(
+            response.get_cookie("session".to_string()).unwrap(),
+            "abc123"
+        );
+        let response = HttpResponse::new();
+        let response = response.set_cookie("session", "abc123");
+        let response = response.clear_cookie("session");
+
+        // Verify cookie is removed
+        assert_eq!(response.get_cookie("session".to_string()), None);
+
+        let response = HttpResponse::new();
+
+        let response = response.set_cookie("session", "abc123");
+
+        let response = response.clear_cookie("non-existent");
+
+        assert_eq!(response.get_cookie("non-existent".to_string()), None);
+    }
 }
