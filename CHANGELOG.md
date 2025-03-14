@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.3.1] - 2025-03-15
+
+### Added
+
+- Request Methods
+
+  - Added res.is_secure method
+  - Added res.get_protocol method
+
+- Response Methods
+
+  - Added res.set_cookie method
+  - Added res.clear_cookie method
+  - Added res.set_header method
+  - Added res.get_header method
+  - Added res.set_content_type method
+
+- App Methods
+
+  - Added app.patch method
+  - Added app.all method
+
+- Added Integration tests
+- Increased Code Coverage
+
+### Changed
+
+- Added a types module to make the codebase more readable and maintainable.
+
 ## Move the 0.2.4 changes under 0.3.0 and note that 0.2.4 was an accidental release.
 
 ## [0.2.4] - 2025-03-14

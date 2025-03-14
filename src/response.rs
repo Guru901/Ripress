@@ -180,6 +180,15 @@ impl HttpResponse {
         return self;
     }
 
+    /// Sets the Content-Type of the response.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::context::HttpResponse;
+    /// let res = HttpResponse::new();
+    /// res.set_content_type(ripress::types::ResponseContentType::JSON); // Sets the Content-Type to JSON
+    /// ```
+
     pub fn set_content_type(mut self, content_type: ResponseContentType) -> Self {
         self.content_type = content_type;
         return self;
