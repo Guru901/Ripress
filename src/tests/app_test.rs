@@ -36,6 +36,24 @@ mod tests {
     }
 
     #[test]
+    pub fn test_add_patch_route() {
+        let mut app = App::new();
+        app.patch("/user/{id}", _test_handler);
+        assert!(app
+            .get_routes("/user/{id}", crate::types::HttpMethods::PATCH)
+            .is_some());
+    }
+
+    #[test]
+    pub fn test_add_put_route() {
+        let mut app = App::new();
+        app.put("/user/{id}", _test_handler);
+        assert!(app
+            .get_routes("/user/{id}", crate::types::HttpMethods::PUT)
+            .is_some());
+    }
+
+    #[test]
     pub fn test_add_all_route() {
         let mut app = App::new();
         app.all("/user/{id}", _test_handler);
@@ -49,6 +67,10 @@ mod tests {
 
         assert!(app
             .get_routes("/user/{id}", crate::types::HttpMethods::PUT)
+            .is_some());
+
+        assert!(app
+            .get_routes("/user/{id}", crate::types::HttpMethods::PATCH)
             .is_some());
 
         assert!(app

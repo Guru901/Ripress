@@ -50,6 +50,7 @@ pub enum HttpMethods {
     PUT,
     POST,
     DELETE,
+    PATCH,
 }
 
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;

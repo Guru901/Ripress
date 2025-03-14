@@ -146,6 +146,35 @@ impl App {
         self.add_route(HttpMethods::DELETE, path, wrapped_handler);
     }
 
+    /// Add a PATCH route to the application.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.patch("/hello", handler);
+    /// ```
+
+    pub fn patch<F, Fut>(&mut self, path: &'static str, handler: F)
+    where
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = HttpResponse> + Send + 'static,
+    {
+        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        self.add_route(HttpMethods::PATCH, path, wrapped_handler);
+    }
+
     /// Add a route to the application that matches all HTTP methods.
     ///
     /// # Arguments
@@ -177,6 +206,7 @@ impl App {
         self.add_route(HttpMethods::POST, path, wrapped_handler.clone());
         self.add_route(HttpMethods::PUT, path, wrapped_handler.clone());
         self.add_route(HttpMethods::DELETE, path, wrapped_handler.clone());
+        self.add_route(HttpMethods::PATCH, path, wrapped_handler.clone());
     }
 
     /// Starts the server and listens on the specified address.
@@ -262,6 +292,22 @@ impl App {
                             app = app.route(
                                 &path,
                                 actix_web::web::delete().to(move |req: actix_web::HttpRequest,  payload: actix_web::web::Payload| {
+                                    let handler_clone = handler.clone();
+                                    async move {
+                                    let our_req = HttpRequest::from_actix_request(req,payload).await.unwrap();
+                                    let our_res = HttpResponse::new();
+                                    let future = handler_clone(our_req, our_res);
+                                        let response = future.await;
+                                        response.to_responder()
+                                    }
+                                }),
+                            );
+                        },
+
+                        HttpMethods::PATCH=> {
+                            app = app.route(
+                                &path,
+                                actix_web::web::patch().to(move |req: actix_web::HttpRequest,  payload: actix_web::web::Payload| {
                                     let handler_clone = handler.clone();
                                     async move {
                                     let our_req = HttpRequest::from_actix_request(req,payload).await.unwrap();

@@ -79,6 +79,17 @@ let mut app = App::new();
 app.post("/submit", post_handler);
 ```
 
+#### PATCH Requests
+
+```rust
+async fn patch_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().text("POST request received")
+}
+
+let mut app = App::new();
+app.patch("/submit", post_handler);
+```
+
 #### PUT Requests
 
 ```rust
