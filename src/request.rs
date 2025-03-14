@@ -1,5 +1,5 @@
 use crate::types::{HttpMethods, RequestBodyContent, RequestBodyType};
-use actix_web::http::Method;
+use actix_web::{http::Method, HttpMessage};
 use futures_util::stream::StreamExt;
 use std::collections::HashMap;
 use url;
@@ -61,6 +61,9 @@ pub struct HttpRequest {
 
     /// The request's cookies
     cookies: HashMap<String, String>,
+
+    /// Protocol of the request (HTTP or HTTPs)
+    protocol: String,
 }
 
 impl HttpRequest {
@@ -78,6 +81,7 @@ impl HttpRequest {
             path: String::new(),
             headers: HashMap::new(),
             cookies: HashMap::new(),
+            protocol: String::from("http"),
         }
     }
 
@@ -222,6 +226,33 @@ impl HttpRequest {
         self.queries.get(query_name).map(|v| v.to_string())
     }
 
+    /// Returns the protocol on which the request was made (http or https)
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// let body = req.get_protocol();
+    /// ```
+
+    pub fn get_protocol(&self) -> &String {
+        &self.protocol
+    }
+
+    /// Returns a bool indicating if request was made over https
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// let body = req.is_secure();
+    /// ```
+    ///
+    /// This function returns a boolean.
+    /// Returns true if request was made over https
+
+    pub fn is_secure(&self) -> bool {
+        self.get_protocol() == "https"
+    }
+
     /// Returns request's json body.
     ///
     /// # Example
@@ -310,8 +341,8 @@ impl HttpRequest {
                 serde_urlencoded::from_str::<HashMap<String, String>>(text_value)
                     .map_err(|e| e.to_string())?
                     .into_iter()
-                    .for_each(|(key, value)| {
-                        form_data.insert(key.to_string(), value.to_string());
+                    .for_each(|(k, v)| {
+                        form_data.insert(k, v);
                     });
                 Ok(form_data)
             } else {
@@ -367,7 +398,8 @@ impl HttpRequest {
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
 
-        let content_type = determine_content_type(&req);
+        let content_type = determine_content_type(req.content_type());
+        let protocol = req.connection_info().scheme().to_string();
 
         // Read the body
         let mut body = actix_web::web::BytesMut::new();
@@ -439,24 +471,22 @@ impl HttpRequest {
             path,
             headers,
             cookies,
+            protocol,
         })
     }
 }
 
-fn determine_content_type(req: &actix_web::HttpRequest) -> RequestBodyType {
-    if let Some(content_type) = req.headers().get("content-type") {
-        if let Ok(content_type_str) = content_type.to_str() {
-            if content_type_str.contains("application/json") {
-                return RequestBodyType::JSON;
-            } else if content_type_str.contains("application/x-www-form-urlencoded") {
-                return RequestBodyType::FORM;
-            }
-        }
+pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
+    if content_type == "application/json" {
+        return RequestBodyType::JSON;
+    } else if content_type == "application/x-www-form-urlencoded" {
+        return RequestBodyType::FORM;
+    } else {
+        RequestBodyType::TEXT
     }
-    RequestBodyType::TEXT
 }
 
-fn get_real_ip(req: &actix_web::HttpRequest) -> String {
+pub(crate) fn get_real_ip(req: &actix_web::HttpRequest) -> String {
     req.headers()
         .get("X-Forwarded-For")
         .and_then(|val| val.to_str().ok())
@@ -486,21 +516,21 @@ impl HttpRequest {
         self.params.insert(key.to_string(), value.to_string());
     }
 
-    pub fn set_json<J>(&mut self, json: J)
+    pub fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)
     where
         J: serde::de::DeserializeOwned + serde::Serialize,
     {
-        self.body.content_type = RequestBodyType::JSON;
+        self.body.content_type = content_type;
         self.body.content = RequestBodyContent::JSON(serde_json::to_value(json).unwrap());
     }
 
-    pub fn set_text(&mut self, text: &str) {
-        self.body.content_type = RequestBodyType::TEXT;
+    pub fn set_text(&mut self, text: &str, content_type: RequestBodyType) {
+        self.body.content_type = content_type;
         self.body.content = RequestBodyContent::TEXT(text.to_string());
     }
 
-    pub fn set_form(&mut self, key: &str, value: &str) {
-        self.body.content_type = RequestBodyType::FORM;
+    pub fn set_form(&mut self, key: &str, value: &str, content_type: RequestBodyType) {
+        self.body.content_type = content_type;
 
         match &mut self.body.content {
             RequestBodyContent::FORM(existing) => {

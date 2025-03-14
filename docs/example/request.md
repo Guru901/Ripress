@@ -157,3 +157,19 @@ async fn check_content_type(req: HttpRequest, res: HttpResponse) -> HttpResponse
     }
 }
 ```
+
+## Checking Protocol
+
+```rust
+async fn check_protocol(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let protocol = req.get_protocol();
+}
+```
+
+## Checking Is Secure
+
+```rust
+async fn check_is_secure(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let is_secure = req.is_secure();
+}
+```
