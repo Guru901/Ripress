@@ -13,7 +13,6 @@ jobs:
   test:
     name: Run Cargo and Playwright Tests
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -32,5 +31,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Run Cargo Tests
-        run: cargo test --all --verbose
+      - name: Set up Bun
+        run: curl -fsSL https://bun.sh/install | bash
+
+      - name: Add Bun to PATH
+        run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
+
+      - name: Run Test Script
+        run: chmod +x scripts/test.sh && scripts/test.sh
