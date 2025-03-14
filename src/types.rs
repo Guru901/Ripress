@@ -25,7 +25,7 @@ pub enum RequestBodyContent {
 // HttpResponse types
 
 #[derive(PartialEq, Debug, Clone)]
-pub(crate) enum ResponseContentType {
+pub enum ResponseContentType {
     JSON,
     TEXT,
 }

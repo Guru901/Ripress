@@ -110,4 +110,11 @@ mod tests {
             actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
         );
     }
+
+    #[test]
+    fn test_set_content_type() {
+        let response = HttpResponse::new();
+        let response = response.set_content_type(ResponseContentType::JSON);
+        assert_eq!(response.get_content_type(), ResponseContentType::JSON);
+    }
 }

@@ -111,3 +111,16 @@ async fn cookie_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ```
 
 ---
+
+## Setting content type
+
+Use `.set_content_type()` to set the content type of the response.
+It's optional, and is set by the respone body
+
+```rust
+async fn set_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_content_type(ResponseContentType::JSON)
+        .ok()
+        .json(json!({ "message": "Content type set" }))
+}
+```

@@ -166,6 +166,11 @@ impl HttpResponse {
         return self;
     }
 
+    pub fn set_content_type(mut self, content_type: ResponseContentType) -> Self {
+        self.content_type = content_type;
+        return self;
+    }
+
     /// Sets the response body to JSON.
     ///
     /// # Example
