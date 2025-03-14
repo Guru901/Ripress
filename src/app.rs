@@ -4,7 +4,7 @@ use crate::request::HttpRequest;
 use crate::response::HttpResponse;
 use crate::types::{Fut, Handler, HttpMethods, Routes};
 
-fn box_future<F>(future: F) -> Fut
+pub(crate) fn box_future<F>(future: F) -> Fut
 where
     F: Future<Output = HttpResponse> + Send + 'static,
 {

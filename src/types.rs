@@ -30,7 +30,7 @@ pub enum ResponseContentType {
     TEXT,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub(crate) enum ResponseContentBody {
     JSON(serde_json::Value),
     TEXT(String),

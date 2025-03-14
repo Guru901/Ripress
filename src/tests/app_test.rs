@@ -6,7 +6,11 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::{app::App, tests::app_test::_test_handler};
+    use crate::{
+        app::{box_future, App},
+        context::HttpResponse,
+        tests::app_test::_test_handler,
+    };
 
     #[test]
     pub fn test_add_get_route() {
@@ -87,5 +91,16 @@ mod tests {
         assert!(new_app
             .get_routes("/user/{id}", crate::types::HttpMethods::GET)
             .is_some());
+    }
+    #[tokio::test]
+    async fn test_box_future() {
+        async fn test_handler() -> HttpResponse {
+            HttpResponse::new().ok().text("test")
+        }
+
+        let boxed = box_future(test_handler());
+
+        let response = boxed.await;
+        assert_eq!(response.get_status_code(), 200);
     }
 }
