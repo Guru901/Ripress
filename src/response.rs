@@ -78,6 +78,7 @@ impl HttpResponse {
     /// ```
 
     pub fn clear_cookie(mut self, key: &str) -> Self {
+        self.cookies.remove(key);
         self.remove_cookies.push(key.to_string());
         return self;
     }
