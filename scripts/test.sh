@@ -87,5 +87,7 @@ sleep 2      # Wait for the server to start
 cd ../tests
 bunx playwright test
 
-# Kill the background process after tests
 kill %1
+
+cd ../src
+rm main.rs
