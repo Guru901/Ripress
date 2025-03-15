@@ -10,8 +10,4 @@ test.describe("Response Tests", () => {
     expect(cookies).toBeDefined();
     expect(cookies).toContain("test-cookie=value");
   });
-
-  test("Checking Content Type", async ({ request }) => {
-    const res1 = await request.get("/get-cookie-test");
-  });
 });

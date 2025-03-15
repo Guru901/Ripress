@@ -27,7 +27,6 @@ async fn main() {
     app.get("/check-status-code", check_status_code);
 
     app.get("/get-cookie-test", get_cookie_test);
-    app.get("/check-content-type", check_content_type);
 
     app.listen("127.0.0.1:8080").await;
 }
