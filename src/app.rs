@@ -1,8 +1,6 @@
 use crate::request::HttpRequest;
 use crate::response::HttpResponse;
-use crate::types::{Fut, Handler, HttpMethods, Middleware, Next, Routes};
-use actix_web::dev::{Service, ServiceRequest, ServiceResponse};
-use actix_web::{Error, FromRequest};
+use crate::types::{Fut, Handler, HttpMethods, Middleware, Routes};
 use std::{collections::HashMap, future::Future, sync::Arc};
 
 pub(crate) fn box_future<F>(future: F) -> Fut
@@ -213,14 +211,14 @@ impl App {
         self.add_route(HttpMethods::PATCH, path, wrapped_handler.clone());
     }
 
-    pub fn r#use<F, Fut>(&mut self, handler: F)
-    where
-        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
-    {
-        let wrapped_handler = Arc::new(move |req, res, next| box_future(handler(req, res, next)));
-        self.middlewares.push(wrapped_handler);
-    }
+    // pub fn r#use<F, Fut>(&mut self, handler: F)
+    // where
+    //     F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
+    //     Fut: Future<Output = HttpResponse> + Send + 'static,
+    // {
+    //     let wrapped_handler = Arc::new(move |req, res, next| box_future(handler(req, res, next)));
+    //     self.middlewares.push(wrapped_handler);
+    // }
 
     /// Starts the server and listens on the specified address.
     ///
@@ -246,18 +244,20 @@ impl App {
         println!("Server listening on {}", addr);
 
         actix_web::HttpServer::new(move || {
-        let mut app = actix_web::App::new();
+            let mut app = actix_web::App::new();
 
-      for middleware in self.middlewares.clone() {
-        let middleware = middleware.clone();
-        app.wrap_fn(move |req, srv| {
-            let middleware = middleware.clone();
 
-            async  move{
-              middleware_wrapper(req, srv, middleware).await
-            }
-        });
-      }
+
+    //   for middleware in self.middlewares.clone() {
+    //     let middleware = middleware.clone();
+    //     app.wrap_fn(move |req, srv| {
+    //         let middleware = middleware.clone();
+
+    //         async move{
+    //           middleware_wrapper(req, srv, middleware).await
+    //         }
+    //     });
+    //   }
 
       for (path, methods) in self.routes.clone() {
         for (method, handler) in methods {
@@ -290,7 +290,7 @@ impl App {
           }
         }
       }
-      app
+     app
     })
       .bind(addr)
       .unwrap()
@@ -313,59 +313,59 @@ impl App {
     }
 }
 
-fn middleware_wrapper<S, Fut>(
-    req: ServiceRequest,
-    srv: S,
-    function: Arc<dyn Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync>,
-) -> impl Future<Output = Result<ServiceResponse, Error>> + 'static
-where
-    S: Service<ServiceRequest, Response = ServiceResponse, Error = Error> + 'static,
-    Fut: Future<Output = HttpResponse> + Send + 'static,
-{
-    let function = function.clone();
+// fn middleware_wrapper<S, Fut>(
+//     req: ServiceRequest,
+//     srv: S,
+//     function: Arc<dyn Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync>,
+// ) -> impl Future<Output = Result<ServiceResponse, Error>>
+// where
+//     S: Service<ServiceRequest, Response = ServiceResponse, Error = Error>,
+//     Fut: Future<Output = HttpResponse> + Send,
+// {
+//     let function = function.clone();
 
-    async move {
-        let (actix_req, mut payload) = req.into_parts();
-        let web_payload = actix_web::web::Payload::from_request(&actix_req.clone(), &mut payload)
-            .await
-            .unwrap();
+//     async move {
+//         let (actix_req, mut payload) = req.into_parts();
+//         let web_payload = actix_web::web::Payload::from_request(&actix_req.clone(), &mut payload)
+//             .await
+//             .unwrap();
 
-        let our_req = HttpRequest::from_actix_request(actix_req.clone(), web_payload)
-            .await
-            .unwrap();
+//         let our_req = HttpRequest::from_actix_request(actix_req.clone(), web_payload)
+//             .await
+//             .unwrap();
 
-        // Create your custom response
-        let our_res = HttpResponse::new();
+//         // Create your custom response
+//         let our_res = HttpResponse::new();
 
-        // Create your custom Next handler
-        let next = Next::new(|req: HttpRequest| {
-            // Convert back to actix request and call the next service
-            let actix_req_clone = actix_req.clone();
+//         // Create your custom Next handler
+//         let next = Next::new(|req: HttpRequest| {
+//             // Convert back to actix request and call the next service
+//             let actix_req_clone = actix_req.clone();
 
-            Box::pin(async {
-                let reconstructed_req = ServiceRequest::from_request(actix_req_clone);
+//             Box::pin(async {
+//                 let reconstructed_req = ServiceRequest::from_request(actix_req_clone);
 
-                match srv.call(reconstructed_req).await {
-                    Ok(res) => {
-                        // Convert actix response to your custom HttpResponse
-                        let mut our_res = HttpResponse::new();
-                        // Map the response... actual implementation depends on your HttpResponse
-                        our_res
-                    }
-                    Err(_) => HttpResponse::new()
-                        .internal_server_error()
-                        .text("Internal server error"),
-                }
-            });
-        });
+//                 match srv.call(reconstructed_req).await {
+//                     Ok(res) => {
+//                         // Convert actix response to your custom HttpResponse
+//                         let mut our_res = HttpResponse::new();
+//                         // Map the response... actual implementation depends on your HttpResponse
+//                         our_res
+//                     }
+//                     Err(_) => HttpResponse::new()
+//                         .internal_server_error()
+//                         .text("Internal server error"),
+//                 }
+//             });
+//         });
 
-        // Call your middleware function
-        let response = function(our_req, our_res, next).await;
+//         // Call your middleware function
+//         let response = function(our_req, our_res, next).await;
 
-        // Convert your custom response back to actix response
-        Ok(ServiceResponse::new(actix_req, response.to_responder()))
-    }
-}
+//         // Convert your custom response back to actix response
+//         Ok(ServiceResponse::new(actix_req, response.to_responder()))
+//     }
+// }
 
 #[cfg(test)]
 impl App {

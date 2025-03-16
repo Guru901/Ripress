@@ -6,7 +6,6 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::types::HttpMethods;
     use crate::{
         app::{box_future, App},
         context::HttpResponse,
@@ -119,6 +118,5 @@ mod tests {
         tokio::spawn(async {
             app.listen("127.0.0.1:3000").await;
         });
-
     }
 }
