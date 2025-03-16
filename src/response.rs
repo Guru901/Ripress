@@ -5,7 +5,7 @@ use actix_web::{
     Responder,
 };
 
-use crate::types::{ResponseContentBody, ResponseContentType};
+use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
 
 /// Represents an http response going to the client
 ///
@@ -103,11 +103,16 @@ impl HttpResponse {
     /// ```
     /// use ripress::context::HttpResponse;
     /// let res = HttpResponse::new();
-    /// res.get_header("key".to_string()); // Gets the key header
+    /// res.get_header("key");
     /// ```
 
-    pub fn get_header(self, key: String) -> Option<String> {
-        self.headers.get(&key).cloned()
+    pub fn get_header(&self, key: &str) -> Result<String, HttpResponseError> {
+        let header = self.headers.get(key);
+
+        match header {
+            Some(header_string) =>  Ok(header_string.clone()),
+            None => Err(HttpResponseError::MissingHeader(key.to_string()))
+        }
     }
 
     /// Sets the status code of the response.
