@@ -54,12 +54,11 @@ pub enum HttpMethods {
 pub struct Next;
 
 impl Next {
-    pub fn new<F: Fn(HttpRequest)>(closure: F) -> Self {
+    pub fn new<F: Fn(HttpRequest)>(_closure: F) -> Self {
         Next {}
     }
 }
 
-// pub type Next = Arc<dyn Fn(HashMap<&str, &str>) -> HttpResponse>; // TODO: implement
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
 pub type Middleware = Arc<dyn Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static>;
