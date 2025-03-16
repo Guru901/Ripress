@@ -103,7 +103,7 @@ impl HttpResponse {
     /// ```
     /// use ripress::context::HttpResponse;
     /// let res = HttpResponse::new();
-    /// res.get_header("key"); // Gets the key header
+    /// res.get_header("key".to_string()); // Gets the key header
     /// ```
 
     pub fn get_header(self, key: String) -> Option<String> {
