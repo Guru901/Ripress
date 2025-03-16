@@ -77,7 +77,7 @@ async fn get_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 ```rust
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    if let Some(auth) = req.get_header("Authorization") {
+    if let Ok(auth) = req.get_header("Authorization") {
         res.ok().text(format!("Auth Header: {}", auth))
     } else {
         res.unauthorized().text("Missing Authorization header")

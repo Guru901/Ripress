@@ -40,6 +40,20 @@ impl ResponseContentBody {
     }
 }
 
+#[derive(Debug)]
+pub enum HttpResponseError {
+    MissingHeader(String)
+}
+
+impl std::fmt::Display for HttpResponseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            HttpResponseError::MissingHeader(header) => write!(f, "Missing header: {}", header),
+        }
+    }
+}
+
+
 // App types
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
