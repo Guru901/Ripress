@@ -6,6 +6,7 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 #[cfg(test)]
 mod tests {
+    use crate::types::HttpMethods;
     use crate::{
         app::{box_future, App},
         context::HttpResponse,
@@ -102,5 +103,22 @@ mod tests {
 
         let response = boxed.await;
         assert_eq!(response.get_status_code(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_listen() {
+        let mut app = App::new();
+        app.get("/", _test_handler);
+        app.post("/", _test_handler);
+        app.patch("/", _test_handler);
+        app.put("/", _test_handler);
+        app.delete("/", _test_handler);
+
+        app.all("/all", _test_handler);
+
+        tokio::spawn(async {
+            app.listen("127.0.0.1:3000").await;
+        });
+
     }
 }
