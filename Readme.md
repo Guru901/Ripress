@@ -40,7 +40,7 @@ Or manually add it to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ripress = "0.3.0"
+ripress = "0.3.1"
 ```
 
 ## Basic Example
@@ -66,7 +66,6 @@ View more examples in the [examples](./docs/example/basic-routing.md) directory.
 ## Roadmap
 
 - **Middleware support** (Planned for next week)
-- **Playwright-based testing** (Coming in the next release)
 
 ## Documentation
 

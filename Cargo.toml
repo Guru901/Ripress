@@ -15,3 +15,6 @@ futures-util = "0.3.31"
 jsonparser = "0.2.1"
 serde_urlencoded = "0.7.1"
 url = "2.5.4"
+
+[package.metadata.docs.rs]
+readme = "README.md"
