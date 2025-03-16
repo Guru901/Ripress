@@ -33,7 +33,7 @@ Ripress is a web framework inspired by Express.js.
 You can add `ripress` to your project using Cargo:
 
 ```sh
-cargo add ripress
+cargo add ripress tokio
 ```
 
 Or manually add it to your `Cargo.toml`:
@@ -41,6 +41,7 @@ Or manually add it to your `Cargo.toml`:
 ```toml
 [dependencies]
 ripress = "0.3.1"
+tokio = { version = "1.44.0", features = ["full"] }
 ```
 
 ## Basic Example
