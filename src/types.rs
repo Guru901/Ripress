@@ -1,8 +1,6 @@
-use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
-
-use serde::Serialize;
-
 use crate::{context::HttpResponse, request::HttpRequest};
+use serde::Serialize;
+use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
 
 // HttpRequest types
 
@@ -53,6 +51,16 @@ pub enum HttpMethods {
     PATCH,
 }
 
+pub struct Next;
+
+impl Next {
+    pub fn new<F: Fn(HttpRequest)>(closure: F) -> Self {
+        Next {}
+    }
+}
+
+// pub type Next = Arc<dyn Fn(HashMap<&str, &str>) -> HttpResponse>; // TODO: implement
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
+pub type Middleware = Arc<dyn Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static>;
 pub(crate) type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
