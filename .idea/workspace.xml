@@ -52,11 +52,6 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "Cargo.Test ripress.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.rust.reset.selective.auto.import": "true",
-    "git-widget-placeholder": "guru/req",
     "last_opened_file_path": "/Users/guru/Developer/rust/ripress",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::response::HttpResponse;
-    use crate::types::{ResponseContentBody, ResponseContentType};
+    use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
     use serde_json::json;
 
     #[test]
@@ -160,5 +160,12 @@ mod tests {
         let response = response.clear_cookie("non-existent");
 
         assert_eq!(response.get_cookie("non-existent".to_string()), None);
+    }
+
+    #[test]
+    fn test_response_error() {
+        let err_1 = HttpResponseError::MissingHeader("id".to_string());
+
+        assert_eq!(err_1.to_string(), "Header id doesnt exist");
     }
 }
