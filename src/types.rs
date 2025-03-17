@@ -73,7 +73,7 @@ pub enum HttpResponseError {
 impl std::fmt::Display for HttpResponseError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            HttpResponseError::MissingHeader(header) => write!(f, "Missing header: {}", header),
+            HttpResponseError::MissingHeader(header) => write!(f, "Header {} doesnt exist", header),
         }
     }
 }
