@@ -214,6 +214,10 @@ mod tests {
 
         req.set_origin_url("/user/1?q=hello".to_string());
         assert_eq!(req.get_origin_url().unwrap(), "/user/1?q=hello");
+
+
+        let req  = HttpRequest::new();
+        assert_eq!(req.get_origin_url(), Err("Error getting origin url"));
     }
 
     #[test]
@@ -231,8 +235,9 @@ mod tests {
         let req = actix_web::test::TestRequest::default().to_http_request();
 
         let ip = get_real_ip(&req);
-
         assert_eq!(ip, String::from("unknown"));
+        let req = HttpRequest::new();
+        assert_eq!(req.ip(), Err("Cannot determine the ip"));
     }
 
     #[test]
