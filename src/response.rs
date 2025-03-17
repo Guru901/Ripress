@@ -397,6 +397,36 @@ impl HttpResponse {
         return self;
     }
 
+    /// Sets the response body to html.
+    ///
+    /// # Arguments
+    ///
+    /// * `html_content` - Any type that can be converted into a String
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::context::HttpResponse;
+    ///
+    /// let res = HttpResponse::new()
+    ///     .ok()
+    ///     .html("<h1>Hello, World!</h1>");
+    ///
+    /// // Using with different types
+    /// let res = HttpResponse::new()
+    ///     .ok()
+    ///     .text(format!("<h1>Count: {}</h1>", 42));
+    /// ```
+
+    pub fn html<T: Into<String>>(mut self, html_content: T) -> Self {
+        self.body = ResponseContentBody::new_html(html_content);
+        self.content_type = ResponseContentType::HTML;
+        return self;
+    }
+
     pub fn to_responder(self) -> actix_web::HttpResponse {
         let body = self.body;
         let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code as u16)
@@ -407,6 +437,9 @@ impl HttpResponse {
                 ResponseContentBody::TEXT(text) => actix_web::HttpResponse::build(status)
                     .content_type("text/plain")
                     .body(text),
+                ResponseContentBody::HTML(html) => actix_web::HttpResponse::build(status)
+                    .content_type("text/html")
+                    .body(html),
             })
             .unwrap_or_else(|_| {
                 actix_web::HttpResponse::InternalServerError().body("Invalid status code")
