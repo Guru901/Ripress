@@ -31,10 +31,6 @@ Ripress is a web framework inspired by Express.js.
 
 ## Benchmarks
 
-Ripress delivers exceptional performance, making it suitable for high-throughput applications where response time and request handling capacity are critical. Our benchmarks demonstrate how Ripress compares to other popular web frameworks.
-
-# Benchmarks
-
 ## Performance Comparison
 
 Ripress delivers exceptional performance, making it suitable for high-throughput applications where response time and request handling capacity are critical. Our benchmarks demonstrate how Ripress compares to other popular web frameworks.

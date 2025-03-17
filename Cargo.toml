@@ -1,6 +1,6 @@
 [package]
 name = "ripress"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 description = "An attempt to make an http server library like express.js in rust"
 license = "MIT"
