@@ -1,27 +1,45 @@
-use std::collections::HashMap;
-
+use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
 use actix_web::{
     http::header::{HeaderName, HeaderValue},
     Responder,
 };
+use std::collections::HashMap;
 
-use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
-
-/// Represents an http response going to the client
+/// Represents an HTTP response being sent to the client.
 ///
-/// This struct holds various properties of an HTTP response, such as
-/// status code, body content, and content type.
+/// The HttpResponse struct provides methods to construct and manipulate HTTP responses
+/// including status codes, headers, cookies, and different types of response bodies.
 ///
-/// # Example
-/// ```
+/// # Examples
+///
+/// Basic usage:
+/// ```rust
 /// use ripress::context::HttpResponse;
-/// let req = HttpResponse::new();
+///
+/// let res = HttpResponse::new();
+/// res.ok().text("Hello, World!");
+/// ```
+///
+/// JSON response:
+/// ```rust
+/// use ripress::context::HttpResponse;
+/// use serde_json::json;
+///
+/// let res = HttpResponse::new();
+/// res.ok().json(json!({
+///     "message": "Success",
+///     "code": 200
+/// }));
 /// ```
 ///
 /// # Fields
-/// - `status_code`: Stores status code of the response.
-/// - `body`: Contains the response body, which may be JSON, text, or form data.
-/// - `content_type`: The content type of the response.
+/// - `status_code` - HTTP status code (e.g., 200, 404, 500)
+/// - `body` - Response body content (JSON, text)
+/// - `content_type` - Content-Type header value
+/// - `cookies` - Response cookies to be set
+/// - `headers` - Response headers
+/// - `remove_cookies` - Cookies to be removed
+
 pub struct HttpResponse {
     // Status code specified by the developer
     status_code: i32,
@@ -43,6 +61,23 @@ pub struct HttpResponse {
 }
 
 impl HttpResponse {
+    /// Creates a new HTTP response with default values.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new `HttpResponse` initialized with:
+    /// - Status code: 200
+    /// - Empty text body
+    /// - JSON content type
+    /// - Empty cookies and headers
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::context::HttpResponse;
+    ///
+    /// let res = HttpResponse::new();
+    /// assert_eq!(res.get_status_code(), 200);
+    /// ```
     pub fn new() -> Self {
         HttpResponse {
             status_code: 200,
@@ -56,11 +91,23 @@ impl HttpResponse {
 
     /// Sets a cookie in the response.
     ///
+    /// # Arguments
+    ///
+    /// * `key` - The name of the cookie
+    /// * `value` - The value to set
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
     /// # Example
-    /// ```
+    /// ```rust
     /// use ripress::context::HttpResponse;
-    /// let res = HttpResponse::new();
-    /// res.set_cookie("key", "value"); // Sets the key cookie to value
+    ///
+    /// let res = HttpResponse::new()
+    ///     .set_cookie("session", "abc123")
+    ///     .ok()
+    ///     .text("Logged in");
     /// ```
 
     pub fn set_cookie(mut self, key: &str, value: &str) -> Self {
@@ -70,11 +117,22 @@ impl HttpResponse {
 
     /// Removes a cookie from the response.
     ///
+    /// # Arguments
+    ///
+    /// * `key` - The name of the cookie to remove
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
     /// # Example
-    /// ```
+    /// ```rust
     /// use ripress::context::HttpResponse;
-    /// let res = HttpResponse::new();
-    /// res.clear_cookie("key"); // The cookie gets removed
+    ///
+    /// let res = HttpResponse::new()
+    ///     .clear_cookie("session")
+    ///     .ok()
+    ///     .text("Logged out");
     /// ```
 
     pub fn clear_cookie(mut self, key: &str) -> Self {
@@ -99,29 +157,54 @@ impl HttpResponse {
 
     /// Gets a header from the response.
     ///
+    /// # Arguments
+    ///
+    /// * `key` - The name of the header to retrieve
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<String, HttpResponseError>` with the header value if found,
+    /// or `HttpResponseError::MissingHeader` if not found.
+    ///
     /// # Example
-    /// ```
+    /// ```rust
     /// use ripress::context::HttpResponse;
-    /// let res = HttpResponse::new();
-    /// res.get_header("key");
+    ///
+    /// let res = HttpResponse::new()
+    ///     .set_header("X-Custom", "value");
+    ///
+    /// match res.get_header("X-Custom") {
+    ///     Ok(value) => println!("Header value: {}", value),
+    ///     Err(e) => println!("Error: {:?}", e)
+    /// }
     /// ```
 
     pub fn get_header(&self, key: &str) -> Result<String, HttpResponseError> {
         let header = self.headers.get(key);
 
         match header {
-            Some(header_string) =>  Ok(header_string.clone()),
-            None => Err(HttpResponseError::MissingHeader(key.to_string()))
+            Some(header_string) => Ok(header_string.clone()),
+            None => Err(HttpResponseError::MissingHeader(key.to_string())),
         }
     }
 
     /// Sets the status code of the response.
     ///
+    /// # Arguments
+    ///
+    /// * `code` - The HTTP status code to set
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
     /// # Example
-    /// ```
+    /// ```rust
     /// use ripress::context::HttpResponse;
-    /// let res = HttpResponse::new();
-    /// res.status(404); // Sets the status code to 404
+    ///
+    /// let res = HttpResponse::new()
+    ///     .status(201)
+    ///     .text("Resource created");
     /// ```
 
     pub fn status(mut self, code: i32) -> Self {
@@ -131,11 +214,20 @@ impl HttpResponse {
 
     /// Sets the status code to 200 (OK).
     ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
     /// # Example
-    /// ```
+    /// ```rust
     /// use ripress::context::HttpResponse;
-    /// let res = HttpResponse::new();
-    /// res.ok(); // Sets the status code to 200
+    ///
+    /// let res = HttpResponse::new()
+    ///     .ok()
+    ///     .json(serde_json::json!({
+    ///         "status": "success",
+    ///         "message": "Operation completed"
+    ///     }));
     /// ```
 
     pub fn ok(mut self) -> Self {
@@ -145,11 +237,20 @@ impl HttpResponse {
 
     /// Sets the status code to 400 (Bad Request).
     ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
     /// # Example
-    /// ```
+    /// ```rust
     /// use ripress::context::HttpResponse;
-    /// let res = HttpResponse::new();
-    /// res.bad_request(); // Sets the status code to 400
+    ///
+    /// let res = HttpResponse::new()
+    ///     .bad_request()
+    ///     .json(serde_json::json!({
+    ///         "error": "Invalid input",
+    ///         "details": "Missing required fields"
+    ///     }));
     /// ```
 
     pub fn bad_request(mut self) -> Self {
@@ -159,11 +260,20 @@ impl HttpResponse {
 
     /// Sets the status code to 404 (Not Found).
     ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
     /// # Example
-    /// ```
+    /// ```rust
     /// use ripress::context::HttpResponse;
-    /// let res = HttpResponse::new();
-    /// res.not_found(); // Sets the status code to 404
+    ///
+    /// let res = HttpResponse::new()
+    ///     .not_found()
+    ///     .json(serde_json::json!({
+    ///         "error": "Resource not found",
+    ///         "resource": "user/123"
+    ///     }));
     /// ```
 
     pub fn not_found(mut self) -> Self {
@@ -173,11 +283,20 @@ impl HttpResponse {
 
     /// Sets the status code to 500 (Internal Server Error).
     ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
     /// # Example
-    /// ```
+    /// ```rust
     /// use ripress::context::HttpResponse;
-    /// let res = HttpResponse::new();
-    /// res.internal_server_error(); // Sets the status code to 500
+    ///
+    /// let res = HttpResponse::new()
+    ///     .internal_server_error()
+    ///     .json(serde_json::json!({
+    ///         "error": "Internal server error",
+    ///         "message": "Database connection failed"
+    ///     }));
     /// ```
 
     pub fn internal_server_error(mut self) -> Self {
@@ -187,11 +306,23 @@ impl HttpResponse {
 
     /// Sets the Content-Type of the response.
     ///
+    /// # Arguments
+    ///
+    /// * `content_type` - The `ResponseContentType` to set
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
     /// # Example
-    /// ```
+    /// ```rust
     /// use ripress::context::HttpResponse;
-    /// let res = HttpResponse::new();
-    /// res.set_content_type(ripress::types::ResponseContentType::JSON); // Sets the Content-Type to JSON
+    /// use ripress::types::ResponseContentType;
+    ///
+    /// let res = HttpResponse::new()
+    ///     .set_content_type(ResponseContentType::JSON)
+    ///     .ok()
+    ///     .json(serde_json::json!({"status": "success"}));
     /// ```
 
     pub fn set_content_type(mut self, content_type: ResponseContentType) -> Self {
@@ -201,15 +332,33 @@ impl HttpResponse {
 
     /// Sets the response body to JSON.
     ///
+    /// # Arguments
+    ///
+    /// * `json` - Any type that implements `serde::Serialize`
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
     /// # Example
-    /// ```
+    /// ```rust
     /// use ripress::context::HttpResponse;
-    /// use serde_json::json;
+    /// use serde::Serialize;
     ///
-    /// let json_body = json!({"key": "value"});
-    /// let res = HttpResponse::new();
+    /// #[derive(Serialize)]
+    /// struct User {
+    ///     name: String,
+    ///     age: u32,
+    /// }
     ///
-    /// res.json(json_body); // Sets the response body to JSON
+    /// let user = User {
+    ///     name: "John".to_string(),
+    ///     age: 30,
+    /// };
+    ///
+    /// let res = HttpResponse::new()
+    ///     .ok()
+    ///     .json(user);
     /// ```
 
     pub fn json(mut self, json: impl serde::Serialize) -> Self {
@@ -221,12 +370,26 @@ impl HttpResponse {
 
     /// Sets the response body to text.
     ///
-    /// # Example
-    /// ```
-    /// use ripress::context::HttpResponse;
-    /// let res = HttpResponse::new();
+    /// # Arguments
     ///
-    /// res.text("Hello, World!"); // Sets the response body to text
+    /// * `text` - Any type that can be converted into a String
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::context::HttpResponse;
+    ///
+    /// let res = HttpResponse::new()
+    ///     .ok()
+    ///     .text("Operation completed successfully");
+    ///
+    /// // Using with different types
+    /// let res = HttpResponse::new()
+    ///     .ok()
+    ///     .text(format!("Count: {}", 42));
     /// ```
 
     pub fn text<T: Into<String>>(mut self, text: T) -> Self {
