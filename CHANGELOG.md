@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.2] - 2025-03-15
+
+### Added
+
+- Response Methods
+
+  - Added res.html method
+
+- Increased Code Covergae
+- Improved Error Handling
+
 ## [0.3.1] - 2025-03-15
 
 ### Added
