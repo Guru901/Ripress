@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `App` struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests. It follows an Express-like pattern for route handling and middleware.
+The `App` struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests. It follows an Express-like pattern for route handling.
 
 ## Creating an App Object
 

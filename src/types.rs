@@ -83,15 +83,6 @@ pub enum HttpMethods {
     PATCH,
 }
 
-pub struct Next;
-
-impl Next {
-    pub fn new<F: Fn(HttpRequest)>(_closure: F) -> Self {
-        Next {}
-    }
-}
-
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
-pub type Middleware = Arc<dyn Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static>;
 pub(crate) type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
