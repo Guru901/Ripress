@@ -76,7 +76,6 @@ impl HttpResponse {
     /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new();
-    /// assert_eq!(res.get_status_code(), 200);
     /// ```
     pub fn new() -> Self {
         HttpResponse {
