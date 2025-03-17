@@ -3,6 +3,7 @@ mod tests {
     use crate::response::HttpResponse;
     use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
     use serde_json::json;
+    use crate::types::HttpResponseError::MissingHeader;
 
     #[test]
     fn test_default_response() {
@@ -115,6 +116,7 @@ mod tests {
         let response = HttpResponse::new();
         let response = response.set_header("key", "value");
         assert_eq!(response.get_header("key").unwrap(), "value");
+        assert_eq!(response.get_header("nonexistent"), Err(MissingHeader("nonexistent".to_string())));
     }
 
     #[test]

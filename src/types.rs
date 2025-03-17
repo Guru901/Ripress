@@ -65,7 +65,7 @@ impl ResponseContentBody {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum HttpResponseError {
     MissingHeader(String),
 }
