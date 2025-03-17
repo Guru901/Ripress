@@ -1,6 +1,14 @@
 # Changelog
 
-## [0.3.2] - 2025-03-15
+## [0.3.4] - 2025-03-18
+
+Removed Unnecessary Dependencies
+
+## [0.3.3] - 2025-03-18
+
+Readme fixed
+
+## [0.3.2] - 2025-03-18
 
 ### Added
 
