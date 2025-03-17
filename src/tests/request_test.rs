@@ -246,5 +246,18 @@ mod tests {
         let content_type = determine_content_type("application/x-www-form-urlencoded");
         assert_eq!(content_type, RequestBodyType::FORM);
     }
+
+    #[test]
+    fn test_error_enum() {
+        let err_1 = HttpRequestError::MissingParam("id".to_string());
+        let err_2 = HttpRequestError::MissingQuery("id".to_string());
+        let err_3 = HttpRequestError::MissingCookie("id".to_string());
+        let err_4 = HttpRequestError::MissingHeader("id".to_string());
+
+        assert_eq!(err_1.to_string(), "Param id doesn't exist");
+        assert_eq!(err_2.to_string(), "Query id doesn't exist");
+        assert_eq!(err_3.to_string(), "Cookie id doesn't exist");
+        assert_eq!(err_4.to_string(), "Header id doesn't exist");
+    }
     // test from actix request
 }
