@@ -8,7 +8,6 @@ mod tests;
 pub mod context {
     pub use super::request::HttpRequest;
     pub use super::response::HttpResponse;
-    pub use super::types::Next;
 }
 
 pub mod types;
