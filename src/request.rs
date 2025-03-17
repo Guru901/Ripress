@@ -1,4 +1,4 @@
-use crate::types::{HttpMethods, RequestBodyContent, RequestBodyType};
+use crate::types::{HttpMethods, HttpRequestError, RequestBodyContent, RequestBodyType};
 use actix_web::{http::Method, HttpMessage};
 use futures_util::stream::StreamExt;
 use std::collections::HashMap;
@@ -99,11 +99,7 @@ impl HttpRequest {
     /// Returns `true` if the `Content-Type` matches, otherwise `false`.
 
     pub fn is(&self, content_type: RequestBodyType) -> bool {
-        if self.body.content_type == content_type {
-            true
-        } else {
-            false
-        }
+        self.body.content_type == content_type
     }
 
     /// Returns the request's method (GET, POST, etc.)
@@ -127,10 +123,15 @@ impl HttpRequest {
     /// ```
     /// For example the request is made to /user/{id} and the id is 123, the origin URL will be /user/123
     /// If the request is made to /user/123 with query params ?q=hello, the origin url will be /user/123?q=hello
-    /// Returns an `Option<String>`, where `Some(url)` contains the origin_url is available, or `None` if it cannot be determined.
+    /// Returns a `Result<&str, &str>`, where `Ok(url)` contains the origin_url is available, or `Err(&str)` if it cannot be determined.
 
-    pub fn get_origin_url(&self) -> Option<String> {
-        Some(self.origin_url.to_string())
+    pub fn get_origin_url(&self) -> Result<&str, &str> {
+        let origin_url = &self.origin_url;
+        if origin_url.len() != 0 {
+            Ok(origin_url)
+        } else {
+            Err("Error getting origin url")
+        }
     }
 
     ///
@@ -141,10 +142,17 @@ impl HttpRequest {
     /// let cookie = req.get_cookie("key").unwrap();
     /// println!("cookie: {}", cookie);
     /// ```
-    /// This function returns the value of the specified cookie.
+    ///
+    /// Returns the value of a specified header
+    /// Returns a `Result<&str, HttpRequestError>`, where `Ok(url)` contains the origin_url is available, or `Err(HttpRequestError)` if it cannot be determined.
 
-    pub fn get_cookie(&self, name: &str) -> Option<String> {
-        self.cookies.get(name).map(|c| c.to_string())
+    pub fn get_cookie(&self, name: &str) -> Result<&str, HttpRequestError> {
+        let cookie = self.cookies.get(name);
+
+        match cookie {
+            Some(cookie_str) => Ok(cookie_str),
+            None => Err(HttpRequestError::MissingCookie(name.to_string())),
+        }
     }
 
     /// Returns the request's path.
@@ -154,12 +162,10 @@ impl HttpRequest {
     /// let req = ripress::context::HttpRequest::new();
     /// req.get_path();
     /// ```
-    /// For example the request is made to /user/{id} and the id is 123, the origin URL will be /user/123
-    /// If the request is made to /user/123 with query params ?q=hello, the origin url will be /user/123
-    /// Returns an `Option<String>`, where `Some(path)` contains the path is available, or `None` if it cannot be determined.
+    // Returns an `String`, that contains the path
 
-    pub fn get_path(&self) -> Option<String> {
-        Some(self.path.to_string())
+    pub fn get_path(&self) -> &str {
+        self.path.as_str()
     }
 
     /// Returns the client's IP address.
@@ -172,10 +178,16 @@ impl HttpRequest {
     /// ```
     ///
     /// This function retrieves the IP address of the client making the request.
-    /// Returns an `Option<String>`, where `Some(ip)` contains the IP if available, or `None` if it cannot be determined.
+    /// Returns an `Result<&str, &str>`, where `Ok(ip)` contains the IP if available, or `Err(err)` contains an err if it cannot be determined.
 
-    pub fn ip(&self) -> Option<String> {
-        Some(self.ip.to_string())
+    pub fn ip(&self) -> Result<&str, &str> {
+        let ip_str = self.ip.as_str();
+
+        if ip_str.len() != 0 {
+            Ok(ip_str)
+        } else {
+            Err("Cannot determine the ip")
+        }
     }
 
     /// Returns url parameters.
@@ -188,10 +200,15 @@ impl HttpRequest {
     /// ```
     ///
     /// This function returns the value of the specified parameter from the URL.
-    /// Returns an `Option<String>`, where `Some(id)` contains the id if available, or `None` if it cannot be determined.
+    /// Returns an `Result<&str>`, where `Ok(id)` contains the param if available, or `Err(HttpRequestError)` if it cannot be determined.
 
-    pub fn get_params(&self, param_name: &str) -> Option<String> {
-        self.params.get(param_name).map(|v| v.to_string())
+    pub fn get_params(&self, param_name: &str) -> Result<&str, HttpRequestError> {
+        let param = self.params.get(param_name).map(|v| v);
+
+        match param {
+            Some(param_str) => Ok(param_str),
+            None => Err(HttpRequestError::MissingParam(param_name.to_string())),
+        }
     }
 
     /// Returns header based on the key.
@@ -205,9 +222,14 @@ impl HttpRequest {
     /// ```
     ///
     /// This function returns the value of the specified header.
-    pub fn get_header(&self, header_name: &str) -> Option<&String> {
+    pub fn get_header(&self, header_name: &str) -> Result<&str, HttpRequestError> {
         let header_name = header_name.to_lowercase();
-        self.headers.get(&header_name.to_string())
+        let header = self.headers.get(&header_name);
+
+        match header {
+            Some(header_str) => Ok(header_str),
+            None => Err(HttpRequestError::MissingHeader(header_name)),
+        }
     }
 
     /// Returns query parameters.
@@ -222,8 +244,13 @@ impl HttpRequest {
     /// This function returns the value of the specified parameter from the URL.
     /// Returns an `Option<String>`, where `Some(id)` contains the id if available, or `None` if it cannot be determined.
 
-    pub fn get_query(&self, query_name: &str) -> Option<String> {
-        self.queries.get(query_name).map(|v| v.to_string())
+    pub fn get_query(&self, query_name: &str) -> Result<&str, HttpRequestError> {
+        let query = self.queries.get(query_name).map(|v| v);
+
+        match query {
+            Some(query_str) => Ok(query_str),
+            None => Err(HttpRequestError::MissingParam(query_name.to_string())),
+        }
     }
 
     /// Returns the protocol on which the request was made (http or https)
@@ -234,7 +261,7 @@ impl HttpRequest {
     /// let body = req.get_protocol();
     /// ```
 
-    pub fn get_protocol(&self) -> &String {
+    pub fn get_protocol(&self) -> &str {
         &self.protocol
     }
 
