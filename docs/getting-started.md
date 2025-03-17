@@ -46,8 +46,12 @@ async fn index(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 async fn find_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let user_id = req.get_params("id").unwrap_or("unknown".to_string());
-    res.status(200).text(format!("Hello, {user_id}"))
+    let user_id = req.get_params("id");
+
+    match user_id {
+        Ok(user_id) => res.status(200).text(format!("Hello, {user_id}")),
+        Err(err) => res.not_found().text(err.to_string()),
+    }
 }
 
 async fn submit_form(req: HttpRequest, res: HttpResponse) -> HttpResponse {
