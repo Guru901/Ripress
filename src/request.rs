@@ -10,28 +10,40 @@ struct RequestBody {
     content_type: RequestBodyType,
 }
 
-/// Represents an incoming HTTP request.
+// Represents an incoming HTTP request with comprehensive access to request data.
 ///
-/// This struct holds various properties of an HTTP request, such as
-/// query parameters, request body, HTTP method, and client IP address.
+/// The HttpRequest struct provides methods to access and manipulate all aspects
+/// of an HTTP request including headers, cookies, query parameters, route parameters,
+/// and request body content.
 ///
-/// # Example
-/// ```
+/// # Examples
+///
+/// Basic usage:
+/// ```rust
 /// use ripress::context::HttpRequest;
 ///
 /// let req = HttpRequest::new();
-/// println!("Request method: {:?}", req.get_method());
-/// println!("Client IP: {}", req.ip().unwrap());
+/// println!("Method: {:?}", req.get_method());
+/// println!("Path: {}", req.get_path());
+/// println!("Client IP: {:?}", req.ip());
 /// ```
 ///
-/// # Fields
-/// - `params`: Stores dynamic route parameters extracted from the URL.
-/// - `queries`: Stores query parameters from the request URL.
-/// - `body`: Contains the request body, which may be JSON, text, or form data.
-/// - `ip`: The client's IP address.
-/// - `method`: The HTTP method used (e.g., GET, POST, PUT, DELETE).
-/// - `origin_url`: The full URL of the incoming request.
-/// - `path`: The requested endpoint path.
+/// Working with JSON body:
+/// ```rust
+/// use ripress::context::HttpRequest;
+/// use serde::{Deserialize, Serialize};
+///
+/// #[derive(Deserialize, Serialize)]
+/// struct User {
+///     name: String,
+///     age: u32
+/// }
+///
+/// let req = HttpRequest::new();
+/// if let Ok(user) = req.json::<User>() {
+///     println!("User: {} is {} years old", user.name, user.age);
+/// }
+/// ```
 
 #[derive(Debug, Clone)]
 pub struct HttpRequest {
@@ -67,6 +79,19 @@ pub struct HttpRequest {
 }
 
 impl HttpRequest {
+    /// Creates a new empty HTTP request instance.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new `HttpRequest` with default values.
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::context::HttpRequest;
+    ///
+    /// let req = HttpRequest::new();
+    /// assert_eq!(req.get_method(), &HttpMethods::GET);
+    /// ```
     pub fn new() -> Self {
         Self {
             params: HashMap::new(),
@@ -85,29 +110,46 @@ impl HttpRequest {
         }
     }
 
-    /// Checks if the `Content-Type` of the request matches the specified type.
-    /// # Example
-    /// ```
-    /// use ripress::types::RequestBodyType;
-    /// let req = ripress::context::HttpRequest::new();
+    /// Checks if the request body matches a specific content type.
     ///
+    /// # Arguments
+    ///
+    /// * `content_type` - The `RequestBodyType` to check against
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if the content type matches, `false` otherwise.
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::{context::HttpRequest, types::RequestBodyType};
+    ///
+    /// let req = HttpRequest::new();
     /// if req.is(RequestBodyType::JSON) {
-    ///     println!("Request is JSON");
+    ///     // Handle JSON content
     /// }
     /// ```
-    ///
-    /// Returns `true` if the `Content-Type` matches, otherwise `false`.
 
     pub fn is(&self, content_type: RequestBodyType) -> bool {
         self.body.content_type == content_type
     }
 
-    /// Returns the request's method (GET, POST, etc.)
+    /// Returns the HTTP method used for this request.
+    ///
+    /// # Returns
+    ///
+    /// Returns a reference to the `HttpMethods` enum representing the request method.
     ///
     /// # Example
-    /// ```
-    /// let req = ripress::context::HttpRequest::new();
-    /// req.get_method(); // returns (GET, POST, etc.)
+    /// ```rust
+    /// use ripress::context::HttpRequest;
+    ///
+    /// let req = HttpRequest::new();
+    /// match req.get_method() {
+    ///     HttpMethods::GET => println!("Handling GET request"),
+    ///     HttpMethods::POST => println!("Handling POST request"),
+    ///     _ => println!("Handling other method")
+    /// }
     /// ```
 
     pub fn get_method(&self) -> &HttpMethods {
@@ -116,14 +158,16 @@ impl HttpRequest {
 
     /// Returns the request's origin URL.
     ///
+    /// # Returns
+    ///
+    /// Returns `Ok(&str)` with the origin url value if found, or
+    /// `Err(&str)` if not found.
+    ///
     /// # Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// req.get_origin_url();
     /// ```
-    /// For example the request is made to /user/{id} and the id is 123, the origin URL will be /user/123
-    /// If the request is made to /user/123 with query params ?q=hello, the origin url will be /user/123?q=hello
-    /// Returns a `Result<&str, &str>`, where `Ok(url)` contains the origin_url is available, or `Err(&str)` if it cannot be determined.
 
     pub fn get_origin_url(&self) -> Result<&str, &str> {
         let origin_url = &self.origin_url;
@@ -134,17 +178,27 @@ impl HttpRequest {
         }
     }
 
+    /// Retrieves a cookie value by name.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the cookie to retrieve
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(&str)` with the cookie value if found, or
+    /// `Err(HttpRequestError::MissingCookie)` if not found.
     ///
     /// # Example
+    /// ```rust
+    /// use ripress::context::HttpRequest;
     ///
-    /// ```no_run
-    /// let req = ripress::context::HttpRequest::new();
-    /// let cookie = req.get_cookie("key").unwrap();
-    /// println!("cookie: {}", cookie);
+    /// let req = HttpRequest::new();
+    /// match req.get_cookie("session_id") {
+    ///     Ok(session) => println!("Session ID: {}", session),
+    ///     Err(e) => println!("No session cookie found: {:?}", e)
+    /// }
     /// ```
-    ///
-    /// Returns the value of a specified header
-    /// Returns a `Result<&str, HttpRequestError>`, where `Ok(url)` contains the origin_url is available, or `Err(HttpRequestError)` if it cannot be determined.
 
     pub fn get_cookie(&self, name: &str) -> Result<&str, HttpRequestError> {
         let cookie = self.cookies.get(name);
@@ -157,12 +211,15 @@ impl HttpRequest {
 
     /// Returns the request's path.
     ///
+    /// # Returns
+    ///
+    /// Returns String with the path
+    ///
     /// # Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// req.get_path();
     /// ```
-    // Returns an `String`, that contains the path
 
     pub fn get_path(&self) -> &str {
         self.path.as_str()
@@ -170,15 +227,17 @@ impl HttpRequest {
 
     /// Returns the client's IP address.
     ///
+    /// # Returns
+    ///
+    /// Returns `Ok(&str)` with the ip value if found, or
+    /// `Err(err)` if not found.
+    ///
     /// # Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// let ip = req.ip();
     /// println!("Client IP: {:?}", ip);
     /// ```
-    ///
-    /// This function retrieves the IP address of the client making the request.
-    /// Returns an `Result<&str, &str>`, where `Ok(ip)` contains the IP if available, or `Err(err)` contains an err if it cannot be determined.
 
     pub fn ip(&self) -> Result<&str, &str> {
         let ip_str = self.ip.as_str();
@@ -192,15 +251,21 @@ impl HttpRequest {
 
     /// Returns url parameters.
     ///
+    /// # Arguments
+    ///
+    /// * `param_name` - The name of the parameter to retrieve
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(&str)` with the parameter value if found, or
+    /// `Err(HttpRequestError::MissingParam)` if not found.
+    ///
     /// # Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// let id = req.get_params("id");
     /// println!("Id: {:?}", id);
     /// ```
-    ///
-    /// This function returns the value of the specified parameter from the URL.
-    /// Returns an `Result<&str>`, where `Ok(id)` contains the param if available, or `Err(HttpRequestError)` if it cannot be determined.
 
     pub fn get_params(&self, param_name: &str) -> Result<&str, HttpRequestError> {
         let param = self.params.get(param_name).map(|v| v);
@@ -213,6 +278,15 @@ impl HttpRequest {
 
     /// Returns header based on the key.
     ///
+    /// # Arguments
+    ///
+    /// * `header_name` - The name of the header to retrieve
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(&str)` with the header value if found, or
+    /// `Err(HttpRequestError::MissingHeader)` if not found.
+    ///
     /// # Example
     ///
     /// ```no_run
@@ -220,8 +294,7 @@ impl HttpRequest {
     /// let header = req.get_header("id");
     /// println!("header: {:?}", header.unwrap());
     /// ```
-    ///
-    /// This function returns the value of the specified header.
+
     pub fn get_header(&self, header_name: &str) -> Result<&str, HttpRequestError> {
         let header_name = header_name.to_lowercase();
         let header = self.headers.get(&header_name);
@@ -234,15 +307,21 @@ impl HttpRequest {
 
     /// Returns query parameters.
     ///
+    /// # Arguments
+    ///     
+    /// * `query_name` - The name of the query parameter to retrieve
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(&str)` with the query parameter value if found, or
+    /// `Err(HttpRequestError::MissingParam)` if not found.
+    ///
     /// # Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// let id = req.get_query("id");
     /// println!("Id: {:?}", id);
     /// ```
-    ///
-    /// This function returns the value of the specified parameter from the URL.
-    /// Returns an `Option<String>`, where `Some(id)` contains the id if available, or `None` if it cannot be determined.
 
     pub fn get_query(&self, query_name: &str) -> Result<&str, HttpRequestError> {
         let query = self.queries.get(query_name).map(|v| v);
@@ -255,6 +334,10 @@ impl HttpRequest {
 
     /// Returns the protocol on which the request was made (http or https)
     ///
+    /// # Returns
+    ///
+    /// Returns &str with the protocol value
+    ///
     /// # Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
@@ -266,6 +349,10 @@ impl HttpRequest {
     }
 
     /// Returns a bool indicating if request was made over https
+    ///
+    /// # Returns
+    ///
+    /// Returns bool, that is true if protocol was https else false
     ///
     /// # Example
     /// ```
@@ -280,24 +367,34 @@ impl HttpRequest {
         self.get_protocol() == "https"
     }
 
-    /// Returns request's json body.
+    /// Deserializes the request body as JSON into the specified type.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `J` - The type to deserialize into, must implement `DeserializeOwned`
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(J)` with the deserialized value if successful, or
+    /// `Err(String)` with an error message if deserialization fails.
     ///
     /// # Example
-    /// ```no_run
-    /// #[derive(serde::Deserialize, serde::Serialize)]
-    /// struct MyStruct {
-    ///     name: String,
-    ///     age: u8,
+    /// ```rust
+    /// use ripress::context::HttpRequest;
+    /// use serde::Deserialize;
+    ///
+    /// #[derive(Deserialize)]
+    /// struct LoginData {
+    ///     username: String,
+    ///     password: String
     /// }
     ///
-    /// let req = ripress::context::HttpRequest::new();
-    /// let body = req.json::<MyStruct>().unwrap();
-    /// println!("name: {:?}", body.name);
-    /// println!("age : {:?}", body.age);
+    /// let req = HttpRequest::new();
+    /// match req.json::<LoginData>() {
+    ///     Ok(data) => println!("Login attempt for: {}", data.username),
+    ///     Err(e) => println!("Invalid login data: {}", e)
+    /// }
     /// ```
-    ///
-    /// This function returns the json body of the request.
-    /// Returns an `Result<J>`, where `Ok(J)` contains the body if it is valid json, or `Err(error)` if it is not.
 
     pub fn json<J>(&self) -> Result<J, String>
     where
@@ -502,6 +599,16 @@ impl HttpRequest {
         })
     }
 }
+
+/// Determines the content type from a content-type header string.
+///
+/// # Arguments
+///
+/// * `content_type` - The content-type header value
+///
+/// # Returns
+///
+/// Returns the appropriate `RequestBodyType` enum variant.
 
 pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
     if content_type == "application/json" {
