@@ -84,6 +84,26 @@ mod tests {
     }
 
     #[test]
+    fn test_html_response() {
+        let text_body = "<h1>Hello, World!</h1>";
+        let response = HttpResponse::new().html(text_body);
+        assert_eq!(response.get_content_type(), ResponseContentType::HTML);
+        if let ResponseContentBody::HTML(body) = response.get_body() {
+            assert_eq!(body, text_body);
+        } else {
+            panic!("Expected TEXT body");
+        }
+
+        // Edge case: Empty text body
+        let response = HttpResponse::new().html("");
+        if let ResponseContentBody::HTML(body) = response.get_body() {
+            assert_eq!(body, "");
+        } else {
+            panic!("Expected TEXT body");
+        }
+    }
+
+    #[test]
     fn test_cookies() {
         let response = HttpResponse::new();
         let response = response.set_cookie("key", "value");

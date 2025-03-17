@@ -45,17 +45,23 @@ impl std::fmt::Display for HttpRequestError {
 pub enum ResponseContentType {
     JSON,
     TEXT,
+    HTML
 }
 
 #[derive(Serialize, PartialEq)]
 pub(crate) enum ResponseContentBody {
     JSON(serde_json::Value),
     TEXT(String),
+    HTML(String)
 }
 
 impl ResponseContentBody {
     pub fn new_text<T: Into<String>>(text: T) -> Self {
         ResponseContentBody::TEXT(text.into())
+    }
+
+    pub fn new_html<T: Into<String>>(text: T) -> Self {
+        ResponseContentBody::HTML(text.into())
     }
 }
 
