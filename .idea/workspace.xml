@@ -9,7 +9,8 @@
   <component name="ChangeListManager">
     <list default="true" id="ba9f36bd-e7f6-4beb-bf44-5deae621c02e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/request_test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/request_test.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tests/response_test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/response_test.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/types.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/types.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,6 +53,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "git-widget-placeholder": "guru/res",
     "last_opened_file_path": "/Users/guru/Developer/rust/ripress",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
