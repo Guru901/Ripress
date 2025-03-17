@@ -9,8 +9,11 @@ The `HttpResponse` object in Ripress provides various methods for handling respo
 Use `.text()` to send a plain text response.
 
 ```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
 async fn text_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("Hello, World!")
+    res.ok()
+       .text("Hello, World!")
 }
 ```
 
@@ -19,118 +22,226 @@ async fn text_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 To return a JSON response, use `.json()` with a serializable Rust struct.
 
 ```rust
-#[derive(serde::Serialize)]
+use ripress::context::{HttpRequest, HttpResponse};
+use serde::Serialize;
+
+#[derive(Serialize)]
 struct Message {
     message: String,
+    code: i32,
 }
 
 async fn json_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let response_body = Message {
         message: "Success".to_string(),
+        code: 200,
     };
-    res.ok().json(&response_body)
+
+    res.ok()
+       .json(response_body)  // No need for &, json() takes ownership
+}
+
+// Using serde_json::json! macro
+async fn quick_json(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+       .json(serde_json::json!({
+           "message": "Success",
+           "code": 200
+       }))
 }
 ```
-
----
 
 ## Status Codes
 
 ### Setting a Custom Status Code
 
-You can manually set a status code using `.status()`.
+You can manually set any status code using `.status()`.
 
 ```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
 async fn custom_status(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.status(418).text("I'm a teapot")
+    res.status(201)  // Created
+       .json(serde_json::json!({
+           "message": "Resource created",
+           "id": "123"
+       }))
+}
+
+// Fun example
+async fn teapot(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.status(418)  // I'm a teapot
+       .text("Sorry, I'm a teapot, I cannot brew coffee!")
 }
 ```
 
 ### Status Code Helpers
 
-Ripress provides convenient helper methods for common status codes.
+Ripress provides convenient helper methods for common status codes:
 
-#### **200 OK**
+#### Success Responses
 
 ```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+// 200 OK
 async fn ok_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("Request successful")
+    res.ok()
+       .json(serde_json::json!({
+           "status": "success",
+           "data": { "id": 1, "name": "John" }
+       }))
 }
 ```
 
-#### **400 Bad Request**
+#### Error Responses
 
 ```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+// 400 Bad Request
 async fn bad_request(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.bad_request().text("Invalid request")
+    res.bad_request()
+       .json(serde_json::json!({
+           "error": "Invalid input",
+           "details": ["name is required", "age must be positive"]
+       }))
 }
-```
 
-#### **404 Not Found**
-
-```rust
+// 404 Not Found
 async fn not_found(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.not_found().text("Resource not found")
+    res.not_found()
+       .json(serde_json::json!({
+           "error": "Resource not found",
+           "resource": "user/123"
+       }))
 }
-```
 
-#### **500 Internal Server Error**
-
-```rust
+// 500 Internal Server Error
 async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.internal_server_error().text("An unexpected error occurred")
+    res.internal_server_error()
+       .json(serde_json::json!({
+           "error": "Internal server error",
+           "request_id": "abc-123"
+       }))
 }
 ```
-
----
 
 ## Headers and Cookies
 
-### Setting a Response Header
-
-Use `.set_header()` to modify the response headers.
+### Working with Headers
 
 ```rust
-async fn set_custom_header(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_header("X-Custom-Header", "MyValue")
-        .ok()
-        .text("Header added")
+use ripress::context::{HttpRequest, HttpResponse};
+
+// Setting multiple headers
+async fn set_headers(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_header("X-Request-ID", "abc-123")
+       .set_header("X-Custom-Header", "custom-value")
+       .ok()
+       .json(serde_json::json!({ "status": "success" }))
+}
+
+// Reading headers
+async fn check_headers(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match res.get_header("X-Custom-Header") {
+        Ok(value) => res.ok()
+                       .json(serde_json::json!({ "header": value })),
+        Err(_) => res.bad_request()
+                     .text("Missing required header")
+    }
 }
 ```
 
-### Getting a Response Header
-
-Use `.get_header()` to get the response headers.
+### Managing Cookies
 
 ```rust
-async fn get_custom_header(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.get_header("X-Custom-Header")
+use ripress::context::{HttpRequest, HttpResponse};
+
+// Setting cookies
+async fn set_session(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_cookie("session_id", "abc123")
+       .set_cookie("user_id", "user_123")
+       .ok()
+       .json(serde_json::json!({
+           "message": "Session started"
+       }))
+}
+
+// Removing cookies (logout example)
+async fn logout(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.clear_cookie("session_id")
+       .clear_cookie("user_id")
+       .ok()
+       .json(serde_json::json!({
+           "message": "Logged out successfully"
+       }))
 }
 ```
 
-### Sending Cookies
+## Content Types
 
-Use `.set_cookie()` to attach a cookie to the response.
-
-```rust
-async fn cookie_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_cookie("session", "abc123; HttpOnly")
-        .ok()
-        .json(json!({ "message": "Cookie set" }))
-}
-```
-
----
-
-## Setting content type
-
-Use `.set_content_type()` to set the content type of the response.
-It's optional, and is set by the respone body
+The content type is automatically set based on the response method used, but can be manually controlled:
 
 ```rust
-async fn set_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::ResponseContentType;
+
+async fn custom_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_content_type(ResponseContentType::JSON)
-        .ok()
-        .json(json!({ "message": "Content type set" }))
+       .ok()
+       .json(serde_json::json!({
+           "message": "Custom content type response"
+       }))
+}
+
+// Text response with specific content type
+async fn text_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_content_type(ResponseContentType::TEXT)
+       .ok()
+       .text("Plain text response")
+}
+```
+
+## Complete Examples
+
+### Authentication Response
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn login(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_cookie("session_id", "abc123")
+       .set_header("X-Auth-Token", "jwt_token_here")
+       .ok()
+       .json(serde_json::json!({
+           "status": "success",
+           "user": {
+               "id": 1,
+               "name": "John Doe",
+               "role": "admin"
+           }
+       }))
+}
+```
+
+### Error Response with Details
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn validation_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.bad_request()
+       .set_header("X-Error-Code", "VALIDATION_ERROR")
+       .json(serde_json::json!({
+           "error": "Validation failed",
+           "code": "VALIDATION_ERROR",
+           "details": {
+               "fields": [
+                   {"field": "email", "error": "Invalid email format"},
+                   {"field": "age", "error": "Must be over 18"}
+               ]
+           }
+       }))
 }
 ```

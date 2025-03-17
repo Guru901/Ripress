@@ -1,149 +1,211 @@
-# Response Examples
+# Response Object (HttpResponse)
 
-The `HttpResponse` object in Ripress provides various methods for handling responses, including sending text, JSON, status codes, and cookies. This document demonstrates different response-handling scenarios.
+## Overview
 
-## Basic Responses
+The `HttpResponse` object in Ripress provides methods for constructing HTTP responses with various content types, status codes, headers, and cookies. This document demonstrates common usage patterns and examples.
 
-### Sending a Plain Text Response
+## Basic Usage
 
-Use `.text()` to send a plain text response.
+### Text Responses
+
+Send plain text responses using the `.text()` method.
 
 ```rust
-async fn text_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("Hello, World!")
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+       .text("Hello, World!")
 }
 ```
 
-### Sending a JSON Response
+### JSON Responses
 
-To return a JSON response, use `.json()` with a serializable Rust struct.
+Send JSON responses using the `.json()` method with any serializable type.
 
 ```rust
-#[derive(serde::Serialize)]
-struct Message {
-    message: String,
+use ripress::context::{HttpRequest, HttpResponse};
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct User {
+    name: String,
+    age: u32
 }
 
-async fn json_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let response_body = Message {
-        message: "Success".to_string(),
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let user = User {
+        name: "John".to_string(),
+        age: 30
     };
-    res.ok().json(&response_body)
+
+    res.ok()
+       .json(user)
 }
 ```
-
----
 
 ## Status Codes
 
-### Setting a Custom Status Code
+### Custom Status Codes
 
-You can manually set a status code using `.status()`.
+Set specific status codes using `.status()`:
 
 ```rust
-async fn custom_status(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.status(418).text("I'm a teapot")
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.status(201)
+       .json(serde_json::json!({
+           "message": "Resource created"
+       }))
 }
 ```
 
-### Status Code Helpers
+### Helper Methods
 
-Ripress provides convenient helper methods for common status codes.
+Common status codes have dedicated helper methods:
 
-#### **200 OK**
+#### 200 OK
 
 ```rust
-async fn ok_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("Request successful")
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+       .text("Success")
 }
 ```
 
-#### **400 Bad Request**
+#### 400 Bad Request
 
 ```rust
-async fn bad_request(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.bad_request().text("Invalid request")
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.bad_request()
+       .json(serde_json::json!({
+           "error": "Invalid input"
+       }))
 }
 ```
 
-#### **404 Not Found**
+#### 404 Not Found
 
 ```rust
-async fn not_found(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.not_found().text("Resource not found")
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.not_found()
+       .text("Resource not found")
 }
 ```
 
-#### **500 Internal Server Error**
+#### 500 Internal Server Error
 
 ```rust
-async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.internal_server_error().text("An unexpected error occurred")
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.internal_server_error()
+       .json(serde_json::json!({
+           "error": "Internal server error"
+       }))
 }
 ```
 
----
+## Headers
 
-## Headers and Cookies
+### Setting Headers
 
-### Setting a Response Header
-
-Use `.set_header()` to modify the response headers.
+Add custom headers using `.set_header()`:
 
 ```rust
-async fn set_custom_header(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_header("X-Custom-Header", "MyValue")
-        .ok()
-        .text("Header added")
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_header("X-Custom-Header", "value")
+       .ok()
+       .text("Headers set")
 }
 ```
 
-### Getting a Response Header
+### Getting Headers
 
-Use `.get_header()` to modify the response headers.
+Retrieve header values using `.get_header()`:
 
 ```rust
-async fn get_custom_header(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.get_header("X-Custom-Header")
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match res.get_header("X-Custom-Header") {
+        Ok(value) => res.ok().text(format!("Header value: {}", value)),
+        Err(_) => res.not_found().text("Header not found")
+    }
 }
 ```
 
-Returns an `Option<String>`, where `Some(header)` contains the header if it exists, or `None` if it doesn't.
+Returns `Result<String, HttpResponseError>`.
 
-### Sending Cookies
+## Cookies
 
-Use `.set_cookie()` to attach a cookie to the response.
+### Setting Cookies
+
+Set cookies using `.set_cookie()`:
 
 ```rust
-async fn cookie_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_cookie("session", "abc123; HttpOnly")
-        .ok()
-        .json(json!({ "message": "Cookie set" }))
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_cookie("session", "abc123")
+       .ok()
+       .text("Cookie set")
 }
 ```
 
 ### Removing Cookies
 
-Use `.clear_cookie(key)` to attach a cookie to the response.
+Remove cookies using `.clear_cookie()`:
 
 ```rust
-async fn remove_cookie(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.clear_cookie("session")
-        .ok()
-        .json(json!({ "message": "Cookie set" }))
+       .ok()
+       .text("Cookie removed")
 }
 ```
 
-### Setting Content Type
+## Content Type
 
-Use `.set_content_type(content_type: ResponseContentType)` to attach a cookie to the response.
+The content type is automatically set based on the response method used (`.json()`, `.text()`), but can be manually set:
 
 ```rust
-async fn set_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::ResponseContentType;
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_content_type(ResponseContentType::JSON)
-        .ok()
-        .json(json!({ "message": "Content type set" }))
+       .ok()
+       .json(serde_json::json!({
+           "message": "Custom content type"
+       }))
 }
 ```
 
-It is optional, and is set by the response body
+## Method Chaining
+
+All response methods support chaining for a fluent API:
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_header("X-Custom", "value")
+       .set_cookie("session", "abc123")
+       .ok()
+       .json(serde_json::json!({
+           "status": "success"
+       }))
+}
+```
