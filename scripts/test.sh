@@ -1,4 +1,7 @@
-cargo test
+#!/bin/bash
+set -e  # Exit on error
+
+cargo test --all  # Run Rust tests
 
 cd src
 touch main.rs
@@ -86,17 +89,21 @@ async fn check_status_code(_req: HttpRequest, res: HttpResponse) -> HttpResponse
 async fn get_cookie_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().set_cookie("test-cookie", "value").text("hehe")
 }
-
 ' > main.rs
 
-cargo run & 
-sleep 2     
+cargo run &  # Start server in background
+SERVER_PID=$!  # Store server process ID
+
+# Wait for the server to be ready
+sleep 2 
 
 cd ../tests
 bun install
-bunx playwright test
 
-kill %1
+# Run Playwright tests, fail script if tests fail
+bunx playwright test || { echo "Playwright tests failed"; kill $SERVER_PID; exit 1; }
+
+kill $SERVER_PID  # Stop the server
 
 cd ../src
 rm main.rs
