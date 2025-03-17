@@ -20,7 +20,7 @@ pub enum RequestBodyContent {
     FORM(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum HttpRequestError {
     MissingCookie(String),
     MissingParam(String),

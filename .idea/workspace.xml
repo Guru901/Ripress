@@ -10,7 +10,9 @@
     <list default="true" id="ba9f36bd-e7f6-4beb-bf44-5deae621c02e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/request.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/request.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tests/request_test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/request_test.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/types.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/types.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test-results/.last-run.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test-results/.last-run.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -88,6 +88,7 @@ impl HttpRequest {
     /// # Example
     /// ```rust
     /// use ripress::context::HttpRequest;
+    /// use ripress::types::HttpMethods;
     ///
     /// let req = HttpRequest::new();
     /// assert_eq!(req.get_method(), &HttpMethods::GET);
@@ -143,6 +144,7 @@ impl HttpRequest {
     /// # Example
     /// ```rust
     /// use ripress::context::HttpRequest;
+    /// use ripress::types::HttpMethods;
     ///
     /// let req = HttpRequest::new();
     /// match req.get_method() {
@@ -328,7 +330,7 @@ impl HttpRequest {
 
         match query {
             Some(query_str) => Ok(query_str),
-            None => Err(HttpRequestError::MissingParam(query_name.to_string())),
+            None => Err(HttpRequestError::MissingQuery(query_name.to_string())),
         }
     }
 
@@ -381,9 +383,9 @@ impl HttpRequest {
     /// # Example
     /// ```rust
     /// use ripress::context::HttpRequest;
-    /// use serde::Deserialize;
+    /// use serde::{Deserialize, Serialize};
     ///
-    /// #[derive(Deserialize)]
+    /// #[derive(Deserialize, Serialize)]
     /// struct LoginData {
     ///     username: String,
     ///     password: String
