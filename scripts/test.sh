@@ -52,7 +52,7 @@ async fn param_and_query_test(req: HttpRequest, res: HttpResponse) -> HttpRespon
 
 async fn origin_url_and_path_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let origin_url = req.get_origin_url().unwrap();
-    let path = req.get_path().unwrap();
+    let path = req.get_path();
     res.ok()
         .json(json!({"originUrl": origin_url, "path": path}))
 }

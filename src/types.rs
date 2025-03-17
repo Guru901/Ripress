@@ -20,6 +20,25 @@ pub enum RequestBodyContent {
     FORM(String),
 }
 
+#[derive(Debug, PartialEq)]
+pub enum HttpRequestError {
+    MissingCookie(String),
+    MissingParam(String),
+    MissingHeader(String),
+    MissingQuery(String),
+}
+
+impl std::fmt::Display for HttpRequestError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            HttpRequestError::MissingCookie(cookie) => write!(f, "Cookie {} doesn't exist", cookie),
+            HttpRequestError::MissingParam(param) => write!(f, "Param {} doesn't exist", param),
+            HttpRequestError::MissingHeader(header) => write!(f, "Header {} doesn't exist", header),
+            HttpRequestError::MissingQuery(query) => write!(f, "Query {} doesn't exist", query),
+        }
+    }
+}
+
 // HttpResponse types
 
 #[derive(PartialEq, Debug, Clone)]
@@ -42,7 +61,7 @@ impl ResponseContentBody {
 
 #[derive(Debug)]
 pub enum HttpResponseError {
-    MissingHeader(String)
+    MissingHeader(String),
 }
 
 impl std::fmt::Display for HttpResponseError {
@@ -52,7 +71,6 @@ impl std::fmt::Display for HttpResponseError {
         }
     }
 }
-
 
 // App types
 
