@@ -19,6 +19,19 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
+### HTML Responses
+
+Send html responses using the `.html()` method.
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+       .html("<h1>Hello, World!</h1>")
+}
+```
+
 ### JSON Responses
 
 Send JSON responses using the `.json()` method with any serializable type.
