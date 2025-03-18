@@ -478,7 +478,7 @@ impl Responder for HttpResponse {
 
 #[cfg(test)]
 impl HttpResponse {
-    pub fn get_status_code(&self) -> i32 {
+    pub(crate) fn get_status_code(&self) -> i32 {
         self.status_code
     }
 
