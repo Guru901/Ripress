@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.3.5] - 2025-03-18
+
+Made helper testing functions private
+
 ## [0.3.4] - 2025-03-18
 
 Removed Unnecessary Dependencies
