@@ -31,7 +31,7 @@ async fn main() {
 
     app.get("/get-cookie-test", get_cookie_test);
 
-    app.listen("127.0.0.1:8080").await;
+    app.listen(8080, || {}).await;
 }
 
 async fn cookie_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {

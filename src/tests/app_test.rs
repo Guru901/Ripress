@@ -118,7 +118,7 @@ mod tests {
         app.all("/all", _test_handler);
 
         let handle = tokio::spawn(async move {
-            app.listen("127.0.0.1:3000").await;
+            app.listen(3000, || {}).await;
         });
 
         tokio::time::sleep(Duration::from_secs(5)).await;

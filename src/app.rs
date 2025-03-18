@@ -223,13 +223,13 @@ impl App {
     /// #[tokio::main]
     /// async fn main() {
     ///     let mut app = App::new();
-    ///     app.listen("127.0.0.1:3000").await;
+    ///     app.listen(3000, || {println!("server running on port 3000")}).await;
     /// }
     ///
     /// ```
 
-    pub async fn listen(self, addr: &str) {
-        println!("Server listening on {}", addr);
+    pub async fn listen<F: FnOnce()>(self, port: i32, cb: F) {
+      cb();
 
         actix_web::HttpServer::new(move || {
             let mut app = actix_web::App::new();
@@ -267,7 +267,7 @@ impl App {
       }
      app
     })
-      .bind(addr)
+      .bind(format!("127.0.0.1:{port}"))
       .unwrap()
       .run()
       .await
