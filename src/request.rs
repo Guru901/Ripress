@@ -636,23 +636,23 @@ pub(crate) fn get_real_ip(req: &actix_web::HttpRequest) -> String {
 
 #[cfg(test)]
 impl HttpRequest {
-    pub fn set_query(&mut self, key: &str, value: &str) {
+    pub(crate) fn set_query(&mut self, key: &str, value: &str) {
         self.queries.insert(key.to_string(), value.to_string());
     }
 
-    pub fn set_header(&mut self, key: &str, value: &str) {
+    pub(crate) fn set_header(&mut self, key: &str, value: &str) {
         self.headers.insert(key.to_string(), value.to_string());
     }
 
-    pub fn set_cookie(&mut self, key: &str, value: &str) {
+    pub(crate) fn set_cookie(&mut self, key: &str, value: &str) {
         self.cookies.insert(key.to_string(), value.to_string());
     }
 
-    pub fn set_param(&mut self, key: &str, value: &str) {
+    pub(crate) fn set_param(&mut self, key: &str, value: &str) {
         self.params.insert(key.to_string(), value.to_string());
     }
 
-    pub fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)
+    pub(crate) fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)
     where
         J: serde::de::DeserializeOwned + serde::Serialize,
     {
@@ -660,12 +660,12 @@ impl HttpRequest {
         self.body.content = RequestBodyContent::JSON(serde_json::to_value(json).unwrap());
     }
 
-    pub fn set_text(&mut self, text: &str, content_type: RequestBodyType) {
+    pub(crate) fn set_text(&mut self, text: &str, content_type: RequestBodyType) {
         self.body.content_type = content_type;
         self.body.content = RequestBodyContent::TEXT(text.to_string());
     }
 
-    pub fn set_form(&mut self, key: &str, value: &str, content_type: RequestBodyType) {
+    pub(crate) fn set_form(&mut self, key: &str, value: &str, content_type: RequestBodyType) {
         self.body.content_type = content_type;
 
         match &mut self.body.content {
@@ -679,23 +679,23 @@ impl HttpRequest {
         }
     }
 
-    pub fn set_content_type(&mut self, content_type: RequestBodyType) {
+    pub(crate) fn set_content_type(&mut self, content_type: RequestBodyType) {
         self.body.content_type = content_type;
     }
 
-    pub fn set_method(&mut self, method: HttpMethods) {
+    pub(crate) fn set_method(&mut self, method: HttpMethods) {
         self.method = method;
     }
 
-    pub fn set_ip(&mut self, ip: String) {
+    pub(crate) fn set_ip(&mut self, ip: String) {
         self.ip = ip;
     }
 
-    pub fn set_path(&mut self, path: String) {
+    pub(crate) fn set_path(&mut self, path: String) {
         self.path = path;
     }
 
-    pub fn set_origin_url(&mut self, origin_url: String) {
+    pub(crate) fn set_origin_url(&mut self, origin_url: String) {
         self.origin_url = origin_url;
     }
 }
