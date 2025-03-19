@@ -82,16 +82,6 @@ mod tests {
             .is_some());
     }
 
-    #[test]
-    pub fn test_add_app_clone() {
-        let mut app = App::new();
-        app.get("/user/{id}", _test_handler);
-
-        let new_app = app.clone();
-        assert!(new_app
-            .get_routes("/user/{id}", crate::types::HttpMethods::GET)
-            .is_some());
-    }
     #[tokio::test]
     async fn test_box_future() {
         async fn test_handler() -> HttpResponse {

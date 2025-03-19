@@ -1,7 +1,7 @@
 use crate::types::{HttpMethods, HttpRequestError, RequestBodyContent, RequestBodyType};
 use actix_web::{http::Method, HttpMessage};
 use futures_util::stream::StreamExt;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 use url;
 
 #[derive(Debug, Clone)]
@@ -76,6 +76,8 @@ pub struct HttpRequest {
 
     /// Protocol of the request (HTTP or HTTPs)
     protocol: String,
+
+    data: HashMap<String, String>,
 }
 
 impl HttpRequest {
@@ -108,6 +110,7 @@ impl HttpRequest {
             headers: HashMap::new(),
             cookies: HashMap::new(),
             protocol: String::from("http"),
+            data: HashMap::new(),
         }
     }
 
@@ -369,6 +372,13 @@ impl HttpRequest {
         self.get_protocol() == "https"
     }
 
+    pub fn set_data(&mut self, key: &str, value: &str) {
+        self.data.insert(key.to_string(), value.to_string());
+    }
+
+    pub fn get_data(&self, key: &str) -> Option<&String> {
+        self.data.get(key)
+    }
     /// Deserializes the request body as JSON into the specified type.
     ///
     /// # Type Parameters
@@ -598,6 +608,7 @@ impl HttpRequest {
             headers,
             cookies,
             protocol,
+            data: HashMap::new(),
         })
     }
 }

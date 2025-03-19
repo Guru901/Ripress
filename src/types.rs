@@ -47,7 +47,7 @@ pub enum ResponseContentType {
     TEXT,
 }
 
-#[derive(Serialize, PartialEq)]
+#[derive(Serialize, PartialEq, Debug)]
 pub(crate) enum ResponseContentBody {
     JSON(serde_json::Value),
     TEXT(String),
@@ -83,15 +83,55 @@ pub enum HttpMethods {
     PATCH,
 }
 
-pub struct Next;
+// pub struct Next;
 
-impl Next {
-    pub fn new<F: Fn(HttpRequest)>(_closure: F) -> Self {
-        Next {}
-    }
-}
+// impl Next {
+//     pub fn new<F: Fn(HttpRequest)>(_closure: F) -> Self {
+//         Next {}
+//     }
+// }
 
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
-pub type Middleware = Arc<dyn Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static>;
+// pub type Middleware = Arc<dyn Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static>;
 pub(crate) type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
+
+pub trait Middleware: Send + Sync + 'static {
+    fn handle<'a>(
+        &'a self,
+        req: HttpRequest,
+        res: HttpResponse,
+        next: Next<'a>,
+    ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'a>>;
+
+    // Add this method to allow cloning of Box<dyn Middleware>
+    fn clone_box(&self) -> Box<dyn Middleware>;
+}
+
+// Implement Clone for Box<dyn Middleware>
+impl Clone for Box<dyn Middleware> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
+}
+
+pub struct Next<'a> {
+    pub middleware: &'a [Box<dyn Middleware>],
+    pub handler: Handler,
+}
+
+impl<'a> Next<'a> {
+    pub async fn run(self, req: HttpRequest, res: HttpResponse) -> HttpResponse {
+        if let Some((current, rest)) = self.middleware.split_first() {
+            // Call the next middleware
+            let next = Next {
+                middleware: rest,
+                handler: self.handler.clone(),
+            };
+            current.handle(req, res, next).await
+        } else {
+            // No more middleware, call the handler
+            (self.handler)(req, res).await
+        }
+    }
+}

@@ -9,7 +9,11 @@
   <component name="ChangeListManager">
     <list default="true" id="ba9f36bd-e7f6-4beb-bf44-5deae621c02e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/getting-started.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/getting-started.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/app.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/request.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/request.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/response.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/response.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tests/app_test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/app_test.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/types.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/types.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,7 +52,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.rust.reset.selective.auto.import": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "guru/middlewares",
     "last_opened_file_path": "/Users/guru/Developer/rust/ripress",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -58,7 +62,7 @@
     "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
     "org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon": "",
     "org.rust.first.attach.projects": "true",
-    "settings.editor.selected.configurable": "language.rust.cargo.check",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -115,6 +119,7 @@
       <updated>1742059847712</updated>
       <workItem from="1742059849320" duration="7412000" />
       <workItem from="1742104179263" duration="4967000" />
+      <workItem from="1742364184271" duration="2644000" />
     </task>
     <servers />
   </component>
