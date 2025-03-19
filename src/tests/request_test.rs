@@ -2,11 +2,11 @@
 mod tests {
     use serde_json::json;
 
+    use crate::types::HttpRequestError;
     use crate::{
         request::{determine_content_type, get_real_ip, HttpRequest},
         types::{HttpMethods, RequestBodyType},
     };
-    use crate::types::HttpRequestError;
 
     #[test]
     fn test_get_query() {
@@ -15,7 +15,10 @@ mod tests {
 
         assert_eq!(req.get_query("q"), Ok("Ripress"));
 
-        assert_eq!(req.get_query("nonexistent"), Err(HttpRequestError::MissingQuery("nonexistent".to_string())));
+        assert_eq!(
+            req.get_query("nonexistent"),
+            Err(HttpRequestError::MissingQuery("nonexistent".to_string()))
+        );
     }
 
     #[test]
@@ -25,7 +28,10 @@ mod tests {
 
         assert_eq!(req.get_params("q"), Ok("Ripress"));
 
-        assert_eq!(req.get_params("nonexistent"), Err(HttpRequestError::MissingParam("nonexistent".to_string())));
+        assert_eq!(
+            req.get_params("nonexistent"),
+            Err(HttpRequestError::MissingParam("nonexistent".to_string()))
+        );
     }
 
     #[test]
@@ -130,7 +136,10 @@ mod tests {
         req.set_header("key", "value");
 
         assert_eq!(req.get_header("key").unwrap(), "value");
-        assert_eq!(req.get_header("nonexistent"), Err(HttpRequestError::MissingHeader("nonexistent".to_string())));
+        assert_eq!(
+            req.get_header("nonexistent"),
+            Err(HttpRequestError::MissingHeader("nonexistent".to_string()))
+        );
 
         req.set_header("another_key", "another_value");
         let header = req.get_header("another_key").unwrap();
@@ -143,7 +152,10 @@ mod tests {
         req.set_cookie("key", "value");
 
         assert_eq!(req.get_cookie("key").unwrap(), "value");
-        assert_eq!(req.get_cookie("nonexistent"), Err(HttpRequestError::MissingCookie("nonexistent".to_string())));
+        assert_eq!(
+            req.get_cookie("nonexistent"),
+            Err(HttpRequestError::MissingCookie("nonexistent".to_string()))
+        );
 
         req.set_cookie("another_key", "another_value");
         let cookie = req.get_cookie("another_key").unwrap();
@@ -214,6 +226,9 @@ mod tests {
 
         req.set_origin_url("/user/1?q=hello".to_string());
         assert_eq!(req.get_origin_url().unwrap(), "/user/1?q=hello");
+
+        let req = HttpRequest::new();
+        assert_eq!(req.get_origin_url(), Err("Error getting origin url"));
     }
 
     #[test]
@@ -231,8 +246,9 @@ mod tests {
         let req = actix_web::test::TestRequest::default().to_http_request();
 
         let ip = get_real_ip(&req);
-
         assert_eq!(ip, String::from("unknown"));
+        let req = HttpRequest::new();
+        assert_eq!(req.ip(), Err("Cannot determine the ip"));
     }
 
     #[test]
@@ -246,5 +262,17 @@ mod tests {
         let content_type = determine_content_type("application/x-www-form-urlencoded");
         assert_eq!(content_type, RequestBodyType::FORM);
     }
-    // test from actix request
+
+    #[test]
+    fn test_error_enum() {
+        let err_1 = HttpRequestError::MissingParam("id".to_string());
+        let err_2 = HttpRequestError::MissingQuery("id".to_string());
+        let err_3 = HttpRequestError::MissingCookie("id".to_string());
+        let err_4 = HttpRequestError::MissingHeader("id".to_string());
+
+        assert_eq!(err_1.to_string(), "Param id doesn't exist");
+        assert_eq!(err_2.to_string(), "Query id doesn't exist");
+        assert_eq!(err_3.to_string(), "Cookie id doesn't exist");
+        assert_eq!(err_4.to_string(), "Header id doesn't exist");
+    }
 }

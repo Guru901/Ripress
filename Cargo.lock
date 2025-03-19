@@ -745,12 +745,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "jsonparser"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "924a34a53a6770bac6c4c6af2ee1bf50ad20e0d850d9458e9caff1901b0ff1cf"
-
-[[package]]
 name = "language-tags"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1011,11 +1005,10 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
 name = "ripress"
-version = "0.3.1"
+version = "0.3.5"
 dependencies = [
  "actix-web",
  "futures-util",
- "jsonparser",
  "serde",
  "serde_json",
  "serde_urlencoded",

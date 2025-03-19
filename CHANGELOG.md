@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.3.5] - 2025-03-18
+
+Made helper testing functions private
+
+## [0.3.4] - 2025-03-18
+
+Removed Unnecessary Dependencies
+
+## [0.3.3] - 2025-03-18
+
+Readme fixed
+
+## [0.3.2] - 2025-03-18
+
+### Added
+
+- Response Methods
+
+  - Added res.html method
+
+- Increased Code Covergae
+- Improved Error Handling
+
 ## [0.3.1] - 2025-03-15
 
 ### Added

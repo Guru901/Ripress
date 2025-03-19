@@ -23,7 +23,6 @@ impl App {
         };
     }
 
-    // Create a new method to clone the App manually
     pub fn clone_app(&self) -> App {
         // Create a new vector and clone each middleware box
         let mut cloned_middlewares = Vec::new();
@@ -219,11 +218,6 @@ impl App {
         self.add_route(HttpMethods::PATCH, path, wrapped_handler.clone());
     }
 
-    pub fn use_middleware<M: Middleware>(&mut self, middleware: M) -> &mut Self {
-        self.middlewares.push(Box::new(middleware));
-        self
-    }
-
     /// Starts the server and listens on the specified address.
     ///
     /// # Arguments
@@ -239,77 +233,78 @@ impl App {
     /// #[tokio::main]
     /// async fn main() {
     ///     let mut app = App::new();
-    ///     app.listen("127.0.0.1:3000").await;
+    ///     app.listen(3000, || {println!("server running on port 3000")}).await;
     /// }
     ///
     /// ```
 
-    pub async fn listen(self, addr: &str) {
+    pub fn use_middleware<M: Middleware>(&mut self, middleware: M) -> &mut Self {
+        self.middlewares.push(Box::new(middleware));
+        self
+    }
+
+    pub async fn listen<F: FnOnce()>(self, port: i32, cb: F) {
+        cb();
         let app_clone = self.clone_app();
-
-        println!("Server listening on {}", addr);
-
         actix_web::HttpServer::new(move || {
             let mut app = actix_web::App::new();
 
-            for (path, methods) in app_clone.routes.clone() {
-                for (method, handler) in methods {
-                    let method = method.clone();
-                    // Clone the middlewares for each route
-                    let middlewares = app_clone.middlewares.clone();
+      for (path, methods) in app_clone.routes.clone() {
+        for (method, handler) in methods {
+          let method = method.clone();
+          let middlewares = app_clone.middlewares.clone();
 
-                    match method {
-                        HttpMethods::GET | HttpMethods::POST | HttpMethods::PUT | HttpMethods::DELETE | HttpMethods::PATCH => {
-                            let route_method = match method {
-                                HttpMethods::GET => actix_web::web::get(),
-                                HttpMethods::POST => actix_web::web::post(),
-                                HttpMethods::PUT => actix_web::web::put(),
-                                HttpMethods::DELETE => actix_web::web::delete(),
-                                HttpMethods::PATCH => actix_web::web::patch(),
-                            };
+          match method {
+            HttpMethods::GET | HttpMethods::POST | HttpMethods::PUT | HttpMethods::DELETE | HttpMethods::PATCH => {
+              let route_method = match method {
+                HttpMethods::GET => actix_web::web::get(),
+                HttpMethods::POST => actix_web::web::post(),
+                HttpMethods::PUT => actix_web::web::put(),
+                HttpMethods::DELETE => actix_web::web::delete(),
+                HttpMethods::PATCH => actix_web::web::patch(),
+              };
 
-                            app = app.route(
-                                &path,
-                                route_method.to(move |req: actix_web::HttpRequest, payload: actix_web::web::Payload| {
-                                    let handler_clone = handler.clone();
-                                    let middlewares_clone = middlewares.clone();
-                                    
-                                    async move {
-                                        let our_req = HttpRequest::from_actix_request(req, payload).await.unwrap();
-                                        let our_res = HttpResponse::new();
-                                        
-                                        // If we have middlewares, run the request through them
-                                        if !middlewares_clone.is_empty() {
-                                            // Create a Next with our middlewares and handler
-                                            let next = Next {
-                                                middleware: &middlewares_clone,
-                                                handler: handler_clone.clone(),
-                                            };
-                                            
-                                            // Run the middleware chain
-                                            let response = next.run(our_req, our_res).await;
-                                            response.to_responder()
-                                        } else {
-                                            // No middlewares, just call the handler directly
-                                            let future = handler_clone(our_req, our_res);
-                                            let response = future.await;
-                                            response.to_responder()
-                                        }
-                                    }
-                                }),
-                            );
-                        }
+              app = app.route(
+                &path,
+                route_method.to(move |req: actix_web::HttpRequest, payload: actix_web::web::Payload| {
+                  let handler_clone = handler.clone();
+                  let middlewares_clone = middlewares.clone();
+
+                  async move {
+                    let our_req = HttpRequest::from_actix_request(req, payload).await.unwrap();
+                    let our_res = HttpResponse::new();
+
+                    // If we have middlewares, run the request through them
+                    if !middlewares_clone.is_empty() {
+                      // Create a Next with our middlewares and handler
+                      let next = Next {
+                        middleware: &middlewares_clone,
+                        handler: handler_clone.clone(),
+                      };
+
+                      // Run the middleware chain
+                      let response = next.run(our_req, our_res).await;
+                      response.to_responder()
+                    } else {
+                      // No middlewares, just call the handler directly
+                      let future = handler_clone(our_req, our_res);
+                      let response = future.await;
+                      response.to_responder()
                     }
-                }
+                  }
+                }),
+              );
             }
-
-            app
-        })
-        .bind(addr)
-        .unwrap()
-        .run()
-        .await
-        .unwrap();
+          }
+        }
+      }
+     app
+    })
+      .bind(format!("127.0.0.1:{port}"))
+      .unwrap()
+      .run()
+      .await
+      .unwrap();
     }
 
     /// Adds a route to the application.

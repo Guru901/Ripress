@@ -45,21 +45,27 @@ impl std::fmt::Display for HttpRequestError {
 pub enum ResponseContentType {
     JSON,
     TEXT,
+    HTML,
 }
 
 #[derive(Serialize, PartialEq, Debug)]
 pub(crate) enum ResponseContentBody {
     JSON(serde_json::Value),
     TEXT(String),
+    HTML(String),
 }
 
 impl ResponseContentBody {
     pub fn new_text<T: Into<String>>(text: T) -> Self {
         ResponseContentBody::TEXT(text.into())
     }
+
+    pub fn new_html<T: Into<String>>(text: T) -> Self {
+        ResponseContentBody::HTML(text.into())
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum HttpResponseError {
     MissingHeader(String),
 }
@@ -67,7 +73,7 @@ pub enum HttpResponseError {
 impl std::fmt::Display for HttpResponseError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            HttpResponseError::MissingHeader(header) => write!(f, "Missing header: {}", header),
+            HttpResponseError::MissingHeader(header) => write!(f, "Header {} doesnt exist", header),
         }
     }
 }
@@ -83,17 +89,8 @@ pub enum HttpMethods {
     PATCH,
 }
 
-// pub struct Next;
-
-// impl Next {
-//     pub fn new<F: Fn(HttpRequest)>(_closure: F) -> Self {
-//         Next {}
-//     }
-// }
-
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
-// pub type Middleware = Arc<dyn Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static>;
 pub(crate) type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
 
 pub trait Middleware: Send + Sync + 'static {

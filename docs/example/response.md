@@ -6,7 +6,7 @@ The `HttpResponse` object in Ripress provides various methods for handling respo
 
 ### Sending a Plain Text Response
 
-Use `.text()` to send a plain text response.
+Send text responses using the `.text()` method.
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
@@ -14,6 +14,19 @@ use ripress::context::{HttpRequest, HttpResponse};
 async fn text_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
        .text("Hello, World!")
+}
+```
+
+### Sending an HTML Responses
+
+Send html responses using the `.html()` method.
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+       .html("<h1>Hello, World!</h1>")
 }
 ```
 

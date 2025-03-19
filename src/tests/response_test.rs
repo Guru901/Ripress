@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod tests {
     use crate::response::HttpResponse;
-    use crate::types::{ResponseContentBody, ResponseContentType};
+    use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
     use serde_json::json;
+    use crate::types::HttpResponseError::MissingHeader;
 
     #[test]
     fn test_default_response() {
@@ -84,6 +85,26 @@ mod tests {
     }
 
     #[test]
+    fn test_html_response() {
+        let text_body = "<h1>Hello, World!</h1>";
+        let response = HttpResponse::new().html(text_body);
+        assert_eq!(response.get_content_type(), ResponseContentType::HTML);
+        if let ResponseContentBody::HTML(body) = response.get_body() {
+            assert_eq!(body, text_body);
+        } else {
+            panic!("Expected TEXT body");
+        }
+
+        // Edge case: Empty text body
+        let response = HttpResponse::new().html("");
+        if let ResponseContentBody::HTML(body) = response.get_body() {
+            assert_eq!(body, "");
+        } else {
+            panic!("Expected TEXT body");
+        }
+    }
+
+    #[test]
     fn test_cookies() {
         let response = HttpResponse::new();
         let response = response.set_cookie("key", "value");
@@ -95,6 +116,7 @@ mod tests {
         let response = HttpResponse::new();
         let response = response.set_header("key", "value");
         assert_eq!(response.get_header("key").unwrap(), "value");
+        assert_eq!(response.get_header("nonexistent"), Err(MissingHeader("nonexistent".to_string())));
     }
 
     #[test]
@@ -140,5 +162,12 @@ mod tests {
         let response = response.clear_cookie("non-existent");
 
         assert_eq!(response.get_cookie("non-existent".to_string()), None);
+    }
+
+    #[test]
+    fn test_response_error() {
+        let err_1 = HttpResponseError::MissingHeader("id".to_string());
+
+        assert_eq!(err_1.to_string(), "Header id doesnt exist");
     }
 }
