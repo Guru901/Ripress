@@ -112,6 +112,28 @@ let mut app = App::new();
 app.delete("/remove", delete_handler);
 ```
 
+## Middlewares
+
+Middleware provides a powerful way to process HTTP requests and responses in a modular, reusable manner.
+
+### Adding Middleware
+
+Use the `.use_middleware()` method to add middleware to your application:
+
+```rust
+let mut app = App::new();
+
+app.use_middleware(|req, res, next| {
+    println!("here");
+    Box::pin(async move { next.run(req, res).await })
+});
+```
+
+### Order Matters
+
+Middleware is executed in the order it's added.
+And they are applied to all routes.
+
 ## Dynamic Route Parameters
 
 Routes can include dynamic parameters using `{paramName}` syntax:
@@ -154,7 +176,7 @@ async fn main() {
 
     // Start the server
     println!("Server starting...");
-    app.listen("127.0.0.1:3000").await;
+    app.listen(3000, || {}).await;
 }
 
 async fn home_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {

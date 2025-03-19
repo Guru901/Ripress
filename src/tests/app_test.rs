@@ -6,7 +6,6 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 #[cfg(test)]
 mod tests {
-    
 
     use crate::types::{Middleware, Next};
     use crate::{
@@ -123,37 +122,11 @@ mod tests {
     fn test_use_middleware() {
         let mut app = App::new();
 
-        struct LoggingMiddleware;
+        app.use_middleware(|req, res, next| async move {
+            println!("Middleware 1");
+            next.run(req, res).await
+        });
 
-        impl Middleware for LoggingMiddleware {
-            fn handle<'a>(
-                &'a self,
-                req: crate::request::HttpRequest,
-                res: HttpResponse,
-                next: Next<'a>,
-            ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'a>> {
-                Box::pin(async move {
-                    println!(
-                        "Request received: {:?} {:?}",
-                        req.get_method(),
-                        req.get_path()
-                    );
-
-                    let response = next.run(req, res).await;
-
-                    println!("Response status: {}", response.get_status_code());
-
-                    response
-                })
-            }
-
-            fn clone_box(&self) -> Box<dyn Middleware> {
-                Box::new(LoggingMiddleware)
-            }
-        }
-
-        app.use_middleware(LoggingMiddleware);
-
-        assert!(!app.middlewares.is_empty());
+        assert!(!app.get_middlewares().is_empty());
     }
 }

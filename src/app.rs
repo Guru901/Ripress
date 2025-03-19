@@ -12,7 +12,7 @@ where
 
 pub struct App {
     routes: Routes,
-    pub(crate) middlewares: Vec<Box<dyn Middleware>>,
+    middlewares: Vec<Box<dyn Middleware>>,
 }
 
 impl App {
@@ -27,10 +27,9 @@ impl App {
         // Create a new vector and clone each middleware box
         let mut cloned_middlewares = Vec::new();
 
-        // Since we can't directly clone Box<dyn Middleware>, we need to use a different approach
-        // We'll create a new empty vector and manually clone each middleware
+        // Clone each middleware using clone_box
         for middleware in &self.middlewares {
-            cloned_middlewares.push(middleware.clone());
+            cloned_middlewares.push(middleware.clone_box());
         }
 
         App {
@@ -227,44 +226,50 @@ impl App {
     /// # Example
     ///
     /// ```
-    /// use ripress::{
-    ///     context::{HttpRequest, HttpResponse},
-    ///     types::{Middleware, Next},
-    ///     app::App
-    /// };
-    /// use std::future::Future;
-    /// use std::pin::Pin;
-
-    /// pub struct LoggingMiddleware;
-
-    /// impl Middleware for LoggingMiddleware {
-    ///     fn handle<'a>(
-    ///         &'a self,
-    ///         req: HttpRequest,
-    ///         res: HttpResponse,
-    ///         next: Next<'a>,
-    ///     ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'a>> {
-    ///         Box::pin(async move {
-    ///             println!("Request received: {:?} {:?}", req.get_method(), req.get_path());
-
-    ///             // Call the next middleware in the chain
-    ///             let response = next.run(req, res).await;
-
-    ///             response
-    ///         })
-    ///     }
-
-    ///     fn clone_box(&self) -> Box<dyn Middleware> {
-    ///         Box::new(LoggingMiddleware)
-    ///     }
-    /// }
-    ///
     /// let mut app = App::new();
-    /// app.use_middleware(LoggingMiddleware);
+    ///
+    /// app.use_middleware(|req, res, next| {
+    ///     println!("here");
+    ///     Box::pin(async move { next.run(req, res).await })
+    /// });
+    ///
     /// ```
 
-    pub fn use_middleware<M: Middleware>(&mut self, middleware: M) -> &mut Self {
-        self.middlewares.push(Box::new(middleware));
+    pub fn use_middleware<F, Fut>(&mut self, middleware: F) -> &mut Self
+    where
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static,
+        Fut: std::future::Future<Output = HttpResponse> + Send + 'static,
+    {
+        struct Wrapper<F> {
+            func: F,
+        }
+
+        impl<F, Fut> Middleware for Wrapper<F>
+        where
+            F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static,
+            Fut: std::future::Future<Output = HttpResponse> + Send + 'static,
+        {
+            fn clone_box(&self) -> Box<dyn Middleware> {
+                Box::new(Wrapper {
+                    func: self.func.clone(),
+                })
+            }
+
+            fn handle(
+                &self,
+                req: HttpRequest,
+                res: HttpResponse,
+                next: Next,
+            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = HttpResponse> + Send + 'static>>
+            {
+                let fut = (self.func)(req, res, next);
+                Box::pin(fut)
+            }
+        }
+
+        self.middlewares
+            .push(Box::new(Wrapper { func: middleware }));
+
         self
     }
 
@@ -318,12 +323,13 @@ impl App {
                   async move {
                     let our_req = HttpRequest::from_actix_request(req, payload).await.unwrap();
                     let our_res = HttpResponse::new();
+                    let middleware_clone = middlewares_clone.clone();
 
                     // If we have middlewares, run the request through them
                     if !middlewares_clone.is_empty() {
                       // Create a Next with our middlewares and handler
                       let next = Next {
-                        middleware: &middlewares_clone,
+                        middleware: middleware_clone,
                         handler: handler_clone.clone(),
                       };
 
@@ -370,5 +376,9 @@ impl App {
 impl App {
     pub(crate) fn get_routes(&self, path: &str, method: HttpMethods) -> Option<&Handler> {
         Some(self.routes.get(path).unwrap().get(&method).unwrap())
+    }
+
+    pub(crate) fn get_middlewares(&self) -> &Vec<Box<dyn Middleware>> {
+        &self.middlewares
     }
 }
