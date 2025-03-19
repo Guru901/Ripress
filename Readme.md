@@ -10,7 +10,6 @@
 - [Goals](#goals)
 - [Installation](#installation)
 - [Examples](#basic-example)
-- [Roadmap](#roadmap)
 - [Documentation](#documentation)
 - [Changelog](#changelog)
 
@@ -63,10 +62,6 @@ async fn hello_world(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ```
 
 View more examples in the [examples](./docs/example/basic-routing.md) directory.
-
-## Roadmap
-
-- **Middleware support** (Planned for next week)
 
 ## Documentation
 
