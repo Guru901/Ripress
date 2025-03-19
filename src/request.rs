@@ -76,6 +76,8 @@ pub struct HttpRequest {
 
     /// Protocol of the request (HTTP or HTTPs)
     protocol: String,
+
+    data: HashMap<String, String>,
 }
 
 impl HttpRequest {
@@ -108,6 +110,7 @@ impl HttpRequest {
             headers: HashMap::new(),
             cookies: HashMap::new(),
             protocol: String::from("http"),
+            data: HashMap::new(),
         }
     }
 
@@ -276,6 +279,14 @@ impl HttpRequest {
             Some(param_str) => Ok(param_str),
             None => Err(HttpRequestError::MissingParam(param_name.to_string())),
         }
+    }
+
+    pub fn set_data(&mut self, key: &str, value: &str) {
+        self.data.insert(key.to_string(), value.to_string());
+    }
+
+    pub fn get_data(&self, key: &str) -> Option<&String> {
+        self.data.get(key)
     }
 
     /// Returns header based on the key.
@@ -598,6 +609,7 @@ impl HttpRequest {
             headers,
             cookies,
             protocol,
+            data: HashMap::new(),
         })
     }
 }
