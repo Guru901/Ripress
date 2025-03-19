@@ -281,9 +281,41 @@ impl HttpRequest {
         }
     }
 
+    /// Adds data from the middleware into the request.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key of the data to retrieve
+    /// * `value` - The value of the data to retrieve
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// req.set_data("id", "123");
+    /// let id = req.get_data("id");
+    /// println!("Id: {:?}", id);
+    /// ```
+
     pub fn set_data(&mut self, key: &str, value: &str) {
         self.data.insert(key.to_string(), value.to_string());
     }
+
+    /// Returns data stored in the request by the middleware.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key of the data to retrieve
+    ///
+    /// # Returns
+    ///
+    /// Returns `Option<&String>` with the data value if found, or `None` if not found.
+    ///
+    /// # Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// let id = req.get_data("id");
+    /// println!("Id: {:?}", id);
+    /// ```
 
     pub fn get_data(&self, key: &str) -> Option<&String> {
         self.data.get(key)
