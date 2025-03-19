@@ -1,6 +1,9 @@
 use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
 use actix_web::{
-    http::header::{HeaderName, HeaderValue},
+    http::{
+        self,
+        header::{HeaderName, HeaderValue},
+    },
     Responder,
 };
 use std::collections::HashMap;
@@ -40,6 +43,7 @@ use std::collections::HashMap;
 /// - `headers` - Response headers
 /// - `remove_cookies` - Cookies to be removed
 
+#[derive(Debug)]
 pub struct HttpResponse {
     // Status code specified by the developer
     status_code: i32,
