@@ -226,6 +226,7 @@ impl App {
     /// # Example
     ///
     /// ```
+    /// use ripress::app::App;
     /// let mut app = App::new();
     ///
     /// app.use_middleware(|req, res, next| {
