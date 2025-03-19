@@ -94,12 +94,12 @@ pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 
 pub(crate) type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
 
 pub trait Middleware: Send + Sync + 'static {
-    fn handle<'a>(
-        &'a self,
+    fn handle(
+        &self,
         req: HttpRequest,
         res: HttpResponse,
-        next: Next<'a>,
-    ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'a>>;
+        next: Next,
+    ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 
     // Add this method to allow cloning of Box<dyn Middleware>
     fn clone_box(&self) -> Box<dyn Middleware>;
@@ -112,17 +112,17 @@ impl Clone for Box<dyn Middleware> {
     }
 }
 
-pub struct Next<'a> {
-    pub middleware: &'a [Box<dyn Middleware>],
+pub struct Next {
+    pub middleware: Vec<Box<dyn Middleware>>,
     pub handler: Handler,
 }
 
-impl<'a> Next<'a> {
+impl Next {
     pub async fn run(self, req: HttpRequest, res: HttpResponse) -> HttpResponse {
         if let Some((current, rest)) = self.middleware.split_first() {
             // Call the next middleware
             let next = Next {
-                middleware: rest,
+                middleware: rest.to_vec(),
                 handler: self.handler.clone(),
             };
             current.handle(req, res, next).await
