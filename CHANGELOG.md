@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.6] - 2025-03-20
+
+### Added
+
+- Added Middleware support
+- Added set_data and get_data methods to HttpRequest used in middlewares
+
+## Changes
+
+- Listen method now takes an i32 as port and a closure as a callback
+
 ## [0.3.5] - 2025-03-18
 
 Made helper testing functions private

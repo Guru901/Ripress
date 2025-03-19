@@ -201,6 +201,30 @@ println!("Is Secure: {}", is_secure);
 
 Returns `bool`.
 
+## Get data from request that is inserted by middleware
+
+```rust
+use ripress::context::HttpRequest;
+
+let req = HttpRequest::new();
+req.set_data("id", "123");
+let id = req.get_data("id");
+println!("Id: {:?}", id);
+```
+
+Returns `Option<&String>` with the data value if found, or `None` if not found.
+
+## Set data to request from middleware
+
+```rust
+use ripress::context::HttpRequest;
+
+let mut req = HttpRequest::new();
+req.set_data("id", "123");
+let id = req.get_data("id");
+println!("Id: {:?}", id);
+```
+
 ## Reading Request Body
 
 ### JSON Body

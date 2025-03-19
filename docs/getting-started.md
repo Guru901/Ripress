@@ -37,7 +37,7 @@ async fn main() {
     app.get("/user/{id}", find_user);
     app.post("/submit", submit_form);
 
-    app.listen("127.0.0.1:3000").await;
+    app.listen(3000, || {}).await
 }
 
 async fn index(_req: HttpRequest, res: HttpResponse) -> HttpResponse {

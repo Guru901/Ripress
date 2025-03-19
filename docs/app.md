@@ -42,7 +42,7 @@ async fn main() {
 
     app.all("/hello", handler);
 
-    app.listen("127.0.0.1:3000").await;
+    app.listen(3000, || {}).await;
 }
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {

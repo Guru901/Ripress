@@ -1,8 +1,6 @@
 use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
 use actix_web::{
-    http::{
-        header::{HeaderName, HeaderValue},
-    },
+    http::header::{HeaderName, HeaderValue},
     Responder,
 };
 use std::collections::HashMap;
