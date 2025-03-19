@@ -7,14 +7,14 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 #[cfg(test)]
 mod tests {
 
-    use crate::types::{Middleware, Next};
+    
     use crate::{
         app::{box_future, App},
         context::HttpResponse,
         tests::app_test::_test_handler,
     };
-    use std::future::Future;
-    use std::pin::Pin;
+    
+    
     use std::time::Duration;
 
     #[test]

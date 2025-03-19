@@ -1,7 +1,6 @@
 use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
 use actix_web::{
     http::{
-        self,
         header::{HeaderName, HeaderValue},
     },
     Responder,

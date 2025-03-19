@@ -1,7 +1,7 @@
 use crate::types::{HttpMethods, HttpRequestError, RequestBodyContent, RequestBodyType};
 use actix_web::{http::Method, HttpMessage};
 use futures_util::stream::StreamExt;
-use std::{collections::HashMap, fmt::Display};
+use std::collections::HashMap;
 use url;
 
 #[derive(Debug, Clone)]
