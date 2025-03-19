@@ -290,7 +290,7 @@ impl HttpRequest {
     ///
     /// # Example
     /// ```
-    /// let req = ripress::context::HttpRequest::new();
+    /// let mut req = ripress::context::HttpRequest::new();
     /// req.set_data("id", "123");
     /// let id = req.get_data("id");
     /// println!("Id: {:?}", id);

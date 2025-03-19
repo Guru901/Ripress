@@ -6,9 +6,9 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 #[cfg(test)]
 mod tests {
-    use actix_web::HttpRequest;
+    
 
-    use crate::types::{HttpMethods, Middleware, Next};
+    use crate::types::{Middleware, Next};
     use crate::{
         app::{box_future, App},
         context::HttpResponse,

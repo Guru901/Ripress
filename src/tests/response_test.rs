@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_headers() {
-        let mut response = HttpResponse::new();
+        let response = HttpResponse::new();
         let response = response.set_header("key", "value");
         assert_eq!(response.get_header("key").unwrap(), "value");
         assert_eq!(

@@ -227,10 +227,40 @@ impl App {
     /// # Example
     ///
     /// ```
-    /// use ripress::{app::App, middleware::Middleware};
+    /// use ripress::{
+    ///     context::{HttpRequest, HttpResponse},
+    ///     types::{Middleware, Next},
+    ///     app::App
+    /// };
+    /// use std::future::Future;
+    /// use std::pin::Pin;
+
+    /// pub struct LoggingMiddleware;
+
+    /// impl Middleware for LoggingMiddleware {
+    ///     fn handle<'a>(
+    ///         &'a self,
+    ///         req: HttpRequest,
+    ///         res: HttpResponse,
+    ///         next: Next<'a>,
+    ///     ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'a>> {
+    ///         Box::pin(async move {
+    ///             println!("Request received: {:?} {:?}", req.get_method(), req.get_path());
+
+    ///             // Call the next middleware in the chain
+    ///             let response = next.run(req, res).await;
+
+    ///             response
+    ///         })
+    ///     }
+
+    ///     fn clone_box(&self) -> Box<dyn Middleware> {
+    ///         Box::new(LoggingMiddleware)
+    ///     }
+    /// }
     ///
     /// let mut app = App::new();
-    /// app.use_middleware(Middleware::new());
+    /// app.use_middleware(LoggingMiddleware);
     /// ```
 
     pub fn use_middleware<M: Middleware>(&mut self, middleware: M) -> &mut Self {
