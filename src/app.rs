@@ -12,7 +12,7 @@ where
 
 pub struct App {
     routes: Routes,
-    middlewares: Vec<Box<dyn Middleware>>,
+    pub(crate) middlewares: Vec<Box<dyn Middleware>>,
 }
 
 impl App {
@@ -218,6 +218,26 @@ impl App {
         self.add_route(HttpMethods::PATCH, path, wrapped_handler.clone());
     }
 
+    /// Add a middleware to the application.
+    ///
+    /// # Arguments
+    ///
+    /// * `middleware` - The middleware to add.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::{app::App, middleware::Middleware};
+    ///
+    /// let mut app = App::new();
+    /// app.use_middleware(Middleware::new());
+    /// ```
+
+    pub fn use_middleware<M: Middleware>(&mut self, middleware: M) -> &mut Self {
+        self.middlewares.push(Box::new(middleware));
+        self
+    }
+
     /// Starts the server and listens on the specified address.
     ///
     /// # Arguments
@@ -237,11 +257,6 @@ impl App {
     /// }
     ///
     /// ```
-
-    pub fn use_middleware<M: Middleware>(&mut self, middleware: M) -> &mut Self {
-        self.middlewares.push(Box::new(middleware));
-        self
-    }
 
     pub async fn listen<F: FnOnce()>(self, port: i32, cb: F) {
         cb();

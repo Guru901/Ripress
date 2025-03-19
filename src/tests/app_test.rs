@@ -6,12 +6,16 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::types::HttpMethods;
+    use actix_web::HttpRequest;
+
+    use crate::types::{HttpMethods, Middleware, Next};
     use crate::{
         app::{box_future, App},
         context::HttpResponse,
         tests::app_test::_test_handler,
     };
+    use std::future::Future;
+    use std::pin::Pin;
     use std::time::Duration;
 
     #[test]
@@ -113,5 +117,43 @@ mod tests {
 
         tokio::time::sleep(Duration::from_secs(5)).await;
         handle.abort();
+    }
+
+    #[test]
+    fn test_use_middleware() {
+        let mut app = App::new();
+
+        struct LoggingMiddleware;
+
+        impl Middleware for LoggingMiddleware {
+            fn handle<'a>(
+                &'a self,
+                req: crate::request::HttpRequest,
+                res: HttpResponse,
+                next: Next<'a>,
+            ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'a>> {
+                Box::pin(async move {
+                    println!(
+                        "Request received: {:?} {:?}",
+                        req.get_method(),
+                        req.get_path()
+                    );
+
+                    let response = next.run(req, res).await;
+
+                    println!("Response status: {}", response.get_status_code());
+
+                    response
+                })
+            }
+
+            fn clone_box(&self) -> Box<dyn Middleware> {
+                Box::new(LoggingMiddleware)
+            }
+        }
+
+        app.use_middleware(LoggingMiddleware);
+
+        assert!(!app.middlewares.is_empty());
     }
 }
