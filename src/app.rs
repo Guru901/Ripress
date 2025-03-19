@@ -12,7 +12,7 @@ where
 
 pub struct App {
     routes: Routes,
-    middlewares: Vec<Box<dyn Middleware>>,
+    pub(crate) middlewares: Vec<Box<dyn Middleware>>,
 }
 
 impl App {
@@ -218,6 +218,56 @@ impl App {
         self.add_route(HttpMethods::PATCH, path, wrapped_handler.clone());
     }
 
+    /// Add a middleware to the application.
+    ///
+    /// # Arguments
+    ///
+    /// * `middleware` - The middleware to add.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::{
+    ///     context::{HttpRequest, HttpResponse},
+    ///     types::{Middleware, Next},
+    ///     app::App
+    /// };
+    /// use std::future::Future;
+    /// use std::pin::Pin;
+
+    /// pub struct LoggingMiddleware;
+
+    /// impl Middleware for LoggingMiddleware {
+    ///     fn handle<'a>(
+    ///         &'a self,
+    ///         req: HttpRequest,
+    ///         res: HttpResponse,
+    ///         next: Next<'a>,
+    ///     ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'a>> {
+    ///         Box::pin(async move {
+    ///             println!("Request received: {:?} {:?}", req.get_method(), req.get_path());
+
+    ///             // Call the next middleware in the chain
+    ///             let response = next.run(req, res).await;
+
+    ///             response
+    ///         })
+    ///     }
+
+    ///     fn clone_box(&self) -> Box<dyn Middleware> {
+    ///         Box::new(LoggingMiddleware)
+    ///     }
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.use_middleware(LoggingMiddleware);
+    /// ```
+
+    pub fn use_middleware<M: Middleware>(&mut self, middleware: M) -> &mut Self {
+        self.middlewares.push(Box::new(middleware));
+        self
+    }
+
     /// Starts the server and listens on the specified address.
     ///
     /// # Arguments
@@ -237,11 +287,6 @@ impl App {
     /// }
     ///
     /// ```
-
-    pub fn use_middleware<M: Middleware>(&mut self, middleware: M) -> &mut Self {
-        self.middlewares.push(Box::new(middleware));
-        self
-    }
 
     pub async fn listen<F: FnOnce()>(self, port: i32, cb: F) {
         cb();
