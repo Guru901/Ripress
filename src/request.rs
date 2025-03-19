@@ -412,13 +412,6 @@ impl HttpRequest {
         self.get_protocol() == "https"
     }
 
-    pub fn set_data(&mut self, key: &str, value: &str) {
-        self.data.insert(key.to_string(), value.to_string());
-    }
-
-    pub fn get_data(&self, key: &str) -> Option<&String> {
-        self.data.get(key)
-    }
     /// Deserializes the request body as JSON into the specified type.
     ///
     /// # Type Parameters
