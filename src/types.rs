@@ -131,6 +131,12 @@ pub struct Next {
 }
 
 impl Next {
+    pub fn new() -> Self {
+        Next {
+            middleware: Vec::new(),
+            handler: Arc::new(|_, _| Box::pin(async { HttpResponse::new() })),
+        }
+    }
     pub async fn run(self, req: HttpRequest, res: HttpResponse) -> HttpResponse {
         if let Some((current, rest)) = self.middleware.split_first() {
             // Call the next middleware
