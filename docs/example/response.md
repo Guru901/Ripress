@@ -130,6 +130,11 @@ async fn not_found(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
        }))
 }
 
+// 401 Not Found
+async fn not_found(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.unauthorized().text("Unauthorized")
+}
+
 // 500 Internal Server Error
 async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.internal_server_error()

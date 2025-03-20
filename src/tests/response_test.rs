@@ -41,6 +41,9 @@ mod tests {
 
         let response = HttpResponse::new();
         assert_eq!(response.not_found().get_status_code(), 404);
+
+        let response = HttpResponse::new();
+        assert_eq!(response.unauthorized().get_status_code(), 401);
     }
 
     #[test]

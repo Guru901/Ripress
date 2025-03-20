@@ -113,6 +113,17 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
+#### 401 Unauthorized
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.unauthorized()
+       .text("Unauthorized")
+}
+```
+
 #### 500 Internal Server Error
 
 ```rust

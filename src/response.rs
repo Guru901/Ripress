@@ -235,6 +235,26 @@ impl HttpResponse {
         return self;
     }
 
+    /// Sets the status code to 401 (Unauthorized).
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::context::HttpResponse;
+    ///
+    /// let res = HttpResponse::new()
+    ///     .unauthorized()
+    ///     .text("Unauthorized");
+    /// ```
+
+    pub fn unauthorized(mut self) -> Self {
+        self.status_code = 401;
+        return self;
+    }
+
     /// Sets the status code to 400 (Bad Request).
     ///
     /// # Returns
