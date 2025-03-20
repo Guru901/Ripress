@@ -8,7 +8,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d4c44493-dd91-4096-aead-15edad362b7d" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/scripts/test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/test.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/middlewares.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/basic/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/basic/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,7 +55,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.rust.reset.selective.auto.import": "true",
-    "git-widget-placeholder": "guru/tests",
+    "git-widget-placeholder": "guru/middlewares",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",

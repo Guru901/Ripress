@@ -66,5 +66,6 @@ async fn main() {
 
     app.listen(3000, || {
         println!("Server running on http://localhost:3000");
-    }).await;
+    })
+    .await;
 }
