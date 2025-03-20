@@ -7,14 +7,12 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 #[cfg(test)]
 mod tests {
 
-    
     use crate::{
         app::{box_future, App},
         context::HttpResponse,
         tests::app_test::_test_handler,
     };
-    
-    
+
     use std::time::Duration;
 
     #[test]
@@ -122,7 +120,7 @@ mod tests {
     fn test_use_middleware() {
         let mut app = App::new();
 
-        app.use_middleware(|req, res, next| async move {
+        app.use_middleware("", |req, res, next| async move {
             println!("Middleware 1");
             next.run(req, res).await
         });
