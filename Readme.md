@@ -39,7 +39,7 @@ Or manually add it to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ripress = "0.4.0"
+ripress = "0.4.1"
 tokio = { version = "1.44.0", features = ["full"] }
 ```
 
