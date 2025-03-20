@@ -33,7 +33,7 @@ async fn main() {
 
     // Request params
     app.get("/user/{name}", |req, res| async move {
-        let username = req.get_params("name").unwrap();
+        let username = req.get_params("name").unwrap_or("Unknown");
         res.ok().text(format!("Helloo, {username}"))
     });
 
@@ -44,7 +44,7 @@ async fn main() {
 
     // Request headers
     app.get("/user-agent", |req, res| async move {
-        let user_agent = req.get_header("User-Agent").unwrap();
+        let user_agent = req.get_header("User-Agent").unwrap_or("Unknown");
         res.text(format!("Your User Agent is {user_agent}"))
     });
 
@@ -61,8 +61,10 @@ async fn main() {
     });
 
     app.post("/api/blog", |req, res| async move {
-        res.json(json!({"message": "blog created"}))
+        res.status(201).json(json!({"message": "blog created"}))
     });
 
-    app.listen(3000, || {}).await;
+    app.listen(3000, || {
+        println!("Server running on http://localhost:3000");
+    }).await;
 }
