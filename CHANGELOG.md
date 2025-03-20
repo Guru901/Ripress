@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.1] - 2025-03-20
+
+- Fixed the middleware always being global
+
 ## [0.4.0] - 2025-03-20
 
 ### Added
