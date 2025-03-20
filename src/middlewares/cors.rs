@@ -40,17 +40,17 @@ impl Default for CorsConfig {
 /// ```
 /// use ripress::{app::App, middlewares::cors::cors};
 /// let mut app = App::new();
-/// app.use_middleware("", cors(None))
+/// app.use_middleware("", cors(None));
 ///
 ///```
 ///```
 /// use ripress::{app::App, middlewares::cors::{cors, CorsConfig}};
 /// let mut app = App::new();
-/// app.use_middleware("", cors(CorsConfig {
+/// app.use_middleware("", cors(Some(CorsConfig {
 ///     allowed_origin: "https://example.com".to_string(),
 ///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS".to_string(),
 ///     allow_credentials: true,
-/// }))
+/// })));
 /// ```
 
 pub fn cors(

@@ -40,18 +40,17 @@ impl Default for LoggerConfig {
 /// ```
 /// use ripress::{app::App, middlewares::logger::logger};
 /// let mut app = App::new();
-/// app.use_middleware("", logger(None))
+/// app.use_middleware("", logger(None));
 ///
 ///```
 ///```
-/// use ripress::{app::App, middlewares::cors::{logger, LoggerConfig}};
+/// use ripress::{app::App, middlewares::logger::{logger, LoggerConfig}};
 /// let mut app = App::new();
-/// app.use_middleware("", logger(LoggerConfig {
+/// app.use_middleware("", logger(Some(LoggerConfig {
 ///     duration: true,
 ///     method: true,
 ///     path: true,
-/// }))
-///
+/// })));
 /// ```
 pub fn logger(
     config: Option<LoggerConfig>,
