@@ -247,7 +247,7 @@ impl HttpResponse {
     ///
     /// let res = HttpResponse::new()
     ///     .unauthorized()
-    ///     .text("Unauthorized")
+    ///     .text("Unauthorized");
     /// ```
 
     pub fn unauthorized(mut self) -> Self {
