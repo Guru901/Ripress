@@ -31,6 +31,21 @@ async fn main() {
 
     app.get("/get-cookie-test", get_cookie_test);
 
+    app.use_middleware("/auth", |mut req, res, next| {
+        println!("Auth middleware");
+        Box::pin(async move {
+            if let Ok(token) = req.get_cookie("token") {
+                let token = token.to_string();
+                req.set_data("token", &token);
+                next.run(req, res).await
+            } else {
+                res.status(401).text("Unauthorized")
+            }
+        })
+    });
+
+    app.get("/auth", auth);
+
     app.listen(8080, || {}).await;
 }
 
@@ -88,6 +103,11 @@ async fn check_status_code(_req: HttpRequest, res: HttpResponse) -> HttpResponse
 
 async fn get_cookie_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().set_cookie("test-cookie", "value").text("hehe")
+}
+
+async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let token = req.get_data("token").unwrap();
+    res.ok().text(token)
 }
 ' > main.rs
 
