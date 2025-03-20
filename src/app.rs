@@ -40,12 +40,12 @@ impl App {
 
     /// Add a GET route to the application.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// # Example
+    /// ## Example
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
@@ -69,12 +69,12 @@ impl App {
 
     /// Add a POST route to the application.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// # Example
+    /// ## Example
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
@@ -98,12 +98,12 @@ impl App {
 
     /// Add a PUT route to the application.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// # Example
+    /// ## Example
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
@@ -127,12 +127,12 @@ impl App {
 
     /// Add a DELETE route to the application.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// # Example
+    /// ## Example
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
@@ -156,12 +156,12 @@ impl App {
 
     /// Add a PATCH route to the application.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// # Example
+    /// ## Example
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
@@ -185,12 +185,12 @@ impl App {
 
     /// Add a route to the application that matches all HTTP methods.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// # Example
+    /// ## Example
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
@@ -219,11 +219,11 @@ impl App {
 
     /// Add a middleware to the application.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `middleware` - The middleware to add.
     ///
-    /// # Example
+    /// ## Example
     ///
     /// ```
     /// use ripress::app::App;
@@ -292,17 +292,17 @@ impl App {
 
     /// Starts the server and listens on the specified address.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `addr` - The address to listen on e.g. "127.0.0.1:3000".
     ///
-    /// # Example
+    /// ## Example
     ///
     /// ```no_run
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     /// use tokio;
     ///
-    /// #[tokio::main]
+    /// ##[tokio::main]
     /// async fn main() {
     ///     let mut app = App::new();
     ///     app.listen(3000, || {println!("server running on port 3000")}).await;
@@ -377,7 +377,7 @@ impl App {
 
     /// Adds a route to the application.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `method` - The HTTP method (GET, POST, PUT, DELETE) of the route.
     /// * `path` - The path of the route.

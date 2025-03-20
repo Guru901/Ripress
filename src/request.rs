@@ -16,7 +16,7 @@ struct RequestBody {
 /// of an HTTP request including headers, cookies, query parameters, route parameters,
 /// and request body content.
 ///
-/// # Examples
+/// ## Examples
 ///
 /// Basic usage:
 /// ```rust
@@ -33,7 +33,7 @@ struct RequestBody {
 /// use ripress::context::HttpRequest;
 /// use serde::{Deserialize, Serialize};
 ///
-/// #[derive(Deserialize, Serialize)]
+/// ##[derive(Deserialize, Serialize)]
 /// struct User {
 ///     name: String,
 ///     age: u32
@@ -83,11 +83,11 @@ pub struct HttpRequest {
 impl HttpRequest {
     /// Creates a new empty HTTP request instance.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns a new `HttpRequest` with default values.
     ///
-    /// # Example
+    /// ## Example
     /// ```rust
     /// use ripress::context::HttpRequest;
     /// use ripress::types::HttpMethods;
@@ -116,15 +116,15 @@ impl HttpRequest {
 
     /// Checks if the request body matches a specific content type.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `content_type` - The `RequestBodyType` to check against
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns `true` if the content type matches, `false` otherwise.
     ///
-    /// # Example
+    /// ## Example
     /// ```rust
     /// use ripress::{context::HttpRequest, types::RequestBodyType};
     ///
@@ -140,11 +140,11 @@ impl HttpRequest {
 
     /// Returns the HTTP method used for this request.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns a reference to the `HttpMethods` enum representing the request method.
     ///
-    /// # Example
+    /// ## Example
     /// ```rust
     /// use ripress::context::HttpRequest;
     /// use ripress::types::HttpMethods;
@@ -163,12 +163,12 @@ impl HttpRequest {
 
     /// Returns the request's origin URL.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns `Ok(&str)` with the origin url value if found, or
     /// `Err(&str)` if not found.
     ///
-    /// # Example
+    /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// req.get_origin_url();
@@ -185,16 +185,16 @@ impl HttpRequest {
 
     /// Retrieves a cookie value by name.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `name` - The name of the cookie to retrieve
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns `Ok(&str)` with the cookie value if found, or
     /// `Err(HttpRequestError::MissingCookie)` if not found.
     ///
-    /// # Example
+    /// ## Example
     /// ```rust
     /// use ripress::context::HttpRequest;
     ///
@@ -216,11 +216,11 @@ impl HttpRequest {
 
     /// Returns the request's path.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns String with the path
     ///
-    /// # Example
+    /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// req.get_path();
@@ -232,12 +232,12 @@ impl HttpRequest {
 
     /// Returns the client's IP address.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns `Ok(&str)` with the ip value if found, or
     /// `Err(err)` if not found.
     ///
-    /// # Example
+    /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// let ip = req.ip();
@@ -256,16 +256,16 @@ impl HttpRequest {
 
     /// Returns url parameters.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `param_name` - The name of the parameter to retrieve
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns `Ok(&str)` with the parameter value if found, or
     /// `Err(HttpRequestError::MissingParam)` if not found.
     ///
-    /// # Example
+    /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// let id = req.get_params("id");
@@ -283,12 +283,12 @@ impl HttpRequest {
 
     /// Adds data from the middleware into the request.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `key` - The key of the data to retrieve
     /// * `value` - The value of the data to retrieve
     ///
-    /// # Example
+    /// ## Example
     /// ```
     /// let mut req = ripress::context::HttpRequest::new();
     /// req.set_data("id", "123");
@@ -302,15 +302,15 @@ impl HttpRequest {
 
     /// Returns data stored in the request by the middleware.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `key` - The key of the data to retrieve
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns `Option<&String>` with the data value if found, or `None` if not found.
     ///
-    /// # Example
+    /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// let id = req.get_data("id");
@@ -323,16 +323,16 @@ impl HttpRequest {
 
     /// Returns header based on the key.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `header_name` - The name of the header to retrieve
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns `Ok(&str)` with the header value if found, or
     /// `Err(HttpRequestError::MissingHeader)` if not found.
     ///
-    /// # Example
+    /// ## Example
     ///
     /// ```no_run
     /// let req = ripress::context::HttpRequest::new();
@@ -352,16 +352,16 @@ impl HttpRequest {
 
     /// Returns query parameters.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///     
     /// * `query_name` - The name of the query parameter to retrieve
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns `Ok(&str)` with the query parameter value if found, or
     /// `Err(HttpRequestError::MissingParam)` if not found.
     ///
-    /// # Example
+    /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// let id = req.get_query("id");
@@ -379,11 +379,11 @@ impl HttpRequest {
 
     /// Returns the protocol on which the request was made (http or https)
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns &str with the protocol value
     ///
-    /// # Example
+    /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// let body = req.get_protocol();
@@ -395,11 +395,11 @@ impl HttpRequest {
 
     /// Returns a bool indicating if request was made over https
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns bool, that is true if protocol was https else false
     ///
-    /// # Example
+    /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// let body = req.is_secure();
@@ -414,21 +414,21 @@ impl HttpRequest {
 
     /// Deserializes the request body as JSON into the specified type.
     ///
-    /// # Type Parameters
+    /// ## Type Parameters
     ///
     /// * `J` - The type to deserialize into, must implement `DeserializeOwned`
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// Returns `Ok(J)` with the deserialized value if successful, or
     /// `Err(String)` with an error message if deserialization fails.
     ///
-    /// # Example
+    /// ## Example
     /// ```rust
     /// use ripress::context::HttpRequest;
     /// use serde::{Deserialize, Serialize};
     ///
-    /// #[derive(Deserialize, Serialize)]
+    /// ##[derive(Deserialize, Serialize)]
     /// struct LoginData {
     ///     username: String,
     ///     password: String
@@ -463,7 +463,7 @@ impl HttpRequest {
 
     /// Returns request's text body.
     ///
-    /// # Example
+    /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
     /// let text = req.text().unwrap();
@@ -489,7 +489,7 @@ impl HttpRequest {
 
     /// Returns request's form_data body.
     ///
-    /// # Example
+    /// ## Example
     /// ```no_run
     /// let req = ripress::context::HttpRequest::new();
     /// // Let' say form data was sent as key=value and key2=value2
@@ -648,11 +648,11 @@ impl HttpRequest {
 
 /// Determines the content type from a content-type header string.
 ///
-/// # Arguments
+/// ## Arguments
 ///
 /// * `content_type` - The content-type header value
 ///
-/// # Returns
+/// ## Returns
 ///
 /// Returns the appropriate `RequestBodyType` enum variant.
 
