@@ -1,3 +1,4 @@
 /target
 /src/main.rs
 tarpaulin-report.html
+/examples/basic/target
