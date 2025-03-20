@@ -229,7 +229,7 @@ impl App {
     /// use ripress::app::App;
     /// let mut app = App::new();
     ///
-    /// app.use_middleware(|req, res, next| {
+    /// app.use_middleware("path", |req, res, next| {
     ///     println!("here");
     ///     Box::pin(async move { next.run(req, res).await })
     /// });

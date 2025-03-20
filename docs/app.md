@@ -123,7 +123,7 @@ Use the `.use_middleware()` method to add middleware to your application:
 ```rust
 let mut app = App::new();
 
-app.use_middleware(|req, res, next| {
+app.use_middleware("/api/", |req, res, next| {
     println!("here");
     Box::pin(async move { next.run(req, res).await })
 });
@@ -133,6 +133,8 @@ app.use_middleware(|req, res, next| {
 
 Middleware is executed in the order it's added.
 And they are applied to all routes.
+
+The middleware will be applied to /api/\* in this case
 
 ## Dynamic Route Parameters
 
