@@ -4,6 +4,14 @@ use crate::{
     types::{Fut, Next},
 };
 
+/// Configuration for the Cors Middleware
+///
+/// ## Fields
+///
+/// * `allowed_origin` - The allowed origin for the request
+/// * `allowed_methods` - The allowed methods for the request
+/// * `allow_credentials` - Whether to allow credentials
+
 #[derive(Clone)]
 pub struct CorsConfig {
     pub allowed_origin: String,
@@ -20,6 +28,30 @@ impl Default for CorsConfig {
         }
     }
 }
+
+/// Builtin Cors Middleware
+///
+/// ## Arguments
+///
+/// * `config` - Configuration for the middleware
+///
+/// ## Examples
+///
+/// ```
+/// use ripress::{app::App, middlewares::cors::cors};
+/// let mut app = App::new();
+/// app.use_middleware("", cors(None))
+///
+///```
+///```
+/// use ripress::{app::App, middlewares::cors::{cors, CorsConfig}};
+/// let mut app = App::new();
+/// app.use_middleware("", cors(CorsConfig {
+///     allowed_origin: "https://example.com".to_string(),
+///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS".to_string(),
+///     allow_credentials: true,
+/// }))
+/// ```
 
 pub fn cors(
     config: Option<CorsConfig>,

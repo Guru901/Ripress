@@ -4,6 +4,14 @@ use crate::{
     types::{Fut, Next},
 };
 
+/// Configuration for the Logger Middleware
+///
+/// ## Fields
+///
+/// * `method` -  Wheather to log the method
+/// * `path` - Whether to log the path
+/// * `duration` - Whether to log the duration
+
 #[derive(Clone)]
 pub struct LoggerConfig {
     pub method: bool,
@@ -21,6 +29,30 @@ impl Default for LoggerConfig {
     }
 }
 
+/// Builtin Logger Middleware
+///
+/// ## Arguments
+///
+/// * `config` - Configuration for the middleware
+///
+/// ## Examples
+///
+/// ```
+/// use ripress::{app::App, middlewares::logger::logger};
+/// let mut app = App::new();
+/// app.use_middleware("", logger(None))
+///
+///```
+///```
+/// use ripress::{app::App, middlewares::cors::{logger, LoggerConfig}};
+/// let mut app = App::new();
+/// app.use_middleware("", logger(LoggerConfig {
+///     duration: true,
+///     method: true,
+///     path: true,
+/// }))
+///
+/// ```
 pub fn logger(
     config: Option<LoggerConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static {
