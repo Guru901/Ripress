@@ -1,6 +1,6 @@
 use crate::{context::HttpResponse, request::HttpRequest};
 use serde::Serialize;
-use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
+use std::{collections::HashMap, fmt::Display, future::Future, pin::Pin, sync::Arc};
 
 // HttpRequest types
 
@@ -87,6 +87,19 @@ pub enum HttpMethods {
     POST,
     DELETE,
     PATCH,
+}
+
+impl Display for HttpMethods {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let method = match self {
+            HttpMethods::GET => "GET",
+            HttpMethods::PUT => "PUT",
+            HttpMethods::POST => "POST",
+            HttpMethods::DELETE => "DELETE",
+            HttpMethods::PATCH => "PATCH",
+        };
+        write!(f, "{}", method)
+    }
 }
 
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
