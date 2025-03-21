@@ -9,7 +9,7 @@ mod tests {
             cors::{cors, CorsConfig},
             logger::{logger, LoggerConfig},
         },
-        types::{Fut, Next},
+        types::Next,
     };
 
     #[tokio::test]
@@ -99,7 +99,7 @@ mod tests {
             handler: Arc::new(|_req, res| Box::pin(async { res })),
         };
 
-        let response = logger_mw(req, res, next).await;
+        let _ = logger_mw(req, res, next).await;
     }
 
     #[tokio::test]
@@ -119,14 +119,6 @@ mod tests {
             handler: Arc::new(|_req, res| Box::pin(async { res })),
         };
 
-        let response = logger_mw(req, res, next).await;
-
-        // // For custom config allow_credentials is set to true.
-        // assert_eq!(
-        //     response
-        //         .get_header("Access-Control-Allow-Credentials")
-        //         .unwrap(),
-        //     "true"
-        // );
+        let _ = logger_mw(req, res, next).await;
     }
 }
