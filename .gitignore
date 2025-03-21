@@ -2,3 +2,4 @@
 /src/main.rs
 tarpaulin-report.html
 /examples/basic/target
+/examples/blog/target
