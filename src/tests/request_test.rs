@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use actix_web::FromRequest;
     use serde_json::json;
 
     use crate::types::HttpRequestError;
@@ -282,5 +283,18 @@ mod tests {
         req.set_data("id", "123");
         assert_eq!(req.get_data("id"), Some(&String::from("123")));
         assert_eq!(req.get_data("nonexistent"), None);
+    }
+
+    #[tokio::test]
+    async fn test_from_actix_request() {
+        let request = actix_web::test::TestRequest::default().to_http_request();
+        let mut payload = actix_web::dev::Payload::None;
+        let web_payload = actix_web::web::Payload::from_request(&request, &mut payload)
+            .await
+            .unwrap();
+
+        let _ = HttpRequest::from_actix_request(request, web_payload)
+            .await
+            .unwrap();
     }
 }
