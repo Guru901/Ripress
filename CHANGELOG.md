@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.2] - 2025-03-22
+
+- Added built in cors and logging middlewares
+- Improved test coverage
+- Added some crud examples
+
 ## [0.4.1] - 2025-03-20
 
 - Fixed the middleware always being global
@@ -11,7 +17,7 @@
 - Added Middleware support
 - Added set_data and get_data methods to HttpRequest used in middlewares
 
-## Changes
+### Changes
 
 - Listen method now takes an i32 as port and a closure as a callback
 
