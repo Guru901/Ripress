@@ -13,6 +13,8 @@ mod tests {
         tests::app_test::_test_handler,
     };
 
+    use crate::context::HttpRequest;
+    use crate::types::{HttpMethods, Middleware, Next};
     use std::time::Duration;
 
     #[test]
@@ -126,5 +128,25 @@ mod tests {
         });
 
         assert!(!app.get_middlewares().is_empty());
+    }
+
+    #[test]
+    fn test_http_methods_display() {
+        let get_method = HttpMethods::GET;
+        let post_method = HttpMethods::POST;
+        let patch_method = HttpMethods::PATCH;
+        let delete_method = HttpMethods::DELETE;
+        let put_method = HttpMethods::PUT;
+
+        println!(
+            "{} {} {} {} {}",
+            get_method, post_method, patch_method, delete_method, put_method
+        );
+    }
+
+    #[test]
+    fn test_next_new_fn() {
+        let new_next = Next::new();
+        assert_eq!(new_next.middleware.len(), 0);
     }
 }
