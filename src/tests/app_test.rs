@@ -14,7 +14,7 @@ mod tests {
     };
 
     use crate::context::HttpRequest;
-    use crate::types::{HttpMethods, Middleware, Next};
+    use crate::types::{HttpMethods, Next};
     use std::time::Duration;
 
     #[test]
@@ -148,5 +148,112 @@ mod tests {
     fn test_next_new_fn() {
         let new_next = Next::new();
         assert_eq!(new_next.middleware.len(), 0);
+    }
+
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    };
+
+    #[tokio::test]
+    async fn test_use_middleware_path_matching() {
+        let mut app = App::new();
+        let called = Arc::new(AtomicBool::new(false));
+        let called_clone = called.clone();
+        // Register a middleware for the "/api" path that sets the flag when called.
+        app.use_middleware(
+            "/api",
+            move |req: HttpRequest, res: HttpResponse, next: Next| {
+                let called = called_clone.clone();
+                async move {
+                    called.store(true, Ordering::SeqCst);
+                    next.run(req, res).await
+                }
+            },
+        );
+
+        // Retrieve the wrapped middleware.
+        let middleware = app.get_middlewares()[0].clone_box();
+
+        // Create a request that matches the "/api" path.
+        let mut req = HttpRequest::new();
+        req.set_path("/api/test".to_string()); // assumes HttpRequest has a set_path method.
+        let res = HttpResponse::new();
+        let next = Next {
+            middleware: vec![],
+            handler: Arc::new(|_req, res| Box::pin(async move { res })),
+        };
+
+        let _ = middleware.handle(req, res, next).await;
+        assert!(
+            called.load(Ordering::SeqCst),
+            "Middleware should have been invoked"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_use_middleware_path_non_matching() {
+        let mut app = App::new();
+        let called = Arc::new(AtomicBool::new(false));
+        let called_clone = called.clone();
+        // Register a middleware for the "/api" path.
+        app.use_middleware(
+            "/api",
+            move |req: HttpRequest, res: HttpResponse, next: Next| {
+                let called = called_clone.clone();
+                async move {
+                    called.store(true, Ordering::SeqCst);
+                    next.run(req, res).await
+                }
+            },
+        );
+
+        let middleware = app.get_middlewares()[0].clone_box();
+
+        // Create a request with a non-matching path.
+        let mut req = HttpRequest::new();
+        req.set_path("/other".to_string()); // does not start with "/api"
+        let res = HttpResponse::new();
+        let next = Next {
+            middleware: vec![],
+            handler: Arc::new(|_req, res| Box::pin(async move { res })),
+        };
+
+        let _ = middleware.handle(req, res, next).await;
+        assert!(
+            !called.load(Ordering::SeqCst),
+            "Middleware should not have been invoked for non-matching path"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_listen_function() {
+        // Create an App instance and add a simple GET route that returns "Hello World"
+        let mut app = App::new();
+        app.get("/", |_: HttpRequest, mut res: HttpResponse| async move {
+            res.ok().text("Hello World")
+        });
+
+        // Spawn the server on port 3001 in a background task.
+        let server_handle = tokio::spawn(async move {
+            app.listen(3001, || {
+                println!("Server started on 3001");
+            })
+            .await;
+        });
+
+        // Allow the server some time to start.
+        tokio::time::sleep(Duration::from_secs(2)).await;
+
+        // Send an HTTP GET request to the "/" route.
+        let response = reqwest::get("http://127.0.0.1:3001/")
+            .await
+            .expect("Failed to send request");
+        assert_eq!(response.status(), 200);
+        let body = response.text().await.expect("Failed to read response text");
+        assert_eq!(body, "Hello World");
+
+        // Stop the server by aborting the task.
+        server_handle.abort();
     }
 }
