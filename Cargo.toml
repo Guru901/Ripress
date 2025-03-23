@@ -4,6 +4,9 @@ version = "0.4.3"
 edition = "2021"
 description = "An attempt to make an http server library like express.js in rust"
 license = "MIT"
+authors = ["You guru911u@gmail.com"]
+keywords = ["http", "server", "framework", "web"]
+categories = ["web-programming::http-server"]
 repository = "https://github.com/guru901/ripress"
 
 [dependencies]
