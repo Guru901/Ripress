@@ -1,6 +1,7 @@
 use crate::request::HttpRequest;
 use crate::response::HttpResponse;
 use crate::types::{Fut, Handler, HttpMethods, Middleware, Next, Routes};
+use actix_files as fs;
 use std::{collections::HashMap, future::Future, sync::Arc};
 
 pub(crate) fn box_future<F>(future: F) -> Fut
@@ -13,6 +14,7 @@ where
 pub struct App {
     routes: Routes,
     middlewares: Vec<Box<dyn Middleware>>,
+    static_files: HashMap<String, String>,
 }
 
 impl App {
@@ -20,6 +22,7 @@ impl App {
         return App {
             routes: HashMap::new(),
             middlewares: Vec::new(),
+            static_files: HashMap::new(),
         };
     }
 
@@ -35,6 +38,7 @@ impl App {
         App {
             routes: self.routes.clone(),
             middlewares: cloned_middlewares,
+            static_files: self.static_files.clone(),
         }
     }
 
@@ -290,6 +294,31 @@ impl App {
         self
     }
 
+    /// Add a static file server to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `file` - The path to the file.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
+    ///
+    /// let mut app = App::new();
+    /// app.static_files("/public", "./public");
+    ///
+    /// ```
+
+    pub fn static_files(&mut self, path: &'static str, file: &'static str) {
+        self.static_files
+            .insert("serve_from".to_string(), file.to_string());
+
+        self.static_files
+            .insert("mount_path".to_string(), path.to_string());
+    }
+
     /// Starts the server and listens on the specified address.
     ///
     /// ## Arguments
@@ -366,6 +395,12 @@ impl App {
           }
         }
       }
+
+      if self.static_files.len() > 0 {
+        let static_files = self.static_files.clone();
+        app = app.service(fs::Files::new(static_files.get("mount_path").unwrap(), self.static_files.get("serve_from").unwrap()).show_files_listing());
+      }
+
      app
     })
       .bind(format!("127.0.0.1:{port}"))

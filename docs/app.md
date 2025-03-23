@@ -50,6 +50,38 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
+## Serving Static Files
+
+The `static_files` method provides a simple way to serve static assets (such as HTML, CSS, JavaScript, images, etc.) from a local directory. It maps a URL path prefix to a directory on your file system.
+
+### Example
+
+```rust
+use ripress::app::App;
+
+let mut app = App::new();
+
+// Serve files from the "./public" directory when requests come to "/public"
+app.static_files("/public", "./public");
+
+app.get("/", |req, res| async { res.ok().text("Hello, World!") });
+
+app.listen(3000, || {
+    println!("Listening on port 3000");
+})
+.await;
+```
+
+### Usage Details
+
+- **URL Path Prefix:**  
+  The first argument is the URL path prefix (e.g., `/public`). Requests starting with this prefix will be treated as requests for static files.
+
+- **Directory Path:**  
+  The second argument is the local file system directory that contains your static assets (e.g., `"./public"`). Ensure that the path is correct relative to the project root.
+
+This integration allows your application to serve both dynamic routes and static content easily.
+
 ### HTTP Method-Specific Routes
 
 #### GET Requests
