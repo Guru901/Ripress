@@ -383,7 +383,7 @@ impl App {
     /// * `path` - The path of the route.
     /// * `handler` - The handler function for the route.
     ///
-    fn add_route(&mut self, method: HttpMethods, path: &'static str, handler: Handler) {
+    pub(crate) fn add_route(&mut self, method: HttpMethods, path: &'static str, handler: Handler) {
         let path_handlers = self.routes.entry(path).or_insert_with(HashMap::new);
         path_handlers.insert(method, handler);
     }
