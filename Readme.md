@@ -3,6 +3,7 @@
 ### An express-inspired Rust-based web framework
 
 "This is an experimental project, and its development may change over time."
+Please star the repo if you like it, so that I know someone is using it.
 
 ## Table of Contents
 
@@ -39,7 +40,7 @@ Or manually add it to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ripress = "0.4.2"
+ripress = "0.4.3"
 tokio = { version = "1.44.0", features = ["full"] }
 ```
 

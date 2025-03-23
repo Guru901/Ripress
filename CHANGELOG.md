@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.3] - 2025-03-22
+
+- Added router implementation for grouping routes
+
 ## [0.4.2] - 2025-03-22
 
 - Added built in cors and logging middlewares
