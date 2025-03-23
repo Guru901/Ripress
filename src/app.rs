@@ -14,7 +14,7 @@ where
 pub struct App {
     routes: Routes,
     middlewares: Vec<Box<dyn Middleware>>,
-    static_files: HashMap<String, String>,
+    pub(crate) static_files: HashMap<String, String>,
 }
 
 impl App {
