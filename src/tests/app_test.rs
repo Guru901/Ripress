@@ -230,7 +230,7 @@ mod tests {
     async fn test_listen_function() {
         // Create an App instance and add a simple GET route that returns "Hello World"
         let mut app = App::new();
-        app.get("/", |_: HttpRequest, mut res: HttpResponse| async move {
+        app.get("/", |_: HttpRequest, res: HttpResponse| async move {
             res.ok().text("Hello World")
         });
 
