@@ -1,7 +1,10 @@
 use crate::request::HttpRequest;
 use crate::response::HttpResponse;
 use crate::types::{Fut, Handler, HttpMethods, Middleware, Next, Routes};
+use crate::websocket::WebSocket;
 use actix_files as fs;
+use actix_web::web;
+use actix_web_actors::ws;
 use std::{collections::HashMap, future::Future, sync::Arc};
 
 pub(crate) fn box_future<F>(future: F) -> Fut
@@ -15,15 +18,21 @@ pub struct App {
     routes: Routes,
     middlewares: Vec<Box<dyn Middleware>>,
     pub(crate) static_files: HashMap<String, String>,
+    pub(crate) has_ws: bool,
+    pub(crate) ws_path: String,
+    pub ws: WebSocket,
 }
 
 impl App {
     pub fn new() -> App {
-        return App {
+        App {
             routes: HashMap::new(),
             middlewares: Vec::new(),
             static_files: HashMap::new(),
-        };
+            has_ws: false,
+            ws_path: String::new(),
+            ws: WebSocket::default(),
+        }
     }
 
     pub fn clone_app(&self) -> App {
@@ -39,6 +48,9 @@ impl App {
             routes: self.routes.clone(),
             middlewares: cloned_middlewares,
             static_files: self.static_files.clone(),
+            has_ws: self.has_ws,
+            ws_path: self.ws_path.clone(),
+            ws: self.ws.clone(),
         }
     }
 
@@ -394,6 +406,17 @@ impl App {
             }
           }
         }
+      }
+
+      if self.has_ws {
+        let ws = self.ws.clone();
+        app = app.route(&self.ws_path, web::get().to(move |req: actix_web::HttpRequest, stream: web::Payload| {
+            let ws = ws.clone();
+            async move {
+                (ws.on_connect_cl)();
+                ws::start(ws, &req, stream)
+            }
+        }));
       }
 
       if self.static_files.len() > 0 {

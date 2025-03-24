@@ -13,3 +13,4 @@ pub mod context {
 pub mod middlewares;
 pub mod router;
 pub mod types;
+pub mod websocket;
