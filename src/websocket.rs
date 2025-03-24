@@ -10,6 +10,12 @@ use crate::app::App;
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// WebSocket handler that manages real-time bidirectional communication
+///
+/// Handles text messages, binary data, connection events, and maintains
+/// heartbeat to detect disconnected clients.
+
 #[derive(Clone)]
 pub struct WebSocket {
     pub(crate) hb: Instant,
@@ -71,6 +77,19 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocket {
 }
 
 impl WebSocket {
+    /// Creates a new WebSocket instance.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The endpoint path where the WebSocket will listen
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::websocket::WebSocket;
+    ///
+    /// let ws = WebSocket::new("/ws");
+    /// ```
     pub fn new(path: &str) -> Self {
         let ws = Self {
             hb: Instant::now(),
@@ -83,11 +102,44 @@ impl WebSocket {
         ws
     }
 
+    /// Registers the WebSocket handler with the application
+    ///
+    /// ## Arguments
+    ///
+    /// * `app` - Mutable reference to the App instance
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::{app::App, websocket::WebSocket};
+    ///
+    /// let mut app = App::new();
+    /// let ws = WebSocket::new("/ws");
+    /// ws.register(&mut app);
+    /// ```
+
     pub fn register(&self, app: &mut App) {
         app.ws_path = self.path.clone();
         app.ws = self.clone();
         app.has_ws = true;
     }
+
+    /// Sets the callback for handling text messages
+    ///
+    /// ## Arguments
+    ///
+    /// * `cl` - Closure that takes a string slice parameter
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::websocket::WebSocket;
+    ///
+    /// let mut ws = WebSocket::new("/ws");
+    /// ws.on_text(|msg| {
+    ///     println!("Received message: {}", msg);
+    /// });
+    /// ```
 
     pub fn on_text<F>(&mut self, cl: F)
     where
@@ -96,6 +148,23 @@ impl WebSocket {
         self.on_message_cl = Arc::new(cl);
     }
 
+    /// Sets the callback for handling disconnection events
+    ///
+    /// ## Arguments
+    ///
+    /// * `cl` - Closure that takes no parameters
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::websocket::WebSocket;
+    ///
+    /// let mut ws = WebSocket::new("/ws");
+    /// ws.on_disconnect(|| {
+    ///     println!("Client disconnected");
+    /// });
+    /// ```
+
     pub fn on_disconnect<F>(&mut self, cl: F)
     where
         F: Fn() + Send + Sync + 'static,
@@ -103,12 +172,46 @@ impl WebSocket {
         self.on_disconnect_cl = Arc::new(cl);
     }
 
+    /// Sets the callback for handling binary messages
+    ///
+    /// ## Arguments
+    ///
+    /// * `cl` - Closure that takes a Bytes parameter
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::websocket::WebSocket;
+    ///
+    /// let mut ws = WebSocket::new("/ws");
+    /// ws.on_binary(|data| {
+    ///     println!("Received binary data: {:?}", data);
+    /// });
+    /// ```
+
     pub fn on_binary<F>(&mut self, cl: F)
     where
         F: Fn(Bytes) + Send + Sync + 'static,
     {
         self.on_binary_cl = Arc::new(cl);
     }
+
+    /// Sets the callback for handling connection events
+    ///
+    /// ## Arguments
+    ///
+    /// * `cl` - Closure that takes no parameters
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::websocket::WebSocket;
+    ///
+    /// let mut ws = WebSocket::new("/ws");
+    /// ws.on_connect(|| {
+    ///     println!("Client connected");
+    /// });
+    /// ```
 
     pub fn on_connect<F>(&mut self, cl: F)
     where
