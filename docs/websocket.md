@@ -4,6 +4,8 @@
 
 The `WebSocket` struct provides real-time bidirectional communication capabilities in Ripress. It handles text messages, binary data, connection events, and maintains connection health through heartbeat mechanisms.
 
+NOTE - WebSocket support is currently only limited to one endpoint per application. This will be fixed in the next release.
+
 ## Creating a WebSocket Handler
 
 Creates a new WebSocket instance:
