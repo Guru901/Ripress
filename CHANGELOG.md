@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.4] - 2025-03-22
+
+- Added WebSocket Support
+
 ## [0.4.3] - 2025-03-22
 
 - Added router implementation for grouping routes
