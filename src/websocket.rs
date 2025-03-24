@@ -24,12 +24,14 @@ pub struct WebSocket {
     pub(crate) on_connect_cl: Arc<dyn Fn() + Send + Sync>,
     on_binary_cl: Arc<dyn Fn(Bytes) + Send + Sync>,
     pub(crate) path: String,
+    send_text: String,
 }
 
 impl Actor for WebSocket {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
+        (self.on_connect_cl)();
         self.hb(ctx);
     }
 }
@@ -43,6 +45,7 @@ impl Default for WebSocket {
             on_disconnect_cl: Arc::new(|| {}),
             on_connect_cl: Arc::new(|| {}),
             path: String::new(),
+            send_text: String::new(),
         }
     }
 }
@@ -50,6 +53,10 @@ impl Default for WebSocket {
 /// Handler for ws::Message message
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocket {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+        if !self.send_text.is_empty() {
+            ctx.text(&*self.send_text);
+            self.send_text.clear();
+        }
         match msg {
             Ok(ws::Message::Ping(msg)) => {
                 self.hb = Instant::now();
@@ -60,7 +67,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocket {
             }
             Ok(ws::Message::Text(text)) => {
                 (self.on_message_cl)(text.to_string().as_str());
-                ctx.text(format!("Echo: {}", text));
             }
             Ok(ws::Message::Binary(bin)) => {
                 (self.on_binary_cl)(bin.clone());
@@ -98,6 +104,7 @@ impl WebSocket {
             on_disconnect_cl: Arc::new(|| {}),
             on_binary_cl: Arc::new(|_| {}),
             path: path.to_string(),
+            send_text: String::new(),
         };
         ws
     }
@@ -194,6 +201,25 @@ impl WebSocket {
         F: Fn(Bytes) + Send + Sync + 'static,
     {
         self.on_binary_cl = Arc::new(cl);
+    }
+
+    /// Sends a text message to the connected client
+    ///
+    /// ## Arguments
+    ///
+    /// * `text` - The text message to send
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::websocket::WebSocket;
+    ///
+    /// let mut ws = WebSocket::new("/ws");
+    /// ws.send("Hello client!");
+    /// ```
+    ///
+    pub fn send(&mut self, text: &str) {
+        self.send_text = text.into();
     }
 
     /// Sets the callback for handling connection events

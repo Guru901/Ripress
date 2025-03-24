@@ -413,7 +413,6 @@ impl App {
         app = app.route(&self.ws_path, web::get().to(move |req: actix_web::HttpRequest, stream: web::Payload| {
             let ws = ws.clone();
             async move {
-                (ws.on_connect_cl)();
                 ws::start(ws, &req, stream)
             }
         }));

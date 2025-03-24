@@ -16,6 +16,23 @@ use ripress::websocket::WebSocket;
 let ws = WebSocket::new("/ws");
 ```
 
+## Sending Messages
+
+Sends a text message to the connected WebSocket client:
+
+```rust
+ws.send("Hello client!", None);
+```
+
+With a context (inside message handler):
+
+```rust
+ws.on_text(|msg| {
+    // Respond immediately to a received message
+    ws.send("Got your message!");
+});
+```
+
 ## Registering with App
 
 The WebSocket handler must be registered with your App instance:
