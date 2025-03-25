@@ -2,7 +2,7 @@ use actix::AsyncContext;
 use actix::{Actor, ActorContext, StreamHandler};
 use actix_web::web::Bytes;
 use actix_web_actors::ws;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use crate::app::App;
@@ -19,7 +19,7 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 #[derive(Clone)]
 pub struct WebSocket {
     pub(crate) hb: Instant,
-    on_message_cl: Arc<dyn Fn(&str) + Send + Sync>,
+    on_message_cl: Arc<Mutex<dyn FnMut(&str) + Send + Sync>>,
     on_disconnect_cl: Arc<dyn Fn() + Send + Sync>,
     pub(crate) on_connect_cl: Arc<dyn Fn() + Send + Sync>,
     on_binary_cl: Arc<dyn Fn(Bytes) + Send + Sync>,
@@ -40,7 +40,7 @@ impl Default for WebSocket {
     fn default() -> Self {
         Self {
             hb: Instant::now(),
-            on_message_cl: Arc::new(|_| {}),
+            on_message_cl: Arc::new(Mutex::new(|_: &str| {})),
             on_binary_cl: Arc::new(|_| {}),
             on_disconnect_cl: Arc::new(|| {}),
             on_connect_cl: Arc::new(|| {}),
@@ -66,7 +66,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocket {
                 self.hb = Instant::now();
             }
             Ok(ws::Message::Text(text)) => {
-                (self.on_message_cl)(text.to_string().as_str());
+                if let Ok(mut guard) = self.on_message_cl.lock() {
+                    guard(text.to_string().as_str());
+                }
             }
             Ok(ws::Message::Binary(bin)) => {
                 (self.on_binary_cl)(bin.clone());
@@ -99,7 +101,7 @@ impl WebSocket {
     pub fn new(path: &str) -> Self {
         let ws = Self {
             hb: Instant::now(),
-            on_message_cl: Arc::new(|_| {}),
+            on_message_cl: Arc::new(Mutex::new(|_: &str| {})),
             on_connect_cl: Arc::new(|| {}),
             on_disconnect_cl: Arc::new(|| {}),
             on_binary_cl: Arc::new(|_| {}),
@@ -150,9 +152,9 @@ impl WebSocket {
 
     pub fn on_text<F>(&mut self, cl: F)
     where
-        F: Fn(&str) + Send + Sync + 'static,
+        F: FnMut(&str) + Send + Sync + 'static,
     {
-        self.on_message_cl = Arc::new(cl);
+        self.on_message_cl = Arc::new(Mutex::new(cl));
     }
 
     /// Sets the callback for handling disconnection events

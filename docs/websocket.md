@@ -97,21 +97,23 @@ async fn main() {
 
     let ws = WebSocket::new("/ws");
 
-    // Register WebSocket handlers
-    ws.register(&mut app);
-
     // Set up event handlers
-    app.ws.on_text(|msg| {
+    ws.on_text(|msg| {
         println!("Received: {}", msg);
     });
 
-    app.ws.on_connect(|| {
+    ws.on_connect(|| {
         println!("Client connected");
     });
 
-    app.ws.on_disconnect(|| {
+    ws.on_disconnect(|| {
         println!("Client disconnected");
     });
+
+
+    // Register WebSocket handlers
+    // Registeration should be done at the end
+    ws.register(&mut app);
 
     // Start the server
     app.listen(3000, || {

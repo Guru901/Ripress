@@ -20,7 +20,7 @@ pub struct App {
     pub(crate) static_files: HashMap<String, String>,
     pub(crate) has_ws: bool,
     pub(crate) ws_path: String,
-    pub ws: WebSocket,
+    pub(crate) ws: WebSocket,
 }
 
 impl App {
