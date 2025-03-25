@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.6] - 2025-03-22
+
+- Made changes to websocket api
+
 ## [0.4.5] - 2025-03-22
 
 - Added `.send` method to WebSocket
