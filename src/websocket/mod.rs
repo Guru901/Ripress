@@ -2,6 +2,7 @@ use actix::AsyncContext;
 use actix::{Actor, ActorContext, StreamHandler};
 use actix_web::web::Bytes;
 use actix_web_actors::ws;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -21,17 +22,22 @@ pub struct WebSocket {
     pub(crate) hb: Instant,
     on_message_cl: Arc<Mutex<dyn FnMut(&str) + Send + Sync>>,
     on_disconnect_cl: Arc<dyn Fn() + Send + Sync>,
-    pub(crate) on_connect_cl: Arc<dyn Fn() + Send + Sync>,
+    pub(crate) on_connect_cl: Arc<dyn Fn(WebSocketConn, Vec<WebSocketConn>) + Send + Sync>,
     on_binary_cl: Arc<dyn Fn(Bytes) + Send + Sync>,
     pub(crate) path: String,
     send_text: String,
+    clients: Vec<WebSocketConn>,
 }
 
 impl Actor for WebSocket {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        (self.on_connect_cl)();
+        let mut ws = WebSocketConn::new();
+        ws.is_open = ctx.address().connected();
+        let mut clients = self.clients.clone();
+        clients.push(ws.clone());
+        (self.on_connect_cl)(ws, clients);
         self.hb(ctx);
     }
 }
@@ -43,9 +49,10 @@ impl Default for WebSocket {
             on_message_cl: Arc::new(Mutex::new(|_: &str| {})),
             on_binary_cl: Arc::new(|_| {}),
             on_disconnect_cl: Arc::new(|| {}),
-            on_connect_cl: Arc::new(|| {}),
+            on_connect_cl: Arc::new(|_, _| {}),
             path: String::new(),
             send_text: String::new(),
+            clients: Vec::new(),
         }
     }
 }
@@ -102,11 +109,12 @@ impl WebSocket {
         let ws = Self {
             hb: Instant::now(),
             on_message_cl: Arc::new(Mutex::new(|_: &str| {})),
-            on_connect_cl: Arc::new(|| {}),
+            on_connect_cl: Arc::new(|_, _| {}),
             on_disconnect_cl: Arc::new(|| {}),
             on_binary_cl: Arc::new(|_| {}),
             path: path.to_string(),
             send_text: String::new(),
+            clients: Vec::new(),
         };
         ws
     }
@@ -243,7 +251,7 @@ impl WebSocket {
 
     pub fn on_connect<F>(&mut self, cl: F)
     where
-        F: Fn() + Send + Sync + 'static,
+        F: Fn(WebSocketConn, Vec<WebSocketConn>) + Send + Sync + 'static,
     {
         self.on_connect_cl = Arc::new(cl);
     }
@@ -258,5 +266,22 @@ impl WebSocket {
             }
             ctx.ping(b"");
         });
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct WebSocketConn {
+    pub id: String,
+    pub is_open: bool,
+    pub metadata: HashMap<String, serde_json::Value>,
+}
+
+impl WebSocketConn {
+    fn new() -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            is_open: false,
+            metadata: HashMap::new(),
+        }
     }
 }
