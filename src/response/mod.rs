@@ -365,7 +365,7 @@ impl HttpResponse {
     /// use ripress::context::HttpResponse;
     /// use ripress::types::ResponseContentType;
     ///
-    /// let res = HttpResponse::new()
+    /// let res = HttpResponse::new();
     /// res.redirect("https://www.example.com");
     /// ```
 
