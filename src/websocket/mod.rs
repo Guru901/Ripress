@@ -2,6 +2,8 @@ use actix::AsyncContext;
 use actix::{Actor, ActorContext, StreamHandler};
 use actix_web::web::Bytes;
 use actix_web_actors::ws;
+use std::any::TypeId;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -20,18 +22,25 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 pub struct WebSocket {
     pub(crate) hb: Instant,
     on_message_cl: Arc<Mutex<dyn FnMut(&str) + Send + Sync>>,
-    on_disconnect_cl: Arc<dyn Fn() + Send + Sync>,
-    pub(crate) on_connect_cl: Arc<dyn Fn() + Send + Sync>,
+    on_disconnect_cl: Arc<dyn Fn(WebSocketConn, Vec<&WebSocketConn>) + Send + Sync>,
+    pub(crate) on_connect_cl: Arc<dyn Fn(WebSocketConn, Vec<WebSocketConn>) + Send + Sync>,
     on_binary_cl: Arc<dyn Fn(Bytes) + Send + Sync>,
     pub(crate) path: String,
     send_text: String,
+    clients: Vec<WebSocketConn>,
 }
 
 impl Actor for WebSocket {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        (self.on_connect_cl)();
+        let mut ws = WebSocketConn::new();
+        ws.is_open = ctx.address().connected();
+        ws.type_id = std::any::TypeId::of::<Self>();
+        let mut clients = self.clients.clone();
+        clients.push(ws.clone());
+        (self.on_connect_cl)(ws, clients.clone());
+        self.clients = clients;
         self.hb(ctx);
     }
 }
@@ -42,10 +51,11 @@ impl Default for WebSocket {
             hb: Instant::now(),
             on_message_cl: Arc::new(Mutex::new(|_: &str| {})),
             on_binary_cl: Arc::new(|_| {}),
-            on_disconnect_cl: Arc::new(|| {}),
-            on_connect_cl: Arc::new(|| {}),
+            on_disconnect_cl: Arc::new(|_, _| {}),
+            on_connect_cl: Arc::new(|_, _| {}),
             path: String::new(),
             send_text: String::new(),
+            clients: Vec::new(),
         }
     }
 }
@@ -75,8 +85,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocket {
                 ctx.binary(bin);
             }
             Ok(ws::Message::Close(reason)) => {
+                let type_id = std::any::TypeId::of::<Self>();
                 ctx.close(reason);
-                (self.on_disconnect_cl)();
+                let ws = self.clients.iter().find(|f| f.type_id == type_id);
+                let clients = self.clients.iter().filter(|f| f.type_id != type_id);
+                (self.on_disconnect_cl)(ws.unwrap().clone(), clients.collect());
                 ctx.stop();
             }
             _ => ctx.stop(),
@@ -102,11 +115,12 @@ impl WebSocket {
         let ws = Self {
             hb: Instant::now(),
             on_message_cl: Arc::new(Mutex::new(|_: &str| {})),
-            on_connect_cl: Arc::new(|| {}),
-            on_disconnect_cl: Arc::new(|| {}),
+            on_connect_cl: Arc::new(|_, _| {}),
+            on_disconnect_cl: Arc::new(|_, _| {}),
             on_binary_cl: Arc::new(|_| {}),
             path: path.to_string(),
             send_text: String::new(),
+            clients: Vec::new(),
         };
         ws
     }
@@ -169,14 +183,14 @@ impl WebSocket {
     /// use ripress::websocket::WebSocket;
     ///
     /// let mut ws = WebSocket::new("/ws");
-    /// ws.on_disconnect(|| {
+    /// ws.on_disconnect(|ws, clients| {
     ///     println!("Client disconnected");
     /// });
     /// ```
 
     pub fn on_disconnect<F>(&mut self, cl: F)
     where
-        F: Fn() + Send + Sync + 'static,
+        F: Fn(WebSocketConn, Vec<&WebSocketConn>) + Send + Sync + 'static,
     {
         self.on_disconnect_cl = Arc::new(cl);
     }
@@ -236,14 +250,14 @@ impl WebSocket {
     /// use ripress::websocket::WebSocket;
     ///
     /// let mut ws = WebSocket::new("/ws");
-    /// ws.on_connect(|| {
+    /// ws.on_connect(|ws, clients| {
     ///     println!("Client connected");
     /// });
     /// ```
 
     pub fn on_connect<F>(&mut self, cl: F)
     where
-        F: Fn() + Send + Sync + 'static,
+        F: Fn(WebSocketConn, Vec<WebSocketConn>) + Send + Sync + 'static,
     {
         self.on_connect_cl = Arc::new(cl);
     }
@@ -252,11 +266,33 @@ impl WebSocket {
         let disconnect_cl = self.on_disconnect_cl.clone();
         ctx.run_interval(HEARTBEAT_INTERVAL, move |act, ctx| {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
-                (disconnect_cl)();
+                let type_id = std::any::TypeId::of::<Self>();
+                let ws = act.clients.iter().find(|f| f.type_id == type_id);
+                let clients = act.clients.iter().filter(|f| f.type_id != type_id);
+                (disconnect_cl)(ws.unwrap().clone(), clients.collect());
                 ctx.stop();
                 return;
             }
             ctx.ping(b"");
         });
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct WebSocketConn {
+    pub id: String,
+    pub is_open: bool,
+    pub metadata: HashMap<String, serde_json::Value>,
+    type_id: TypeId,
+}
+
+impl WebSocketConn {
+    fn new() -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            is_open: false,
+            metadata: HashMap::new(),
+            type_id: TypeId::of::<Self>(),
+        }
     }
 }
