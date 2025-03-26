@@ -29,6 +29,31 @@ mod tests {
         assert_eq!(response.get_status_code(), 999);
     }
 
+    #[tokio::test]
+    async fn test_redirect_response() {
+        let redirect_url = "https://example.com";
+        let response = HttpResponse::new().redirect(redirect_url);
+
+        // Test that status code isx 302 (Found/Redirect)
+        assert_eq!(response.get_status_code(), 302);
+
+        assert_eq!(response.get_header("Location").unwrap(), redirect_url);
+    }
+
+    #[tokio::test]
+    async fn test_redirect_with_chaining() {
+        let redirect_url = "https://example.com";
+        let response = HttpResponse::new()
+            .set_header("X-Custom", "test")
+            .redirect(redirect_url);
+
+        assert_eq!(response.get_status_code(), 302);
+
+        assert_eq!(response.get_header("Location").unwrap(), redirect_url);
+
+        assert_eq!(response.get_header("X-Custom").unwrap(), "test");
+    }
+
     #[test]
     fn test_status_code_helpers() {
         let response = HttpResponse::new();
