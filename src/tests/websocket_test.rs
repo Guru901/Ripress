@@ -39,7 +39,7 @@ mod tests {
         let connect_called = Arc::new(Mutex::new(false));
         let connect_called_clone = connect_called.clone();
 
-        ws.on_connect(move || {
+        ws.on_connect(move |_, _| {
             let mut called = connect_called_clone.lock().unwrap();
             *called = true;
         });
@@ -47,7 +47,7 @@ mod tests {
         // Test disconnect callback
         let disconnect_called = Arc::new(Mutex::new(false));
         let disconnect_called_clone = disconnect_called.clone();
-        ws.on_disconnect(move || {
+        ws.on_disconnect(move |_, _| {
             let mut disconnect_called = disconnect_called_clone.lock().unwrap();
             *disconnect_called = true;
         });

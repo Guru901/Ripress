@@ -183,7 +183,7 @@ impl WebSocket {
     /// use ripress::websocket::WebSocket;
     ///
     /// let mut ws = WebSocket::new("/ws");
-    /// ws.on_disconnect(|ws| {
+    /// ws.on_disconnect(|ws, clients| {
     ///     println!("Client disconnected");
     /// });
     /// ```
