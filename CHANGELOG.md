@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.7] - 2025-03-22
+
+- The WebSocket module has been removed from Ripress to keep it focused on HTTP.
+
 ## [0.4.6] - 2025-03-22
 
 - Made changes to websocket api
