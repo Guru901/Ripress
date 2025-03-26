@@ -350,6 +350,31 @@ impl HttpResponse {
         return self;
     }
 
+    /// Redirects the client to the specified URL.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The url to redirect to
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::context::HttpResponse;
+    /// use ripress::types::ResponseContentType;
+    ///
+    /// let res = HttpResponse::new()
+    /// res.redirect("https://www.example.com");
+    /// ```
+
+    pub fn redirect(mut self, url: &str) -> Self {
+        self.status_code = 302;
+        self.headers.insert("Location".to_string(), url.to_string());
+        return self;
+    }
+
     /// Sets the response body to JSON.
     ///
     /// # Arguments
