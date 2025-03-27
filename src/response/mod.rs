@@ -3,7 +3,10 @@ use actix_web::{
     http::header::{HeaderName, HeaderValue},
     Responder,
 };
+use bytes::Bytes;
+use futures::{stream, Stream, StreamExt};
 use std::collections::HashMap;
+use std::pin::Pin;
 
 /// Represents an HTTP response being sent to the client.
 ///
@@ -41,9 +44,32 @@ use std::collections::HashMap;
 /// - `remove_cookies` - Cookies to be removed
 
 #[derive(Debug)]
+pub enum ResponseError {
+    IoError(std::io::Error),
+    Other(String),
+}
+
+impl From<std::io::Error> for ResponseError {
+    fn from(err: std::io::Error) -> Self {
+        ResponseError::IoError(err)
+    }
+}
+
+impl std::error::Error for ResponseError {}
+impl std::fmt::Display for ResponseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ResponseError::IoError(e) => write!(f, "IO error: {}", e),
+            ResponseError::Other(e) => write!(f, "Error: {}", e),
+        }
+    }
+}
+
+pub(crate) type BoxError = ResponseError;
+
 pub struct HttpResponse {
     // Status code specified by the developer
-    status_code: i32,
+    pub status_code: u16,
 
     // Response body content
     body: ResponseContentBody,
@@ -55,10 +81,14 @@ pub struct HttpResponse {
     cookies: HashMap<String, String>,
 
     // Sets response headers
-    headers: HashMap<String, String>,
+    pub headers: HashMap<String, String>,
 
     // Cookies to be removed
     remove_cookies: Vec<String>,
+
+    pub is_stream: bool,
+
+    pub stream: Pin<Box<dyn Stream<Item = Result<Bytes, BoxError>> + Send + 'static>>,
 }
 
 impl HttpResponse {
@@ -86,6 +116,8 @@ impl HttpResponse {
             cookies: HashMap::new(),
             headers: HashMap::new(),
             remove_cookies: Vec::new(),
+            is_stream: false,
+            stream: Box::pin(stream::empty::<Result<Bytes, BoxError>>()),
         }
     }
 
@@ -208,7 +240,7 @@ impl HttpResponse {
     /// ```
 
     pub fn status(mut self, code: i32) -> Self {
-        self.status_code = code;
+        self.status_code = code as u16;
         return self;
     }
 
@@ -437,6 +469,16 @@ impl HttpResponse {
     ///     .text(format!("Count: {}", 42));
     /// ```
 
+    pub fn write<S, E>(mut self, stream: S) -> Self
+    where
+        S: Stream<Item = Result<Bytes, E>> + Send + 'static,
+        E: Into<BoxError> + Send + 'static,
+    {
+        self.is_stream = true;
+        self.stream = Box::pin(stream.map(|result| result.map_err(Into::into)));
+        self
+    }
+
     pub fn text<T: Into<String>>(mut self, text: T) -> Self {
         self.body = ResponseContentBody::new_text(text);
         self.content_type = ResponseContentType::TEXT;
@@ -475,42 +517,62 @@ impl HttpResponse {
 
     pub fn to_responder(self) -> actix_web::HttpResponse {
         let body = self.body;
-        let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code as u16)
-            .map(|status| match body {
-                ResponseContentBody::JSON(json) => actix_web::HttpResponse::build(status)
-                    .content_type("application/json")
-                    .json(json),
-                ResponseContentBody::TEXT(text) => actix_web::HttpResponse::build(status)
-                    .content_type("text/plain")
-                    .body(text),
-                ResponseContentBody::HTML(html) => actix_web::HttpResponse::build(status)
-                    .content_type("text/html")
-                    .body(html),
-            })
-            .unwrap_or_else(|_| {
-                actix_web::HttpResponse::InternalServerError().body("Invalid status code")
+        if self.is_stream {
+            let mut actix_res = actix_web::HttpResponse::build(actix_web::http::StatusCode::OK);
+            actix_res.content_type("text/event-stream");
+
+            self.headers.iter().for_each(|(key, value)| {
+                actix_res.append_header((key.as_str(), value.as_str()));
             });
 
-        self.headers.iter().for_each(|(key, value)| {
-            actix_res.headers_mut().append(
-                HeaderName::from_bytes(key.as_bytes()).unwrap(),
-                HeaderValue::from_str(value).unwrap(),
-            )
-        });
+            actix_res.append_header(("Connection", "keep-alive"));
+            self.remove_cookies.iter().for_each(|key| {
+                actix_res.cookie(actix_web::cookie::Cookie::build(key, "").finish());
+            });
 
-        self.remove_cookies.iter().for_each(|key| {
-            actix_res
-                .add_cookie(&actix_web::cookie::Cookie::build(key, "").finish())
-                .unwrap();
-        });
+            self.cookies.iter().for_each(|(key, value)| {
+                actix_res.cookie(actix_web::cookie::Cookie::build(key, value).finish());
+            });
 
-        self.cookies.iter().for_each(|(key, value)| {
-            actix_res
-                .add_cookie(&actix_web::cookie::Cookie::build(key, value).finish())
-                .expect("Failed to add cookie");
-        });
+            return actix_res.streaming(self.stream);
+        } else {
+            let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code as u16)
+                .map(|status| match body {
+                    ResponseContentBody::JSON(json) => actix_web::HttpResponse::build(status)
+                        .content_type("application/json")
+                        .json(json),
+                    ResponseContentBody::TEXT(text) => actix_web::HttpResponse::build(status)
+                        .content_type("text/plain")
+                        .body(text),
+                    ResponseContentBody::HTML(html) => actix_web::HttpResponse::build(status)
+                        .content_type("text/html")
+                        .body(html),
+                })
+                .unwrap_or_else(|_| {
+                    actix_web::HttpResponse::InternalServerError().body("Invalid status code")
+                });
 
-        return actix_res;
+            self.headers.iter().for_each(|(key, value)| {
+                actix_res.headers_mut().append(
+                    HeaderName::from_bytes(key.as_bytes()).unwrap(),
+                    HeaderValue::from_str(value).unwrap(),
+                )
+            });
+
+            self.remove_cookies.iter().for_each(|key| {
+                actix_res
+                    .add_cookie(&actix_web::cookie::Cookie::build(key, "").finish())
+                    .unwrap();
+            });
+
+            self.cookies.iter().for_each(|(key, value)| {
+                actix_res
+                    .add_cookie(&actix_web::cookie::Cookie::build(key, value).finish())
+                    .expect("Failed to add cookie");
+            });
+
+            return actix_res;
+        }
     }
 }
 
@@ -524,7 +586,7 @@ impl Responder for HttpResponse {
 
 #[cfg(test)]
 impl HttpResponse {
-    pub(crate) fn get_status_code(&self) -> i32 {
+    pub(crate) fn get_status_code(&self) -> u16 {
         self.status_code
     }
 
