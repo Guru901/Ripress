@@ -117,7 +117,7 @@ cargo run &  # Start server in background
 SERVER_PID=$!  # Store server process ID
 
 # Wait for the server to be ready
-sleep 10
+sleep 20
 
 cd ../tests
 bun install
