@@ -123,7 +123,11 @@ cd ../tests
 bun install
 
 # Run Playwright tests, fail script if tests fail
-bunx playwright test || { echo "Playwright tests failed"; kill $SERVER_PID; exit 1; }
+bunx playwright test || { 
+  echo "Playwright tests failed"
+  kill $SERVER_PID
+  exit 1
+}
 
 kill $SERVER_PID  # Stop the server
 
