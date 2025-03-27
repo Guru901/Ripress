@@ -170,6 +170,43 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 Returns `Result<String, HttpResponseError>`.
 
+## Streaming Responses
+
+### Stream Response
+
+Send streaming responses using the `.write()` method with any Stream that produces `Result<Bytes, E>`.
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+use bytes::Bytes;
+use futures::stream;
+use tokio::time;
+use std::time::Duration;
+
+async fn stream_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let stream = stream::unfold(0, |state| async move {
+        if state < 500 {
+            time::sleep(Duration::from_millis(10)).await;
+            Some((
+                Ok::<Bytes, std::io::Error>(Bytes::from(format!("Chunk {}\n", state))),
+                state + 1,
+            ))
+        } else {
+            None
+        }
+    });
+
+    res.write(stream)
+}
+```
+
+The `.write()` method:
+
+- Accepts any `Stream` that implements `Stream<Item = Result<Bytes, E>>`
+- Automatically sets the content type to `text/event-stream`
+- Maintains a keep-alive connection
+- Streams the data chunks to the client
+
 ## Cookies
 
 ### Setting Cookies

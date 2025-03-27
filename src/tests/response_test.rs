@@ -4,6 +4,8 @@ mod tests {
     use crate::types::HttpResponseError::MissingHeader;
     use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
     use actix_web::Responder;
+    use bytes::Bytes;
+    use futures::{stream, StreamExt};
     use serde_json::json;
 
     #[test]
@@ -38,6 +40,17 @@ mod tests {
         assert_eq!(response.get_status_code(), 302);
 
         assert_eq!(response.get_header("Location").unwrap(), redirect_url);
+    }
+
+    #[tokio::test]
+    async fn test_stream() {
+        let stream = stream::iter(0..5)
+            .map(|n| Ok::<Bytes, std::io::Error>(Bytes::from(format!("Number: {}\n", n))));
+
+        let response = HttpResponse::new().write(stream);
+
+        assert_eq!(response.get_status_code(), 200);
+        assert_eq!(response.is_stream, true);
     }
 
     #[tokio::test]
