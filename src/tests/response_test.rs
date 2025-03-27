@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::response::HttpResponse;
-    use crate::types::HttpResponseError::MissingHeader;
+    use crate::context::HttpResponse;
+    use crate::response::BoxError;
     use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
     use actix_web::Responder;
     use bytes::Bytes;
@@ -104,18 +104,42 @@ mod tests {
         } else {
             panic!("Expected JSON body");
         }
+
+        let data = json!({"message": "test"});
+        let response = HttpResponse::new()
+            .set_header("X-Custom", "value")
+            .set_cookie("session", "123")
+            .status(201)
+            .json(&data)
+            .to_responder();
+
+        assert_eq!(response.status(), 201);
+        assert_eq!(response.headers().get("X-Custom").unwrap(), "value");
+        assert_eq!(response.headers().get("Set-Cookie").unwrap(), "session=123");
+        assert_eq!(
+            response.headers().get("Content-Type").unwrap(),
+            "application/json"
+        );
     }
 
     #[test]
     fn test_text_response() {
         let text_body = "Hello, World!";
-        let response = HttpResponse::new().text(text_body);
+        let mut response = HttpResponse::new().text(text_body);
+        response = response.set_header("x-custom", "value");
+
         assert_eq!(response.get_content_type(), ResponseContentType::TEXT);
-        if let ResponseContentBody::TEXT(body) = response.get_body() {
+        let response_2 = HttpResponse::new().text(text_body);
+
+        if let ResponseContentBody::TEXT(body) = response_2.get_body() {
             assert_eq!(body, text_body);
         } else {
             panic!("Expected TEXT body");
         }
+
+        assert_eq!(response.get_status_code(), actix_web::http::StatusCode::OK);
+        assert_eq!(response.get_content_type(), ResponseContentType::TEXT);
+        assert_eq!(response.get_header("x-custom").unwrap(), "value");
 
         // Edge case: Empty text body
         let response = HttpResponse::new().text("");
@@ -144,6 +168,15 @@ mod tests {
         } else {
             panic!("Expected TEXT body");
         }
+
+        let response = HttpResponse::new()
+            .set_header("X-Custom", "value")
+            .html("<h1>Hello</h1>")
+            .to_responder();
+
+        assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+        assert_eq!(response.headers().get("content-type").unwrap(), "text/html");
+        assert_eq!(response.headers().get("x-custom").unwrap(), "value");
     }
 
     #[test]
@@ -151,6 +184,22 @@ mod tests {
         let response = HttpResponse::new();
         let response = response.set_cookie("key", "value");
         assert_eq!(response.get_cookie("key".to_string()).unwrap(), "value");
+
+        let response = HttpResponse::new()
+            .set_cookie("session", "123")
+            .clear_cookie("old_session")
+            .ok()
+            .text("test")
+            .to_responder();
+
+        let cookies: Vec<_> = response.cookies().collect();
+        assert_eq!(cookies.len(), 2);
+
+        let session_cookie = cookies.iter().find(|c| c.name() == "session").unwrap();
+        assert_eq!(session_cookie.value(), "123");
+
+        let cleared_cookie = cookies.iter().find(|c| c.name() == "old_session").unwrap();
+        assert_eq!(cleared_cookie.value(), "");
     }
 
     #[test]
@@ -160,7 +209,7 @@ mod tests {
         assert_eq!(response.get_header("key").unwrap(), "value");
         assert_eq!(
             response.get_header("nonexistent"),
-            Err(MissingHeader("nonexistent".to_string()))
+            Err(HttpResponseError::MissingHeader("nonexistent".to_string()))
         );
     }
 
@@ -212,7 +261,6 @@ mod tests {
     #[test]
     fn test_response_error() {
         let err_1 = HttpResponseError::MissingHeader("id".to_string());
-
         assert_eq!(err_1.to_string(), "Header id doesnt exist");
     }
 
@@ -237,5 +285,23 @@ mod tests {
         let responder = response.respond_to(&acitx_req);
 
         assert_eq!(responder.status(), 401);
+    }
+
+    #[tokio::test]
+    async fn test_stream_response() {
+        let stream = stream::iter(vec![Ok::<_, BoxError>(Bytes::from("test data"))]);
+        let response = HttpResponse::new()
+            .set_header("X-Custom", "value")
+            .set_cookie("session", "123")
+            .write(stream)
+            .to_responder();
+
+        assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "text/event-stream"
+        );
+        assert_eq!(response.headers().get("x-custom").unwrap(), "value");
+        assert_eq!(response.headers().get("connection").unwrap(), "keep-alive");
     }
 }

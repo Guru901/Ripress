@@ -48,7 +48,7 @@ pub enum ResponseContentType {
     HTML,
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone)]
 pub(crate) enum ResponseContentBody {
     JSON(serde_json::Value),
     TEXT(String),
