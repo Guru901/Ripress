@@ -116,14 +116,22 @@ async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 cargo run &  # Start server in background
 SERVER_PID=$!  # Store server process ID
 
-# Wait for the server to be ready
-sleep 2 
+# Wait for server to be ready by checking if port 8080 is listening
+echo "Waiting for server to be ready..."
+while ! nc -z localhost 8080; do
+  sleep 1
+done
+echo "Server is ready!"
 
 cd ../tests
 bun install
 
 # Run Playwright tests, fail script if tests fail
-bunx playwright test || { echo "Playwright tests failed"; kill $SERVER_PID; exit 1; }
+bunx playwright test || { 
+  echo "Playwright tests failed"
+  kill $SERVER_PID
+  exit 1
+}
 
 kill $SERVER_PID  # Stop the server
 
