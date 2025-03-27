@@ -474,6 +474,7 @@ impl HttpResponse {
         self.content_type = ResponseContentType::TEXT;
         return self;
     }
+
     /// Streams the response
     ///
     /// # Arguments
@@ -487,25 +488,15 @@ impl HttpResponse {
     /// # Example
     /// ```rust
     /// use ripress::context::HttpResponse;
+    /// use bytes::Bytes;
+    /// use futures::stream;
+    /// use futures::StreamExt;
     ///
-    /// let res = HttpResponse::new()
-    ///     .ok()
-    ///     .text("Operation completed successfully");
+    /// let res = HttpResponse::new();
     ///
-    /// // Using with different types
-    /// let stream = stream::unfold(0, |state| async move {
-    /// if state < 500 {
-    ///     time::sleep(Duration::from_millis(10)).await;
-    ///        Some((
-    ///     Ok::<Bytes, std::io::Error>(Bytes::from(format!("Chunk {}\n", state))),
-    ///   state + 1,
-    ///  ))
-    /// } else {
-    ///     None
-    /// }
-    ///});
+    /// let stream = stream::iter(0..5).map(|n| Ok::<Bytes, std::io::Error>(Bytes::from(format!("Number: {}\n", n))));
     ///
-    ///    res.write(stream)
+    /// res.write(stream);
     /// ```
 
     pub fn write<S, E>(mut self, stream: S) -> Self
