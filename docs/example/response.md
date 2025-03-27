@@ -263,3 +263,93 @@ async fn validation_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse 
        }))
 }
 ```
+
+## Streaming Responses
+
+### Basic Stream Response
+
+Here's a basic example of streaming numbers:
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+use bytes::Bytes;
+use futures::stream;
+
+async fn basic_stream(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let stream = stream::iter(0..5)
+        .map(|n| Ok::<Bytes, std::io::Error>(Bytes::from(format!("Number: {}\n", n))));
+
+    res.write(stream)
+}
+```
+
+### Real-time Updates Stream
+
+Here's an example of streaming real-time updates with delays:
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+use bytes::Bytes;
+use futures::stream;
+use tokio::time;
+use std::time::Duration;
+
+async fn realtime_updates(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let stream = stream::unfold(0, |state| async move {
+        if state < 100 {
+            // Simulate some processing time
+            time::sleep(Duration::from_millis(100)).await;
+
+            let data = format!("Update {}: {}\n",
+                state,
+                chrono::Local::now().format("%H:%M:%S")
+            );
+
+            Some((
+                Ok::<Bytes, std::io::Error>(Bytes::from(data)),
+                state + 1,
+            ))
+        } else {
+            None
+        }
+    });
+
+    res.write(stream)
+}
+```
+
+### File Streaming Example
+
+Here's an example of streaming a large file:
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+use bytes::Bytes;
+use futures::stream;
+use tokio::fs::File;
+use tokio::io::{AsyncReadExt, BufReader};
+
+async fn stream_file(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let file = File::open("large_file.txt").await.unwrap();
+    let reader = BufReader::new(file);
+
+    let stream = stream::unfold(reader, |mut reader| async move {
+        let mut buffer = vec![0; 1024];
+        match reader.read(&mut buffer).await {
+            Ok(n) if n > 0 => {
+                buffer.truncate(n);
+                Some((Ok::<Bytes, std::io::Error>(Bytes::from(buffer)), reader))
+            }
+            _ => None,
+        }
+    });
+
+    res.set_header("Content-Type", "text/plain")
+       .write(stream)
+}
+```
+
+```
+
+These examples demonstrate different use cases for streaming responses, from simple number sequences to real-time updates and file streaming.
+```

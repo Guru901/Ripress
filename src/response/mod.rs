@@ -469,6 +469,45 @@ impl HttpResponse {
     ///     .text(format!("Count: {}", 42));
     /// ```
 
+    pub fn text<T: Into<String>>(mut self, text: T) -> Self {
+        self.body = ResponseContentBody::new_text(text);
+        self.content_type = ResponseContentType::TEXT;
+        return self;
+    }
+    /// Streams the response
+    ///
+    /// # Arguments
+    ///
+    /// * `stream` - The stream to stream
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::context::HttpResponse;
+    ///
+    /// let res = HttpResponse::new()
+    ///     .ok()
+    ///     .text("Operation completed successfully");
+    ///
+    /// // Using with different types
+    /// let stream = stream::unfold(0, |state| async move {
+    /// if state < 500 {
+    ///     time::sleep(Duration::from_millis(10)).await;
+    ///        Some((
+    ///     Ok::<Bytes, std::io::Error>(Bytes::from(format!("Chunk {}\n", state))),
+    ///   state + 1,
+    ///  ))
+    /// } else {
+    ///     None
+    /// }
+    ///});
+    ///
+    ///    res.write(stream)
+    /// ```
+
     pub fn write<S, E>(mut self, stream: S) -> Self
     where
         S: Stream<Item = Result<Bytes, E>> + Send + 'static,
@@ -477,12 +516,6 @@ impl HttpResponse {
         self.is_stream = true;
         self.stream = Box::pin(stream.map(|result| result.map_err(Into::into)));
         self
-    }
-
-    pub fn text<T: Into<String>>(mut self, text: T) -> Self {
-        self.body = ResponseContentBody::new_text(text);
-        self.content_type = ResponseContentType::TEXT;
-        return self;
     }
 
     /// Sets the response body to html.
