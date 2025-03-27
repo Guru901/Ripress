@@ -46,7 +46,9 @@ async fn main() {
 
     app.get("/auth", auth);
 
-    app.listen(8080, || {}).await;
+    app.listen(8080, || {
+        println!("Serer running on port 8080");
+    }).await;
 }
 
 async fn cookie_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
