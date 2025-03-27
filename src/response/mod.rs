@@ -86,9 +86,9 @@ pub struct HttpResponse {
     // Cookies to be removed
     remove_cookies: Vec<String>,
 
-    pub is_stream: bool,
+    pub(crate) is_stream: bool,
 
-    pub stream: Pin<Box<dyn Stream<Item = Result<Bytes, BoxError>> + Send + 'static>>,
+    pub(crate) stream: Pin<Box<dyn Stream<Item = Result<Bytes, BoxError>> + Send + 'static>>,
 }
 
 impl HttpResponse {
