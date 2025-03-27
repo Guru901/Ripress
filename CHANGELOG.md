@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.0] - 2025-03-22
+
+- Added `res.redirect` method
+- Added **streaming responses**
+
 ## [0.4.7] - 2025-03-22
 
 - The WebSocket module has been removed from Ripress to keep it focused on HTTP.
