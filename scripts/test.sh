@@ -46,7 +46,9 @@ async fn main() {
 
     app.get("/auth", auth);
 
-    app.listen(8080, || {}).await;
+    app.listen(8080, || {
+        println!("Serer running on port 8080");
+    }).await;
 }
 
 async fn cookie_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -115,13 +117,17 @@ cargo run &  # Start server in background
 SERVER_PID=$!  # Store server process ID
 
 # Wait for the server to be ready
-sleep 2 
+sleep 10
 
 cd ../tests
 bun install
 
 # Run Playwright tests, fail script if tests fail
-bunx playwright test || { echo "Playwright tests failed"; kill $SERVER_PID; exit 1; }
+bunx playwright test || { 
+  echo "Playwright tests failed"
+  kill $SERVER_PID
+  exit 1
+}
 
 kill $SERVER_PID  # Stop the server
 
