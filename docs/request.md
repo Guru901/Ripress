@@ -1,281 +1,190 @@
-# Request Object (HttpRequest)
+# Request Object Examples
 
 ## Overview
 
-`HttpRequest` represents an incoming HTTP request and provides utilities for accessing query parameters, request headers, body content, and more.
+The `HttpRequest` object in Ripress provides various methods to extract and manipulate incoming request data. This document covers examples for different request handling scenarios.
 
-## Creating a Request Object
+## Retrieving Request Data
 
-HttpRequest is automatically passed to route handlers.
-
-Example:
+### Getting HTTP Method
 
 ```rust
-use ripress::{context::{HttpRequest, HttpResponse}};
+use ripress::{context::{HttpRequest, HttpResponse}, types::HttpMethods};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let body = req.text().unwrap_or("No body".to_string());
-    res.ok().text(format!("Received: {}", body))
+    let method: &HttpMethods = req.get_method();
+    res.ok().text(format!("Request method: {:?}", method))
 }
 ```
 
-## Checking Content-Type
-
-Checks if the `Content-Type` of the request matches the specified type.
+### Getting Request Path
 
 ```rust
-use ripress::{context::HttpRequest, types::RequestBodyType};
+use ripress::context::{HttpRequest, HttpResponse};
 
-let req = HttpRequest::new();
-req.is(RequestBodyType::JSON);
-```
-
-Returns `true` if the `Content-Type` matches, otherwise `false`.
-
-## Getting Request Method
-
-Returns the request's HTTP method.
-
-```rust
-use ripress::{context::HttpRequest, types::HttpMethods};
-
-let req = HttpRequest::new();
-let method: &HttpMethods = req.get_method();
-```
-
-Returns a reference to `HttpMethods` enum.
-
-## Getting Request Origin URL
-
-Returns the request's origin URL.
-
-```rust
-use ripress::context::HttpRequest;
-
-let req = HttpRequest::new();
-match req.get_origin_url() {
-    Ok(url) => println!("URL: {}", url),
-    Err(e) => println!("Error: {}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let path: &str = req.get_path();
+    res.ok().text(format!("Request path: {}", path))
 }
 ```
 
-### Example Cases:
-
-- For request: `GET /user/123`
-  - origin_url → `/user/123`
-- For request: `GET /user/123?q=hello`
-  - origin_url → `/user/123?q=hello`
-
-Returns `Result<&str, &str>`.
-
-## Getting Request Path
-
-Returns the request's path.
+### Getting Full Request URL
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::context::{HttpRequest, HttpResponse};
 
-let req = HttpRequest::new();
-let path: &str = req.get_path();
-```
-
-### Example Cases:
-
-- For request: `GET /user/123?q=hello`
-  - path → `/user/123`
-
-Returns `&str`.
-
-## Getting Request Cookies
-
-Returns the specified cookie value.
-
-```rust
-use ripress::context::HttpRequest;
-
-let req = HttpRequest::new();
-match req.get_cookie("session_id") {
-    Ok(value) => println!("Cookie: {}", value),
-    Err(e) => println!("Error: {:?}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.get_origin_url() {
+        Ok(url) => res.ok().text(format!("Full URL: {}", url)),
+        Err(e) => res.internal_server_error().text(format!("Error: {}", e))
+    }
 }
 ```
 
-Returns `Result<&str, HttpRequestError>`.
+## Handling Query Parameters
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn search(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.get_query("q") {
+        Ok(query) => res.ok().text(format!("Search query: {}", query)),
+        Err(_) => res.bad_request().text("Query parameter 'q' is missing")
+    }
+}
+```
 
 ## Getting Client's IP Address
 
-Returns the client's IP address.
-
 ```rust
-use ripress::context::HttpRequest;
+use ripress::context::{HttpRequest, HttpResponse};
 
-let req = HttpRequest::new();
-match req.ip() {
-    Ok(ip) => println!("IP: {}", ip),
-    Err(e) => println!("Error: {}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.ip() {
+        Ok(ip) => res.ok().text(format!("Client IP: {}", ip)),
+        Err(e) => res.internal_server_error().text(format!("Error: {}", e))
+    }
 }
 ```
 
-Returns `Result<&str, &str>`.
-
-## Getting Request Headers
-
-Returns the specified header value.
+## Handling Route Parameters
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::context::{HttpRequest, HttpResponse};
 
-let req = HttpRequest::new();
-match req.get_header("content-type") {
-    Ok(value) => println!("Header: {}", value),
-    Err(e) => println!("Error: {:?}", e)
+async fn get_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.get_params("id") {
+        Ok(user_id) => res.ok().text(format!("User ID: {}", user_id)),
+        Err(_) => res.bad_request().text("User ID is missing")
+    }
 }
 ```
 
-Returns `Result<&str, HttpRequestError>`.
-
-## Accessing URL Parameters
+## Handling Headers
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::context::{HttpRequest, HttpResponse};
 
-let req = HttpRequest::new();
-match req.get_params("id") {
-    Ok(value) => println!("ID: {}", value),
-    Err(e) => println!("Error: {:?}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.get_header("authorization") {
+        Ok(auth) => res.ok().text(format!("Auth Header: {}", auth)),
+        Err(_) => res.unauthorized().text("Missing Authorization header")
+    }
 }
 ```
 
-Example:
-
-- Route: `GET /user/{id}`
-- Request: `GET /user/123`
-- `get_params("id")` returns `Ok("123")`
-
-Returns `Result<&str, HttpRequestError>`.
-
-## Accessing Query Parameters
+## Handling Cookies
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::context::{HttpRequest, HttpResponse};
 
-let req = HttpRequest::new();
-match req.get_query("q") {
-    Ok(value) => println!("Query: {}", value),
-    Err(e) => println!("Error: {:?}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.get_cookie("sessionId") {
+        Ok(cookie) => res.ok().text(format!("Session ID: {}", cookie)),
+        Err(_) => res.unauthorized().text("Session cookie missing")
+    }
 }
 ```
 
-Example:
-
-- URL: `GET /search?q=Ripress`
-- `get_query("q")` returns `Ok("Ripress")`
-
-Returns `Result<&str, HttpRequestError>`.
-
-## Getting Request Protocol
-
-Returns the request's protocol.
+## Handling JSON Body
 
 ```rust
-use ripress::context::HttpRequest;
-
-let req = HttpRequest::new();
-let protocol: &str = req.get_protocol();
-println!("Protocol: {}", protocol); // "http" or "https"
-```
-
-Returns `&str` containing the protocol.
-
-## Checking If Request Is Secure
-
-Returns whether the request was made over HTTPS.
-
-```rust
-use ripress::context::HttpRequest;
-
-let req = HttpRequest::new();
-let is_secure: bool = req.is_secure();
-println!("Is Secure: {}", is_secure);
-```
-
-Returns `bool`.
-
-## Get data from request that is inserted by middleware
-
-```rust
-use ripress::context::HttpRequest;
-
-let req = HttpRequest::new();
-req.set_data("id", "123");
-let id = req.get_data("id");
-println!("Id: {:?}", id);
-```
-
-Returns `Option<&String>` with the data value if found, or `None` if not found.
-
-## Set data to request from middleware
-
-```rust
-use ripress::context::HttpRequest;
-
-let mut req = HttpRequest::new();
-req.set_data("id", "123");
-let id = req.get_data("id");
-println!("Id: {:?}", id);
-```
-
-## Reading Request Body
-
-### JSON Body
-
-```rust
-use ripress::context::HttpRequest;
+use ripress::context::{HttpRequest, HttpResponse};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
 struct User {
     name: String,
-    age: u8,
+    email: String,
 }
 
-let req = HttpRequest::new();
-match req.json::<User>() {
-    Ok(user) => println!("Name: {}, Age: {}", user.name, user.age),
-    Err(e) => println!("Error: {}", e)
-}
-```
-
-Returns `Result<J, String>` where `J` is your deserialized type.
-
-### Text Body
-
-```rust
-use ripress::context::HttpRequest;
-
-let req = HttpRequest::new();
-match req.text() {
-    Ok(text) => println!("Text: {}", text),
-    Err(e) => println!("Error: {}", e)
+async fn save_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.json::<User>() {
+        Ok(user) => res.ok().text(format!("Received user: {}", user.name)),
+        Err(e) => res.bad_request().text(format!("Invalid JSON body: {}", e))
+    }
 }
 ```
 
-Returns `Result<String, String>`.
-
-### Form Data
+## Handling Form Data
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::context::{HttpRequest, HttpResponse};
 use std::collections::HashMap;
 
-let req = HttpRequest::new();
-match req.form_data() {
-    Ok(form) => {
-        println!("Key: {:?}", form.get("key"));
-        println!("Key2: {:?}", form.get("key2"));
-    },
-    Err(e) => println!("Error: {}", e)
+async fn upload(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.form_data() {
+        Ok(form) => res.ok().text(format!("Received form data: {:?}", form)),
+        Err(e) => res.bad_request().text(format!("Invalid form data: {}", e))
+    }
 }
 ```
 
-Returns `Result<HashMap<String, String>, String>`.
+## Handling Text Body
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn log_text(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.text() {
+        Ok(body) => res.ok().text(format!("Received text: {}", body)),
+        Err(e) => res.bad_request().text(format!("Invalid text body: {}", e))
+    }
+}
+```
+
+## Checking Content Type
+
+```rust
+use ripress::{context::{HttpRequest, HttpResponse}, types::RequestBodyType};
+
+async fn check_content_type(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    if req.is(RequestBodyType::JSON) {
+        res.ok().text("Request is JSON")
+    } else {
+        res.bad_request().text("Unsupported content type")
+    }
+}
+```
+
+## Checking Protocol
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn check_protocol(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let protocol: &str = req.get_protocol();
+    res.ok().text(format!("Protocol: {}", protocol))
+}
+```
+
+## Checking Is Secure
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn check_is_secure(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let is_secure: bool = req.is_secure();
+    res.ok().text(format!("Is HTTPS: {}", is_secure))
+}
+```

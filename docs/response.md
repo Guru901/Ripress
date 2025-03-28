@@ -1,25 +1,23 @@
-# Response Object (HttpResponse)
+# Response Examples
 
-## Overview
+The `HttpResponse` object in Ripress provides various methods for handling responses, including sending text, JSON, status codes, and cookies. This document demonstrates different response-handling scenarios.
 
-The `HttpResponse` object in Ripress provides methods for constructing HTTP responses with various content types, status codes, headers, and cookies. This document demonstrates common usage patterns and examples.
+## Basic Responses
 
-## Basic Usage
+### Sending a Plain Text Response
 
-### Text Responses
-
-Send plain text responses using the `.text()` method.
+Send text responses using the `.text()` method.
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
 
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn text_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
        .text("Hello, World!")
 }
 ```
 
-### HTML Responses
+### Sending an HTML Responses
 
 Send html responses using the `.html()` method.
 
@@ -32,149 +30,262 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
-### JSON Responses
+### Sending a JSON Response
 
-Send JSON responses using the `.json()` method with any serializable type.
+To return a JSON response, use `.json()` with a serializable Rust struct.
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
 use serde::Serialize;
 
 #[derive(Serialize)]
-struct User {
-    name: String,
-    age: u32
+struct Message {
+    message: String,
+    code: i32,
 }
 
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let user = User {
-        name: "John".to_string(),
-        age: 30
+async fn json_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let response_body = Message {
+        message: "Success".to_string(),
+        code: 200,
     };
 
     res.ok()
-       .json(user)
+       .json(response_body)  // No need for &, json() takes ownership
+}
+
+// Using serde_json::json! macro
+async fn quick_json(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+       .json(serde_json::json!({
+           "message": "Success",
+           "code": 200
+       }))
 }
 ```
 
 ## Status Codes
 
-### Custom Status Codes
+### Setting a Custom Status Code
 
-Set specific status codes using `.status()`:
+You can manually set any status code using `.status()`.
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
 
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.status(201)
+async fn custom_status(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.status(201)  // Created
        .json(serde_json::json!({
-           "message": "Resource created"
+           "message": "Resource created",
+           "id": "123"
+       }))
+}
+
+// Fun example
+async fn teapot(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.status(418)  // I'm a teapot
+       .text("Sorry, I'm a teapot, I cannot brew coffee!")
+}
+```
+
+### Status Code Helpers
+
+Ripress provides convenient helper methods for common status codes:
+
+#### Success Responses
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+// 200 OK
+async fn ok_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+       .json(serde_json::json!({
+           "status": "success",
+           "data": { "id": 1, "name": "John" }
        }))
 }
 ```
 
-### Helper Methods
-
-Common status codes have dedicated helper methods:
-
-#### 200 OK
+#### Error Responses
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
 
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok()
-       .text("Success")
-}
-```
-
-#### 400 Bad Request
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+// 400 Bad Request
+async fn bad_request(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.bad_request()
        .json(serde_json::json!({
-           "error": "Invalid input"
+           "error": "Invalid input",
+           "details": ["name is required", "age must be positive"]
        }))
 }
-```
 
-#### 404 Not Found
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+// 404 Not Found
+async fn not_found(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.not_found()
-       .text("Resource not found")
+       .json(serde_json::json!({
+           "error": "Resource not found",
+           "resource": "user/123"
+       }))
 }
-```
 
-#### 401 Unauthorized
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.unauthorized()
-       .text("Unauthorized")
+// 401 Not Found
+async fn not_found(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.unauthorized().text("Unauthorized")
 }
-```
 
-#### 500 Internal Server Error
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+// 500 Internal Server Error
+async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.internal_server_error()
        .json(serde_json::json!({
-           "error": "Internal server error"
+           "error": "Internal server error",
+           "request_id": "abc-123"
        }))
 }
 ```
 
-## Headers
+## Headers and Cookies
 
-### Setting Headers
-
-Add custom headers using `.set_header()`:
+### Working with Headers
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
 
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_header("X-Custom-Header", "value")
+// Setting multiple headers
+async fn set_headers(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_header("X-Request-ID", "abc-123")
+       .set_header("X-Custom-Header", "custom-value")
        .ok()
-       .text("Headers set")
+       .json(serde_json::json!({ "status": "success" }))
 }
-```
 
-### Getting Headers
-
-Retrieve header values using `.get_header()`:
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+// Reading headers
+async fn check_headers(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match res.get_header("X-Custom-Header") {
-        Ok(value) => res.ok().text(format!("Header value: {}", value)),
-        Err(_) => res.not_found().text("Header not found")
+        Ok(value) => res.ok()
+                       .json(serde_json::json!({ "header": value })),
+        Err(_) => res.bad_request()
+                     .text("Missing required header")
     }
 }
 ```
 
-Returns `Result<String, HttpResponseError>`.
+### Managing Cookies
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+// Setting cookies
+async fn set_session(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_cookie("session_id", "abc123")
+       .set_cookie("user_id", "user_123")
+       .ok()
+       .json(serde_json::json!({
+           "message": "Session started"
+       }))
+}
+
+// Removing cookies (logout example)
+async fn logout(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.clear_cookie("session_id")
+       .clear_cookie("user_id")
+       .ok()
+       .json(serde_json::json!({
+           "message": "Logged out successfully"
+       }))
+}
+```
+
+## Content Types
+
+The content type is automatically set based on the response method used, but can be manually controlled:
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::ResponseContentType;
+
+async fn custom_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_content_type(ResponseContentType::JSON)
+       .ok()
+       .json(serde_json::json!({
+           "message": "Custom content type response"
+       }))
+}
+
+// Text response with specific content type
+async fn text_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_content_type(ResponseContentType::TEXT)
+       .ok()
+       .text("Plain text response")
+}
+```
+
+## Complete Examples
+
+### Authentication Response
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn login(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_cookie("session_id", "abc123")
+       .set_header("X-Auth-Token", "jwt_token_here")
+       .ok()
+       .json(serde_json::json!({
+           "status": "success",
+           "user": {
+               "id": 1,
+               "name": "John Doe",
+               "role": "admin"
+           }
+       }))
+}
+```
+
+### Error Response with Details
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+
+async fn validation_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.bad_request()
+       .set_header("X-Error-Code", "VALIDATION_ERROR")
+       .json(serde_json::json!({
+           "error": "Validation failed",
+           "code": "VALIDATION_ERROR",
+           "details": {
+               "fields": [
+                   {"field": "email", "error": "Invalid email format"},
+                   {"field": "age", "error": "Must be over 18"}
+               ]
+           }
+       }))
+}
+```
 
 ## Streaming Responses
 
-### Stream Response
+### Basic Stream Response
 
-Send streaming responses using the `.write()` method with any Stream that produces `Result<Bytes, E>`.
+Here's a basic example of streaming numbers:
+
+```rust
+use ripress::context::{HttpRequest, HttpResponse};
+use bytes::Bytes;
+use futures::stream;
+
+async fn basic_stream(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let stream = stream::iter(0..5)
+        .map(|n| Ok::<Bytes, std::io::Error>(Bytes::from(format!("Number: {}\n", n))));
+
+    res.write(stream)
+}
+```
+
+### Real-time Updates Stream
+
+Here's an example of streaming real-time updates with delays:
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
@@ -183,12 +294,19 @@ use futures::stream;
 use tokio::time;
 use std::time::Duration;
 
-async fn stream_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn realtime_updates(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let stream = stream::unfold(0, |state| async move {
-        if state < 500 {
-            time::sleep(Duration::from_millis(10)).await;
+        if state < 100 {
+            // Simulate some processing time
+            time::sleep(Duration::from_millis(100)).await;
+
+            let data = format!("Update {}: {}\n",
+                state,
+                chrono::Local::now().format("%H:%M:%S")
+            );
+
             Some((
-                Ok::<Bytes, std::io::Error>(Bytes::from(format!("Chunk {}\n", state))),
+                Ok::<Bytes, std::io::Error>(Bytes::from(data)),
                 state + 1,
             ))
         } else {
@@ -200,73 +318,38 @@ async fn stream_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
-The `.write()` method:
+### File Streaming Example
 
-- Accepts any `Stream` that implements `Stream<Item = Result<Bytes, E>>`
-- Automatically sets the content type to `text/event-stream`
-- Maintains a keep-alive connection
-- Streams the data chunks to the client
-
-## Cookies
-
-### Setting Cookies
-
-Set cookies using `.set_cookie()`:
+Here's an example of streaming a large file:
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
+use bytes::Bytes;
+use futures::stream;
+use tokio::fs::File;
+use tokio::io::{AsyncReadExt, BufReader};
 
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_cookie("session", "abc123")
-       .ok()
-       .text("Cookie set")
+async fn stream_file(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let file = File::open("large_file.txt").await.unwrap();
+    let reader = BufReader::new(file);
+
+    let stream = stream::unfold(reader, |mut reader| async move {
+        let mut buffer = vec![0; 1024];
+        match reader.read(&mut buffer).await {
+            Ok(n) if n > 0 => {
+                buffer.truncate(n);
+                Some((Ok::<Bytes, std::io::Error>(Bytes::from(buffer)), reader))
+            }
+            _ => None,
+        }
+    });
+
+    res.set_header("Content-Type", "text/plain")
+       .write(stream)
 }
 ```
 
-### Removing Cookies
-
-Remove cookies using `.clear_cookie()`:
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.clear_cookie("session")
-       .ok()
-       .text("Cookie removed")
-}
 ```
 
-## Content Type
-
-The content type is automatically set based on the response method used (`.json()`, `.text()`), but can be manually set:
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-use ripress::types::ResponseContentType;
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_content_type(ResponseContentType::JSON)
-       .ok()
-       .json(serde_json::json!({
-           "message": "Custom content type"
-       }))
-}
-```
-
-## Method Chaining
-
-All response methods support chaining for a fluent API:
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_header("X-Custom", "value")
-       .set_cookie("session", "abc123")
-       .ok()
-       .json(serde_json::json!({
-           "status": "success"
-       }))
-}
+These examples demonstrate different use cases for streaming responses, from simple number sequences to real-time updates and file streaming.
 ```
