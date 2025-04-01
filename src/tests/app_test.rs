@@ -27,6 +27,15 @@ mod tests {
     }
 
     #[test]
+    pub fn test_add_head_route() {
+        let mut app = App::new();
+        app.head("/user/{id}", _test_handler);
+        assert!(app
+            .get_routes("/user/{id}", crate::types::HttpMethods::HEAD)
+            .is_some());
+    }
+
+    #[test]
     pub fn test_add_post_route() {
         let mut app = App::new();
         app.post("/user/{id}", _test_handler);
@@ -85,6 +94,10 @@ mod tests {
         assert!(app
             .get_routes("/user/{id}", crate::types::HttpMethods::DELETE)
             .is_some());
+
+        assert!(app
+            .get_routes("/user/{id}", crate::types::HttpMethods::HEAD)
+            .is_some());
     }
 
     #[tokio::test]
@@ -107,6 +120,7 @@ mod tests {
         app.patch("/", _test_handler);
         app.put("/", _test_handler);
         app.delete("/", _test_handler);
+        app.head("/", _test_handler);
 
         app.all("/all", _test_handler);
 
@@ -137,10 +151,11 @@ mod tests {
         let patch_method = HttpMethods::PATCH;
         let delete_method = HttpMethods::DELETE;
         let put_method = HttpMethods::PUT;
+        let head_method = HttpMethods::HEAD;
 
         println!(
-            "{} {} {} {} {}",
-            get_method, post_method, patch_method, delete_method, put_method
+            "{} {} {} {} {} {}",
+            get_method, post_method, patch_method, delete_method, put_method, head_method
         );
     }
 

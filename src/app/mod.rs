@@ -187,6 +187,35 @@ impl App {
         self.add_route(HttpMethods::PATCH, path, wrapped_handler);
     }
 
+    /// Add a HEAD route to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.head("/hello", handler);
+    /// ```
+
+    pub fn head<F, Fut>(&mut self, path: &'static str, handler: F)
+    where
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = HttpResponse> + Send + 'static,
+    {
+        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        self.add_route(HttpMethods::HEAD, path, wrapped_handler);
+    }
+
     /// Add a route to the application that matches all HTTP methods.
     ///
     /// ## Arguments
@@ -219,6 +248,7 @@ impl App {
         self.add_route(HttpMethods::PUT, path, wrapped_handler.clone());
         self.add_route(HttpMethods::DELETE, path, wrapped_handler.clone());
         self.add_route(HttpMethods::PATCH, path, wrapped_handler.clone());
+        self.add_route(HttpMethods::HEAD, path, wrapped_handler.clone());
     }
 
     /// Add a middleware to the application.
@@ -351,13 +381,14 @@ impl App {
           let middlewares = app_clone.middlewares.clone();
 
           match method {
-            HttpMethods::GET | HttpMethods::POST | HttpMethods::PUT | HttpMethods::DELETE | HttpMethods::PATCH => {
+            HttpMethods::GET | HttpMethods::POST | HttpMethods::PUT | HttpMethods::DELETE | HttpMethods::PATCH | HttpMethods::HEAD=> {
               let route_method = match method {
                 HttpMethods::GET => actix_web::web::get(),
                 HttpMethods::POST => actix_web::web::post(),
                 HttpMethods::PUT => actix_web::web::put(),
                 HttpMethods::DELETE => actix_web::web::delete(),
                 HttpMethods::PATCH => actix_web::web::patch(),
+                HttpMethods::HEAD => actix_web::web::head(),
               };
 
               app = app.route(
