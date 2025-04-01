@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.1] - 2025-04-01
+
+- Added `res.head` method
+
 ## [0.5.0] - 2025-03-22
 
 - Added `res.redirect` method
