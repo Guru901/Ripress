@@ -64,7 +64,7 @@ pub fn logger(
         Box::pin(async move {
             let method = req.get_method();
 
-            let res = next.run(req.clone(), res).await;
+            let res = next.run(&mut req.clone(), res).await;
             let duration = start_time.elapsed();
 
             if config.path {

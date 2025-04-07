@@ -56,7 +56,7 @@ impl Default for CorsConfig {
 pub fn cors(
     config: Option<CorsConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static {
-    move |req, mut res, next| {
+    move |mut req, mut res, next| {
         let config = config.clone().unwrap_or_default();
 
         Box::pin(async move {
@@ -76,7 +76,7 @@ pub fn cors(
             //     return res.ok().text(""); // Preflight response
             // }
 
-            next.run(req, res).await
+            next.run(&mut req, res).await
         })
     }
 }
