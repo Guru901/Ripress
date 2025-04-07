@@ -278,8 +278,8 @@ impl App {
     /// let mut app = App::new();
     ///
     /// app.use_middleware("path", |req, res, next| {
-    ///     println!("here");
-    ///     Box::pin(async move { next.run(req, res).await })
+    ///     let mut req = req.clone();
+    ///     Box::pin(async move { next.run(&mut req, res).await })
     /// });
     ///
     /// ```

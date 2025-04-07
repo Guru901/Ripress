@@ -55,10 +55,10 @@ impl Default for CorsConfig {
 
 pub fn cors(
     config: Option<CorsConfig>,
-) -> impl Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static {
-    move |mut req, mut res, next| {
+) -> impl Fn(&mut HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static {
+    move |req, mut res, next| {
         let config = config.clone().unwrap_or_default();
-
+        let mut req = req.clone();
         Box::pin(async move {
             res = res
                 .set_header("Access-Control-Allow-Origin", &config.allowed_origin)
@@ -71,10 +71,6 @@ pub fn cors(
             if config.allow_credentials {
                 res = res.set_header("Access-Control-Allow-Credentials", "true");
             }
-
-            // if req.method() == "OPTIONS" {
-            //     return res.ok().text(""); // Preflight response
-            // }
 
             next.run(&mut req, res).await
         })

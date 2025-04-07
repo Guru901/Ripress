@@ -54,9 +54,10 @@ impl Default for LoggerConfig {
 /// ```
 pub fn logger(
     config: Option<LoggerConfig>,
-) -> impl Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static {
+) -> impl Fn(&mut HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static {
     move |req, res, next| {
         let config = config.clone().unwrap_or_default();
+        let req = req.clone();
 
         let start_time = std::time::Instant::now();
         let path = req.get_path().to_string();
