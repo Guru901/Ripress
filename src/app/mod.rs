@@ -1,7 +1,6 @@
 use crate::request::HttpRequest;
 use crate::response::HttpResponse;
-use crate::types::{Fut, Handler, HttpMethods, Middleware, Next, Routes};
-use actix_files as fs;
+use crate::types::{Fut, Handler, HttpMethods, Next, Routes};
 use hyper::Error;
 use routerify::{Router, RouterBuilder};
 use std::{collections::HashMap, future::Future, sync::Arc};
@@ -13,9 +12,15 @@ where
     Box::pin(future)
 }
 
+#[derive(Clone)]
+pub struct Middleware {
+    pub func: Arc<dyn Fn(&mut HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static>,
+    pub path: String,
+}
+
 pub struct App {
     routes: Routes,
-    middlewares: Vec<Box<dyn Middleware>>,
+    middlewares: Vec<Box<Middleware>>,
     pub(crate) static_files: HashMap<String, String>,
 }
 
