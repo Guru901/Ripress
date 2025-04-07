@@ -1,12 +1,11 @@
 use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
-use actix_web::{
-    http::header::{HeaderName, HeaderValue},
-    Responder,
-};
 use bytes::Bytes;
+use cookie::Cookie;
 use futures::{stream, Stream, StreamExt};
-use std::collections::HashMap;
+use hyper::header::{HeaderName, HeaderValue, SET_COOKIE};
+use hyper::{Body, Response};
 use std::pin::Pin;
+use std::{collections::HashMap, convert::Infallible};
 
 /// Represents an HTTP response being sent to the client.
 ///
@@ -89,6 +88,21 @@ pub struct HttpResponse {
     pub(crate) is_stream: bool,
 
     pub(crate) stream: Pin<Box<dyn Stream<Item = Result<Bytes, BoxError>> + Send + 'static>>,
+}
+
+impl Clone for HttpResponse {
+    fn clone(&self) -> Self {
+        Self {
+            status_code: self.status_code,
+            body: self.body.clone(),
+            content_type: self.content_type.clone(),
+            cookies: self.cookies.clone(),
+            headers: self.headers.clone(),
+            remove_cookies: self.remove_cookies.clone(),
+            is_stream: self.is_stream,
+            stream: Box::pin(stream::empty()),
+        }
+    }
 }
 
 impl HttpResponse {
