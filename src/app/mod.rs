@@ -34,17 +34,9 @@ impl App {
     }
 
     pub fn clone_app(&self) -> App {
-        // Create a new vector and clone each middleware box
-        let mut cloned_middlewares = Vec::new();
-
-        // Clone each middleware using clone_box
-        for middleware in &self.middlewares {
-            cloned_middlewares.push(middleware.clone_box());
-        }
-
         App {
             routes: self.routes.clone(),
-            middlewares: cloned_middlewares,
+            middlewares: self.middlewares.clone(),
             static_files: self.static_files.clone(),
         }
     }
