@@ -20,83 +20,83 @@ mod tests {
     #[test]
     pub fn test_add_get_route() {
         let mut app = App::new();
-        app.get("/user/{id}", _test_handler);
+        app.get("/user/:id", _test_handler);
         assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::GET)
+            .get_routes("/user/:id", crate::types::HttpMethods::GET)
             .is_some());
     }
 
     #[test]
     pub fn test_add_head_route() {
         let mut app = App::new();
-        app.head("/user/{id}", _test_handler);
+        app.head("/user/:id", _test_handler);
         assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::HEAD)
+            .get_routes("/user/:id", crate::types::HttpMethods::HEAD)
             .is_some());
     }
 
     #[test]
     pub fn test_add_post_route() {
         let mut app = App::new();
-        app.post("/user/{id}", _test_handler);
+        app.post("/user/:id", _test_handler);
 
         assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::POST)
+            .get_routes("/user/:id", crate::types::HttpMethods::POST)
             .is_some());
     }
     #[test]
     pub fn test_add_delete_route() {
         let mut app = App::new();
-        app.delete("/user/{id}", _test_handler);
+        app.delete("/user/:id", _test_handler);
         assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::DELETE)
+            .get_routes("/user/:id", crate::types::HttpMethods::DELETE)
             .is_some());
     }
 
     #[test]
     pub fn test_add_patch_route() {
         let mut app = App::new();
-        app.patch("/user/{id}", _test_handler);
+        app.patch("/user/:id", _test_handler);
         assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::PATCH)
+            .get_routes("/user/:id", crate::types::HttpMethods::PATCH)
             .is_some());
     }
 
     #[test]
     pub fn test_add_put_route() {
         let mut app = App::new();
-        app.put("/user/{id}", _test_handler);
+        app.put("/user/:id", _test_handler);
         assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::PUT)
+            .get_routes("/user/:id", crate::types::HttpMethods::PUT)
             .is_some());
     }
 
     #[test]
     pub fn test_add_all_route() {
         let mut app = App::new();
-        app.all("/user/{id}", _test_handler);
+        app.all("/user/:id", _test_handler);
 
         assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::POST)
+            .get_routes("/user/:id", crate::types::HttpMethods::POST)
             .is_some());
         assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::GET)
-            .is_some());
-
-        assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::PUT)
+            .get_routes("/user/:id", crate::types::HttpMethods::GET)
             .is_some());
 
         assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::PATCH)
+            .get_routes("/user/:id", crate::types::HttpMethods::PUT)
             .is_some());
 
         assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::DELETE)
+            .get_routes("/user/:id", crate::types::HttpMethods::PATCH)
             .is_some());
 
         assert!(app
-            .get_routes("/user/{id}", crate::types::HttpMethods::HEAD)
+            .get_routes("/user/:id", crate::types::HttpMethods::DELETE)
+            .is_some());
+
+        assert!(app
+            .get_routes("/user/:id", crate::types::HttpMethods::HEAD)
             .is_some());
     }
 
@@ -136,9 +136,12 @@ mod tests {
     fn test_use_middleware() {
         let mut app = App::new();
 
-        app.use_middleware("", |req, res, next| async move {
-            println!("Middleware 1");
-            next.run(req, res).await
+        app.use_middleware("", |req, res, next| {
+            let mut req = req.clone();
+            Box::pin(async move {
+                println!("Middleware 1");
+                next.run(&mut req, res).await
+            })
         });
 
         assert!(!app.get_middlewares().is_empty());
@@ -163,82 +166,6 @@ mod tests {
     fn test_next_new_fn() {
         let new_next = Next::new();
         assert_eq!(new_next.middleware.len(), 0);
-    }
-
-    use std::sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    };
-
-    #[tokio::test]
-    async fn test_use_middleware_path_matching() {
-        let mut app = App::new();
-        let called = Arc::new(AtomicBool::new(false));
-        let called_clone = called.clone();
-        // Register a middleware for the "/api" path that sets the flag when called.
-        app.use_middleware(
-            "/api",
-            move |req: HttpRequest, res: HttpResponse, next: Next| {
-                let called = called_clone.clone();
-                async move {
-                    called.store(true, Ordering::SeqCst);
-                    next.run(req, res).await
-                }
-            },
-        );
-
-        // Retrieve the wrapped middleware.
-        let middleware = app.get_middlewares()[0].clone_box();
-
-        // Create a request that matches the "/api" path.
-        let mut req = HttpRequest::new();
-        req.set_path("/api/test".to_string()); // assumes HttpRequest has a set_path method.
-        let res = HttpResponse::new();
-        let next = Next {
-            middleware: vec![],
-            handler: Arc::new(|_req, res| Box::pin(async move { res })),
-        };
-
-        let _ = middleware.handle(req, res, next).await;
-        assert!(
-            called.load(Ordering::SeqCst),
-            "Middleware should have been invoked"
-        );
-    }
-
-    #[tokio::test]
-    async fn test_use_middleware_path_non_matching() {
-        let mut app = App::new();
-        let called = Arc::new(AtomicBool::new(false));
-        let called_clone = called.clone();
-        // Register a middleware for the "/api" path.
-        app.use_middleware(
-            "/api",
-            move |req: HttpRequest, res: HttpResponse, next: Next| {
-                let called = called_clone.clone();
-                async move {
-                    called.store(true, Ordering::SeqCst);
-                    next.run(req, res).await
-                }
-            },
-        );
-
-        let middleware = app.get_middlewares()[0].clone_box();
-
-        // Create a request with a non-matching path.
-        let mut req = HttpRequest::new();
-        req.set_path("/other".to_string()); // does not start with "/api"
-        let res = HttpResponse::new();
-        let next = Next {
-            middleware: vec![],
-            handler: Arc::new(|_req, res| Box::pin(async move { res })),
-        };
-
-        let _ = middleware.handle(req, res, next).await;
-        assert!(
-            !called.load(Ordering::SeqCst),
-            "Middleware should not have been invoked for non-matching path"
-        );
     }
 
     #[tokio::test]

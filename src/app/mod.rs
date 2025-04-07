@@ -278,8 +278,8 @@ impl App {
     /// let mut app = App::new();
     ///
     /// app.use_middleware("path", |req, res, next| {
-    ///     println!("here");
-    ///     Box::pin(async move { next.run(req, res).await })
+    ///     let mut req = req.clone();
+    ///     Box::pin(async move { next.run(&mut req, res).await })
     /// });
     ///
     /// ```
@@ -359,10 +359,7 @@ impl App {
                     let next = Next::new();
                     mw_func(&mut our_req, our_res, next).await;
 
-                    println!("{our_req:#?}");
-
                     if let Some(data) = our_req.get_all_data() {
-                        println!("Line 366 {:?}", data);
                         for (key, value) in data {
                             req.extensions_mut()
                                 .insert((key.to_string(), value.clone()));
@@ -382,10 +379,7 @@ impl App {
                         router = router.get(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let mut our_req = HttpRequest::from_hyper_request(&mut req).await;
-
-                                let data =
-                                    req.extensions().get::<HashMap<String, String>>().cloned();
+                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
 
                                 let our_res = HttpResponse::new();
                                 let response = handler(&mut our_req.unwrap(), our_res).await;

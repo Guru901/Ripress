@@ -199,7 +199,7 @@ async fn user_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 let mut app = App::new();
-app.get("/user/{id}", user_handler);
+app.get("/user/:id", user_handler);
 ```
 
 ## Starting the Server
