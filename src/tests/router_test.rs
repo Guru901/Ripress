@@ -12,45 +12,45 @@ mod tests {
     #[test]
     pub fn test_add_get_route() {
         let mut router = Router::new("/");
-        router.get("/user/{id}", _test_handler);
+        router.get("/user/:id", _test_handler);
         assert!(router
-            .get_routes("/user/{id}", crate::types::HttpMethods::GET)
+            .get_routes("/user/:id", crate::types::HttpMethods::GET)
             .is_some());
     }
 
     #[test]
     pub fn test_add_post_route() {
         let mut router = Router::new("/");
-        router.post("/user/{id}", _test_handler);
+        router.post("/user/:id", _test_handler);
 
         assert!(router
-            .get_routes("/user/{id}", crate::types::HttpMethods::POST)
+            .get_routes("/user/:id", crate::types::HttpMethods::POST)
             .is_some());
     }
     #[test]
     pub fn test_add_delete_route() {
         let mut router = Router::new("/");
-        router.delete("/user/{id}", _test_handler);
+        router.delete("/user/:id", _test_handler);
         assert!(router
-            .get_routes("/user/{id}", crate::types::HttpMethods::DELETE)
+            .get_routes("/user/:id", crate::types::HttpMethods::DELETE)
             .is_some());
     }
 
     #[test]
     pub fn test_add_patch_route() {
         let mut router = Router::new("/");
-        router.patch("/user/{id}", _test_handler);
+        router.patch("/user/:id", _test_handler);
         assert!(router
-            .get_routes("/user/{id}", crate::types::HttpMethods::PATCH)
+            .get_routes("/user/:id", crate::types::HttpMethods::PATCH)
             .is_some());
     }
 
     #[test]
     pub fn test_add_put_route() {
         let mut router = Router::new("/");
-        router.put("/user/{id}", _test_handler);
+        router.put("/user/:id", _test_handler);
         assert!(router
-            .get_routes("/user/{id}", crate::types::HttpMethods::PUT)
+            .get_routes("/user/:id", crate::types::HttpMethods::PUT)
             .is_some());
     }
 
@@ -59,11 +59,11 @@ mod tests {
     pub fn test_register() {
         let mut app = App::new();
         let mut router = Router::new("/");
-        router.get("/user/{id}", _test_handler);
+        router.get("/user/:id", _test_handler);
         router.register(&mut app);
 
         assert!(app
-            .get_routes("//user/{id}", crate::types::HttpMethods::GET)
+            .get_routes("//user/:id", crate::types::HttpMethods::GET)
             .is_some());
     }
 }
