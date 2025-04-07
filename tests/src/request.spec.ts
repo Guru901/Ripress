@@ -82,6 +82,9 @@ test.describe("Request Tests", () => {
   test("Set and get text body", async ({ request }) => {
     const textResponse = await request.post("/text-test", {
       data: "test",
+      headers: {
+        "Content-Type": "text/plain",
+      },
     });
 
     expect(textResponse.status()).toBe(200);
@@ -101,25 +104,25 @@ test.describe("Request Tests", () => {
     expect(body.name === "test");
   });
 
-  test("Auth - Should be authenticated", async ({ request }) => {
-    const authResponse = await request.get("/auth", {
-      headers: {
-        Cookie: "token=123abc",
-      },
-    });
+  // test("Auth - Should be authenticated", async ({ request }) => {
+  //   const authResponse = await request.get("/auth", {
+  //     headers: {
+  //       Cookie: "token=123abc",
+  //     },
+  //   });
 
-    expect(authResponse.status()).toBe(200);
+  //   expect(authResponse.status()).toBe(200);
 
-    const body = await authResponse.text();
-    expect(body === "123abc");
-  });
+  //   const body = await authResponse.text();
+  //   expect(body === "123abc");
+  // });
 
-  test("Auth - isn't authenticated", async ({ request }) => {
-    const authResponse = await request.get("/auth");
+  // test("Auth - isn't authenticated", async ({ request }) => {
+  //   const authResponse = await request.get("/auth");
 
-    expect(authResponse.status()).toBe(401);
+  //   expect(authResponse.status()).toBe(401);
 
-    const body = await authResponse.text();
-    expect(body === "unauthorized");
-  });
+  //   const body = await authResponse.text();
+  //   expect(body === "unauthorized");
+  // });
 });

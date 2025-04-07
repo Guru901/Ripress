@@ -614,8 +614,8 @@ impl HttpRequest {
                 };
 
                 RequestBody {
-                    content: RequestBodyContent::FORM(body_string.to_string()),
-                    content_type: RequestBodyType::FORM,
+                    content: RequestBodyContent::TEXT(body_string.to_string()),
+                    content_type: RequestBodyType::TEXT,
                 }
             }
             RequestBodyType::EMPTY => RequestBody {

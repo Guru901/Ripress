@@ -28,6 +28,7 @@ pub enum HttpRequestError {
     MissingParam(String),
     MissingHeader(String),
     MissingQuery(String),
+    InvalidJson(String),
 }
 
 impl std::fmt::Display for HttpRequestError {
@@ -37,6 +38,7 @@ impl std::fmt::Display for HttpRequestError {
             HttpRequestError::MissingParam(param) => write!(f, "Param {} doesn't exist", param),
             HttpRequestError::MissingHeader(header) => write!(f, "Header {} doesn't exist", header),
             HttpRequestError::MissingQuery(query) => write!(f, "Query {} doesn't exist", query),
+            HttpRequestError::InvalidJson(err) => write!(f, "Invalid json: {}", err),
         }
     }
 }
