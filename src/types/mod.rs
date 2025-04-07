@@ -9,6 +9,7 @@ pub enum RequestBodyType {
     JSON,
     TEXT,
     FORM,
+    EMPTY,
 }
 
 impl Copy for RequestBodyType {}
@@ -18,6 +19,7 @@ pub enum RequestBodyContent {
     TEXT(String),
     JSON(serde_json::Value),
     FORM(String),
+    EMPTY,
 }
 
 #[derive(Debug, PartialEq)]
@@ -105,13 +107,13 @@ impl Display for HttpMethods {
 }
 
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
-pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
+pub type Handler = Arc<dyn Fn(&mut HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
 pub(crate) type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
 
 pub trait Middleware: Send + Sync + 'static {
     fn handle(
         &self,
-        req: HttpRequest,
+        req: &mut HttpRequest,
         res: HttpResponse,
         next: Next,
     ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
@@ -139,7 +141,7 @@ impl Next {
             handler: Arc::new(|_, _| Box::pin(async { HttpResponse::new() })),
         }
     }
-    pub async fn run(self, req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    pub async fn run(self, req: &mut HttpRequest, res: HttpResponse) -> HttpResponse {
         if let Some((current, rest)) = self.middleware.split_first() {
             // Call the next middleware
             let next = Next {
