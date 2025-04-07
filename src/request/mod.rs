@@ -525,37 +525,25 @@ impl HttpRequest {
         }
     }
 
-    pub async fn from_actix_request(
-        req: actix_web::HttpRequest,
-        mut payload: actix_web::web::Payload,
-    ) -> Result<Self, actix_web::Error> {
-        // Extract all necessary data from the request early
-        let query_string = req.query_string();
+    pub async fn from_hyper_request(
+        req: &mut Request<hyper::body::Body>,
+    ) -> Result<Self, hyper::Error> {
+        let query_string = req.uri().query().unwrap_or("");
 
         let queries = url::form_urlencoded::parse(query_string.as_bytes())
             .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
             .collect::<HashMap<String, String>>();
 
-        let ip = get_real_ip(&req);
-
-        let method = match req.method() {
-            &Method::GET => HttpMethods::GET,
-            &Method::POST => HttpMethods::POST,
-            &Method::PUT => HttpMethods::PUT,
-            &Method::DELETE => HttpMethods::DELETE,
-            _ => HttpMethods::GET,
-        };
-
+        let ip = get_real_ip_hyper(&req);
         let origin_url = req.uri().to_string();
-        let path = req.path().to_string();
+        let path = req.uri().path().to_string();
 
-        let mut cookies: HashMap<String, String> = HashMap::new();
+        let mut cookies_map = HashMap::new();
+        let cookies = get_cookies(&req);
 
-        req.cookies().iter().for_each(|cookie| {
-            if let Some(first_cookie) = cookie.get(0) {
-                let (name, value) = (first_cookie.name(), first_cookie.value());
-                cookies.insert(name.to_string(), value.to_string());
-            }
+        cookies.iter().for_each(|cookie| {
+            let (name, value) = (cookie.name(), cookie.value());
+            cookies_map.insert(name.to_string(), value.to_string());
         });
 
         let mut headers: HashMap<String, String> = HashMap::new();
@@ -564,53 +552,57 @@ impl HttpRequest {
             headers.insert(key.to_string(), value.to_str().unwrap().to_string());
         });
 
-        let params: HashMap<String, String> = req
-            .match_info()
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
+        // if let Some(captures) = path.strip_prefix(req.uri().path()) {
+        //     println!("User ID: {}", captures); // "123"
+        // }
 
-        let content_type = determine_content_type(req.content_type());
-        let protocol = req.connection_info().scheme().to_string();
+        // let params: HashMap<String, String> = req
+        //     .match_info()
+        //     .iter()
+        //     .map(|(k, v)| (k.to_string(), v.to_string()))
+        //     .collect();
 
-        // Read the body
-        let mut body = actix_web::web::BytesMut::new();
-        while let Some(chunk) = payload.next().await {
-            let chunk = chunk?;
-            if (body.len() + chunk.len()) > 262_144 {
-                return Err(actix_web::error::ErrorBadRequest("Body too large"));
-            }
-            body.extend_from_slice(&chunk);
-        }
+        let content_type = req
+            .headers()
+            .get("Content-Type")
+            .and_then(|val| val.to_str().ok())
+            .map(determine_content_type)
+            .unwrap_or(RequestBodyType::EMPTY);
+
+        let protocol = req
+            .headers()
+            .get("x-forwarded-proto")
+            .and_then(|val| val.to_str().ok())
+            .unwrap_or("http")
+            .to_string();
+
+        println!(
+            "extensions {:?}",
+            req.extensions().get::<HashMap<String, String>>()
+        );
 
         let request_body = match content_type {
             RequestBodyType::FORM => {
-                let body_string = match std::str::from_utf8(&body) {
-                    Ok(s) => s.to_string(),
-                    Err(_) => {
-                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
-                    }
+                let body_bytes = to_bytes(req.body_mut()).await;
+
+                let body_string = match body_bytes {
+                    Ok(bytes) => std::str::from_utf8(&bytes).unwrap().to_string(),
+                    Err(err) => return Err(err),
                 };
 
                 RequestBody {
-                    content: RequestBodyContent::FORM(body_string),
+                    content: RequestBodyContent::FORM(body_string.to_string()),
                     content_type: RequestBodyType::FORM,
                 }
             }
             RequestBodyType::JSON => {
-                let body_json = match std::str::from_utf8(&body) {
-                    Ok(s) => match serde_json::from_str(s) {
-                        Ok(json) => json,
-                        Err(e) => {
-                            return Err(actix_web::error::ErrorBadRequest(format!(
-                                "Invalid JSON: {}",
-                                e
-                            )));
-                        }
-                    },
-                    Err(_) => {
-                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
+                let body_bytes = to_bytes(req.body_mut()).await;
+                let body_json = match body_bytes {
+                    Ok(bytes) => {
+                        let s = std::str::from_utf8(&bytes).unwrap();
+                        serde_json::from_str(s).unwrap()
                     }
+                    Err(err) => return Err(err),
                 };
 
                 RequestBody {
@@ -619,30 +611,34 @@ impl HttpRequest {
                 }
             }
             RequestBodyType::TEXT => {
-                let body_string = match std::str::from_utf8(&body) {
-                    Ok(s) => s.to_string(),
-                    Err(_) => {
-                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
-                    }
+                let body_bytes = to_bytes(req.body_mut()).await;
+
+                let body_string = match body_bytes {
+                    Ok(bytes) => std::str::from_utf8(&bytes).unwrap().to_string(),
+                    Err(err) => return Err(err),
                 };
 
                 RequestBody {
-                    content: RequestBodyContent::TEXT(body_string),
-                    content_type: RequestBodyType::TEXT,
+                    content: RequestBodyContent::FORM(body_string.to_string()),
+                    content_type: RequestBodyType::FORM,
                 }
             }
+            RequestBodyType::EMPTY => RequestBody {
+                content: RequestBodyContent::EMPTY,
+                content_type: RequestBodyType::EMPTY,
+            },
         };
 
         Ok(HttpRequest {
-            params,
+            params: HashMap::new(),
             queries,
             body: request_body,
             ip,
-            method,
+            method: HttpMethods::GET,
             origin_url,
             path,
             headers,
-            cookies,
+            cookies: cookies_map,
             protocol,
             data: HashMap::new(),
         })
