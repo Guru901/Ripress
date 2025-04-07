@@ -44,7 +44,9 @@ impl Router {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::GET, path, wrapped_handler);
     }
 
@@ -73,7 +75,9 @@ impl Router {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::POST, path, wrapped_handler);
     }
 
@@ -102,7 +106,9 @@ impl Router {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::PUT, path, wrapped_handler);
     }
 
@@ -131,7 +137,9 @@ impl Router {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::DELETE, path, wrapped_handler);
     }
 
@@ -160,7 +168,9 @@ impl Router {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::PATCH, path, wrapped_handler);
     }
 
