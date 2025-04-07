@@ -1,8 +1,7 @@
 use crate::types::{HttpMethods, HttpRequestError, RequestBodyContent, RequestBodyType};
-use actix_web::{http::Method, HttpMessage};
-use futures_util::stream::StreamExt;
+use cookie::Cookie;
+use hyper::{body::to_bytes, Body, Request};
 use std::collections::HashMap;
-use url;
 
 #[derive(Debug, Clone)]
 struct RequestBody {
@@ -319,6 +318,10 @@ impl HttpRequest {
 
     pub fn get_data(&self, key: &str) -> Option<&String> {
         self.data.get(key)
+    }
+
+    pub fn get_all_data(&self) -> Option<&HashMap<String, String>> {
+        Some(&self.data)
     }
 
     /// Returns header based on the key.
