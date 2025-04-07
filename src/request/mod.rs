@@ -1,6 +1,7 @@
 use crate::types::{HttpMethods, HttpRequestError, RequestBodyContent, RequestBodyType};
 use cookie::Cookie;
 use hyper::{body::to_bytes, Body, Request};
+use routerify::ext::RequestExt;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -562,6 +563,12 @@ impl HttpRequest {
         //     .map(|(k, v)| (k.to_string(), v.to_string()))
         //     .collect();
 
+        let params: HashMap<String, String> = req
+            .params()
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+
         let content_type = req
             .headers()
             .get("Content-Type")
@@ -625,7 +632,7 @@ impl HttpRequest {
         };
 
         Ok(HttpRequest {
-            params: HashMap::new(),
+            params,
             queries,
             body: request_body,
             ip,

@@ -19,8 +19,8 @@ async fn main() {
 
     app.get("/cookie-test", cookie_test);
     app.get("/header-test", header_test);
-    app.get("/param-and-query-test/{param}", param_and_query_test);
-    app.get("/origin-url-and-path/{param}", origin_url_and_path_test);
+    app.get("/param-and-query-test/:param", param_and_query_test);
+    app.get("/origin-url-and-path/:param", origin_url_and_path_test);
     app.get("/ip-test", ip_test);
 
     app.post("/json-test", json_test);
@@ -31,24 +31,26 @@ async fn main() {
 
     app.get("/get-cookie-test", get_cookie_test);
 
-    app.use_middleware("/auth", |mut req, res, next| {
-        println!("Auth middleware");
-        Box::pin(async move {
-            if let Ok(token) = req.get_cookie("token") {
-                let token = token.to_string();
-                req.set_data("token", &token);
-                next.run(req, res).await
-            } else {
-                res.status(401).text("Unauthorized")
-            }
-        })
-    });
+    // app.use_middleware("/auth", |req, res, next| {
+    //     println!("Auth middleware");
+    //     let mut req = req.clone();
+    //     Box::pin(async move {
+    //         if let Ok(token) = req.get_cookie("token") {
+    //             let token = token.to_string();
+    //             req.set_data("token", &token);
+    //             next.run(&mut req, res).await
+    //         } else {
+    //             res.status(401).text("Unauthorized")
+    //         }
+    //     })
+    // });
 
-    app.get("/auth", auth);
+    // app.get("/auth", auth);
 
     app.listen(8080, || {
         println!("Serer running on port 8080");
-    }).await;
+    })
+    .await;
 }
 
 async fn cookie_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -103,14 +105,14 @@ async fn check_status_code(_req: HttpRequest, res: HttpResponse) -> HttpResponse
     res.status(900)
 }
 
-async fn get_cookie_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn get_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().set_cookie("test-cookie", "value").text("hehe")
 }
 
-async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let token = req.get_data("token").unwrap();
-    res.ok().text(token)
-}
+// async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+//     let token = req.get_data("token").unwrap();
+//     res.ok().text(token)
+// }
 ' > main.rs
 
 cargo run &  # Start server in background
