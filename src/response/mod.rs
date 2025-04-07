@@ -4,6 +4,7 @@ use cookie::Cookie;
 use futures::{stream, Stream, StreamExt};
 use hyper::header::{HeaderName, HeaderValue, SET_COOKIE};
 use hyper::{Body, Response};
+use std::hash;
 use std::pin::Pin;
 use std::{collections::HashMap, convert::Infallible};
 
@@ -649,5 +650,9 @@ impl HttpResponse {
 
     pub(crate) fn get_cookie(self, key: String) -> Option<String> {
         self.cookies.get(&key).cloned()
+    }
+
+    pub(crate) fn get_cookies(self) -> HashMap<String, String> {
+        self.cookies
     }
 }
