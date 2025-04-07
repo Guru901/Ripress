@@ -665,7 +665,7 @@ pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
     }
 }
 
-pub(crate) fn get_real_ip(req: &actix_web::HttpRequest) -> String {
+pub(crate) fn get_real_ip_hyper(req: &Request<hyper::Body>) -> String {
     req.headers()
         .get("X-Forwarded-For")
         .and_then(|val| val.to_str().ok())
@@ -675,6 +675,22 @@ pub(crate) fn get_real_ip(req: &actix_web::HttpRequest) -> String {
                 .map(|addr| addr.ip().to_string())
                 .unwrap_or("unknown".to_string())
         })
+}
+
+pub(crate) fn get_cookies(req: &Request<Body>) -> Vec<Cookie<'_>> {
+    let mut cookies = Vec::new();
+
+    if let Some(header_value) = req.headers().get("cookie") {
+        if let Ok(header_str) = header_value.to_str() {
+            for cookie_str in header_str.split(';') {
+                if let Ok(cookie) = Cookie::parse(cookie_str.trim()) {
+                    cookies.push(cookie);
+                }
+            }
+        }
+    }
+
+    cookies
 }
 
 #[cfg(test)]
