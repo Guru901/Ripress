@@ -670,11 +670,7 @@ pub(crate) fn get_real_ip_hyper(req: &Request<hyper::Body>) -> String {
         .get("X-Forwarded-For")
         .and_then(|val| val.to_str().ok())
         .map(|s| s.split(',').next().unwrap_or("").trim().to_string())
-        .unwrap_or_else(|| {
-            req.peer_addr()
-                .map(|addr| addr.ip().to_string())
-                .unwrap_or("unknown".to_string())
-        })
+        .unwrap_or(String::new())
 }
 
 pub(crate) fn get_cookies(req: &Request<Body>) -> Vec<Cookie<'_>> {
