@@ -2,6 +2,8 @@ use crate::request::HttpRequest;
 use crate::response::HttpResponse;
 use crate::types::{Fut, Handler, HttpMethods, Middleware, Next, Routes};
 use actix_files as fs;
+use hyper::Error;
+use routerify::{Router, RouterBuilder};
 use std::{collections::HashMap, future::Future, sync::Arc};
 
 pub(crate) fn box_future<F>(future: F) -> Fut
@@ -369,76 +371,125 @@ impl App {
     ///
     /// ```
 
-    pub async fn listen<F: FnOnce()>(self, port: i32, cb: F) {
-        cb();
-        let app_clone = self.clone_app();
-        actix_web::HttpServer::new(move || {
-            let mut app = actix_web::App::new();
+    pub async fn listen<F: FnOnce()>(self, port: u16, cb: F) {
+        let mut router: RouterBuilder<_, _> = Router::<hyper::Body, Error>::builder();
 
-      for (path, methods) in app_clone.routes.clone() {
-        for (method, handler) in methods {
-          let method = method.clone();
-          let middlewares = app_clone.middlewares.clone();
-
-          match method {
-            HttpMethods::GET | HttpMethods::POST | HttpMethods::PUT | HttpMethods::DELETE | HttpMethods::PATCH | HttpMethods::HEAD=> {
-              let route_method = match method {
-                HttpMethods::GET => actix_web::web::get(),
-                HttpMethods::POST => actix_web::web::post(),
-                HttpMethods::PUT => actix_web::web::put(),
-                HttpMethods::DELETE => actix_web::web::delete(),
-                HttpMethods::PATCH => actix_web::web::patch(),
-                HttpMethods::HEAD => actix_web::web::head(),
-              };
-
-              app = app.route(
-                &path,
-                route_method.to(move |req: actix_web::HttpRequest, payload: actix_web::web::Payload| {
-                  let handler_clone = handler.clone();
-                  let middlewares_clone = middlewares.clone();
-
-                  async move {
-                    let our_req = HttpRequest::from_actix_request(req, payload).await.unwrap();
+        for middleware in self.middlewares {
+            let mw_func = middleware.func;
+            router = router.middleware(routerify::Middleware::pre(move |mut req| {
+                let mw_func = mw_func.clone();
+                async move {
+                    let mut our_req = HttpRequest::from_hyper_request(&mut req).await.unwrap();
                     let our_res = HttpResponse::new();
-                    let middleware_clone = middlewares_clone.clone();
+                    let next = Next::new();
+                    mw_func(&mut our_req, our_res, next).await;
 
-                    // If we have middlewares, run the request through them
-                    if !middlewares_clone.is_empty() {
-                      // Create a Next with our middlewares and handler
-                      let next = Next {
-                        middleware: middleware_clone,
-                        handler: handler_clone.clone(),
-                      };
+                    println!("{our_req:#?}");
 
-                      // Run the middleware chain
-                      let response = next.run(our_req, our_res).await;
-                      response.to_responder()
-                    } else {
-                      // No middlewares, just call the handler directly
-                      let future = handler_clone(our_req, our_res);
-                      let response = future.await;
-                      response.to_responder()
+                    if let Some(data) = our_req.get_all_data() {
+                        println!("Line 366 {:?}", data);
+                        for (key, value) in data {
+                            req.extensions_mut()
+                                .insert((key.to_string(), value.clone()));
+                        }
                     }
-                  }
-                }),
-              );
-            }
-          }
+
+                    Ok(req)
+                }
+            }));
         }
-      }
 
-      if self.static_files.len() > 0 {
-        let static_files = self.static_files.clone();
-        app = app.service(fs::Files::new(static_files.get("mount_path").unwrap(), self.static_files.get("serve_from").unwrap()).show_files_listing());
-      }
+        for (path, methods) in &self.routes {
+            for (method, handler) in methods {
+                let handler = handler.clone();
+                match method {
+                    HttpMethods::GET => {
+                        router = router.get(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let mut our_req = HttpRequest::from_hyper_request(&mut req).await;
 
-     app
-    })
-      .bind(format!("127.0.0.1:{port}"))
-      .unwrap()
-      .run()
-      .await
-      .unwrap();
+                                let data =
+                                    req.extensions().get::<HashMap<String, String>>().cloned();
+
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                    HttpMethods::POST => {
+                        router = router.post(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                    HttpMethods::PUT => {
+                        router = router.put(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                    HttpMethods::DELETE => {
+                        router = router.delete(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                    HttpMethods::PATCH => {
+                        router = router.patch(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                    HttpMethods::HEAD => {
+                        router = router.head(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        let router = router.build().unwrap();
+
+        cb();
+
+        let addr = SocketAddr::from(([127, 0, 0, 1], port));
+
+        let service = RouterService::new(router).unwrap();
+
+        let server = Server::bind(&addr).serve(service);
+
+        if let Err(e) = server.await {
+            eprintln!("server error: {}", e);
+        }
     }
 
     /// Adds a route to the application.
