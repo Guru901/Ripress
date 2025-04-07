@@ -248,7 +248,7 @@ mod tests {
         let req = hyper::Request::new(Body::empty());
 
         let ip = get_real_ip_hyper(&req);
-        assert_eq!(ip, String::from("unknown"));
+        assert_eq!(ip, String::new());
         let req = HttpRequest::new();
         assert_eq!(req.ip(), Err("Cannot determine the ip"));
     }
