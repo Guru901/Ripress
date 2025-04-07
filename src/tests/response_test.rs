@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use crate::context::HttpResponse;
-    use crate::response::BoxError;
     use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
     use bytes::Bytes;
     use futures::{stream, StreamExt};
