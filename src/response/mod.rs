@@ -553,72 +553,83 @@ impl HttpResponse {
         return self;
     }
 
-    pub fn to_responder(self) -> actix_web::HttpResponse {
+    pub fn to_responder(self) -> Result<Response<Body>, Infallible> {
         let body = self.body;
-        if self.is_stream {
-            let mut actix_res = actix_web::HttpResponse::build(actix_web::http::StatusCode::OK);
-            actix_res.content_type("text/event-stream");
+        // if self.is_stream {
+        //     let mut response = Response::builder().status(self.status_code as u16);
+        //     response.header("Content-Type", "text/event-stream");
 
-            self.headers.iter().for_each(|(key, value)| {
-                actix_res.append_header((key.as_str(), value.as_str()));
-            });
+        //     self.headers.iter().for_each(|(key, value)| {
+        //         response.header(key.as_str(), value.as_str());
+        //     });
 
-            actix_res.append_header(("Connection", "keep-alive"));
-            self.remove_cookies.iter().for_each(|key| {
-                actix_res.cookie(actix_web::cookie::Cookie::build(key, "").finish());
-            });
+        //     response.header("Connection", "keep-alive");
 
-            self.cookies.iter().for_each(|(key, value)| {
-                actix_res.cookie(actix_web::cookie::Cookie::build(key, value).finish());
-            });
+        //     self.cookies.iter().for_each(|(key, value)| {
+        //         let cookie = Cookie::build((key, value)).path("/").http_only(true);
+        //         response.header(
+        //             SET_COOKIE,
+        //             HeaderValue::from_str(&cookie.to_string()).unwrap(),
+        //         );
+        //     });
 
-            return actix_res.streaming(self.stream);
-        } else {
-            let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code as u16)
-                .map(|status| match body {
-                    ResponseContentBody::JSON(json) => actix_web::HttpResponse::build(status)
-                        .content_type("application/json")
-                        .json(json),
-                    ResponseContentBody::TEXT(text) => actix_web::HttpResponse::build(status)
-                        .content_type("text/plain")
-                        .body(text),
-                    ResponseContentBody::HTML(html) => actix_web::HttpResponse::build(status)
-                        .content_type("text/html")
-                        .body(html),
-                })
-                .unwrap_or_else(|_| {
-                    actix_web::HttpResponse::InternalServerError().body("Invalid status code")
-                });
+        //     self.remove_cookies.iter().for_each(|key| {
+        //         let expired_cookie = Cookie::build((key, ""))
+        //             .path("/")
+        //             .max_age(cookie::time::Duration::seconds(0));
 
-            self.headers.iter().for_each(|(key, value)| {
-                actix_res.headers_mut().append(
-                    HeaderName::from_bytes(key.as_bytes()).unwrap(),
-                    HeaderValue::from_str(value).unwrap(),
-                )
-            });
+        //         response.header(
+        //             SET_COOKIE,
+        //             HeaderValue::from_str(&expired_cookie.to_string()).unwrap(),
+        //         );
+        //     });
 
-            self.remove_cookies.iter().for_each(|key| {
-                actix_res
-                    .add_cookie(&actix_web::cookie::Cookie::build(key, "").finish())
-                    .unwrap();
-            });
-
-            self.cookies.iter().for_each(|(key, value)| {
-                actix_res
-                    .add_cookie(&actix_web::cookie::Cookie::build(key, value).finish())
-                    .expect("Failed to add cookie");
-            });
-
-            return actix_res;
+        //     return response;
+        // } else {
+        let mut response = match body {
+            ResponseContentBody::JSON(json) => Response::builder()
+                .status(self.status_code as u16)
+                .header("Content-Type", "application/json")
+                .body(Body::from(serde_json::to_string(&json).unwrap())),
+            ResponseContentBody::TEXT(text) => Response::builder()
+                .status(self.status_code as u16)
+                .header("Content-Type", "text/plain")
+                .body(Body::from(text)),
+            ResponseContentBody::HTML(html) => Response::builder()
+                .status(self.status_code as u16)
+                .header("Content-Type", "text/html")
+                .body(Body::from(html)),
         }
-    }
-}
+        .unwrap();
 
-impl Responder for HttpResponse {
-    type Body = actix_web::body::BoxBody;
+        for (key, value) in self.headers.iter() {
+            response.headers_mut().append(
+                HeaderName::from_bytes(key.as_bytes()).unwrap(),
+                HeaderValue::from_str(value).unwrap(),
+            );
+        }
 
-    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse {
-        self.to_responder()
+        self.cookies.iter().for_each(|(key, value)| {
+            let cookie = Cookie::build((key, value)).path("/").http_only(true);
+            response.headers_mut().append(
+                SET_COOKIE,
+                HeaderValue::from_str(&cookie.to_string()).unwrap(),
+            );
+        });
+
+        self.remove_cookies.iter().for_each(|key| {
+            let expired_cookie = Cookie::build((key, ""))
+                .path("/")
+                .max_age(cookie::time::Duration::seconds(0));
+
+            response.headers_mut().append(
+                SET_COOKIE,
+                HeaderValue::from_str(&expired_cookie.to_string()).unwrap(),
+            );
+        });
+
+        return Ok(response);
+        // }
     }
 }
 
