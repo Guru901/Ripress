@@ -54,7 +54,11 @@ test.describe("Request Tests", () => {
   });
 
   test("Test Ip", async ({ request }) => {
-    const ipResponse = await request.get("/ip-test");
+    const ipResponse = await request.get("/ip-test", {
+      headers: {
+        "X-Forwarded-For": "127.0.0.1",
+      },
+    });
 
     expect(ipResponse.status()).toBe(200);
 

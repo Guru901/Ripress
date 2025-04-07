@@ -359,10 +359,7 @@ impl App {
                     let next = Next::new();
                     mw_func(&mut our_req, our_res, next).await;
 
-                    println!("{our_req:#?}");
-
                     if let Some(data) = our_req.get_all_data() {
-                        println!("Line 366 {:?}", data);
                         for (key, value) in data {
                             req.extensions_mut()
                                 .insert((key.to_string(), value.clone()));

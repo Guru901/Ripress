@@ -576,11 +576,6 @@ impl HttpRequest {
             .unwrap_or("http")
             .to_string();
 
-        println!(
-            "extensions {:?}",
-            req.extensions().get::<HashMap<String, String>>()
-        );
-
         let request_body = match content_type {
             RequestBodyType::FORM => {
                 let body_bytes = to_bytes(req.body_mut()).await;
