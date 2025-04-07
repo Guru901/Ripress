@@ -1,11 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use actix_web::FromRequest;
+    use hyper::Body;
     use serde_json::json;
 
+    use crate::request::get_real_ip_hyper;
     use crate::types::HttpRequestError;
     use crate::{
-        request::{determine_content_type, get_real_ip, HttpRequest},
+        request::{determine_content_type, HttpRequest},
         types::{HttpMethods, RequestBodyType},
     };
 
@@ -244,9 +245,9 @@ mod tests {
 
     #[test]
     fn test_get_real_ip() {
-        let req = actix_web::test::TestRequest::default().to_http_request();
+        let req = hyper::Request::new(Body::empty());
 
-        let ip = get_real_ip(&req);
+        let ip = get_real_ip_hyper(&req);
         assert_eq!(ip, String::from("unknown"));
         let req = HttpRequest::new();
         assert_eq!(req.ip(), Err("Cannot determine the ip"));
@@ -283,18 +284,5 @@ mod tests {
         req.set_data("id", "123");
         assert_eq!(req.get_data("id"), Some(&String::from("123")));
         assert_eq!(req.get_data("nonexistent"), None);
-    }
-
-    #[tokio::test]
-    async fn test_from_actix_request() {
-        let request = actix_web::test::TestRequest::default().to_http_request();
-        let mut payload = actix_web::dev::Payload::None;
-        let web_payload = actix_web::web::Payload::from_request(&request, &mut payload)
-            .await
-            .unwrap();
-
-        let _ = HttpRequest::from_actix_request(request, web_payload)
-            .await
-            .unwrap();
     }
 }
