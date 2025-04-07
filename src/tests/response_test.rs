@@ -116,7 +116,10 @@ mod tests {
 
         assert_eq!(response.status(), 201);
         assert_eq!(response.headers().get("X-Custom").unwrap(), "value");
-        assert_eq!(response.headers().get("Set-Cookie").unwrap(), "session=123");
+        assert_eq!(
+            response.headers().get("Set-Cookie").unwrap(),
+            "session=123; HttpOnly; Path=/"
+        );
         assert_eq!(
             response.headers().get("Content-Type").unwrap(),
             "application/json"
