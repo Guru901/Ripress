@@ -382,10 +382,7 @@ impl App {
                         router = router.get(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let mut our_req = HttpRequest::from_hyper_request(&mut req).await;
-
-                                let data =
-                                    req.extensions().get::<HashMap<String, String>>().cloned();
+                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
 
                                 let our_res = HttpResponse::new();
                                 let response = handler(&mut our_req.unwrap(), our_res).await;
