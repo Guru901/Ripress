@@ -275,57 +275,20 @@ impl App {
     pub fn use_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static,
+        F: Fn(&mut HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = HttpResponse> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
 
-        struct Wrapper<F> {
-            func: F,
-            path: String,
-        }
-
-        impl<F, Fut> Middleware for Wrapper<F>
-        where
-            F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static,
-            Fut: std::future::Future<Output = HttpResponse> + Send + 'static,
-        {
-            fn clone_box(&self) -> Box<dyn Middleware> {
-                Box::new(Wrapper {
-                    func: self.func.clone(),
-                    path: self.path.clone(),
-                })
-            }
-
-            fn handle(
-                &self,
-                req: HttpRequest,
-                res: HttpResponse,
-                next: Next,
-            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = HttpResponse> + Send + 'static>>
-            {
-                if self.path == "/" {
-                    let fut = (self.func)(req, res, next);
-                    Box::pin(fut)
-                } else {
-                    if req.get_path().starts_with(self.path.as_str()) {
-                        let fut = (self.func)(req, res, next);
-                        Box::pin(fut)
-                    } else {
-                        Box::pin(async move { next.run(req, res).await })
-                    }
-                }
-            }
-        }
-
-        self.middlewares.push(Box::new(Wrapper {
-            func: middleware,
+        self.middlewares.push(Box::new(Middleware {
+            func: Arc::new(move |req, res, next| -> crate::types::Fut {
+                box_future(middleware(req, res, next))
+            }),
             path: path,
         }));
 
         self
     }
-
     /// Add a static file server to the application.
     ///
     /// ## Arguments
