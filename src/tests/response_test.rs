@@ -5,7 +5,7 @@ mod tests {
     use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
     use bytes::Bytes;
     use futures::{stream, StreamExt};
-    use hyper::{Body, StatusCode};
+    use hyper::StatusCode;
     use serde_json::json;
 
     #[test]
