@@ -1,8 +1,9 @@
 use crate::request::HttpRequest;
 use crate::response::HttpResponse;
 use crate::types::{Fut, Handler, HttpMethods, Next, Routes};
-use hyper::Error;
-use routerify::{Router, RouterBuilder};
+use hyper::{Error, Server};
+use routerify::{Router, RouterBuilder, RouterService};
+use std::net::SocketAddr;
 use std::{collections::HashMap, future::Future, sync::Arc};
 
 pub(crate) fn box_future<F>(future: F) -> Fut
@@ -472,7 +473,7 @@ impl App {
         Some(self.routes.get(path).unwrap().get(&method).unwrap())
     }
 
-    pub(crate) fn get_middlewares(&self) -> &Vec<Box<dyn Middleware>> {
+    pub(crate) fn get_middlewares(&self) -> &Vec<Box<Middleware>> {
         &self.middlewares
     }
 }
