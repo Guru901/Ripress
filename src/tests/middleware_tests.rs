@@ -1,15 +1,12 @@
 #[cfg(test)]
 mod tests {
 
-    use std::sync::Arc;
-
     use crate::{
         context::{HttpRequest, HttpResponse},
         middlewares::{
             cors::{cors, CorsConfig},
             logger::{logger, LoggerConfig},
         },
-        types::Next,
     };
 
     #[tokio::test]
@@ -19,13 +16,7 @@ mod tests {
         let mut req = HttpRequest::new();
         let res = HttpResponse::new();
 
-        // Create a dummy Next that simply returns the given response.
-        let next = Next {
-            middleware: vec![],
-            handler: Arc::new(|_req, res| Box::pin(async { res })),
-        };
-
-        let response = cors_mw(&mut req, res, next).await;
+        let response = cors_mw(&mut req, res).await.1.unwrap();
 
         // Check the headers set by the middleware.
         assert_eq!(
@@ -57,13 +48,7 @@ mod tests {
         let mut req = HttpRequest::new();
         let res = HttpResponse::new();
 
-        // Create a dummy Next that simply returns the given response.
-        let next = Next {
-            middleware: vec![],
-            handler: Arc::new(|_req, res| Box::pin(async { res })),
-        };
-
-        let response = cors_mw(&mut req, res, next).await;
+        let response = cors_mw(&mut req, res).await.1.unwrap();
 
         assert_eq!(
             response.get_header("Access-Control-Allow-Origin").unwrap(),
@@ -93,13 +78,7 @@ mod tests {
         let mut req = HttpRequest::new();
         let res = HttpResponse::new();
 
-        // Create a dummy Next that simply returns the given response.
-        let next = Next {
-            middleware: vec![],
-            handler: Arc::new(|_req, res| Box::pin(async { res })),
-        };
-
-        let _ = logger_mw(&mut req, res, next).await;
+        let _ = logger_mw(&mut req, res).await;
     }
 
     #[tokio::test]
@@ -113,12 +92,6 @@ mod tests {
         let mut req = HttpRequest::new();
         let res = HttpResponse::new();
 
-        // Create a dummy Next that simply returns the given response.
-        let next = Next {
-            middleware: vec![],
-            handler: Arc::new(|_req, res| Box::pin(async { res })),
-        };
-
-        let _ = logger_mw(&mut req, res, next).await;
+        let _ = logger_mw(&mut req, res).await;
     }
 }

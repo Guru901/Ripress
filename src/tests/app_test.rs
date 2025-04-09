@@ -109,7 +109,7 @@ mod tests {
         let boxed = box_future(test_handler());
 
         let response = boxed.await;
-        assert_eq!(response.get_status_code(), 200);
+        assert_eq!(response.status_code, 200);
     }
 
     #[tokio::test]
@@ -136,11 +136,11 @@ mod tests {
     fn test_use_middleware() {
         let mut app = App::new();
 
-        app.use_middleware("", |req, res, next| {
-            let mut req = req.clone();
+        app.use_middleware("", |req, _| {
+            let req = req.clone();
             Box::pin(async move {
                 println!("Middleware 1");
-                next.run(&mut req, res).await
+                (req, None)
             })
         });
 

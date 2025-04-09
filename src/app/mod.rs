@@ -1,8 +1,10 @@
+use crate::helpers::exec_middleware;
 use crate::request::HttpRequest;
 use crate::response::HttpResponse;
-use crate::types::{Fut, Handler, HttpMethods, Next, Routes};
-use hyper::{Error, Server};
-use routerify::{Router, RouterBuilder, RouterService};
+use crate::types::{ApiError, Fut, FutMiddleware, Handler, HttpMethods, Routes};
+use hyper::{Body, Response, Server};
+use routerify::ext::RequestExt;
+use routerify::{Router, RouterService};
 use std::net::SocketAddr;
 use std::{collections::HashMap, future::Future, sync::Arc};
 
@@ -13,9 +15,16 @@ where
     Box::pin(future)
 }
 
+pub(crate) fn box_future_middleware<F>(future: F) -> FutMiddleware
+where
+    F: Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
+{
+    Box::pin(future)
+}
+
 #[derive(Clone)]
 pub struct Middleware {
-    pub func: Arc<dyn Fn(&mut HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static>,
+    pub func: Arc<dyn Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
     pub path: String,
 }
 
@@ -277,9 +286,11 @@ impl App {
     /// use ripress::app::App;
     /// let mut app = App::new();
     ///
-    /// app.use_middleware("path", |req, res, next| {
+    /// app.use_middleware("path", |req, res| {
     ///     let mut req = req.clone();
-    ///     Box::pin(async move { next.run(&mut req, res).await })
+    ///     Box::pin(async move {
+    ///         (req, None)
+    ///     })
     /// });
     ///
     /// ```
@@ -287,14 +298,14 @@ impl App {
     pub fn use_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(&mut HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
-        Fut: std::future::Future<Output = HttpResponse> + Send + 'static,
+        F: Fn(&mut HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
 
         self.middlewares.push(Box::new(Middleware {
-            func: Arc::new(move |req, res, next| -> crate::types::Fut {
-                box_future(middleware(req, res, next))
+            func: Arc::new(move |req, res| -> crate::types::FutMiddleware {
+                box_future_middleware(middleware(req, res))
             }),
             path: path,
         }));
@@ -347,27 +358,23 @@ impl App {
     /// ```
 
     pub async fn listen<F: FnOnce()>(self, port: u16, cb: F) {
-        let mut router: RouterBuilder<_, _> = Router::<hyper::Body, Error>::builder();
+        let mut router = Router::<Body, ApiError>::builder();
+
+        async fn error_handler(err: routerify::RouteError) -> Response<Body> {
+            let api_err = err.downcast::<ApiError>().unwrap();
+
+            match api_err.as_ref() {
+                ApiError::Generic(msg, status_code) => Response::builder()
+                    .status(*status_code)
+                    .body(Body::from(msg.to_string()))
+                    .unwrap(),
+            }
+        }
 
         for middleware in self.middlewares {
-            let mw_func = middleware.func;
-            router = router.middleware(routerify::Middleware::pre(move |mut req| {
-                let mw_func = mw_func.clone();
-                async move {
-                    let mut our_req = HttpRequest::from_hyper_request(&mut req).await.unwrap();
-                    let our_res = HttpResponse::new();
-                    let next = Next::new();
-                    mw_func(&mut our_req, our_res, next).await;
-
-                    if let Some(data) = our_req.get_all_data() {
-                        for (key, value) in data {
-                            req.extensions_mut()
-                                .insert((key.to_string(), value.clone()));
-                        }
-                    }
-
-                    Ok(req)
-                }
+            let middleware = middleware.clone();
+            router = router.middleware(routerify::Middleware::pre(move |req| {
+                exec_middleware(req, middleware.clone())
             }));
         }
 
@@ -379,10 +386,14 @@ impl App {
                         router = router.get(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
 
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
@@ -391,9 +402,14 @@ impl App {
                         router = router.post(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
+
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
@@ -402,9 +418,13 @@ impl App {
                         router = router.put(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
@@ -413,9 +433,13 @@ impl App {
                         router = router.delete(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
@@ -424,9 +448,13 @@ impl App {
                         router = router.patch(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
@@ -435,9 +463,13 @@ impl App {
                         router = router.head(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
@@ -445,6 +477,8 @@ impl App {
                 }
             }
         }
+
+        router = router.err_handler(error_handler);
 
         let router = router.build().unwrap();
 

@@ -1,6 +1,9 @@
-use crate::types::{HttpMethods, HttpRequestError, RequestBodyContent, RequestBodyType};
+use crate::{
+    helpers::get_all_query_params,
+    types::{HttpMethods, HttpRequestError, RequestBodyContent, RequestBodyType},
+};
 use cookie::Cookie;
-use hyper::{body::to_bytes, Body, Request};
+use hyper::{body::to_bytes, Body, Method, Request};
 use routerify::ext::RequestExt;
 use std::collections::HashMap;
 
@@ -48,10 +51,10 @@ struct RequestBody {
 #[derive(Debug, Clone)]
 pub struct HttpRequest {
     /// Dynamic route parameters extracted from the URL.
-    params: HashMap<String, String>,
+    pub(crate) params: HashMap<String, String>,
 
     /// Query parameters from the request URL.
-    queries: HashMap<String, String>,
+    pub(crate) queries: HashMap<String, String>,
 
     /// The request body, which may contain JSON, text, or form data.
     body: RequestBody,
@@ -268,11 +271,11 @@ impl HttpRequest {
     /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
-    /// let id = req.get_params("id");
+    /// let id = req.get_param("id");
     /// println!("Id: {:?}", id);
     /// ```
 
-    pub fn get_params(&self, param_name: &str) -> Result<&str, HttpRequestError> {
+    pub fn get_param(&self, param_name: &str) -> Result<&str, HttpRequestError> {
         let param = self.params.get(param_name).map(|v| v);
 
         match param {
@@ -535,6 +538,16 @@ impl HttpRequest {
             .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
             .collect::<HashMap<String, String>>();
 
+        let method = match req.method() {
+            &Method::GET => HttpMethods::GET,
+            &Method::POST => HttpMethods::POST,
+            &Method::PUT => HttpMethods::PUT,
+            &Method::DELETE => HttpMethods::DELETE,
+            &Method::PATCH => HttpMethods::PATCH,
+            &Method::HEAD => HttpMethods::HEAD,
+            _ => HttpMethods::GET,
+        };
+
         let ip = get_real_ip_hyper(&req);
         let origin_url = req.uri().to_string();
         let path = req.uri().path().to_string();
@@ -553,21 +566,20 @@ impl HttpRequest {
             headers.insert(key.to_string(), value.to_str().unwrap().to_string());
         });
 
-        // if let Some(captures) = path.strip_prefix(req.uri().path()) {
-        //     println!("User ID: {}", captures); // "123"
-        // }
+        let mut params = HashMap::new();
 
-        // let params: HashMap<String, String> = req
-        //     .match_info()
-        //     .iter()
-        //     .map(|(k, v)| (k.to_string(), v.to_string()))
-        //     .collect();
+        if let Some(param_routerify) = req.data::<routerify::RouteParams>() {
+            println!("Params: {:?}", param_routerify);
+            param_routerify.iter().for_each(|(key, value)| {
+                params.insert(key.to_string(), value.to_string());
+            });
+        }
 
-        let params: HashMap<String, String> = req
-            .params()
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
+        let mut data = HashMap::new();
+
+        if let Some(ext_data) = req.extensions().get::<HashMap<String, String>>() {
+            data = ext_data.clone();
+        }
 
         let content_type = req
             .headers()
@@ -636,14 +648,92 @@ impl HttpRequest {
             queries,
             body: request_body,
             ip,
-            method: HttpMethods::GET,
+            method,
             origin_url,
             path,
             headers,
             cookies: cookies_map,
             protocol,
-            data: HashMap::new(),
+            data: data,
         })
+    }
+    pub fn to_hyper_request(&self) -> Result<Request<Body>, Box<dyn std::error::Error>> {
+        let path = if self.path.is_empty() {
+            "/".to_string()
+        } else if !self.path.starts_with('/') {
+            return Err("Path must start with '/'".into());
+        } else {
+            self.path.clone()
+        };
+
+        let mut uri_builder = path.to_string();
+        if !self.queries.is_empty() {
+            uri_builder.push('?');
+            uri_builder.push_str(&get_all_query_params(&self.queries));
+        }
+
+        let uri: hyper::Uri = uri_builder
+            .parse()
+            .map_err(|e| format!("Failed to parse URI '{}': {}", uri_builder, e))?;
+
+        let mut builder = Request::builder()
+            .method(self.method.to_string().as_str())
+            .uri(uri);
+
+        // Rest of the code remains the same...
+        if let Some(headers) = builder.headers_mut() {
+            for (key, value) in &self.headers {
+                if let Ok(header_name) = hyper::header::HeaderName::from_bytes(key.as_bytes()) {
+                    headers.insert(header_name, value.parse()?);
+                }
+            }
+
+            if !self.cookies.is_empty() {
+                let cookie_str: String = self
+                    .cookies
+                    .iter()
+                    .map(|(name, value)| format!("{}={}", name, value))
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                headers.insert(hyper::header::COOKIE, cookie_str.parse()?);
+            }
+        }
+
+        if let Some(data) = self.get_all_data() {
+            let extensions = builder.extensions_mut().unwrap();
+            extensions.insert(data.clone());
+        }
+
+        let body = match &self.body.content {
+            RequestBodyContent::JSON(json) => {
+                builder
+                    .headers_mut()
+                    .unwrap()
+                    .insert(hyper::header::CONTENT_TYPE, "application/json".parse()?);
+                Body::from(serde_json::to_string(json)?)
+            }
+            RequestBodyContent::TEXT(text) => {
+                builder
+                    .headers_mut()
+                    .unwrap()
+                    .insert(hyper::header::CONTENT_TYPE, "text/plain".parse()?);
+                Body::from(text.clone())
+            }
+            RequestBodyContent::FORM(form) => {
+                builder.headers_mut().unwrap().insert(
+                    hyper::header::CONTENT_TYPE,
+                    "application/x-www-form-urlencoded".parse()?,
+                );
+                Body::from(form.clone())
+            }
+            RequestBodyContent::EMPTY => Body::empty(),
+        };
+
+        Ok(builder.body(body)?)
+    }
+
+    pub(crate) fn set_param(&mut self, key: &str, value: &str) {
+        self.params.insert(key.to_string(), value.to_string());
     }
 }
 
@@ -703,10 +793,6 @@ impl HttpRequest {
 
     pub(crate) fn set_cookie(&mut self, key: &str, value: &str) {
         self.cookies.insert(key.to_string(), value.to_string());
-    }
-
-    pub(crate) fn set_param(&mut self, key: &str, value: &str) {
-        self.params.insert(key.to_string(), value.to_string());
     }
 
     pub(crate) fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)

@@ -10,6 +10,7 @@ pub mod context {
     pub use super::response::HttpResponse;
 }
 
+pub mod helpers;
 pub mod middlewares;
 pub mod router;
 pub mod types;

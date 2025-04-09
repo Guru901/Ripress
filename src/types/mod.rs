@@ -1,6 +1,12 @@
 use crate::{context::HttpResponse, request::HttpRequest};
 use serde::Serialize;
-use std::{collections::HashMap, fmt::Display, future::Future, pin::Pin, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+    future::Future,
+    pin::Pin,
+    sync::Arc,
+};
 
 // HttpRequest types
 
@@ -109,7 +115,11 @@ impl Display for HttpMethods {
 }
 
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
+pub type FutMiddleware =
+    Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
 pub type Handler = Arc<dyn Fn(&mut HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
+pub type HandlerMiddleware =
+    Arc<dyn Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>;
 pub(crate) type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
 
 pub trait Middleware: Send + Sync + 'static {
@@ -118,7 +128,7 @@ pub trait Middleware: Send + Sync + 'static {
         req: &mut HttpRequest,
         res: HttpResponse,
         next: Next,
-    ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
+    ) -> Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
 
     // Add this method to allow cloning of Box<dyn Middleware>
     fn clone_box(&self) -> Box<dyn Middleware>;
@@ -133,17 +143,21 @@ impl Clone for Box<dyn Middleware> {
 
 pub struct Next {
     pub middleware: Vec<Box<dyn Middleware>>,
-    pub handler: Handler,
+    pub handler: HandlerMiddleware,
 }
 
 impl Next {
     pub fn new() -> Self {
         Next {
             middleware: Vec::new(),
-            handler: Arc::new(|_, _| Box::pin(async { HttpResponse::new() })),
+            handler: Arc::new(|_, _| Box::pin(async { (HttpRequest::new(), None) })),
         }
     }
-    pub async fn run(self, req: &mut HttpRequest, res: HttpResponse) -> HttpResponse {
+    pub async fn run(
+        self,
+        req: &mut HttpRequest,
+        res: HttpResponse,
+    ) -> (HttpRequest, Option<HttpResponse>) {
         if let Some((current, rest)) = self.middleware.split_first() {
             // Call the next middleware
             let next = Next {
@@ -154,6 +168,22 @@ impl Next {
         } else {
             // No more middleware, call the handler
             (self.handler)(req, res).await
+        }
+    }
+}
+#[derive(Debug)]
+pub enum ApiError {
+    Generic(String, u16),
+}
+
+impl std::error::Error for ApiError {}
+
+impl fmt::Display for ApiError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ApiError::Generic(string, status_code) => {
+                write!(f, "Generic: {} {}", status_code, string)
+            }
         }
     }
 }

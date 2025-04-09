@@ -28,10 +28,10 @@ mod tests {
         let mut req = HttpRequest::new();
         req.set_param("q", "Ripress");
 
-        assert_eq!(req.get_params("q"), Ok("Ripress"));
+        assert_eq!(req.get_param("q"), Ok("Ripress"));
 
         assert_eq!(
-            req.get_params("nonexistent"),
+            req.get_param("nonexistent"),
             Err(HttpRequestError::MissingParam("nonexistent".to_string()))
         );
     }
