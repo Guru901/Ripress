@@ -173,7 +173,7 @@ impl Next {
 }
 #[derive(Debug)]
 pub enum ApiError {
-    Generic(String, u16),
+    Generic(HttpResponse),
 }
 
 impl std::error::Error for ApiError {}
@@ -181,9 +181,21 @@ impl std::error::Error for ApiError {}
 impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ApiError::Generic(string, status_code) => {
-                write!(f, "Generic: {} {}", status_code, string)
+            ApiError::Generic(msg) => {
+                write!(f, "Middleware Error: {:?}", msg)
             }
         }
+    }
+}
+
+impl From<HttpResponse> for ApiError {
+    fn from(res: HttpResponse) -> Self {
+        ApiError::Generic(res)
+    }
+}
+
+impl From<ApiError> for Box<dyn std::error::Error + Send> {
+    fn from(error: ApiError) -> Self {
+        Box::new(error)
     }
 }

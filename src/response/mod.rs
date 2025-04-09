@@ -87,7 +87,22 @@ pub struct HttpResponse {
 
     pub(crate) is_stream: bool,
 
-    pub(crate) stream: Pin<Box<dyn Stream<Item = Result<Bytes, BoxError>> + Send + 'static>>,
+    pub(crate) stream: Pin<Box<dyn Stream<Item = Result<Bytes, BoxError>> + Sync + Send + 'static>>,
+}
+
+impl std::fmt::Debug for HttpResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HttpResponse")
+            .field("status_code", &self.status_code)
+            .field("body", &self.body)
+            .field("content_type", &self.content_type)
+            .field("cookies", &self.cookies)
+            .field("headers", &self.headers)
+            .field("remove_cookies", &self.remove_cookies)
+            .field("is_stream", &self.is_stream)
+            .field("stream", &"<stream>")
+            .finish()
+    }
 }
 
 impl Clone for HttpResponse {
@@ -515,7 +530,7 @@ impl HttpResponse {
 
     pub fn write<S, E>(mut self, stream: S) -> Self
     where
-        S: Stream<Item = Result<Bytes, E>> + Send + 'static,
+        S: Stream<Item = Result<Bytes, E>> + Send + Sync + 'static,
         E: Into<BoxError> + Send + 'static,
     {
         self.is_stream = true;

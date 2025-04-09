@@ -364,10 +364,9 @@ impl App {
             let api_err = err.downcast::<ApiError>().unwrap();
 
             match api_err.as_ref() {
-                ApiError::Generic(msg, status_code) => Response::builder()
-                    .status(*status_code)
-                    .body(Body::from(msg.to_string()))
-                    .unwrap(),
+                ApiError::Generic(res) => {
+                    <HttpResponse as Clone>::clone(res).to_responder().unwrap()
+                }
             }
         }
 
