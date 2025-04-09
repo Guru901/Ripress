@@ -387,10 +387,14 @@ impl App {
                         router = router.get(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
 
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
@@ -399,9 +403,14 @@ impl App {
                         router = router.post(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
+
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
@@ -410,9 +419,13 @@ impl App {
                         router = router.put(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
@@ -421,9 +434,13 @@ impl App {
                         router = router.delete(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
@@ -432,9 +449,13 @@ impl App {
                         router = router.patch(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
@@ -443,9 +464,13 @@ impl App {
                         router = router.head(*path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let our_req = HttpRequest::from_hyper_request(&mut req).await;
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
                                 let our_res = HttpResponse::new();
-                                let response = handler(&mut our_req.unwrap(), our_res).await;
+                                let response = handler(&mut our_req, our_res).await;
                                 Ok(response.to_responder().unwrap())
                             }
                         });
