@@ -1,6 +1,6 @@
 use crate::request::HttpRequest;
 use crate::response::HttpResponse;
-use crate::types::{Fut, Handler, HttpMethods, Next, Routes};
+use crate::types::{Fut, FutMiddleware, Handler, HttpMethods, Next, Routes};
 use hyper::{Error, Server};
 use routerify::{Router, RouterBuilder, RouterService};
 use std::net::SocketAddr;
@@ -9,6 +9,13 @@ use std::{collections::HashMap, future::Future, sync::Arc};
 pub(crate) fn box_future<F>(future: F) -> Fut
 where
     F: Future<Output = HttpResponse> + Send + 'static,
+{
+    Box::pin(future)
+}
+
+pub(crate) fn box_future_middleware<F>(future: F) -> FutMiddleware
+where
+    F: Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
 {
     Box::pin(future)
 }
@@ -264,7 +271,6 @@ impl App {
         self.add_route(HttpMethods::PATCH, path, wrapped_handler.clone());
         self.add_route(HttpMethods::HEAD, path, wrapped_handler.clone());
     }
-
     /// Add a middleware to the application.
     ///
     /// ## Arguments
@@ -277,9 +283,11 @@ impl App {
     /// use ripress::app::App;
     /// let mut app = App::new();
     ///
-    /// app.use_middleware("path", |req, res, next| {
+    /// app.use_middleware("path", |req, res| {
     ///     let mut req = req.clone();
-    ///     Box::pin(async move { next.run(&mut req, res).await })
+    ///     Box::pin(async move {
+    ///         (req, None)
+    ///     })
     /// });
     ///
     /// ```
@@ -287,14 +295,14 @@ impl App {
     pub fn use_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(&mut HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
-        Fut: std::future::Future<Output = HttpResponse> + Send + 'static,
+        F: Fn(&mut HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
 
         self.middlewares.push(Box::new(Middleware {
-            func: Arc::new(move |req, res, next| -> crate::types::Fut {
-                box_future(middleware(req, res, next))
+            func: Arc::new(move |req, res| -> crate::types::FutMiddleware {
+                box_future_middleware(middleware(req, res))
             }),
             path: path,
         }));
