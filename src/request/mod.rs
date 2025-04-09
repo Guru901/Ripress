@@ -48,10 +48,10 @@ struct RequestBody {
 #[derive(Debug, Clone)]
 pub struct HttpRequest {
     /// Dynamic route parameters extracted from the URL.
-    params: HashMap<String, String>,
+    pub(crate) params: HashMap<String, String>,
 
     /// Query parameters from the request URL.
-    queries: HashMap<String, String>,
+    pub(crate) queries: HashMap<String, String>,
 
     /// The request body, which may contain JSON, text, or form data.
     body: RequestBody,
@@ -268,11 +268,11 @@ impl HttpRequest {
     /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
-    /// let id = req.get_params("id");
+    /// let id = req.get_param("id");
     /// println!("Id: {:?}", id);
     /// ```
 
-    pub fn get_params(&self, param_name: &str) -> Result<&str, HttpRequestError> {
+    pub fn get_param(&self, param_name: &str) -> Result<&str, HttpRequestError> {
         let param = self.params.get(param_name).map(|v| v);
 
         match param {
@@ -535,6 +535,16 @@ impl HttpRequest {
             .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
             .collect::<HashMap<String, String>>();
 
+        let method = match req.method() {
+            &Method::GET => HttpMethods::GET,
+            &Method::POST => HttpMethods::POST,
+            &Method::PUT => HttpMethods::PUT,
+            &Method::DELETE => HttpMethods::DELETE,
+            &Method::PATCH => HttpMethods::PATCH,
+            &Method::HEAD => HttpMethods::HEAD,
+            _ => HttpMethods::GET,
+        };
+
         let ip = get_real_ip_hyper(&req);
         let origin_url = req.uri().to_string();
         let path = req.uri().path().to_string();
@@ -553,21 +563,20 @@ impl HttpRequest {
             headers.insert(key.to_string(), value.to_str().unwrap().to_string());
         });
 
-        // if let Some(captures) = path.strip_prefix(req.uri().path()) {
-        //     println!("User ID: {}", captures); // "123"
-        // }
+        let mut params = HashMap::new();
 
-        // let params: HashMap<String, String> = req
-        //     .match_info()
-        //     .iter()
-        //     .map(|(k, v)| (k.to_string(), v.to_string()))
-        //     .collect();
+        if let Some(param_routerify) = req.data::<routerify::RouteParams>() {
+            println!("Params: {:?}", param_routerify);
+            param_routerify.iter().for_each(|(key, value)| {
+                params.insert(key.to_string(), value.to_string());
+            });
+        }
 
-        let params: HashMap<String, String> = req
-            .params()
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
+        let mut data = HashMap::new();
+
+        if let Some(ext_data) = req.extensions().get::<HashMap<String, String>>() {
+            data = ext_data.clone();
+        }
 
         let content_type = req
             .headers()
@@ -636,13 +645,13 @@ impl HttpRequest {
             queries,
             body: request_body,
             ip,
-            method: HttpMethods::GET,
+            method,
             origin_url,
             path,
             headers,
             cookies: cookies_map,
             protocol,
-            data: HashMap::new(),
+            data: data,
         })
     }
 
