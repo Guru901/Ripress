@@ -10,7 +10,7 @@ mod tests {
     #[test]
     fn test_default_response() {
         let response = HttpResponse::new();
-        assert_eq!(response.get_status_code(), 200);
+        assert_eq!(response.status_code, 200);
         assert_eq!(response.get_content_type(), ResponseContentType::JSON);
 
         // Edge case: Check default body content
@@ -24,10 +24,10 @@ mod tests {
     #[test]
     fn test_status_code() {
         let response = HttpResponse::new().status(200);
-        assert_eq!(response.get_status_code(), 200);
+        assert_eq!(response.status_code, 200);
 
         let response = HttpResponse::new().status(999);
-        assert_eq!(response.get_status_code(), 999);
+        assert_eq!(response.status_code, 999);
     }
 
     #[tokio::test]
@@ -36,7 +36,7 @@ mod tests {
         let response = HttpResponse::new().redirect(redirect_url);
 
         // Test that status code isx 302 (Found/Redirect)
-        assert_eq!(response.get_status_code(), 302);
+        assert_eq!(response.status_code, 302);
 
         assert_eq!(response.get_header("Location").unwrap(), redirect_url);
     }
@@ -48,7 +48,7 @@ mod tests {
 
         let response = HttpResponse::new().write(stream);
 
-        assert_eq!(response.get_status_code(), 200);
+        assert_eq!(response.status_code, 200);
         assert_eq!(response.is_stream, true);
     }
 
@@ -59,29 +59,27 @@ mod tests {
             .set_header("X-Custom", "test")
             .redirect(redirect_url);
 
-        assert_eq!(response.get_status_code(), 302);
-
+        assert_eq!(response.status_code, 302);
         assert_eq!(response.get_header("Location").unwrap(), redirect_url);
-
         assert_eq!(response.get_header("X-Custom").unwrap(), "test");
     }
 
     #[test]
     fn test_status_code_helpers() {
         let response = HttpResponse::new();
-        assert_eq!(response.ok().get_status_code(), 200);
+        assert_eq!(response.ok().status_code, 200);
 
         let response = HttpResponse::new();
-        assert_eq!(response.bad_request().get_status_code(), 400);
+        assert_eq!(response.bad_request().status_code, 400);
 
         let response = HttpResponse::new();
-        assert_eq!(response.internal_server_error().get_status_code(), 500);
+        assert_eq!(response.internal_server_error().status_code, 500);
 
         let response = HttpResponse::new();
-        assert_eq!(response.not_found().get_status_code(), 404);
+        assert_eq!(response.not_found().status_code, 404);
 
         let response = HttpResponse::new();
-        assert_eq!(response.unauthorized().get_status_code(), 401);
+        assert_eq!(response.unauthorized().status_code, 401);
     }
 
     #[test]
@@ -140,7 +138,7 @@ mod tests {
             panic!("Expected TEXT body");
         }
 
-        assert_eq!(response.get_status_code(), 200);
+        assert_eq!(response.status_code, 200);
         assert_eq!(response.get_content_type(), ResponseContentType::TEXT);
         assert_eq!(response.get_header("x-custom").unwrap(), "value");
 
