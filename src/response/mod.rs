@@ -268,8 +268,8 @@ impl HttpResponse {
     ///     .text("Resource created");
     /// ```
 
-    pub fn status(mut self, code: i32) -> Self {
-        self.status_code = code as u16;
+    pub fn status(mut self, code: u16) -> Self {
+        self.status_code = code;
         return self;
     }
 
