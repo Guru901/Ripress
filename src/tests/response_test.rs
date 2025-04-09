@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::context::HttpResponse;
+    use crate::response::BoxError;
     use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
     use bytes::Bytes;
     use futures::{stream, StreamExt};
@@ -244,51 +245,49 @@ mod tests {
         assert_eq!(err_1.to_string(), "Header id doesnt exist");
     }
 
-    // #[tokio::test]
-    // async fn test_stream_response() {
-    //     let stream = stream::iter(vec![Ok::<_, BoxError>(Bytes::from("test data"))]);
-    //     let response = HttpResponse::new()
-    //         .set_header("X-Custom", "value")
-    //         .set_cookie("session", "123")
-    //         .write(stream)
-    //         .to_responder();
+    #[tokio::test]
+    async fn test_stream_response() {
+        let stream = stream::iter(vec![Ok::<_, BoxError>(Bytes::from("test data"))]);
+        let response = HttpResponse::new()
+            .set_header("X-Custom", "value")
+            .set_cookie("session", "123")
+            .write(stream)
+            .to_responder();
 
-    //     assert_eq!(response.unwrap().status(), StatusCode::OK);
+        assert_eq!(response.unwrap().status(), StatusCode::OK);
 
-    //     // Streaming is not working rn
+        let stream = stream::iter(vec![Ok::<_, BoxError>(Bytes::from("test data"))]);
+        let response = HttpResponse::new()
+            .set_header("X-Custom", "value")
+            .set_cookie("session", "123")
+            .write(stream)
+            .to_responder();
 
-    //     // let stream = stream::iter(vec![Ok::<_, BoxError>(Bytes::from("test data"))]);
-    //     // let response = HttpResponse::new()
-    //     //     .set_header("X-Custom", "value")
-    //     //     .set_cookie("session", "123")
-    //     //     .write(stream)
-    //     //     .to_responder();
+        assert_eq!(
+            response.unwrap().headers().get("content-type").unwrap(),
+            "text/event-stream"
+        );
 
-    //     // assert_eq!(
-    //     //     response.unwrap().headers().get("content-type").unwrap(),
-    //     //     "text/event-stream"
-    //     // );
+        let stream = stream::iter(vec![Ok::<_, BoxError>(Bytes::from("test data"))]);
+        let response = HttpResponse::new()
+            .set_header("X-Custom", "value")
+            .set_cookie("session", "123")
+            .write(stream)
+            .to_responder();
+        assert_eq!(
+            response.unwrap().headers().get("x-custom").unwrap(),
+            "value"
+        );
 
-    //     let stream = stream::iter(vec![Ok::<_, BoxError>(Bytes::from("test data"))]);
-    //     let response = HttpResponse::new()
-    //         .set_header("X-Custom", "value")
-    //         .set_cookie("session", "123")
-    //         .write(stream)
-    //         .to_responder();
-    //     assert_eq!(
-    //         response.unwrap().headers().get("x-custom").unwrap(),
-    //         "value"
-    //     );
-
-    //     let stream = stream::iter(vec![Ok::<_, BoxError>(Bytes::from("test data"))]);
-    //     let response = HttpResponse::new()
-    //         .set_header("X-Custom", "value")
-    //         .set_cookie("session", "123")
-    //         .write(stream)
-    //         .to_responder();
-    //     assert_eq!(
-    //         response.unwrap().headers().get("connection").unwrap(),
-    //         "keep-alive"
-    //     );
-    // }
+        let stream = stream::iter(vec![Ok::<_, BoxError>(Bytes::from("test data"))]);
+        let response = HttpResponse::new()
+            .set_header("X-Custom", "value")
+            .set_cookie("session", "123")
+            .write(stream)
+            .to_responder();
+        assert_eq!(
+            response.unwrap().headers().get("connection").unwrap(),
+            "keep-alive"
+        );
+    }
 }
