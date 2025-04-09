@@ -631,20 +631,16 @@ impl HttpResponse {
         return Ok(response);
         // }
     }
+
+    pub(crate) fn get_body(self) -> ResponseContentBody {
+        self.body
+    }
 }
 
 #[cfg(test)]
 impl HttpResponse {
-    pub(crate) fn get_status_code(&self) -> u16 {
-        self.status_code
-    }
-
     pub(crate) fn get_content_type(&self) -> ResponseContentType {
         self.content_type.clone()
-    }
-
-    pub(crate) fn get_body(self) -> ResponseContentBody {
-        self.body
     }
 
     pub(crate) fn get_cookie(self, key: String) -> Option<String> {
