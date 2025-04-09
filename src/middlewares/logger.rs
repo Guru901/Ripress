@@ -1,14 +1,10 @@
-use crate::{
-    context::HttpResponse,
-    request::HttpRequest,
-    types::{Fut, FutMiddleware, Next},
-};
+use crate::{context::HttpResponse, request::HttpRequest, types::FutMiddleware};
 
 /// Configuration for the Logger Middleware
 ///
 /// ## Fields
 ///
-/// * `method` -  Wheather to log the method
+/// * `method` -  Whether to log the method
 /// * `path` - Whether to log the path
 /// * `duration` - Whether to log the duration
 
