@@ -1,6 +1,12 @@
 use crate::{context::HttpResponse, request::HttpRequest};
 use serde::Serialize;
-use std::{collections::HashMap, fmt::Display, future::Future, pin::Pin, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+    future::Future,
+    pin::Pin,
+    sync::Arc,
+};
 
 // HttpRequest types
 
@@ -154,6 +160,23 @@ impl Next {
         } else {
             // No more middleware, call the handler
             (self.handler)(req, res).await
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ApiError {
+    Generic(String, u16),
+}
+
+impl std::error::Error for ApiError {}
+
+impl fmt::Display for ApiError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ApiError::Generic(string, status_code) => {
+                write!(f, "Generic: {} {}", status_code, string)
+            }
         }
     }
 }
