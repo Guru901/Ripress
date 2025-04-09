@@ -1,7 +1,7 @@
 use crate::{
     context::HttpResponse,
     request::HttpRequest,
-    types::{Fut, Next},
+    types::{Fut, FutMiddleware, Next},
 };
 
 /// Configuration for the Logger Middleware
@@ -54,8 +54,8 @@ impl Default for LoggerConfig {
 /// ```
 pub fn logger(
     config: Option<LoggerConfig>,
-) -> impl Fn(&mut HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static {
-    move |req, res, next| {
+) -> impl Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+    move |req, res| {
         let config = config.clone().unwrap_or_default();
         let req = req.clone();
 
@@ -65,7 +65,6 @@ pub fn logger(
         Box::pin(async move {
             let method = req.get_method();
 
-            let res = next.run(&mut req.clone(), res).await;
             let duration = start_time.elapsed();
 
             if config.path {
@@ -82,7 +81,7 @@ pub fn logger(
 
             println!("");
 
-            res
+            (req, Some(res))
         })
     }
 }
