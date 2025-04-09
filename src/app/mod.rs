@@ -1,7 +1,8 @@
 use crate::request::HttpRequest;
 use crate::response::HttpResponse;
-use crate::types::{Fut, FutMiddleware, Handler, HttpMethods, Next, Routes};
-use hyper::{Error, Server};
+use crate::types::{ApiError, Fut, FutMiddleware, Handler, HttpMethods, Next, Routes};
+use hyper::{Body, Error, Response, Server};
+use routerify::ext::RequestExt;
 use routerify::{Router, RouterBuilder, RouterService};
 use std::net::SocketAddr;
 use std::{collections::HashMap, future::Future, sync::Arc};
@@ -357,6 +358,17 @@ impl App {
     pub async fn listen<F: FnOnce()>(self, port: u16, cb: F) {
         let mut router: RouterBuilder<_, _> = Router::<hyper::Body, Error>::builder();
 
+        async fn error_handler(err: routerify::RouteError) -> Response<Body> {
+            let api_err = err.downcast::<ApiError>().unwrap();
+
+            match api_err.as_ref() {
+                ApiError::Generic(msg, status_code) => Response::builder()
+                    .status(*status_code)
+                    .body(Body::from(msg.to_string()))
+                    .unwrap(),
+            }
+        }
+
         for middleware in self.middlewares {
             let mw_func = middleware.func;
             router = router.middleware(routerify::Middleware::pre(move |mut req| {
@@ -478,6 +490,8 @@ impl App {
                 }
             }
         }
+
+        router = router.err_handler(error_handler);
 
         let router = router.build().unwrap();
 

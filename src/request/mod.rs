@@ -645,6 +645,10 @@ impl HttpRequest {
             data: HashMap::new(),
         })
     }
+
+    pub(crate) fn set_param(&mut self, key: &str, value: &str) {
+        self.params.insert(key.to_string(), value.to_string());
+    }
 }
 
 /// Determines the content type from a content-type header string.
@@ -703,10 +707,6 @@ impl HttpRequest {
 
     pub(crate) fn set_cookie(&mut self, key: &str, value: &str) {
         self.cookies.insert(key.to_string(), value.to_string());
-    }
-
-    pub(crate) fn set_param(&mut self, key: &str, value: &str) {
-        self.params.insert(key.to_string(), value.to_string());
     }
 
     pub(crate) fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)
