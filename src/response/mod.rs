@@ -555,81 +555,81 @@ impl HttpResponse {
 
     pub fn to_responder(self) -> Result<Response<Body>, Infallible> {
         let body = self.body;
-        // if self.is_stream {
-        //     let mut response = Response::builder().status(self.status_code as u16);
-        //     response.header("Content-Type", "text/event-stream");
+        if self.is_stream {
+            let mut response = Response::builder().status(self.status_code as u16);
+            response = response.header("Content-Type", "text/event-stream");
 
-        //     self.headers.iter().for_each(|(key, value)| {
-        //         response.header(key.as_str(), value.as_str());
-        //     });
+            for (key, value) in self.headers.iter() {
+                response = response.header(key.as_str(), value.as_str());
+            }
 
-        //     response.header("Connection", "keep-alive");
+            response = response.header("Connection", "keep-alive");
 
-        //     self.cookies.iter().for_each(|(key, value)| {
-        //         let cookie = Cookie::build((key, value)).path("/").http_only(true);
-        //         response.header(
-        //             SET_COOKIE,
-        //             HeaderValue::from_str(&cookie.to_string()).unwrap(),
-        //         );
-        //     });
+            for (key, value) in self.cookies.iter() {
+                let cookie = Cookie::build((key, value)).path("/").http_only(true);
+                response = response.header(
+                    SET_COOKIE,
+                    HeaderValue::from_str(&cookie.to_string()).unwrap(),
+                );
+            }
 
-        //     self.remove_cookies.iter().for_each(|key| {
-        //         let expired_cookie = Cookie::build((key, ""))
-        //             .path("/")
-        //             .max_age(cookie::time::Duration::seconds(0));
+            for key in self.remove_cookies.iter() {
+                let expired_cookie = Cookie::build((key, ""))
+                    .path("/")
+                    .max_age(cookie::time::Duration::seconds(0));
 
-        //         response.header(
-        //             SET_COOKIE,
-        //             HeaderValue::from_str(&expired_cookie.to_string()).unwrap(),
-        //         );
-        //     });
+                response = response.header(
+                    SET_COOKIE,
+                    HeaderValue::from_str(&expired_cookie.to_string()).unwrap(),
+                );
+            }
 
-        //     return response;
-        // } else {
-        let mut response = match body {
-            ResponseContentBody::JSON(json) => Response::builder()
-                .status(self.status_code as u16)
-                .header("Content-Type", "application/json")
-                .body(Body::from(serde_json::to_string(&json).unwrap())),
-            ResponseContentBody::TEXT(text) => Response::builder()
-                .status(self.status_code as u16)
-                .header("Content-Type", "text/plain")
-                .body(Body::from(text)),
-            ResponseContentBody::HTML(html) => Response::builder()
-                .status(self.status_code as u16)
-                .header("Content-Type", "text/html")
-                .body(Body::from(html)),
+            return Ok(response.body(Body::wrap_stream(self.stream)).unwrap());
+        } else {
+            let mut response = match body {
+                ResponseContentBody::JSON(json) => Response::builder()
+                    .status(self.status_code as u16)
+                    .header("Content-Type", "application/json")
+                    .body(Body::from(serde_json::to_string(&json).unwrap())),
+                ResponseContentBody::TEXT(text) => Response::builder()
+                    .status(self.status_code as u16)
+                    .header("Content-Type", "text/plain")
+                    .body(Body::from(text)),
+                ResponseContentBody::HTML(html) => Response::builder()
+                    .status(self.status_code as u16)
+                    .header("Content-Type", "text/html")
+                    .body(Body::from(html)),
+            }
+            .unwrap();
+
+            for (key, value) in self.headers.iter() {
+                response.headers_mut().append(
+                    HeaderName::from_bytes(key.as_bytes()).unwrap(),
+                    HeaderValue::from_str(value).unwrap(),
+                );
+            }
+
+            self.cookies.iter().for_each(|(key, value)| {
+                let cookie = Cookie::build((key, value)).path("/").http_only(true);
+                response.headers_mut().append(
+                    SET_COOKIE,
+                    HeaderValue::from_str(&cookie.to_string()).unwrap(),
+                );
+            });
+
+            self.remove_cookies.iter().for_each(|key| {
+                let expired_cookie = Cookie::build((key, ""))
+                    .path("/")
+                    .max_age(cookie::time::Duration::seconds(0));
+
+                response.headers_mut().append(
+                    SET_COOKIE,
+                    HeaderValue::from_str(&expired_cookie.to_string()).unwrap(),
+                );
+            });
+
+            return Ok(response);
         }
-        .unwrap();
-
-        for (key, value) in self.headers.iter() {
-            response.headers_mut().append(
-                HeaderName::from_bytes(key.as_bytes()).unwrap(),
-                HeaderValue::from_str(value).unwrap(),
-            );
-        }
-
-        self.cookies.iter().for_each(|(key, value)| {
-            let cookie = Cookie::build((key, value)).path("/").http_only(true);
-            response.headers_mut().append(
-                SET_COOKIE,
-                HeaderValue::from_str(&cookie.to_string()).unwrap(),
-            );
-        });
-
-        self.remove_cookies.iter().for_each(|key| {
-            let expired_cookie = Cookie::build((key, ""))
-                .path("/")
-                .max_age(cookie::time::Duration::seconds(0));
-
-            response.headers_mut().append(
-                SET_COOKIE,
-                HeaderValue::from_str(&expired_cookie.to_string()).unwrap(),
-            );
-        });
-
-        return Ok(response);
-        // }
     }
 
     pub(crate) fn get_body(self) -> ResponseContentBody {
