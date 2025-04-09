@@ -31,21 +31,20 @@ async fn main() {
 
     app.get("/get-cookie-test", get_cookie_test);
 
-    // app.use_middleware("/auth", |req, res, next| {
-    //     println!("Auth middleware");
-    //     let mut req = req.clone();
-    //     Box::pin(async move {
-    //         if let Ok(token) = req.get_cookie("token") {
-    //             let token = token.to_string();
-    //             req.set_data("token", &token);
-    //             next.run(&mut req, res).await
-    //         } else {
-    //             res.status(401).text("Unauthorized")
-    //         }
-    //     })
-    // });
+    app.use_middleware("/auth", |req, res| {
+        let mut req = req.clone();
+        Box::pin(async move {
+            if let Ok(token) = req.get_cookie("token") {
+                let token = token.to_string();
+                req.set_data("token", &token);
+                (req, None)
+            } else {
+                (req, Some(res.status(401).text("Unauthorized")))
+            }
+        })
+    });
 
-    // app.get("/auth", auth);
+    app.get("/auth", auth);
 
     app.listen(8080, || {
         println!("Serer running on port 8080");
@@ -64,7 +63,7 @@ async fn header_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 async fn param_and_query_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let param = req.get_params("param").unwrap();
+    let param = req.get_param("param").unwrap();
     let query = req.get_query("query").unwrap();
     res.ok().json(json!({"param": param, "query": query}))
 }
@@ -109,10 +108,10 @@ async fn get_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().set_cookie("test-cookie", "value").text("hehe")
 }
 
-// async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-//     let token = req.get_data("token").unwrap();
-//     res.ok().text(token)
-// }
+async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let token = req.get_data("token").unwrap();
+    res.ok().text(token)
+}
 ' > main.rs
 
 cargo run &  # Start server in background
