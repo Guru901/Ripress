@@ -1,9 +1,10 @@
+use crate::helpers::exec_middleware;
 use crate::request::HttpRequest;
 use crate::response::HttpResponse;
-use crate::types::{ApiError, Fut, FutMiddleware, Handler, HttpMethods, Next, Routes};
-use hyper::{Body, Error, Response, Server};
+use crate::types::{ApiError, Fut, FutMiddleware, Handler, HttpMethods, Routes};
+use hyper::{Body, Response, Server};
 use routerify::ext::RequestExt;
-use routerify::{Router, RouterBuilder, RouterService};
+use routerify::{Router, RouterService};
 use std::net::SocketAddr;
 use std::{collections::HashMap, future::Future, sync::Arc};
 
@@ -23,7 +24,7 @@ where
 
 #[derive(Clone)]
 pub struct Middleware {
-    pub func: Arc<dyn Fn(&mut HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static>,
+    pub func: Arc<dyn Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
     pub path: String,
 }
 
@@ -272,6 +273,7 @@ impl App {
         self.add_route(HttpMethods::PATCH, path, wrapped_handler.clone());
         self.add_route(HttpMethods::HEAD, path, wrapped_handler.clone());
     }
+
     /// Add a middleware to the application.
     ///
     /// ## Arguments
@@ -356,7 +358,7 @@ impl App {
     /// ```
 
     pub async fn listen<F: FnOnce()>(self, port: u16, cb: F) {
-        let mut router: RouterBuilder<_, _> = Router::<hyper::Body, Error>::builder();
+        let mut router = Router::<Body, ApiError>::builder();
 
         async fn error_handler(err: routerify::RouteError) -> Response<Body> {
             let api_err = err.downcast::<ApiError>().unwrap();
@@ -370,24 +372,9 @@ impl App {
         }
 
         for middleware in self.middlewares {
-            let mw_func = middleware.func;
-            router = router.middleware(routerify::Middleware::pre(move |mut req| {
-                let mw_func = mw_func.clone();
-                async move {
-                    let mut our_req = HttpRequest::from_hyper_request(&mut req).await.unwrap();
-                    let our_res = HttpResponse::new();
-                    let next = Next::new();
-                    mw_func(&mut our_req, our_res, next).await;
-
-                    if let Some(data) = our_req.get_all_data() {
-                        for (key, value) in data {
-                            req.extensions_mut()
-                                .insert((key.to_string(), value.clone()));
-                        }
-                    }
-
-                    Ok(req)
-                }
+            let middleware = middleware.clone();
+            router = router.middleware(routerify::Middleware::pre(move |req| {
+                exec_middleware(req, middleware.clone())
             }));
         }
 
