@@ -646,10 +646,6 @@ impl HttpResponse {
             return Ok(response);
         }
     }
-
-    pub(crate) fn get_body(self) -> ResponseContentBody {
-        self.body
-    }
 }
 
 #[cfg(test)]
@@ -660,5 +656,9 @@ impl HttpResponse {
 
     pub(crate) fn get_cookie(self, key: String) -> Option<String> {
         self.cookies.get(&key).cloned()
+    }
+
+    pub(crate) fn get_body(self) -> ResponseContentBody {
+        self.body
     }
 }
