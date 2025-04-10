@@ -31,7 +31,6 @@ pub struct Middleware {
 pub struct App {
     routes: Routes,
     middlewares: Vec<Box<Middleware>>,
-    pub(crate) static_files: HashMap<String, String>,
 }
 
 impl App {
@@ -39,7 +38,6 @@ impl App {
         App {
             routes: HashMap::new(),
             middlewares: Vec::new(),
-            static_files: HashMap::new(),
         }
     }
 
@@ -47,7 +45,6 @@ impl App {
         App {
             routes: self.routes.clone(),
             middlewares: self.middlewares.clone(),
-            static_files: self.static_files.clone(),
         }
     }
 
@@ -311,30 +308,6 @@ impl App {
         }));
 
         self
-    }
-    /// Add a static file server to the application.
-    ///
-    /// ## Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `file` - The path to the file.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
-    ///
-    /// let mut app = App::new();
-    /// app.static_files("/public", "./public");
-    ///
-    /// ```
-
-    pub fn static_files(&mut self, path: &'static str, file: &'static str) {
-        self.static_files
-            .insert("serve_from".to_string(), file.to_string());
-
-        self.static_files
-            .insert("mount_path".to_string(), path.to_string());
     }
 
     /// Starts the server and listens on the specified address.
