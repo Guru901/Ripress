@@ -131,21 +131,30 @@ Middleware provides a powerful way to process HTTP requests and responses in a m
 
 Use the `.use_middleware()` method to add middleware to your application:
 
+The middleware function returns a tuple of the request and Option<response>. If the response is None, the handler will be called, but if the response is Some, the middleware will return the response and abort the request.
+
+This middleware will be applied to routes that starts with /auth.
+
 ```rust
 let mut app = App::new();
+app.use_middleware("/auth", |req, res| {
+    let mut req = req.clone();
 
-app.use_middleware("/api/", |req, res, next| {
-    println!("here");
-    Box::pin(async move { next.run(req, res).await })
+    Box::pin(async move {
+        if let Ok(token) = req.get_cookie("token") {
+            let token = token.to_string();
+            req.set_data("token", &token);
+            (req, None)
+        } else {
+            (req, Some(res.status(401).text("Unauthorized")))
+        }
+    })
 });
 ```
 
 ### Order Matters
 
 Middleware is executed in the order it's added.
-And they are applied to all routes.
-
-The middleware will be applied to /api/\* in this case
 
 ## Dynamic Route Parameters
 
