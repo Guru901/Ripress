@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.0] - 2025-16-01
+
+# Breaking change
+
+Middlewares now work a bit differently. Take a look at [App.md](./docs/app.md) for more details.
+
+# Chagnes
+
+The project now uses hyper instead of actix-web. This change is done in need for more control and increased performance.
+
 ## [0.5.1] - 2025-04-01
 
 - Added `res.head` method

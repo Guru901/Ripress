@@ -964,7 +964,7 @@ dependencies = [
 
 [[package]]
 name = "ripress"
-version = "0.5.1"
+version = "1.0.0"
 dependencies = [
  "bytes",
  "cookie",
