@@ -1,14 +1,10 @@
-use crate::{
-    context::HttpResponse,
-    request::HttpRequest,
-    types::{Fut, Next},
-};
+use crate::{context::HttpResponse, request::HttpRequest, types::FutMiddleware};
 
 /// Configuration for the Logger Middleware
 ///
 /// ## Fields
 ///
-/// * `method` -  Wheather to log the method
+/// * `method` -  Whether to log the method
 /// * `path` - Whether to log the path
 /// * `duration` - Whether to log the duration
 
@@ -54,9 +50,10 @@ impl Default for LoggerConfig {
 /// ```
 pub fn logger(
     config: Option<LoggerConfig>,
-) -> impl Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static {
-    move |req, res, next| {
+) -> impl Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+    move |req, res| {
         let config = config.clone().unwrap_or_default();
+        let req = req.clone();
 
         let start_time = std::time::Instant::now();
         let path = req.get_path().to_string();
@@ -64,7 +61,6 @@ pub fn logger(
         Box::pin(async move {
             let method = req.get_method();
 
-            let res = next.run(req.clone(), res).await;
             let duration = start_time.elapsed();
 
             if config.path {
@@ -81,7 +77,7 @@ pub fn logger(
 
             println!("");
 
-            res
+            (req, Some(res))
         })
     }
 }

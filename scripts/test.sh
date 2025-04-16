@@ -19,8 +19,8 @@ async fn main() {
 
     app.get("/cookie-test", cookie_test);
     app.get("/header-test", header_test);
-    app.get("/param-and-query-test/{param}", param_and_query_test);
-    app.get("/origin-url-and-path/{param}", origin_url_and_path_test);
+    app.get("/param-and-query-test/:param", param_and_query_test);
+    app.get("/origin-url-and-path/:param", origin_url_and_path_test);
     app.get("/ip-test", ip_test);
 
     app.post("/json-test", json_test);
@@ -31,15 +31,15 @@ async fn main() {
 
     app.get("/get-cookie-test", get_cookie_test);
 
-    app.use_middleware("/auth", |mut req, res, next| {
-        println!("Auth middleware");
+    app.use_middleware("/auth", |req, res| {
+        let mut req = req.clone();
         Box::pin(async move {
             if let Ok(token) = req.get_cookie("token") {
                 let token = token.to_string();
                 req.set_data("token", &token);
-                next.run(req, res).await
+                (req, None)
             } else {
-                res.status(401).text("Unauthorized")
+                (req, Some(res.status(401).text("Unauthorized")))
             }
         })
     });
@@ -48,7 +48,8 @@ async fn main() {
 
     app.listen(8080, || {
         println!("Serer running on port 8080");
-    }).await;
+    })
+    .await;
 }
 
 async fn cookie_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -62,7 +63,7 @@ async fn header_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 async fn param_and_query_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let param = req.get_params("param").unwrap();
+    let param = req.get_param("param").unwrap();
     let query = req.get_query("query").unwrap();
     res.ok().json(json!({"param": param, "query": query}))
 }
@@ -103,7 +104,7 @@ async fn check_status_code(_req: HttpRequest, res: HttpResponse) -> HttpResponse
     res.status(900)
 }
 
-async fn get_cookie_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn get_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().set_cookie("test-cookie", "value").text("hehe")
 }
 

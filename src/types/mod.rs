@@ -1,6 +1,12 @@
 use crate::{context::HttpResponse, request::HttpRequest};
 use serde::Serialize;
-use std::{collections::HashMap, fmt::Display, future::Future, pin::Pin, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+    future::Future,
+    pin::Pin,
+    sync::Arc,
+};
 
 // HttpRequest types
 
@@ -9,6 +15,7 @@ pub enum RequestBodyType {
     JSON,
     TEXT,
     FORM,
+    EMPTY,
 }
 
 impl Copy for RequestBodyType {}
@@ -18,6 +25,7 @@ pub enum RequestBodyContent {
     TEXT(String),
     JSON(serde_json::Value),
     FORM(String),
+    EMPTY,
 }
 
 #[derive(Debug, PartialEq)]
@@ -26,6 +34,7 @@ pub enum HttpRequestError {
     MissingParam(String),
     MissingHeader(String),
     MissingQuery(String),
+    InvalidJson(String),
 }
 
 impl std::fmt::Display for HttpRequestError {
@@ -35,6 +44,7 @@ impl std::fmt::Display for HttpRequestError {
             HttpRequestError::MissingParam(param) => write!(f, "Param {} doesn't exist", param),
             HttpRequestError::MissingHeader(header) => write!(f, "Header {} doesn't exist", header),
             HttpRequestError::MissingQuery(query) => write!(f, "Query {} doesn't exist", query),
+            HttpRequestError::InvalidJson(err) => write!(f, "Invalid json: {}", err),
         }
     }
 }
@@ -105,16 +115,20 @@ impl Display for HttpMethods {
 }
 
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
-pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
+pub type FutMiddleware =
+    Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
+pub type Handler = Arc<dyn Fn(&mut HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
+pub type HandlerMiddleware =
+    Arc<dyn Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>;
 pub(crate) type Routes = HashMap<&'static str, HashMap<HttpMethods, Handler>>;
 
 pub trait Middleware: Send + Sync + 'static {
     fn handle(
         &self,
-        req: HttpRequest,
+        req: &mut HttpRequest,
         res: HttpResponse,
         next: Next,
-    ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
+    ) -> Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
 
     // Add this method to allow cloning of Box<dyn Middleware>
     fn clone_box(&self) -> Box<dyn Middleware>;
@@ -129,17 +143,21 @@ impl Clone for Box<dyn Middleware> {
 
 pub struct Next {
     pub middleware: Vec<Box<dyn Middleware>>,
-    pub handler: Handler,
+    pub handler: HandlerMiddleware,
 }
 
 impl Next {
     pub fn new() -> Self {
         Next {
             middleware: Vec::new(),
-            handler: Arc::new(|_, _| Box::pin(async { HttpResponse::new() })),
+            handler: Arc::new(|_, _| Box::pin(async { (HttpRequest::new(), None) })),
         }
     }
-    pub async fn run(self, req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    pub async fn run(
+        self,
+        req: &mut HttpRequest,
+        res: HttpResponse,
+    ) -> (HttpRequest, Option<HttpResponse>) {
         if let Some((current, rest)) = self.middleware.split_first() {
             // Call the next middleware
             let next = Next {
@@ -151,5 +169,33 @@ impl Next {
             // No more middleware, call the handler
             (self.handler)(req, res).await
         }
+    }
+}
+#[derive(Debug)]
+pub enum ApiError {
+    Generic(HttpResponse),
+}
+
+impl std::error::Error for ApiError {}
+
+impl fmt::Display for ApiError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ApiError::Generic(msg) => {
+                write!(f, "Middleware Error: {:?}", msg)
+            }
+        }
+    }
+}
+
+impl From<HttpResponse> for ApiError {
+    fn from(res: HttpResponse) -> Self {
+        ApiError::Generic(res)
+    }
+}
+
+impl From<ApiError> for Box<dyn std::error::Error + Send> {
+    fn from(error: ApiError) -> Self {
+        Box::new(error)
     }
 }

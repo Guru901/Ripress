@@ -1,8 +1,11 @@
-use crate::types::{HttpMethods, HttpRequestError, RequestBodyContent, RequestBodyType};
-use actix_web::{http::Method, HttpMessage};
-use futures_util::stream::StreamExt;
+use crate::{
+    helpers::get_all_query_params,
+    types::{HttpMethods, HttpRequestError, RequestBodyContent, RequestBodyType},
+};
+use cookie::Cookie;
+use hyper::{body::to_bytes, Body, Method, Request};
+use routerify::ext::RequestExt;
 use std::collections::HashMap;
-use url;
 
 #[derive(Debug, Clone)]
 struct RequestBody {
@@ -48,10 +51,10 @@ struct RequestBody {
 #[derive(Debug, Clone)]
 pub struct HttpRequest {
     /// Dynamic route parameters extracted from the URL.
-    params: HashMap<String, String>,
+    pub(crate) params: HashMap<String, String>,
 
     /// Query parameters from the request URL.
-    queries: HashMap<String, String>,
+    pub(crate) queries: HashMap<String, String>,
 
     /// The request body, which may contain JSON, text, or form data.
     body: RequestBody,
@@ -268,11 +271,11 @@ impl HttpRequest {
     /// ## Example
     /// ```
     /// let req = ripress::context::HttpRequest::new();
-    /// let id = req.get_params("id");
+    /// let id = req.get_param("id");
     /// println!("Id: {:?}", id);
     /// ```
 
-    pub fn get_params(&self, param_name: &str) -> Result<&str, HttpRequestError> {
+    pub fn get_param(&self, param_name: &str) -> Result<&str, HttpRequestError> {
         let param = self.params.get(param_name).map(|v| v);
 
         match param {
@@ -319,6 +322,10 @@ impl HttpRequest {
 
     pub fn get_data(&self, key: &str) -> Option<&String> {
         self.data.get(key)
+    }
+
+    pub fn get_all_data(&self) -> Option<&HashMap<String, String>> {
+        Some(&self.data)
     }
 
     /// Returns header based on the key.
@@ -522,37 +529,35 @@ impl HttpRequest {
         }
     }
 
-    pub async fn from_actix_request(
-        req: actix_web::HttpRequest,
-        mut payload: actix_web::web::Payload,
-    ) -> Result<Self, actix_web::Error> {
-        // Extract all necessary data from the request early
-        let query_string = req.query_string();
+    pub async fn from_hyper_request(
+        req: &mut Request<hyper::body::Body>,
+    ) -> Result<Self, hyper::Error> {
+        let query_string = req.uri().query().unwrap_or("");
 
         let queries = url::form_urlencoded::parse(query_string.as_bytes())
             .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
             .collect::<HashMap<String, String>>();
-
-        let ip = get_real_ip(&req);
 
         let method = match req.method() {
             &Method::GET => HttpMethods::GET,
             &Method::POST => HttpMethods::POST,
             &Method::PUT => HttpMethods::PUT,
             &Method::DELETE => HttpMethods::DELETE,
+            &Method::PATCH => HttpMethods::PATCH,
+            &Method::HEAD => HttpMethods::HEAD,
             _ => HttpMethods::GET,
         };
 
+        let ip = get_real_ip_hyper(&req);
         let origin_url = req.uri().to_string();
-        let path = req.path().to_string();
+        let path = req.uri().path().to_string();
 
-        let mut cookies: HashMap<String, String> = HashMap::new();
+        let mut cookies_map = HashMap::new();
+        let cookies = get_cookies(&req);
 
-        req.cookies().iter().for_each(|cookie| {
-            if let Some(first_cookie) = cookie.get(0) {
-                let (name, value) = (first_cookie.name(), first_cookie.value());
-                cookies.insert(name.to_string(), value.to_string());
-            }
+        cookies.iter().for_each(|cookie| {
+            let (name, value) = (cookie.name(), cookie.value());
+            cookies_map.insert(name.to_string(), value.to_string());
         });
 
         let mut headers: HashMap<String, String> = HashMap::new();
@@ -561,53 +566,57 @@ impl HttpRequest {
             headers.insert(key.to_string(), value.to_str().unwrap().to_string());
         });
 
-        let params: HashMap<String, String> = req
-            .match_info()
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
+        let mut params = HashMap::new();
 
-        let content_type = determine_content_type(req.content_type());
-        let protocol = req.connection_info().scheme().to_string();
-
-        // Read the body
-        let mut body = actix_web::web::BytesMut::new();
-        while let Some(chunk) = payload.next().await {
-            let chunk = chunk?;
-            if (body.len() + chunk.len()) > 262_144 {
-                return Err(actix_web::error::ErrorBadRequest("Body too large"));
-            }
-            body.extend_from_slice(&chunk);
+        if let Some(param_routerify) = req.data::<routerify::RouteParams>() {
+            println!("Params: {:?}", param_routerify);
+            param_routerify.iter().for_each(|(key, value)| {
+                params.insert(key.to_string(), value.to_string());
+            });
         }
+
+        let mut data = HashMap::new();
+
+        if let Some(ext_data) = req.extensions().get::<HashMap<String, String>>() {
+            data = ext_data.clone();
+        }
+
+        let content_type = req
+            .headers()
+            .get("Content-Type")
+            .and_then(|val| val.to_str().ok())
+            .map(determine_content_type)
+            .unwrap_or(RequestBodyType::EMPTY);
+
+        let protocol = req
+            .headers()
+            .get("x-forwarded-proto")
+            .and_then(|val| val.to_str().ok())
+            .unwrap_or("http")
+            .to_string();
 
         let request_body = match content_type {
             RequestBodyType::FORM => {
-                let body_string = match std::str::from_utf8(&body) {
-                    Ok(s) => s.to_string(),
-                    Err(_) => {
-                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
-                    }
+                let body_bytes = to_bytes(req.body_mut()).await;
+
+                let body_string = match body_bytes {
+                    Ok(bytes) => std::str::from_utf8(&bytes).unwrap().to_string(),
+                    Err(err) => return Err(err),
                 };
 
                 RequestBody {
-                    content: RequestBodyContent::FORM(body_string),
+                    content: RequestBodyContent::FORM(body_string.to_string()),
                     content_type: RequestBodyType::FORM,
                 }
             }
             RequestBodyType::JSON => {
-                let body_json = match std::str::from_utf8(&body) {
-                    Ok(s) => match serde_json::from_str(s) {
-                        Ok(json) => json,
-                        Err(e) => {
-                            return Err(actix_web::error::ErrorBadRequest(format!(
-                                "Invalid JSON: {}",
-                                e
-                            )));
-                        }
-                    },
-                    Err(_) => {
-                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
+                let body_bytes = to_bytes(req.body_mut()).await;
+                let body_json = match body_bytes {
+                    Ok(bytes) => {
+                        let s = std::str::from_utf8(&bytes).unwrap();
+                        serde_json::from_str(s).unwrap()
                     }
+                    Err(err) => return Err(err),
                 };
 
                 RequestBody {
@@ -616,18 +625,22 @@ impl HttpRequest {
                 }
             }
             RequestBodyType::TEXT => {
-                let body_string = match std::str::from_utf8(&body) {
-                    Ok(s) => s.to_string(),
-                    Err(_) => {
-                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
-                    }
+                let body_bytes = to_bytes(req.body_mut()).await;
+
+                let body_string = match body_bytes {
+                    Ok(bytes) => std::str::from_utf8(&bytes).unwrap().to_string(),
+                    Err(err) => return Err(err),
                 };
 
                 RequestBody {
-                    content: RequestBodyContent::TEXT(body_string),
+                    content: RequestBodyContent::TEXT(body_string.to_string()),
                     content_type: RequestBodyType::TEXT,
                 }
             }
+            RequestBodyType::EMPTY => RequestBody {
+                content: RequestBodyContent::EMPTY,
+                content_type: RequestBodyType::EMPTY,
+            },
         };
 
         Ok(HttpRequest {
@@ -639,10 +652,88 @@ impl HttpRequest {
             origin_url,
             path,
             headers,
-            cookies,
+            cookies: cookies_map,
             protocol,
-            data: HashMap::new(),
+            data: data,
         })
+    }
+    pub fn to_hyper_request(&self) -> Result<Request<Body>, Box<dyn std::error::Error>> {
+        let path = if self.path.is_empty() {
+            "/".to_string()
+        } else if !self.path.starts_with('/') {
+            return Err("Path must start with '/'".into());
+        } else {
+            self.path.clone()
+        };
+
+        let mut uri_builder = path.to_string();
+        if !self.queries.is_empty() {
+            uri_builder.push('?');
+            uri_builder.push_str(&get_all_query_params(&self.queries));
+        }
+
+        let uri: hyper::Uri = uri_builder
+            .parse()
+            .map_err(|e| format!("Failed to parse URI '{}': {}", uri_builder, e))?;
+
+        let mut builder = Request::builder()
+            .method(self.method.to_string().as_str())
+            .uri(uri);
+
+        // Rest of the code remains the same...
+        if let Some(headers) = builder.headers_mut() {
+            for (key, value) in &self.headers {
+                if let Ok(header_name) = hyper::header::HeaderName::from_bytes(key.as_bytes()) {
+                    headers.insert(header_name, value.parse()?);
+                }
+            }
+
+            if !self.cookies.is_empty() {
+                let cookie_str: String = self
+                    .cookies
+                    .iter()
+                    .map(|(name, value)| format!("{}={}", name, value))
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                headers.insert(hyper::header::COOKIE, cookie_str.parse()?);
+            }
+        }
+
+        if let Some(data) = self.get_all_data() {
+            let extensions = builder.extensions_mut().unwrap();
+            extensions.insert(data.clone());
+        }
+
+        let body = match &self.body.content {
+            RequestBodyContent::JSON(json) => {
+                builder
+                    .headers_mut()
+                    .unwrap()
+                    .insert(hyper::header::CONTENT_TYPE, "application/json".parse()?);
+                Body::from(serde_json::to_string(json)?)
+            }
+            RequestBodyContent::TEXT(text) => {
+                builder
+                    .headers_mut()
+                    .unwrap()
+                    .insert(hyper::header::CONTENT_TYPE, "text/plain".parse()?);
+                Body::from(text.clone())
+            }
+            RequestBodyContent::FORM(form) => {
+                builder.headers_mut().unwrap().insert(
+                    hyper::header::CONTENT_TYPE,
+                    "application/x-www-form-urlencoded".parse()?,
+                );
+                Body::from(form.clone())
+            }
+            RequestBodyContent::EMPTY => Body::empty(),
+        };
+
+        Ok(builder.body(body)?)
+    }
+
+    pub(crate) fn set_param(&mut self, key: &str, value: &str) {
+        self.params.insert(key.to_string(), value.to_string());
     }
 }
 
@@ -666,16 +757,28 @@ pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
     }
 }
 
-pub(crate) fn get_real_ip(req: &actix_web::HttpRequest) -> String {
+pub(crate) fn get_real_ip_hyper(req: &Request<hyper::Body>) -> String {
     req.headers()
         .get("X-Forwarded-For")
         .and_then(|val| val.to_str().ok())
         .map(|s| s.split(',').next().unwrap_or("").trim().to_string())
-        .unwrap_or_else(|| {
-            req.peer_addr()
-                .map(|addr| addr.ip().to_string())
-                .unwrap_or("unknown".to_string())
-        })
+        .unwrap_or(String::new())
+}
+
+pub(crate) fn get_cookies(req: &Request<Body>) -> Vec<Cookie<'_>> {
+    let mut cookies = Vec::new();
+
+    if let Some(header_value) = req.headers().get("cookie") {
+        if let Ok(header_str) = header_value.to_str() {
+            for cookie_str in header_str.split(';') {
+                if let Ok(cookie) = Cookie::parse(cookie_str.trim()) {
+                    cookies.push(cookie);
+                }
+            }
+        }
+    }
+
+    cookies
 }
 
 #[cfg(test)]
@@ -690,10 +793,6 @@ impl HttpRequest {
 
     pub(crate) fn set_cookie(&mut self, key: &str, value: &str) {
         self.cookies.insert(key.to_string(), value.to_string());
-    }
-
-    pub(crate) fn set_param(&mut self, key: &str, value: &str) {
-        self.params.insert(key.to_string(), value.to_string());
     }
 
     pub(crate) fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)

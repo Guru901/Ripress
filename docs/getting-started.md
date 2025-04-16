@@ -31,7 +31,7 @@ async fn main() {
     let mut app = App::new();
 
     app.get("/", index);
-    app.get("/user/{id}", find_user);
+    app.get("/user/:id", find_user);
     app.post("/submit", submit_form);
 
     app.listen(3000, || {}).await

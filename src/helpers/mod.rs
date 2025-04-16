@@ -31,20 +31,7 @@ pub async fn exec_middleware(
                 return Ok(modified_req.to_hyper_request().unwrap());
             }
             Some(res) => {
-                let body: crate::types::ResponseContentBody = res.clone().get_body();
-                let status_code = res.status_code;
-
-                match body {
-                    crate::types::ResponseContentBody::HTML(html) => {
-                        return Err(ApiError::Generic(format!("{}", html), status_code));
-                    }
-                    crate::types::ResponseContentBody::JSON(json) => {
-                        return Err(ApiError::Generic(format!("{}", json), status_code));
-                    }
-                    crate::types::ResponseContentBody::TEXT(text) => {
-                        return Err(ApiError::Generic(format!("{}", text), status_code));
-                    }
-                }
+                return Err(ApiError::Generic(res));
             }
         }
     } else {

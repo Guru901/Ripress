@@ -148,7 +148,7 @@ match req.get_params("id") {
 
 Example:
 
-- Route: `GET /user/{id}`
+- Route: `GET /user/:id`
 - Request: `GET /user/123`
 - `get_params("id")` returns `Ok("123")`
 

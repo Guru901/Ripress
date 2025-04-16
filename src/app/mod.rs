@@ -1,7 +1,11 @@
+use crate::helpers::exec_middleware;
 use crate::request::HttpRequest;
 use crate::response::HttpResponse;
-use crate::types::{Fut, Handler, HttpMethods, Middleware, Next, Routes};
-use actix_files as fs;
+use crate::types::{ApiError, Fut, FutMiddleware, Handler, HttpMethods, Routes};
+use hyper::{Body, Response, Server};
+use routerify::ext::RequestExt;
+use routerify::{Router, RouterService};
+use std::net::SocketAddr;
 use std::{collections::HashMap, future::Future, sync::Arc};
 
 pub(crate) fn box_future<F>(future: F) -> Fut
@@ -11,10 +15,22 @@ where
     Box::pin(future)
 }
 
+pub(crate) fn box_future_middleware<F>(future: F) -> FutMiddleware
+where
+    F: Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
+{
+    Box::pin(future)
+}
+
+#[derive(Clone)]
+pub struct Middleware {
+    pub func: Arc<dyn Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
+    pub path: String,
+}
+
 pub struct App {
     routes: Routes,
-    middlewares: Vec<Box<dyn Middleware>>,
-    pub(crate) static_files: HashMap<String, String>,
+    middlewares: Vec<Box<Middleware>>,
 }
 
 impl App {
@@ -22,23 +38,13 @@ impl App {
         App {
             routes: HashMap::new(),
             middlewares: Vec::new(),
-            static_files: HashMap::new(),
         }
     }
 
     pub fn clone_app(&self) -> App {
-        // Create a new vector and clone each middleware box
-        let mut cloned_middlewares = Vec::new();
-
-        // Clone each middleware using clone_box
-        for middleware in &self.middlewares {
-            cloned_middlewares.push(middleware.clone_box());
-        }
-
         App {
             routes: self.routes.clone(),
-            middlewares: cloned_middlewares,
-            static_files: self.static_files.clone(),
+            middlewares: self.middlewares.clone(),
         }
     }
 
@@ -67,7 +73,9 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::GET, path, wrapped_handler);
     }
 
@@ -96,7 +104,9 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::POST, path, wrapped_handler);
     }
 
@@ -125,7 +135,9 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::PUT, path, wrapped_handler);
     }
 
@@ -154,7 +166,9 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::DELETE, path, wrapped_handler);
     }
 
@@ -183,7 +197,9 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::PATCH, path, wrapped_handler);
     }
 
@@ -212,7 +228,9 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::HEAD, path, wrapped_handler);
     }
 
@@ -242,7 +260,9 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
+        let wrapped_handler = Arc::new(move |req: &mut HttpRequest, res: HttpResponse| {
+            box_future(handler(req.clone(), res))
+        });
         self.add_route(HttpMethods::GET, path, wrapped_handler.clone());
         self.add_route(HttpMethods::POST, path, wrapped_handler.clone());
         self.add_route(HttpMethods::PUT, path, wrapped_handler.clone());
@@ -263,9 +283,11 @@ impl App {
     /// use ripress::app::App;
     /// let mut app = App::new();
     ///
-    /// app.use_middleware("path", |req, res, next| {
-    ///     println!("here");
-    ///     Box::pin(async move { next.run(req, res).await })
+    /// app.use_middleware("path", |req, res| {
+    ///     let mut req = req.clone();
+    ///     Box::pin(async move {
+    ///         (req, None)
+    ///     })
     /// });
     ///
     /// ```
@@ -273,80 +295,19 @@ impl App {
     pub fn use_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static,
-        Fut: std::future::Future<Output = HttpResponse> + Send + 'static,
+        F: Fn(&mut HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
 
-        struct Wrapper<F> {
-            func: F,
-            path: String,
-        }
-
-        impl<F, Fut> Middleware for Wrapper<F>
-        where
-            F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static,
-            Fut: std::future::Future<Output = HttpResponse> + Send + 'static,
-        {
-            fn clone_box(&self) -> Box<dyn Middleware> {
-                Box::new(Wrapper {
-                    func: self.func.clone(),
-                    path: self.path.clone(),
-                })
-            }
-
-            fn handle(
-                &self,
-                req: HttpRequest,
-                res: HttpResponse,
-                next: Next,
-            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = HttpResponse> + Send + 'static>>
-            {
-                if self.path == "/" {
-                    let fut = (self.func)(req, res, next);
-                    Box::pin(fut)
-                } else {
-                    if req.get_path().starts_with(self.path.as_str()) {
-                        let fut = (self.func)(req, res, next);
-                        Box::pin(fut)
-                    } else {
-                        Box::pin(async move { next.run(req, res).await })
-                    }
-                }
-            }
-        }
-
-        self.middlewares.push(Box::new(Wrapper {
-            func: middleware,
+        self.middlewares.push(Box::new(Middleware {
+            func: Arc::new(move |req, res| -> crate::types::FutMiddleware {
+                box_future_middleware(middleware(req, res))
+            }),
             path: path,
         }));
 
         self
-    }
-
-    /// Add a static file server to the application.
-    ///
-    /// ## Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `file` - The path to the file.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
-    ///
-    /// let mut app = App::new();
-    /// app.static_files("/public", "./public");
-    ///
-    /// ```
-
-    pub fn static_files(&mut self, path: &'static str, file: &'static str) {
-        self.static_files
-            .insert("serve_from".to_string(), file.to_string());
-
-        self.static_files
-            .insert("mount_path".to_string(), path.to_string());
     }
 
     /// Starts the server and listens on the specified address.
@@ -369,76 +330,141 @@ impl App {
     ///
     /// ```
 
-    pub async fn listen<F: FnOnce()>(self, port: i32, cb: F) {
-        cb();
-        let app_clone = self.clone_app();
-        actix_web::HttpServer::new(move || {
-            let mut app = actix_web::App::new();
+    pub async fn listen<F: FnOnce()>(self, port: u16, cb: F) {
+        let mut router = Router::<Body, ApiError>::builder();
 
-      for (path, methods) in app_clone.routes.clone() {
-        for (method, handler) in methods {
-          let method = method.clone();
-          let middlewares = app_clone.middlewares.clone();
+        async fn error_handler(err: routerify::RouteError) -> Response<Body> {
+            let api_err = err.downcast::<ApiError>().unwrap();
 
-          match method {
-            HttpMethods::GET | HttpMethods::POST | HttpMethods::PUT | HttpMethods::DELETE | HttpMethods::PATCH | HttpMethods::HEAD=> {
-              let route_method = match method {
-                HttpMethods::GET => actix_web::web::get(),
-                HttpMethods::POST => actix_web::web::post(),
-                HttpMethods::PUT => actix_web::web::put(),
-                HttpMethods::DELETE => actix_web::web::delete(),
-                HttpMethods::PATCH => actix_web::web::patch(),
-                HttpMethods::HEAD => actix_web::web::head(),
-              };
-
-              app = app.route(
-                &path,
-                route_method.to(move |req: actix_web::HttpRequest, payload: actix_web::web::Payload| {
-                  let handler_clone = handler.clone();
-                  let middlewares_clone = middlewares.clone();
-
-                  async move {
-                    let our_req = HttpRequest::from_actix_request(req, payload).await.unwrap();
-                    let our_res = HttpResponse::new();
-                    let middleware_clone = middlewares_clone.clone();
-
-                    // If we have middlewares, run the request through them
-                    if !middlewares_clone.is_empty() {
-                      // Create a Next with our middlewares and handler
-                      let next = Next {
-                        middleware: middleware_clone,
-                        handler: handler_clone.clone(),
-                      };
-
-                      // Run the middleware chain
-                      let response = next.run(our_req, our_res).await;
-                      response.to_responder()
-                    } else {
-                      // No middlewares, just call the handler directly
-                      let future = handler_clone(our_req, our_res);
-                      let response = future.await;
-                      response.to_responder()
-                    }
-                  }
-                }),
-              );
+            match api_err.as_ref() {
+                ApiError::Generic(res) => {
+                    <HttpResponse as Clone>::clone(res).to_responder().unwrap()
+                }
             }
-          }
         }
-      }
 
-      if self.static_files.len() > 0 {
-        let static_files = self.static_files.clone();
-        app = app.service(fs::Files::new(static_files.get("mount_path").unwrap(), self.static_files.get("serve_from").unwrap()).show_files_listing());
-      }
+        for middleware in self.middlewares {
+            let middleware = middleware.clone();
+            router = router.middleware(routerify::Middleware::pre(move |req| {
+                exec_middleware(req, middleware.clone())
+            }));
+        }
 
-     app
-    })
-      .bind(format!("127.0.0.1:{port}"))
-      .unwrap()
-      .run()
-      .await
-      .unwrap();
+        for (path, methods) in &self.routes {
+            for (method, handler) in methods {
+                let handler = handler.clone();
+                match method {
+                    HttpMethods::GET => {
+                        router = router.get(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
+
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req, our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                    HttpMethods::POST => {
+                        router = router.post(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
+
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req, our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                    HttpMethods::PUT => {
+                        router = router.put(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req, our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                    HttpMethods::DELETE => {
+                        router = router.delete(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req, our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                    HttpMethods::PATCH => {
+                        router = router.patch(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req, our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                    HttpMethods::HEAD => {
+                        router = router.head(*path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
+                                let our_res = HttpResponse::new();
+                                let response = handler(&mut our_req, our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        router = router.err_handler(error_handler);
+
+        let router = router.build().unwrap();
+
+        cb();
+
+        let addr = SocketAddr::from(([127, 0, 0, 1], port));
+
+        let service = RouterService::new(router).unwrap();
+
+        let server = Server::bind(&addr).serve(service);
+
+        if let Err(e) = server.await {
+            eprintln!("server error: {}", e);
+        }
     }
 
     /// Adds a route to the application.
@@ -461,7 +487,7 @@ impl App {
         Some(self.routes.get(path).unwrap().get(&method).unwrap())
     }
 
-    pub(crate) fn get_middlewares(&self) -> &Vec<Box<dyn Middleware>> {
+    pub(crate) fn get_middlewares(&self) -> &Vec<Box<Middleware>> {
         &self.middlewares
     }
 }
