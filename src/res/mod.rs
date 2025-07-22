@@ -69,6 +69,14 @@ impl HttpResponse {
         self
     }
 
+    pub fn redirect(mut self, path: &str) -> Self {
+        self.status_code = 302;
+        self.headers
+            .insert("Location".to_string(), path.to_string());
+
+        self
+    }
+
     pub fn to_responder(self) -> actix_web::HttpResponse {
         let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code as u16)
             .map(|status| match self.body {
