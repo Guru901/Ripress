@@ -4,7 +4,9 @@ use ripress_again::app::Ripress;
 async fn main() {
     let app = Ripress::new();
 
-    app.get("/", |req, res| {});
+    app.get("/", |_req, res| {
+        return res.text("nice");
+    });
 
     app.listen(3000, || println!("Server listening on port 3000"))
 }
