@@ -3,6 +3,7 @@ use crate::types::{ResponseContentBody, ResponseContentType};
 pub struct HttpResponse<'a> {
     body: ResponseContentBody<'a>,
     content_type: ResponseContentType,
+    status_code: u8,
 }
 
 impl<'a> HttpResponse<'a> {
@@ -10,5 +11,10 @@ impl<'a> HttpResponse<'a> {
         self.body = ResponseContentBody::new_text(text);
         self.content_type = ResponseContentType::TEXT;
         return self;
+    }
+
+    pub fn status(mut self, code: u8) -> Self {
+        self.status_code = code;
+        self
     }
 }
