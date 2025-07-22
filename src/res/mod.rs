@@ -49,6 +49,10 @@ impl HttpResponse {
         self
     }
 
+    pub fn get_header(&self, header_name: &str) -> Option<&String> {
+        self.headers.get(header_name)
+    }
+
     pub fn to_responder(self) -> actix_web::HttpResponse {
         let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code as u16)
             .map(|status| match self.body {
