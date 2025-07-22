@@ -1,14 +1,22 @@
 use crate::types::{ResponseContentBody, ResponseContentType};
+use actix_web::Responder;
 use serde::Serialize;
 
-pub struct HttpResponse<'a> {
-    body: ResponseContentBody<'a>,
+pub struct HttpResponse {
+    body: ResponseContentBody,
     content_type: ResponseContentType,
     status_code: u8,
 }
 
-impl<'a> HttpResponse<'a> {
-    pub fn text<T: Into<&'a str>>(mut self, text: T) -> Self {
+impl HttpResponse {
+    pub fn new() -> Self {
+        Self {
+            status_code: 200,
+            body: ResponseContentBody::TEXT(String::new()),
+            content_type: ResponseContentType::TEXT,
+        }
+    }
+    pub fn text<T: Into<String>>(mut self, text: T) -> Self {
         self.body = ResponseContentBody::new_text(text);
         self.content_type = ResponseContentType::TEXT;
         return self;
@@ -23,5 +31,30 @@ impl<'a> HttpResponse<'a> {
     pub fn status(mut self, code: u8) -> Self {
         self.status_code = code;
         self
+    }
+
+    pub fn to_responder(self) -> actix_web::HttpResponse {
+        let actix_res = actix_web::http::StatusCode::from_u16(self.status_code as u16)
+            .map(|status| match self.body {
+                ResponseContentBody::JSON(json) => actix_web::HttpResponse::build(status)
+                    .content_type("application/json")
+                    .json(json),
+                ResponseContentBody::TEXT(text) => actix_web::HttpResponse::build(status)
+                    .content_type("text/plain")
+                    .body(text),
+            })
+            .unwrap_or_else(|_| {
+                actix_web::HttpResponse::InternalServerError().body("Invalid status code")
+            });
+
+        return actix_res;
+    }
+}
+
+impl Responder for HttpResponse {
+    type Body = actix_web::body::BoxBody;
+
+    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse {
+        self.to_responder()
     }
 }
