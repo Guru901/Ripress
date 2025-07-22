@@ -1,5 +1,6 @@
 use crate::types::{ResponseContentBody, ResponseContentType};
 use actix_web::Responder;
+use actix_web::cookie::time::macros::time;
 use actix_web::http::header::{HeaderName, HeaderValue};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -9,6 +10,8 @@ pub struct HttpResponse {
     content_type: ResponseContentType,
     status_code: u16,
     headers: HashMap<String, String>,
+    cookies: HashMap<String, String>,
+    remove_cookies: Vec<String>,
 }
 
 impl HttpResponse {
@@ -18,6 +21,8 @@ impl HttpResponse {
             body: ResponseContentBody::TEXT(String::new()),
             content_type: ResponseContentType::TEXT,
             headers: HashMap::new(),
+            cookies: HashMap::new(),
+            remove_cookies: Vec::new(),
         }
     }
     pub fn text<T: Into<String>>(mut self, text: T) -> Self {
@@ -52,6 +57,17 @@ impl HttpResponse {
     pub fn get_header(&self, header_name: &str) -> Option<&String> {
         self.headers.get(header_name)
     }
+    pub fn set_cookie(mut self, cookie_name: &str, cookie_value: &str) -> Self {
+        self.cookies
+            .insert(cookie_name.to_string(), cookie_value.to_string());
+
+        self
+    }
+
+    pub fn remove_cookie(mut self, cookie_name: &str) -> Self {
+        self.remove_cookies.push(cookie_name.to_string());
+        self
+    }
 
     pub fn to_responder(self) -> actix_web::HttpResponse {
         let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code as u16)
@@ -72,6 +88,18 @@ impl HttpResponse {
                 HeaderName::from_bytes(key.as_bytes()).unwrap(),
                 HeaderValue::from_str(value).unwrap(),
             )
+        });
+
+        self.remove_cookies.iter().for_each(|key| {
+            actix_res
+                .add_cookie(&actix_web::cookie::Cookie::build(key, "").finish())
+                .unwrap();
+        });
+
+        self.cookies.iter().for_each(|(key, value)| {
+            actix_res
+                .add_cookie(&actix_web::cookie::Cookie::build(key, value).finish())
+                .expect("Failed to add cookie");
         });
 
         return actix_res;
