@@ -44,8 +44,6 @@ impl Ripress {
         cb();
         let routes = self.routes.clone();
 
-        println!("{:?}", routes.len());
-
         actix_web::HttpServer::new(move || {
             routes
                 .iter()

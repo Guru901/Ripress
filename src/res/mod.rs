@@ -5,7 +5,7 @@ use serde::Serialize;
 pub struct HttpResponse {
     body: ResponseContentBody,
     content_type: ResponseContentType,
-    status_code: u8,
+    status_code: u16,
 }
 
 impl HttpResponse {
@@ -28,7 +28,7 @@ impl HttpResponse {
         return self;
     }
 
-    pub fn status(mut self, code: u8) -> Self {
+    pub fn status(mut self, code: u16) -> Self {
         self.status_code = code;
         self
     }
