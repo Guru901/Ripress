@@ -29,7 +29,7 @@ impl Ripress {
     {
         let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
         self.routes
-            .insert(method, (path.to_string(), wrapped_handler));
+            .insert(path.to_string(), (method, wrapped_handler));
     }
 
     pub fn get<F, Fut>(&mut self, path: &str, handler: F)
@@ -44,10 +44,12 @@ impl Ripress {
         cb();
         let routes = self.routes.clone();
 
+        println!("{:?}", routes.len());
+
         actix_web::HttpServer::new(move || {
             routes
                 .iter()
-                .fold(actix_web::App::new(), |app, (method, (path, handler))| {
+                .fold(actix_web::App::new(), |app, (path, (method, handler))| {
                     let route_method = match method {
                         HttpMethod::GET => actix_web::web::get(),
                         HttpMethod::POST => actix_web::web::post(),

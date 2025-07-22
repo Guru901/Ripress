@@ -27,7 +27,6 @@ pub enum ResponseContentType {
 
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
-
 #[derive(Eq, Hash, PartialEq, Clone)]
 pub enum HttpMethod {
     GET,
@@ -35,4 +34,4 @@ pub enum HttpMethod {
     PUT,
     HEAD,
 }
-pub type Routes = HashMap<HttpMethod, (String, Handler)>;
+pub type Routes = HashMap<String, (HttpMethod, Handler)>;
