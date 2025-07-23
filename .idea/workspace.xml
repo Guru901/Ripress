@@ -13,8 +13,9 @@
   <component name="ChangeListManager">
     <list default="true" id="83a46955-1e1e-4daa-b03c-fbf7707aa09c" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/req/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/req/mod.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/res/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/res/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/types.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/types.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,7 +53,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.rust.reset.selective.auto.import": "true",
-    "git-widget-placeholder": "feat/res",
+    "git-widget-placeholder": "feat/req",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -97,7 +98,7 @@
       <option name="presentableId" value="Default" />
       <updated>1752929031628</updated>
       <workItem from="1752929032719" duration="10479000" />
-      <workItem from="1753201486294" duration="15168000" />
+      <workItem from="1753201486294" duration="20908000" />
     </task>
     <servers />
   </component>

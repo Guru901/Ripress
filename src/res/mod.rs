@@ -1,6 +1,5 @@
 use crate::types::{ResponseContentBody, ResponseContentType};
 use actix_web::Responder;
-use actix_web::cookie::time::macros::time;
 use actix_web::http::header::{HeaderName, HeaderValue};
 use serde::Serialize;
 use std::collections::HashMap;

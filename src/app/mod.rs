@@ -62,11 +62,11 @@ impl Ripress {
                     app.route(
                         &path,
                         route_method.to(
-                            move |req: actix_web::HttpRequest,
-                                  _payload: actix_web::web::Payload| {
+                            move |req: actix_web::HttpRequest, payload: actix_web::web::Payload| {
                                 let handler = handler.clone();
                                 async move {
-                                    let our_req = HttpRequest::from_actix_request(req);
+                                    let our_req =
+                                        HttpRequest::from_actix_request(req, payload).await;
                                     let our_res = HttpResponse::new();
                                     let response = handler(our_req, our_res).await;
                                     response.to_responder()
