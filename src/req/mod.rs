@@ -7,6 +7,8 @@ pub struct HttpRequest {
     method: HttpMethod,
     ip: String,
     path: String,
+    protocol: String,
+    is_secure: bool,
 }
 
 impl HttpRequest {
@@ -17,6 +19,8 @@ impl HttpRequest {
             method: HttpMethod::GET,
             ip: String::new(),
             path: String::new(),
+            protocol: String::new(),
+            is_secure: false,
         }
     }
 
@@ -41,6 +45,14 @@ impl HttpRequest {
 
     pub fn get_path(&self) -> &String {
         &self.path
+    }
+
+    pub fn get_protocol(&self) -> &String {
+        &self.protocol
+    }
+    
+    pub fn is_secure (&self) -> &bool {
+        &self.is_secure
     }
 
     pub async fn from_actix_request(
@@ -77,6 +89,14 @@ impl HttpRequest {
                     .map(|addr| addr.ip().to_string())
                     .unwrap_or("unknown".to_string())
             });
+        let protocol = req.connection_info().scheme().to_string();
+        let is_secure;
+
+        if protocol == "https" {
+            is_secure = true
+        } else {
+            is_secure = false
+        }
 
         HttpRequest {
             params,
@@ -84,6 +104,8 @@ impl HttpRequest {
             method,
             ip,
             path,
+            protocol,
+            is_secure,
         }
     }
 }
