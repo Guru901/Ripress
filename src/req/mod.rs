@@ -6,6 +6,7 @@ pub struct HttpRequest {
     params: HashMap<String, String>,
     method: HttpMethod,
     ip: String,
+    path: String,
 }
 
 impl HttpRequest {
@@ -15,6 +16,7 @@ impl HttpRequest {
             params: HashMap::new(),
             method: HttpMethod::GET,
             ip: String::new(),
+            path: String::new(),
         }
     }
 
@@ -35,6 +37,10 @@ impl HttpRequest {
 
     pub fn get_ip(&self) -> &String {
         &self.ip
+    }
+
+    pub fn get_path(&self) -> &String {
+        &self.path
     }
 
     pub async fn from_actix_request(
@@ -59,6 +65,8 @@ impl HttpRequest {
             _ => HttpMethod::GET,
         };
 
+        let path = req.path().to_string();
+
         let ip = req
             .headers()
             .get("X-Forwarded-For")
@@ -75,6 +83,7 @@ impl HttpRequest {
             origin_url,
             method,
             ip,
+            path,
         }
     }
 }
