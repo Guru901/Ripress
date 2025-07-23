@@ -1,5 +1,6 @@
 use crate::types::HttpMethod;
 use std::collections::HashMap;
+use std::ptr::hash;
 
 pub struct HttpRequest {
     params: HashMap<String, String>,
@@ -9,6 +10,7 @@ pub struct HttpRequest {
     pub path: String,
     pub protocol: String,
     pub is_secure: bool,
+    pub headers: HashMap<String, String>,
 }
 
 impl HttpRequest {
@@ -21,6 +23,7 @@ impl HttpRequest {
             path: String::new(),
             protocol: String::new(),
             is_secure: false,
+            headers: HashMap::new(),
         }
     }
 
@@ -74,6 +77,14 @@ impl HttpRequest {
             is_secure = false
         }
 
+        let mut headers = HashMap::new();
+
+        req.headers().iter().for_each(|f| {
+            let header_name = f.0.to_string();
+            let header_value = f.1.to_str().unwrap().to_string();
+            headers.insert(header_name, header_value);
+        });
+
         HttpRequest {
             params,
             origin_url,
@@ -82,6 +93,7 @@ impl HttpRequest {
             path,
             protocol,
             is_secure,
+            headers,
         }
     }
 }
