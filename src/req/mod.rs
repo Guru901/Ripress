@@ -2,13 +2,13 @@ use crate::types::HttpMethod;
 use std::collections::HashMap;
 
 pub struct HttpRequest {
-    origin_url: String,
     params: HashMap<String, String>,
-    method: HttpMethod,
-    ip: String,
-    path: String,
-    protocol: String,
-    is_secure: bool,
+    pub origin_url: String,
+    pub method: HttpMethod,
+    pub ip: String,
+    pub path: String,
+    pub protocol: String,
+    pub is_secure: bool,
 }
 
 impl HttpRequest {
@@ -29,30 +29,6 @@ impl HttpRequest {
             Some(param) => Some(param.as_str()),
             None => None,
         }
-    }
-
-    pub fn get_origin_url(&self) -> &String {
-        &self.origin_url
-    }
-
-    pub fn get_method(&self) -> &HttpMethod {
-        &self.method
-    }
-
-    pub fn get_ip(&self) -> &String {
-        &self.ip
-    }
-
-    pub fn get_path(&self) -> &String {
-        &self.path
-    }
-
-    pub fn get_protocol(&self) -> &String {
-        &self.protocol
-    }
-    
-    pub fn is_secure (&self) -> &bool {
-        &self.is_secure
     }
 
     pub async fn from_actix_request(
