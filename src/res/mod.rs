@@ -77,6 +77,11 @@ impl HttpResponse {
         self
     }
 
+    pub fn render(mut self, html: &str) -> Self {
+        self.body = ResponseContentBody::new_html(html);
+        self
+    }
+
     pub fn to_responder(self) -> actix_web::HttpResponse {
         let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code as u16)
             .map(|status| match self.body {
@@ -86,6 +91,9 @@ impl HttpResponse {
                 ResponseContentBody::TEXT(text) => actix_web::HttpResponse::build(status)
                     .content_type("text/plain")
                     .body(text),
+                ResponseContentBody::HTML(html) => actix_web::HttpResponse::build(status)
+                    .content_type("text/html")
+                    .body(html),
             })
             .unwrap_or_else(|_| {
                 actix_web::HttpResponse::InternalServerError().body("Invalid status code")

@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 pub enum ResponseContentBody {
     TEXT(String),
+    HTML(String),
     JSON(serde_json::Value),
 }
 
@@ -19,10 +20,14 @@ impl ResponseContentBody {
         let value = serde_json::to_value(json).expect("Failed to serialize to JSON");
         ResponseContentBody::JSON(value)
     }
+    pub fn new_html<T: Into<String>>(html: T) -> Self {
+        ResponseContentBody::HTML(html.into())
+    }
 }
 pub enum ResponseContentType {
     TEXT,
     JSON,
+    HTML,
 }
 
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
