@@ -2,6 +2,7 @@ use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::pin::Pin;
 use std::sync::Arc;
 
@@ -31,12 +32,15 @@ pub enum ResponseContentType {
 }
 
 pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
+
 pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
-#[derive(Eq, Hash, PartialEq, Clone)]
+
+#[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub enum HttpMethod {
     GET,
     POST,
     PUT,
     HEAD,
 }
+
 pub type Routes = HashMap<String, (HttpMethod, Handler)>;
