@@ -1,6 +1,5 @@
 use crate::types::HttpMethod;
 use std::collections::HashMap;
-use std::ptr::hash;
 
 pub struct HttpRequest {
     params: HashMap<String, String>,
@@ -11,6 +10,7 @@ pub struct HttpRequest {
     pub protocol: String,
     pub is_secure: bool,
     pub headers: HashMap<String, String>,
+    data: HashMap<String, String>,
 }
 
 impl HttpRequest {
@@ -24,6 +24,7 @@ impl HttpRequest {
             protocol: String::new(),
             is_secure: false,
             headers: HashMap::new(),
+            data: HashMap::new(),
         }
     }
 
@@ -32,6 +33,14 @@ impl HttpRequest {
             Some(param) => Some(param.as_str()),
             None => None,
         }
+    }
+
+    pub fn set_data<T: Into<String>>(&mut self, data_key: T, data_value: T) {
+        self.data.insert(data_key.into(), data_value.into());
+    }
+
+    pub fn get_data<T: Into<String>>(&mut self, data_key: T) -> Option<&String> {
+        self.data.get(&data_key.into())
     }
 
     pub async fn from_actix_request(
@@ -94,6 +103,7 @@ impl HttpRequest {
             protocol,
             is_secure,
             headers,
+            data: HashMap::new(),
         }
     }
 }
