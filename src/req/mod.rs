@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 pub struct HttpRequest {
     params: HashMap<String, String>,
+    query_params: HashMap<String, String>,
     pub origin_url: String,
     pub method: HttpMethod,
     pub ip: String,
@@ -18,6 +19,7 @@ impl HttpRequest {
         HttpRequest {
             origin_url: String::new(),
             params: HashMap::new(),
+            query_params: HashMap::new(),
             method: HttpMethod::GET,
             ip: String::new(),
             path: String::new(),
@@ -31,6 +33,13 @@ impl HttpRequest {
     pub fn get_param(&self, param_name: &str) -> Option<&str> {
         match self.params.get(param_name) {
             Some(param) => Some(param.as_str()),
+            None => None,
+        }
+    }
+
+    pub fn get_query_params(&self, query_param_name: &str) -> Option<&str> {
+        match self.query_params.get(query_param_name) {
+            Some(query_param) => Some(query_param.as_str()),
             None => None,
         }
     }
@@ -94,8 +103,15 @@ impl HttpRequest {
             headers.insert(header_name, header_value);
         });
 
+        let query_string = req.query_string();
+
+        let query_params = url::form_urlencoded::parse(query_string.as_bytes())
+            .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
+            .collect::<HashMap<String, String>>();
+
         HttpRequest {
             params,
+            query_params,
             origin_url,
             method,
             ip,
