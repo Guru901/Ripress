@@ -1,6 +1,7 @@
-use crate::types::HttpMethod;
+use crate::types::{HttpMethod, RequestBody, RequestBodyContent, RequestBodyType};
+use actix_web::HttpMessage;
+use futures::StreamExt;
 use std::collections::HashMap;
-
 pub struct HttpRequest {
     params: HashMap<String, String>,
     query_params: HashMap<String, String>,
@@ -12,6 +13,7 @@ pub struct HttpRequest {
     pub is_secure: bool,
     pub headers: HashMap<String, String>,
     data: HashMap<String, String>,
+    body: RequestBody,
 }
 
 impl HttpRequest {
@@ -27,6 +29,7 @@ impl HttpRequest {
             is_secure: false,
             headers: HashMap::new(),
             data: HashMap::new(),
+            body: RequestBody::new_text(""),
         }
     }
 
@@ -52,10 +55,65 @@ impl HttpRequest {
         self.data.get(&data_key.into())
     }
 
+    pub fn json<J>(&self) -> Result<J, String>
+    where
+        J: serde::de::DeserializeOwned + serde::Serialize,
+    {
+        let body = &self.body;
+
+        if body.content_type == RequestBodyType::JSON {
+            if let RequestBodyContent::JSON(ref json_value) = body.content {
+                match serde_json::from_value::<J>(json_value.clone()) {
+                    Ok(serialized) => Ok(serialized),
+                    Err(e) => Err(format!("Failed to deserialize JSON: {}", e)),
+                }
+            } else {
+                Err(String::from("Invalid JSON content"))
+            }
+        } else {
+            Err(String::from("Wrong body type"))
+        }
+    }
+
+    pub fn text(&self) -> Result<String, String> {
+        let body = &self.body;
+
+        if body.content_type == RequestBodyType::TEXT {
+            if let RequestBodyContent::TEXT(ref text_value) = body.content {
+                Ok(text_value.clone())
+            } else {
+                Err(String::from("Invalid text content"))
+            }
+        } else {
+            Err(String::from("Wrong body type"))
+        }
+    }
+
+    pub fn form_data(&self) -> Result<HashMap<String, String>, String> {
+        let mut form_data: HashMap<String, String> = HashMap::new();
+        let body = &self.body;
+
+        if body.content_type == RequestBodyType::FORM {
+            if let RequestBodyContent::FORM(ref text_value) = body.content {
+                serde_urlencoded::from_str::<HashMap<String, String>>(text_value)
+                    .map_err(|e| e.to_string())?
+                    .into_iter()
+                    .for_each(|(k, v)| {
+                        form_data.insert(k, v);
+                    });
+                Ok(form_data)
+            } else {
+                Err(String::from("Invalid form content"))
+            }
+        } else {
+            Err(String::from("Wrong body type"))
+        }
+    }
+
     pub async fn from_actix_request(
         req: actix_web::HttpRequest,
-        _payload: actix_web::web::Payload,
-    ) -> Self {
+        mut payload: actix_web::web::Payload,
+    ) -> Result<Self, actix_web::Error> {
         let origin_url = req.full_url().to_string();
 
         let params: HashMap<String, String> = req
@@ -109,7 +167,69 @@ impl HttpRequest {
             .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
             .collect::<HashMap<String, String>>();
 
-        HttpRequest {
+        let mut body = actix_web::web::BytesMut::new();
+
+        let content_type = match req.content_type() {
+            "application/json" => RequestBodyType::JSON,
+            "application/x-www-form-urlencoded" => RequestBodyType::FORM,
+            _ => RequestBodyType::TEXT,
+        };
+
+        while let Some(chunk) = payload.next().await {
+            let chunk = chunk?;
+            if (body.len() + chunk.len()) > 262_144 {
+                return Err(actix_web::error::ErrorBadRequest("Body too large"));
+            }
+            body.extend_from_slice(&chunk);
+        }
+
+        let request_body = match content_type {
+            RequestBodyType::FORM => {
+                let form_data = match std::str::from_utf8(&body) {
+                    Ok(s) => s.to_string(),
+                    Err(_) => {
+                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
+                    }
+                };
+
+                RequestBody::new_form(form_data)
+            }
+            RequestBodyType::JSON => {
+                let body_json = match std::str::from_utf8(&body) {
+                    Ok(s) => match serde_json::from_str::<serde_json::Value>(s) {
+                        Ok(json) => json,
+                        Err(e) => {
+                            return Err(actix_web::error::ErrorBadRequest(format!(
+                                "Invalid JSON: {}",
+                                e
+                            )));
+                        }
+                    },
+                    Err(_) => {
+                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
+                    }
+                };
+
+                RequestBody::new_json(body_json)
+            }
+            RequestBodyType::TEXT => {
+                let body_string = match std::str::from_utf8(&body) {
+                    Ok(s) => s.to_string(),
+                    Err(_) => {
+                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
+                    }
+                };
+
+                RequestBody::new_text(body_string)
+
+                // RequestBody:: {
+                //     content: RequestBodyContent::TEXT(body_string),
+                //     content_type: RequestBodyType::TEXT,
+                // }
+            }
+        };
+
+        Ok(HttpRequest {
             params,
             query_params,
             origin_url,
@@ -120,6 +240,7 @@ impl HttpRequest {
             is_secure,
             headers,
             data: HashMap::new(),
-        }
+            body: request_body,
+        })
     }
 }

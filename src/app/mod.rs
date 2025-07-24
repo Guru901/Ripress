@@ -39,6 +39,14 @@ impl Ripress {
     {
         self.add_route(HttpMethod::GET, path, handler);
     }
+    
+  pub fn post<F, Fut>(&mut self, path: &str, handler: F)
+    where
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = HttpResponse> + Send + 'static,
+    {
+        self.add_route(HttpMethod::POST, path, handler);
+    }
 
     pub async fn listen<F: FnOnce()>(&self, port: u16, cb: F) -> std::io::Result<()> {
         cb();
@@ -65,8 +73,9 @@ impl Ripress {
                             move |req: actix_web::HttpRequest, payload: actix_web::web::Payload| {
                                 let handler = handler.clone();
                                 async move {
-                                    let our_req =
-                                        HttpRequest::from_actix_request(req, payload).await;
+                                    let our_req = HttpRequest::from_actix_request(req, payload)
+                                        .await
+                                        .unwrap();
                                     let our_res = HttpResponse::new();
                                     let response = handler(our_req, our_res).await;
                                     response.to_responder()
