@@ -72,12 +72,21 @@ impl Ripress {
         self.add_route(HttpMethod::HEAD, path, handler);
     }
 
+    pub fn patch<F, Fut>(&mut self, path: &str, handler: F)
+    where
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = HttpResponse> + Send + 'static,
+    {
+        self.add_route(HttpMethod::PATCH, path, handler);
+    }
+
     pub fn all<F, Fut>(&mut self, path: &str, handler: F)
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + Clone + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
         self.add_route(HttpMethod::GET, path, handler.clone());
+        self.add_route(HttpMethod::PATCH, path, handler.clone());
         self.add_route(HttpMethod::POST, path, handler.clone());
         self.add_route(HttpMethod::PUT, path, handler.clone());
         self.add_route(HttpMethod::DELETE, path, handler.clone());
@@ -98,6 +107,7 @@ impl Ripress {
                         HttpMethod::PUT => actix_web::web::put(),
                         HttpMethod::HEAD => actix_web::web::head(),
                         HttpMethod::DELETE => actix_web::web::delete(),
+                        HttpMethod::PATCH => actix_web::web::patch(),
                     };
 
                     // Clone the handler to move it into the closure
