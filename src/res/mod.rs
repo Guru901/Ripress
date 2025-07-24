@@ -7,7 +7,7 @@ use std::collections::HashMap;
 pub struct HttpResponse {
     body: ResponseContentBody,
     content_type: ResponseContentType,
-    status_code: u16,
+    pub(crate) status_code: u16,
     headers: HashMap<String, String>,
     cookies: HashMap<String, String>,
     remove_cookies: Vec<String>,
@@ -24,6 +24,7 @@ impl HttpResponse {
             remove_cookies: Vec::new(),
         }
     }
+
     pub fn text<T: Into<String>>(mut self, text: T) -> Self {
         self.body = ResponseContentBody::new_text(text);
         self.content_type = ResponseContentType::TEXT;
@@ -46,6 +47,7 @@ impl HttpResponse {
             .insert("Content-Type".to_string(), content_type.to_string());
         self
     }
+
     pub fn set_header(mut self, header_name: &str, header_value: &str) -> Self {
         self.headers
             .insert(header_name.to_string(), header_value.to_string());
@@ -56,6 +58,7 @@ impl HttpResponse {
     pub fn get_header(&self, header_name: &str) -> Option<&String> {
         self.headers.get(header_name)
     }
+
     pub fn set_cookie(mut self, cookie_name: &str, cookie_value: &str) -> Self {
         self.cookies
             .insert(cookie_name.to_string(), cookie_value.to_string());
@@ -78,6 +81,11 @@ impl HttpResponse {
 
     pub fn render(mut self, html: &str) -> Self {
         self.body = ResponseContentBody::new_html(html);
+        self
+    }
+
+    pub fn ok(mut self) -> Self {
+        self.status_code = 200;
         self
     }
 
