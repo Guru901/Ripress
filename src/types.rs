@@ -86,6 +86,7 @@ pub enum HttpMethod {
     POST,
     PUT,
     HEAD,
+    DELETE
 }
 
 pub type Routes = HashMap<String, (HttpMethod, Handler)>;
