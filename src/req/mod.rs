@@ -12,6 +12,7 @@ pub struct HttpRequest {
     pub protocol: String,
     pub is_secure: bool,
     pub headers: HashMap<String, String>,
+    pub cookies: HashMap<String, String>,
     data: HashMap<String, String>,
     body: RequestBody,
 }
@@ -30,6 +31,7 @@ impl HttpRequest {
             headers: HashMap::new(),
             data: HashMap::new(),
             body: RequestBody::new_text(""),
+            cookies: HashMap::new(),
         }
     }
 
@@ -161,6 +163,15 @@ impl HttpRequest {
             headers.insert(header_name, header_value);
         });
 
+        let mut cookies: HashMap<String, String> = HashMap::new();
+
+        req.cookies().iter().for_each(|cookie| {
+            if let Some(first_cookie) = cookie.get(0) {
+                let (name, value) = (first_cookie.name(), first_cookie.value());
+                cookies.insert(name.to_string(), value.to_string());
+            }
+        });
+
         let query_string = req.query_string();
 
         let query_params = url::form_urlencoded::parse(query_string.as_bytes())
@@ -241,6 +252,7 @@ impl HttpRequest {
             headers,
             data: HashMap::new(),
             body: request_body,
+            cookies
         })
     }
 }
