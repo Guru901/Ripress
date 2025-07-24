@@ -42,7 +42,7 @@ impl HttpRequest {
         }
     }
 
-    pub fn get_query_params(&self, query_param_name: &str) -> Option<&str> {
+    pub fn get_query_param(&self, query_param_name: &str) -> Option<&str> {
         match self.query_params.get(query_param_name) {
             Some(query_param) => Some(query_param.as_str()),
             None => None,
@@ -53,7 +53,7 @@ impl HttpRequest {
         self.data.insert(data_key.into(), data_value.into());
     }
 
-    pub fn get_data<T: Into<String>>(&mut self, data_key: T) -> Option<&String> {
+    pub fn get_data<T: Into<String>>(&self, data_key: T) -> Option<&String> {
         self.data.get(&data_key.into())
     }
 
@@ -232,11 +232,6 @@ impl HttpRequest {
                 };
 
                 RequestBody::new_text(body_string)
-
-                // RequestBody:: {
-                //     content: RequestBodyContent::TEXT(body_string),
-                //     content_type: RequestBodyType::TEXT,
-                // }
             }
         };
 
@@ -252,7 +247,7 @@ impl HttpRequest {
             headers,
             data: HashMap::new(),
             body: request_body,
-            cookies
+            cookies,
         })
     }
 }
