@@ -2,7 +2,6 @@ use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
 use std::pin::Pin;
 use std::sync::Arc;
 
@@ -86,6 +85,8 @@ pub enum HttpMethod {
     POST,
     PUT,
     HEAD,
+    DELETE,
+    PATCH,
 }
 
 pub type Routes = HashMap<String, (HttpMethod, Handler)>;
