@@ -1,6 +1,6 @@
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
-use crate::types::{Fut, HttpMethod, Routes};
+use crate::types::{Fut, HttpMethods, Routes};
 use std::collections::HashMap;
 
 pub(crate) fn box_future<F>(future: F) -> Fut
@@ -22,7 +22,7 @@ impl App {
         }
     }
 
-    fn add_route<F, Fut>(&mut self, method: HttpMethod, path: &str, handler: F)
+    fn add_route<F, Fut>(&mut self, method: HttpMethods, path: &str, handler: F)
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
@@ -57,7 +57,7 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        self.add_route(HttpMethod::GET, path, handler);
+        self.add_route(HttpMethods::GET, path, handler);
     }
 
     /// Add a POST route to the application.
@@ -85,7 +85,7 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        self.add_route(HttpMethod::POST, path, handler);
+        self.add_route(HttpMethods::POST, path, handler);
     }
 
     /// Add a PUT route to the application.
@@ -113,7 +113,7 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        self.add_route(HttpMethod::PUT, path, handler);
+        self.add_route(HttpMethods::PUT, path, handler);
     }
 
     /// Add a DELETE route to the application.
@@ -141,7 +141,7 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        self.add_route(HttpMethod::DELETE, path, handler);
+        self.add_route(HttpMethods::DELETE, path, handler);
     }
 
     /// Add a HEAD route to the application.
@@ -169,7 +169,7 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        self.add_route(HttpMethod::HEAD, path, handler);
+        self.add_route(HttpMethods::HEAD, path, handler);
     }
 
     /// Add a PATCH route to the application.
@@ -197,7 +197,7 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        self.add_route(HttpMethod::PATCH, path, handler);
+        self.add_route(HttpMethods::PATCH, path, handler);
     }
 
     /// Add a route to the application that matches all HTTP methods.
@@ -226,12 +226,12 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + Clone + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        self.add_route(HttpMethod::GET, path, handler.clone());
-        self.add_route(HttpMethod::PATCH, path, handler.clone());
-        self.add_route(HttpMethod::POST, path, handler.clone());
-        self.add_route(HttpMethod::PUT, path, handler.clone());
-        self.add_route(HttpMethod::DELETE, path, handler.clone());
-        self.add_route(HttpMethod::HEAD, path, handler);
+        self.add_route(HttpMethods::GET, path, handler.clone());
+        self.add_route(HttpMethods::PATCH, path, handler.clone());
+        self.add_route(HttpMethods::POST, path, handler.clone());
+        self.add_route(HttpMethods::PUT, path, handler.clone());
+        self.add_route(HttpMethods::DELETE, path, handler.clone());
+        self.add_route(HttpMethods::HEAD, path, handler);
     }
 
     /// Starts the server and listens on the specified address.
@@ -263,12 +263,12 @@ impl App {
                 .iter()
                 .fold(actix_web::App::new(), |app, (path, (method, handler))| {
                     let route_method = match method {
-                        HttpMethod::GET => actix_web::web::get(),
-                        HttpMethod::POST => actix_web::web::post(),
-                        HttpMethod::PUT => actix_web::web::put(),
-                        HttpMethod::HEAD => actix_web::web::head(),
-                        HttpMethod::DELETE => actix_web::web::delete(),
-                        HttpMethod::PATCH => actix_web::web::patch(),
+                        HttpMethods::GET => actix_web::web::get(),
+                        HttpMethods::POST => actix_web::web::post(),
+                        HttpMethods::PUT => actix_web::web::put(),
+                        HttpMethods::HEAD => actix_web::web::head(),
+                        HttpMethods::DELETE => actix_web::web::delete(),
+                        HttpMethods::PATCH => actix_web::web::patch(),
                     };
 
                     // Clone the handler to move it into the closure
