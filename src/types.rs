@@ -105,7 +105,8 @@ impl Display for HttpMethods {
     }
 }
 
-pub type Routes = HashMap<String, (HttpMethods, Handler)>;
+pub type Routes = HashMap<String, HashMap<HttpMethods, Handler>>;
+
 
 #[derive(Debug, PartialEq)]
 pub enum HttpRequestError {

@@ -443,10 +443,10 @@ impl HttpRequest {
         let mut cookies: HashMap<String, String> = HashMap::new();
 
         req.cookies().iter().for_each(|cookie| {
-            if let Some(first_cookie) = cookie.get(0) {
-                let (name, value) = (first_cookie.name(), first_cookie.value());
+            cookie.iter().for_each(|c| {
+                let (name, value) = (c.name(), c.value());
                 cookies.insert(name.to_string(), value.to_string());
-            }
+            })
         });
 
         let query_string = req.query_string();

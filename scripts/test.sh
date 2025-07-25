@@ -25,6 +25,15 @@ async fn main() {
     app.post("/json-test", json_handler);
     app.post("/text-test", text_handler);
     app.post("/form-test", form_handler);
+    app.get("/multi-query", multi_query_handler);
+    app.get("/multi-cookies", multi_cookie_handler);
+    app.get("/multi-headers", multi_header_handler);
+    app.get("/users/{user_id}/posts/{post_id}", multi_param_handler);
+
+    app.get("/method-test", method_handler);
+    app.post("/method-test", method_handler);
+    app.put("/method-test", method_handler);
+    app.delete("/method-test", method_handler);
 
     app.use_middleware("/auth", |mut req, res, next| {
         println!("Auth middleware");
@@ -121,6 +130,59 @@ async fn form_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     }))
 }
 
+async fn multi_query_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let name = req.get_query("name").unwrap();
+    let age = req.get_query("age").unwrap();
+    let city = req.get_query("city").unwrap();
+
+    res.ok().json(json!({
+        "name": name,
+        "age": age,
+        "city": city,
+    }))
+}
+
+async fn multi_param_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let user_id = req.get_params("user_id").unwrap();
+    let post_id = req.get_query("post_id").unwrap();
+
+    res.ok().json(json!({
+        "userId": user_id,
+        "postId": post_id
+    }))
+}
+
+async fn multi_cookie_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let user = req.get_cookie("user").unwrap();
+    let theme = req.get_cookie("theme").unwrap();
+    let lang = req.get_cookie("lang").unwrap();
+
+    res.ok().json(json!({
+        "user": user,
+        "theme": theme,
+        "lang": lang,
+    }))
+}
+
+async fn multi_header_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let user_agent = req.get_header("User-Agent").unwrap();
+    let accept = req.get_header("Accept").unwrap();
+    let auth = req.get_header("Authorization").unwrap();
+    let custom_header = req.get_header("X-Custom-Header").unwrap();
+
+    res.ok().json(json!({
+        "userAgent": user_agent,
+        "accept": accept,
+        "authorization": auth,
+        "customHeader": custom_header
+    }))
+}
+
+async fn method_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let method = req.method;
+    res.ok().json(json!(method.to_string()))
+}
+
 // response test handler
 
 async fn get_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -131,6 +193,7 @@ async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let token = req.get_data("token").unwrap();
     res.ok().text(token)
 }
+
 ' > main.rs
 
 cargo run &  # Start server in background

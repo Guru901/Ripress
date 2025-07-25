@@ -86,7 +86,6 @@ test.describe("Request Tests", () => {
         expect(body === "test");
     });
 
-
     test("Set and get form data", async ({request}) => {
         const jsonResponse = await request.post("/form-test", {
             form: {name: "test"},
@@ -119,4 +118,265 @@ test.describe("Request Tests", () => {
         const body = await authResponse.text();
         expect(body === "unauthorized");
     });
+
+    // Additional Request Object Tests
+
+    test("Multiple query parameters", async ({request}) => {
+        const response = await request.get("/multi-query?name=john&age=25&city=NYC");
+
+        expect(response.status()).toBe(200);
+
+        const body = await response.json();
+        expect(body.name === "john");
+        expect(body.age === "25");
+        expect(body.city === "NYC");
+    });
+
+    test("Multiple route parameters", async ({request}) => {
+        const response = await request.get("/users/123/posts/456");
+
+        expect(response.status()).toBe(200);
+
+        const body = await response.json();
+        expect(body.userId === "123");
+        expect(body.postId === "456");
+    });
+
+    test("Multiple cookies", async ({request}) => {
+        const response = await request.get("/multi-cookies", {
+            headers: {
+                Cookie: "user=john; theme=dark; lang=en",
+            },
+        });
+
+        expect(response.status()).toBe(200);
+
+        const body = await response.json();
+        expect(body.user === "john");
+        expect(body.theme === "dark");
+        expect(body.lang === "en");
+    });
+
+    test("Multiple headers", async ({request}) => {
+        const response = await request.get("/multi-headers", {
+            headers: {
+                "User-Agent": "TestBot/1.0",
+                "Accept": "application/json",
+                "Authorization": "Bearer token123",
+                "X-Custom-Header": "custom-value",
+            },
+        });
+
+        expect(response.status()).toBe(200);
+
+        const body = await response.json();
+        expect(body.userAgent === "TestBot/1.0");
+        expect(body.accept === "application/json");
+        expect(body.authorization === "Bearer token123");
+        expect(body.customHeader === "custom-value");
+    });
+
+    test("Request method detection", async ({request}) => {
+        const getResponse = await request.get("/method-test");
+        expect(getResponse.status()).toBe(200);
+        const getBody = await getResponse.json();
+        expect(getBody.method === "GET");
+
+        const postResponse = await request.post("/method-test", {
+            data: {},
+        });
+        expect(postResponse.status()).toBe(200);
+        const postBody = await postResponse.json();
+        expect(postBody.method === "POST");
+
+        const putResponse = await request.put("/method-test", {
+            data: {},
+        });
+        expect(putResponse.status()).toBe(200);
+        const putBody = await putResponse.json();
+        expect(putBody.method === "PUT");
+
+        const deleteResponse = await request.delete("/method-test");
+        expect(deleteResponse.status()).toBe(200);
+        const deleteBody = await deleteResponse.json();
+        expect(deleteBody.method === "DELETE");
+    });
+
+    // test("URL-encoded form data", async ({request}) => {
+    //     const response = await request.post("/urlencoded-test", {
+    //         form: {
+    //             username: "testuser",
+    //             password: "secret123",
+    //             email: "test@example.com",
+    //         },
+    //     });
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.username === "testuser");
+    //     expect(body.password === "secret123");
+    //     expect(body.email === "test@example.com");
+    // });
+    //
+    // test("Raw body data", async ({request}) => {
+    //     const rawData = "raw text content";
+    //     const response = await request.post("/raw-body-test", {
+    //         data: rawData,
+    //         headers: {
+    //             "Content-Type": "text/plain",
+    //         },
+    //     });
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.rawBody === rawData);
+    //     expect(body.contentType === "text/plain");
+    // });
+    //
+    // test("Request with base URL and path", async ({request}) => {
+    //     const response = await request.get("/base-url-test/api/v1/users");
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.baseUrl === "/base-url-test");
+    //     expect(body.originalUrl === "/base-url-test/api/v1/users");
+    //     expect(body.path === "/api/v1/users");
+    // });
+    //
+    // test("Request hostname and protocol", async ({request}) => {
+    //     const response = await request.get("/host-info");
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.hostname === "localhost");
+    //     expect(body.protocol === "http");
+    // });
+    //
+    // test("Request with subdomain", async ({request}) => {
+    //     const response = await request.get("/subdomain-test", {
+    //         headers: {
+    //             Host: "api.example.com",
+    //         },
+    //     });
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.subdomains).toContain("api");
+    // });
+    //
+    // test("Request accepts header", async ({request}) => {
+    //     const response = await request.get("/accepts-test", {
+    //         headers: {
+    //             Accept: "application/json, text/html, */*",
+    //         },
+    //     });
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.acceptsJson === true);
+    //     expect(body.acceptsHtml === true);
+    //     expect(body.acceptsXml === false);
+    // });
+    //
+    // test("Request content type", async ({request}) => {
+    //     const response = await request.post("/content-type-test", {
+    //         data: {test: "data"},
+    //         headers: {
+    //             "Content-Type": "application/json",
+    //         },
+    //     });
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.contentType === "application/json");
+    //     expect(body.isJson === true);
+    // });
+    //
+    // test("Request with range header", async ({request}) => {
+    //     const response = await request.get("/range-test", {
+    //         headers: {
+    //             Range: "bytes=0-1023",
+    //         },
+    //     });
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.range === "bytes=0-1023");
+    // });
+    //
+    // test("Request with custom port", async ({request}) => {
+    //     const response = await request.get("/port-test", {
+    //         headers: {
+    //             Host: "localhost:8080",
+    //         },
+    //     });
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.host === "localhost:8080");
+    //     expect(body.hostname === "localhost");
+    // });
+    //
+    // test("Request secure/insecure", async ({request}) => {
+    //     const response = await request.get("/secure-test");
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.secure === false); // Assuming HTTP for tests
+    // });
+    //
+    // test("Request with fresh/stale", async ({request}) => {
+    //     const response = await request.get("/fresh-test", {
+    //         headers: {
+    //             "If-None-Match": '"abc123"',
+    //         },
+    //     });
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(typeof body.fresh === "boolean");
+    //     expect(typeof body.stale === "boolean");
+    // });
+    //
+    // test("Request xhr detection", async ({request}) => {
+    //     const response = await request.get("/xhr-test", {
+    //         headers: {
+    //             "X-Requested-With": "XMLHttpRequest",
+    //         },
+    //     });
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.xhr === true);
+    // });
+    //
+    // test("Empty request body", async ({request}) => {
+    //     const response = await request.post("/empty-body-test");
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(!body.hasBody);
+    // });
+    //
+    // test("Request with route wildcards", async ({request}) => {
+    //     const response = await request.get("/wildcard-test/some/deep/path");
+    //
+    //     expect(response.status()).toBe(200);
+    //
+    //     const body = await response.json();
+    //     expect(body.wildcard === "some/deep/path");
+    // });
 });

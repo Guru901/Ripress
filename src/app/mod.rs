@@ -29,9 +29,12 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res)));
-        self.routes
-            .insert(path.to_string(), (method, wrapped_handler));
+        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res))) as Handler;
+        self.routes.insert(path.to_string(), {
+            let mut map = HashMap::new();
+            map.insert(method, wrapped_handler);
+            map
+        });
     }
 
     /// Add a GET route to the application.
@@ -304,56 +307,58 @@ impl App {
             let routes = routes.clone();
             let middlewares = middlewares.clone();
 
-            routes.iter().fold(
-                actix_web::App::new(),
-                move |app, (path, (method, handler))| {
-                    let route_method = match method {
-                        HttpMethods::GET => actix_web::web::get(),
-                        HttpMethods::POST => actix_web::web::post(),
-                        HttpMethods::PUT => actix_web::web::put(),
-                        HttpMethods::HEAD => actix_web::web::head(),
-                        HttpMethods::DELETE => actix_web::web::delete(),
-                        HttpMethods::PATCH => actix_web::web::patch(),
-                    };
+            routes
+                .iter()
+                .fold(actix_web::App::new(), move |mut app, (path, handlers)| {
+                    for (method, handler) in handlers {
+                        let route_method = match method {
+                            HttpMethods::GET => actix_web::web::get(),
+                            HttpMethods::POST => actix_web::web::post(),
+                            HttpMethods::PUT => actix_web::web::put(),
+                            HttpMethods::HEAD => actix_web::web::head(),
+                            HttpMethods::DELETE => actix_web::web::delete(),
+                            HttpMethods::PATCH => actix_web::web::patch(),
+                        };
 
-                    let handler = handler.clone();
-                    let path = path.clone();
-                    let middlewares = middlewares.clone();
+                        let handler = handler.clone();
+                        let path = path.clone();
+                        let middlewares = middlewares.clone();
 
-                    app.route(
-                        &path,
-                        route_method.to(
-                            move |req: actix_web::HttpRequest, payload: actix_web::web::Payload| {
-                                let handler = handler.clone();
-                                let middlewares = middlewares.clone();
+                        app = app.route(
+                            &path,
+                            route_method.to(
+                                move |req: actix_web::HttpRequest, payload: actix_web::web::Payload| {
+                                    let handler = handler.clone();
+                                    let middlewares = middlewares.clone();
 
-                                async move {
-                                    let our_req = HttpRequest::from_actix_request(req, payload)
-                                        .await
-                                        .unwrap();
-                                    let our_res = HttpResponse::new();
+                                    async move {
+                                        let our_req = HttpRequest::from_actix_request(req, payload)
+                                            .await
+                                            .unwrap();
+                                        let our_res = HttpResponse::new();
 
-                                    if !middlewares.is_empty() {
-                                        // Create a Next with our middlewares and handler
-                                        let next = Next {
-                                            middleware: middlewares.clone(),
-                                            handler: handler.clone(),
-                                        };
+                                        if !middlewares.is_empty() {
+                                            // Create a Next with our middlewares and handler
+                                            let next = Next {
+                                                middleware: middlewares.clone(),
+                                                handler: handler.clone(),
+                                            };
 
-                                        // Run the middleware chain
-                                        let response = next.run(our_req, our_res).await;
-                                        response.to_responder()
-                                    } else {
-                                        // No middlewares, call the handler directly
-                                        let response = handler(our_req, our_res).await;
-                                        response.to_responder()
+                                            // Run the middleware chain
+                                            let response = next.run(our_req, our_res).await;
+                                            response.to_responder()
+                                        } else {
+                                            // No middlewares, call the handler directly
+                                            let response = handler(our_req, our_res).await;
+                                            response.to_responder()
+                                        }
                                     }
-                                }
-                            },
-                        ),
-                    )
-                },
-            )
+                                },
+                            ),
+                        );
+                    }
+                    app
+                })
         })
         .bind(format!("127.0.0.1:{}", port))?
         .run()
@@ -364,10 +369,8 @@ impl App {
 #[cfg(test)]
 impl App {
     pub(crate) fn get_routes(&self, path: &str, method: HttpMethods) -> Option<&Handler> {
-        if self.routes.get(path).unwrap().0 == method {
-            Some(&self.routes.get(path).unwrap().1)
-        } else {
-            None
-        }
+        self.routes
+            .get(path)
+            .and_then(|handlers| handlers.get(&method))
     }
 }
