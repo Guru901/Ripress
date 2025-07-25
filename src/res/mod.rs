@@ -1,4 +1,4 @@
-use crate::types::{RequestBodyType, ResponseContentBody, ResponseContentType};
+use crate::types::{ResponseContentBody, ResponseContentType};
 use actix_web::Responder;
 use actix_web::http::header::{HeaderName, HeaderValue};
 use serde::Serialize;
