@@ -13,7 +13,7 @@ use std::collections::HashMap;
 ///
 /// Basic usage:
 /// ```rust
-/// use ripress_again::context::HttpResponse;
+/// use ripress::context::HttpResponse;
 ///
 /// let res = HttpResponse::new();
 /// res.ok().text("Hello, World!");
@@ -21,7 +21,7 @@ use std::collections::HashMap;
 ///
 /// JSON response:
 /// ```rust
-/// use ripress_again::context::HttpResponse;
+/// use ripress::context::HttpResponse;
 /// use serde_json::json;
 ///
 /// let res = HttpResponse::new();
@@ -72,7 +72,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new();
     /// ```
@@ -100,7 +100,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new()
     ///     .ok()
@@ -130,7 +130,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
@@ -167,7 +167,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new()
     ///     .status(201)
@@ -183,7 +183,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     /// let res = HttpResponse::new();
     /// res.set_header("key", "value"); // Sets the key cookie to value
     /// ```
@@ -208,7 +208,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new()
     ///     .set_cookie("session", "abc123")
@@ -234,7 +234,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new()
     ///     .clear_cookie("session")
@@ -260,8 +260,8 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
-    /// use ripress_again::types::ResponseContentType;
+    /// use ripress::context::HttpResponse;
+    /// use ripress::types::ResponseContentType;
     ///
     /// let res = HttpResponse::new();
     /// res.redirect("https://www.example.com");
@@ -287,7 +287,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new()
     ///     .ok()
@@ -312,7 +312,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new()
     ///     .ok()
@@ -335,7 +335,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new()
     ///     .unauthorized()
@@ -355,7 +355,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new()
     ///     .bad_request()
@@ -378,7 +378,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new()
     ///     .not_found()
@@ -401,7 +401,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress_again::context::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new()
     ///     .internal_server_error()

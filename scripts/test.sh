@@ -8,8 +8,8 @@ touch main.rs
 
 echo '
 
-use ripress_again::app::App;
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::app::App;
+use ripress::context::{HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 

@@ -42,7 +42,7 @@ impl App {
     /// ## Example
     ///
     /// ```
-    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -70,7 +70,7 @@ impl App {
     /// ## Example
     ///
     /// ```
-    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -98,7 +98,7 @@ impl App {
     /// ## Example
     ///
     /// ```
-    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -126,7 +126,7 @@ impl App {
     /// ## Example
     ///
     /// ```
-    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -154,7 +154,7 @@ impl App {
     /// ## Example
     ///
     /// ```
-    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -182,7 +182,7 @@ impl App {
     /// ## Example
     ///
     /// ```
-    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -210,7 +210,7 @@ impl App {
     /// ## Example
     ///
     /// ```
-    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -243,7 +243,7 @@ impl App {
     /// ## Example
     ///
     /// ```no_run
-    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
     /// use tokio;
     ///
     /// ##[tokio::main]

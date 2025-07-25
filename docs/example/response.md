@@ -9,7 +9,7 @@ The `HttpResponse` object in Ripress provides various methods for handling respo
 Send text responses using the `.text()` method.
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn text_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
@@ -22,7 +22,7 @@ async fn text_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Send html responses using the `.html()` method.
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
@@ -35,7 +35,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 To return a JSON response, use `.json()` with a serializable Rust struct.
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -71,7 +71,7 @@ async fn quick_json(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 You can manually set any status code using `.status()`.
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn custom_status(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.status(201)  // Created
@@ -95,7 +95,7 @@ Ripress provides convenient helper methods for common status codes:
 #### Success Responses
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 // 200 OK
 async fn ok_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -110,7 +110,7 @@ async fn ok_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 #### Error Responses
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 // 400 Bad Request
 async fn bad_request(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -150,7 +150,7 @@ async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ### Working with Headers
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 // Setting multiple headers
 async fn set_headers(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -174,7 +174,7 @@ async fn check_headers(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ### Managing Cookies
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 // Setting cookies
 async fn set_session(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -202,8 +202,8 @@ async fn logout(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 The content type is automatically set based on the response method used, but can be manually controlled:
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
-use ripress_again::types::ResponseContentType;
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::ResponseContentType;
 
 async fn custom_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_content_type(ResponseContentType::JSON)
@@ -226,7 +226,7 @@ async fn text_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse
 ### Authentication Response
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn login(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_cookie("session_id", "abc123")
@@ -246,7 +246,7 @@ async fn login(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ### Error Response with Details
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn validation_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.bad_request()
@@ -271,7 +271,7 @@ async fn validation_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse 
 Here's a basic example of streaming numbers:
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 use bytes::Bytes;
 use futures::stream;
 
@@ -288,7 +288,7 @@ async fn basic_stream(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Here's an example of streaming real-time updates with delays:
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 use bytes::Bytes;
 use futures::stream;
 use tokio::time;
@@ -323,7 +323,7 @@ async fn realtime_updates(_req: HttpRequest, res: HttpResponse) -> HttpResponse 
 Here's an example of streaming a large file:
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 use bytes::Bytes;
 use futures::stream;
 use tokio::fs::File;

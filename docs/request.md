@@ -11,7 +11,7 @@ HttpRequest is automatically passed to route handlers.
 Example:
 
 ```rust
-use ripress_again::{context::{HttpRequest, HttpResponse}};
+use ripress::{context::{HttpRequest, HttpResponse}};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let body = req.text().unwrap_or("No body".to_string());
@@ -24,7 +24,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Checks if the `Content-Type` of the request matches the specified type.
 
 ```rust
-use ripress_again::{context::HttpRequest, types::RequestBodyType};
+use ripress::{context::HttpRequest, types::RequestBodyType};
 
 let req = HttpRequest::new();
 req.is(RequestBodyType::JSON);
@@ -37,7 +37,7 @@ Returns `true` if the `Content-Type` matches, otherwise `false`.
 Returns the request's HTTP method.
 
 ```rust
-use ripress_again::{context::HttpRequest, types::HttpMethods};
+use ripress::{context::HttpRequest, types::HttpMethods};
 
 let req = HttpRequest::new();
 let method: &HttpMethods = req.get_method();
@@ -50,7 +50,7 @@ Returns a reference to `HttpMethods` enum.
 Returns the request's origin URL.
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let req = HttpRequest::new();
 match req.get_origin_url() {
@@ -73,7 +73,7 @@ Returns `Result<&str, &str>`.
 Returns the request's path.
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let req = HttpRequest::new();
 let path: &str = req.get_path();
@@ -91,7 +91,7 @@ Returns `&str`.
 Returns the specified cookie value.
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let req = HttpRequest::new();
 match req.get_cookie("session_id") {
@@ -107,7 +107,7 @@ Returns `Result<&str, HttpRequestError>`.
 Returns the client's IP address.
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let req = HttpRequest::new();
 match req.ip() {
@@ -123,7 +123,7 @@ Returns `Result<&str, &str>`.
 Returns the specified header value.
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let req = HttpRequest::new();
 match req.get_header("content-type") {
@@ -137,7 +137,7 @@ Returns `Result<&str, HttpRequestError>`.
 ## Accessing URL Parameters
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let req = HttpRequest::new();
 match req.get_params("id") {
@@ -157,7 +157,7 @@ Returns `Result<&str, HttpRequestError>`.
 ## Accessing Query Parameters
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let req = HttpRequest::new();
 match req.get_query("q") {
@@ -178,7 +178,7 @@ Returns `Result<&str, HttpRequestError>`.
 Returns the request's protocol.
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let req = HttpRequest::new();
 let protocol: &str = req.get_protocol();
@@ -192,7 +192,7 @@ Returns `&str` containing the protocol.
 Returns whether the request was made over HTTPS.
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let req = HttpRequest::new();
 let is_secure: bool = req.is_secure();
@@ -204,7 +204,7 @@ Returns `bool`.
 ## Get data from request that is inserted by middleware
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let req = HttpRequest::new();
 req.set_data("id", "123");
@@ -217,7 +217,7 @@ Returns `Option<&String>` with the data value if found, or `None` if not found.
 ## Set data to request from middleware
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let mut req = HttpRequest::new();
 req.set_data("id", "123");
@@ -230,7 +230,7 @@ println!("Id: {:?}", id);
 ### JSON Body
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -251,7 +251,7 @@ Returns `Result<J, String>` where `J` is your deserialized type.
 ### Text Body
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 
 let req = HttpRequest::new();
 match req.text() {
@@ -265,7 +265,7 @@ Returns `Result<String, String>`.
 ### Form Data
 
 ```rust
-use ripress_again::context::HttpRequest;
+use ripress::context::HttpRequest;
 use std::collections::HashMap;
 
 let req = HttpRequest::new();

@@ -9,7 +9,7 @@ The `App` struct is the core of Ripress, providing a simple interface for creati
 Creates a new App instance:
 
 ```rust
-use ripress_again::app::App;
+use ripress::app::App;
 
 let mut app = App::new();
 ```
@@ -31,7 +31,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Use `.all()` to handle any HTTP method:
 
 ```rust
-use ripress_again::{
+use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
 };
@@ -57,7 +57,7 @@ The `static_files` method provides a simple way to serve static assets (such as 
 ### Example
 
 ```rust
-use ripress_again::app::App;
+use ripress::app::App;
 
 let mut app = App::new();
 
@@ -87,7 +87,7 @@ This integration allows your application to serve both dynamic routes and static
 #### GET Requests
 
 ```rust
-use ripress_again::{
+use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
 };
@@ -184,7 +184,7 @@ The middleware will be applied to /api/\* in this case
 Routes can include dynamic parameters using `{paramName}` syntax:
 
 ```rust
-use ripress_again::{
+use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
 };
@@ -207,7 +207,7 @@ app.get("/user/{id}", user_handler);
 Use the `.listen()` method to start the server:
 
 ```rust
-use ripress_again::{
+use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
 };

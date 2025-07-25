@@ -20,7 +20,7 @@ cargo add ripress
 ## Quick Start
 
 ```rust
-use ripress_again::{
+use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
 };

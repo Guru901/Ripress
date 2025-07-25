@@ -9,7 +9,7 @@ The `HttpRequest` object in Ripress provides various methods to extract and mani
 ### Getting HTTP Method
 
 ```rust
-use ripress_again::{context::{HttpRequest, HttpResponse}, types::HttpMethods};
+use ripress::{context::{HttpRequest, HttpResponse}, types::HttpMethods};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let method: &HttpMethods = req.get_method();
@@ -20,7 +20,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ### Getting Request Path
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let path: &str = req.get_path();
@@ -31,7 +31,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ### Getting Full Request URL
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.get_origin_url() {
@@ -44,7 +44,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ## Handling Query Parameters
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn search(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.get_query("q") {
@@ -57,7 +57,7 @@ async fn search(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ## Getting Client's IP Address
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.ip() {
@@ -70,7 +70,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ## Handling Route Parameters
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn get_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.get_params("id") {
@@ -83,7 +83,7 @@ async fn get_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ## Handling Headers
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.get_header("authorization") {
@@ -96,7 +96,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ## Handling Cookies
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.get_cookie("sessionId") {
@@ -109,7 +109,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ## Handling JSON Body
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -129,7 +129,7 @@ async fn save_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ## Handling Form Data
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 use std::collections::HashMap;
 
 async fn upload(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -143,7 +143,7 @@ async fn upload(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ## Handling Text Body
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn log_text(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.text() {
@@ -156,7 +156,7 @@ async fn log_text(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ## Checking Content Type
 
 ```rust
-use ripress_again::{context::{HttpRequest, HttpResponse}, types::RequestBodyType};
+use ripress::{context::{HttpRequest, HttpResponse}, types::RequestBodyType};
 
 async fn check_content_type(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     if req.is(RequestBodyType::JSON) {
@@ -170,7 +170,7 @@ async fn check_content_type(req: HttpRequest, res: HttpResponse) -> HttpResponse
 ## Checking Protocol
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn check_protocol(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let protocol: &str = req.get_protocol();
@@ -181,7 +181,7 @@ async fn check_protocol(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ## Checking Is Secure
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn check_is_secure(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let is_secure: bool = req.is_secure();

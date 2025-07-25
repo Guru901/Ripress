@@ -9,7 +9,7 @@ The `Router` struct provides a simple way to group and manage routes under a com
 To create a new router, use the `Router::new` method and specify the base path. For example:
 
 ```rust
-use ripress_again::router::Router;
+use ripress::router::Router;
 
 let mut router = Router::new("/api");
 ```
@@ -21,7 +21,7 @@ The Router offers methods corresponding to each HTTP method. Each method takes a
 ### GET Route
 
 ```rust
-use ripress_again::{router::Router, context::{HttpRequest, HttpResponse}};
+use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
 
 async fn get_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("GET request handled")
@@ -34,7 +34,7 @@ router.get("/hello", get_handler);
 ### POST Route
 
 ```rust
-use ripress_again::{router::Router, context::{HttpRequest, HttpResponse}};
+use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
 
 async fn post_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("POST request handled")
@@ -47,7 +47,7 @@ router.post("/submit", post_handler);
 ### PUT Route
 
 ```rust
-use ripress_again::{router::Router, context::{HttpRequest, HttpResponse}};
+use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
 
 async fn put_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("PUT request handled")
@@ -60,7 +60,7 @@ router.put("/update", put_handler);
 ### DELETE Route
 
 ```rust
-use ripress_again::{router::Router, context::{HttpRequest, HttpResponse}};
+use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
 
 async fn delete_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("DELETE request handled")
@@ -73,7 +73,7 @@ router.delete("/remove", delete_handler);
 ### PATCH Route
 
 ```rust
-use ripress_again::{router::Router, context::{HttpRequest, HttpResponse}};
+use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
 
 async fn patch_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("PATCH request handled")
@@ -88,7 +88,7 @@ router.patch("/modify", patch_handler);
 After defining the routes using your router, register the router with an `App` instance. This will add all the router’s routes to the application with their full path (combining the router’s base path and the route’s defined path):
 
 ```rust
-use ripress_again::{app::App, router::Router, context::{HttpRequest, HttpResponse}};
+use ripress::{app::App, router::Router, context::{HttpRequest, HttpResponse}};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("Hello from Router!")

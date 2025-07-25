@@ -11,7 +11,7 @@ The `HttpResponse` object in Ripress provides methods for constructing HTTP resp
 Send plain text responses using the `.text()` method.
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
@@ -24,7 +24,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Send html responses using the `.html()` method.
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
@@ -37,7 +37,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Send JSON responses using the `.json()` method with any serializable type.
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -64,7 +64,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Set specific status codes using `.status()`:
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.status(201)
@@ -81,7 +81,7 @@ Common status codes have dedicated helper methods:
 #### 200 OK
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
@@ -92,7 +92,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 #### 400 Bad Request
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.bad_request()
@@ -105,7 +105,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 #### 404 Not Found
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.not_found()
@@ -116,7 +116,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 #### 401 Unauthorized
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.unauthorized()
@@ -127,7 +127,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 #### 500 Internal Server Error
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.internal_server_error()
@@ -144,7 +144,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Add custom headers using `.set_header()`:
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_header("X-Custom-Header", "value")
@@ -158,7 +158,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Retrieve header values using `.get_header()`:
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match res.get_header("X-Custom-Header") {
@@ -177,7 +177,7 @@ Returns `Result<String, HttpResponseError>`.
 Send streaming responses using the `.write()` method with any Stream that produces `Result<Bytes, E>`.
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 use bytes::Bytes;
 use futures::stream;
 use tokio::time;
@@ -214,7 +214,7 @@ The `.write()` method:
 Set cookies using `.set_cookie()`:
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_cookie("session", "abc123")
@@ -228,7 +228,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Remove cookies using `.clear_cookie()`:
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.clear_cookie("session")
@@ -242,8 +242,8 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 The content type is automatically set based on the response method used (`.json()`, `.text()`), but can be manually set:
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
-use ripress_again::types::ResponseContentType;
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::ResponseContentType;
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_content_type(ResponseContentType::JSON)
@@ -259,7 +259,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 All response methods support chaining for a fluent API:
 
 ```rust
-use ripress_again::context::{HttpRequest, HttpResponse};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_header("X-Custom", "value")

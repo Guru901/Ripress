@@ -1,7 +1,13 @@
 [package]
-name = "ripress-again"
-version = "0.1.0"
+name = "ripress"
+version = "0.5.1"
 edition = "2024"
+description = "An attempt to make an http server library like express.js in rust"
+license = "MIT"
+authors = ["You guru911u@gmail.com"]
+keywords = ["http", "server", "framework", "web"]
+categories = ["web-programming::http-server"]
+repository = "https://github.com/guru901/ripress"
 
 [dependencies]
 actix-web = "4.11.0"
@@ -11,4 +17,9 @@ tokio = { version = "1.46.1", features = ["full"] }
 url = "2.5.4"
 futures = "0.3.31"
 serde_urlencoded = "0.7.1"
-reqwest = "0.12.22"
+
+[dev-dependencies]
+reqwest = { version = "0.11.18", features = ["json"] }
+
+[package.metadata.docs.rs]
+readme = "README.md"

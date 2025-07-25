@@ -13,7 +13,7 @@ use std::collections::HashMap;
 ///
 /// Basic usage:
 /// ```rust
-/// use ripress_again::context::HttpRequest;
+/// use ripress::context::HttpRequest;
 ///
 /// let req = HttpRequest::new();
 /// println!("Method: {:?}", req.method);
@@ -23,7 +23,7 @@ use std::collections::HashMap;
 ///
 /// Working with JSON body:
 /// ```rust
-/// use ripress_again::context::HttpRequest;
+/// use ripress::context::HttpRequest;
 /// use serde::{Deserialize, Serialize};
 ///
 /// ##[derive(Deserialize, Serialize)]
@@ -82,8 +82,8 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```rust
-    /// use ripress_again::context::HttpRequest;
-    /// use ripress_again::types::HttpMethods;
+    /// use ripress::context::HttpRequest;
+    /// use ripress::types::HttpMethods;
     ///
     /// let req = HttpRequest::new();
     /// assert_eq!(req.method, HttpMethods::GET);
@@ -119,7 +119,7 @@ impl HttpRequest {
     /// ## Example
     ///
     /// ```no_run
-    /// let req = ripress_again::context::HttpRequest::new();
+    /// let req = ripress::context::HttpRequest::new();
     /// let header = req.get_header("id");
     /// println!("header: {:?}", header.unwrap());
     /// ```
@@ -137,7 +137,7 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```
-    /// let mut req = ripress_again::context::HttpRequest::new();
+    /// let mut req = ripress::context::HttpRequest::new();
     /// req.set_data("id", "123");
     /// let id = req.get_data("id");
     /// println!("Id: {:?}", id);
@@ -159,7 +159,7 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```
-    /// let req = ripress_again::context::HttpRequest::new();
+    /// let req = ripress::context::HttpRequest::new();
     /// let id = req.get_data("id");
     /// println!("Id: {:?}", id);
     /// ```
@@ -181,7 +181,7 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```rust
-    /// use ripress_again::context::HttpRequest;
+    /// use ripress::context::HttpRequest;
     /// use serde::{Deserialize, Serialize};
     ///
     /// ##[derive(Deserialize, Serialize)]
@@ -221,7 +221,7 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```
-    /// let req = ripress_again::context::HttpRequest::new();
+    /// let req = ripress::context::HttpRequest::new();
     /// let text = req.text().unwrap();
     /// println!("text : {:?}", text);
     /// ```
@@ -247,7 +247,7 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```no_run
-    /// let req = ripress_again::context::HttpRequest::new();
+    /// let req = ripress::context::HttpRequest::new();
     /// // Let' say form data was sent as key=value and key2=value2
     /// let form_data = req.form_data().unwrap();
     /// println!("key = : {:?}", form_data.get("key"));
@@ -313,13 +313,6 @@ impl HttpRequest {
                     .unwrap_or("unknown".to_string())
             });
         let protocol = req.connection_info().scheme().to_string();
-        let is_secure;
-
-        if protocol == "https" {
-            is_secure = true
-        } else {
-            is_secure = false
-        }
 
         let mut headers = HashMap::new();
 

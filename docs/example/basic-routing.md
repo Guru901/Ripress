@@ -1,7 +1,7 @@
 # Basic Routing example
 
 ```rust
-use ripress_again::{
+use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
 };
