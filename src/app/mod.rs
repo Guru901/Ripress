@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::types::{Fut, Handler, HttpMethods, Middleware, Next, Routes};

@@ -7,6 +7,7 @@ cd src
 touch main.rs
 
 echo '
+
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
 use ripress::res::{CookieOptions, CookieSameSiteOptions};
@@ -45,6 +46,8 @@ async fn main() {
     app.get("/custom-headers-test", custom_headers_test);
     app.post("/created-test", created_test);
     app.get("/custom-status-test", custom_status_test);
+    app.get("/redirect-test", redirect_test);
+    app.get("/permanent-redirect-test", permanent_redirect_test);
 
     app.use_middleware("/auth", |mut req, res, next| {
         println!("Auth middleware");
@@ -278,10 +281,20 @@ async fn custom_status_test(req: HttpRequest, res: HttpResponse) -> HttpResponse
     }))
 }
 
+async fn redirect_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.redirect("/redirected")
+}
+
+async fn permanent_redirect_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.permanent_redirect("/new-location")
+}
+
 async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let token = req.get_data("token").unwrap();
     res.ok().text(token)
 }
+
+
 ' > main.rs
 
 cargo run &  # Start server in background

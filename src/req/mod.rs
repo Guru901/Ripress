@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 use crate::types::{
     HttpMethods, HttpRequestError, RequestBody, RequestBodyContent, RequestBodyType,
 };

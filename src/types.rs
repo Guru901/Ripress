@@ -2,7 +2,7 @@ use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
+use std::fmt::Display;
 use std::pin::Pin;
 use std::sync::Arc;
 
@@ -106,7 +106,6 @@ impl Display for HttpMethods {
 }
 
 pub type Routes = HashMap<String, HashMap<HttpMethods, Handler>>;
-
 
 #[derive(Debug, PartialEq)]
 pub enum HttpRequestError {

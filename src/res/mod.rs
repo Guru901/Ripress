@@ -1,10 +1,10 @@
+#![warn(missing_docs)]
+
 use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
 use actix_web::Responder;
-use actix_web::cookie::SameSite;
 use actix_web::http::header::{HeaderName, HeaderValue};
 use serde::Serialize;
 use std::collections::HashMap;
-use std::hash::Hash;
 
 /// Represents an HTTP response being sent to the client.
 ///
@@ -351,6 +351,14 @@ impl HttpResponse {
 
     pub fn redirect(mut self, path: &str) -> Self {
         self.status_code = 302;
+        self.headers
+            .insert("Location".to_string(), path.to_string());
+
+        self
+    }
+
+    pub fn permanent_redirect(mut self, path: &str) -> Self {
+        self.status_code = 301;
         self.headers
             .insert("Location".to_string(), path.to_string());
 

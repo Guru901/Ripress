@@ -65,42 +65,25 @@ test.describe("Response Tests", () => {
     expect(response.status()).toBe(418);
     expect(response.statusText()).toBe("I'm a teapot");
   });
-  //
-  // test("Redirect response", async ({request}) => {
-  //     const response = await request.get("/redirect-test", {
-  //         maxRedirects: 0
-  //     });
-  //
-  //     expect(response.status()).toBe(302);
-  //     expect(response.headers()["location"]).toBe("/redirected");
-  // });
-  //
-  // test("Permanent redirect", async ({request}) => {
-  //     const response = await request.get("/permanent-redirect-test", {
-  //         maxRedirects: 0
-  //     });
-  //
-  //     expect(response.status()).toBe(301);
-  //     expect(response.headers()["location"]).toBe("/new-location");
-  // });
-  //
-  // test("Set location header", async ({request}) => {
-  //     const response = await request.get("/location-test");
-  //
-  //     expect(response.status()).toBe(200);
-  //     expect(response.headers()["location"]).toBe("/some/path");
-  // });
-  //
-  // test("Set links header", async ({request}) => {
-  //     const response = await request.get("/links-test");
-  //
-  //     expect(response.status()).toBe(200);
-  //
-  //     const linkHeader = response.headers()["link"];
-  //     expect(linkHeader).toContain('</next>; rel="next"');
-  //     expect(linkHeader).toContain('</prev>; rel="prev"');
-  // });
-  //
+
+  test("Redirect response", async ({ request }) => {
+    const response = await request.get("/redirect-test", {
+      maxRedirects: 0,
+    });
+
+    expect(response.status()).toBe(302);
+    expect(response.headers()["location"]).toBe("/redirected");
+  });
+
+  test("Permanent redirect", async ({ request }) => {
+    const response = await request.get("/permanent-redirect-test", {
+      maxRedirects: 0,
+    });
+
+    expect(response.status()).toBe(301);
+    expect(response.headers()["location"]).toBe("/new-location");
+  });
+
   // test("Set vary header", async ({request}) => {
   //     const response = await request.get("/vary-test");
   //
@@ -274,12 +257,5 @@ test.describe("Response Tests", () => {
   //
   //     const buffer = await response.body();
   //     expect(buffer).toBeInstanceOf(Buffer);
-  // });
-  //
-  // test("Response with custom charset", async ({request}) => {
-  //     const response = await request.get("/charset-test");
-  //
-  //     expect(response.status()).toBe(200);
-  //     expect(response.headers()["content-type"]).toBe("text/plain; charset=iso-8859-1");
   // });
 });

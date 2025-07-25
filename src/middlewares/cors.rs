@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 use crate::{
     context::HttpResponse,
     req::HttpRequest,
