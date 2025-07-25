@@ -63,7 +63,7 @@ test.describe("Response Tests", () => {
     const response = await request.get("/custom-status-test");
 
     expect(response.status()).toBe(418);
-    expect(response.statusText()).toBe("I m a teapot");
+    expect(response.statusText()).toBe("I'm a teapot");
   });
   //
   // test("Redirect response", async ({request}) => {
