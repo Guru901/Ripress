@@ -80,7 +80,7 @@ pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
-pub enum HttpMethod {
+pub enum HttpMethods {
     GET,
     POST,
     PUT,
@@ -89,7 +89,7 @@ pub enum HttpMethod {
     PATCH,
 }
 
-pub type Routes = HashMap<String, (HttpMethod, Handler)>;
+pub type Routes = HashMap<String, (HttpMethods, Handler)>;
 
 #[derive(Debug, PartialEq)]
 pub enum HttpRequestError {
