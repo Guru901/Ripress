@@ -7,7 +7,6 @@ cd src
 touch main.rs
 
 echo '
-
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
@@ -38,8 +37,10 @@ async fn main() {
 
     app.post("/urlencoded-test", urlencoded_handler);
     app.post("/raw-body-test", raw_body_handler);
+    app.post("/empty-body-test", empty_body_handler);
 
-    app.post("/empty-body-test", empty_body_test);
+    app.get("/xhr-test", xhr_handler);
+    app.get("/secure-test", secure_handler);
 
     app.use_middleware("/auth", |mut req, res, next| {
         println!("Auth middleware");
@@ -212,8 +213,17 @@ async fn raw_body_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     }))
 }
 
-async fn empty_body_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn empty_body_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().json(json!({}))
+}
+
+async fn xhr_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let xhr = req.xhr;
+    res.ok().json(json!(xhr))
+}
+async fn secure_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let secure = req.is_secure;
+    res.ok().json(json!(secure))
 }
 
 // response test handler
@@ -226,7 +236,6 @@ async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let token = req.get_data("token").unwrap();
     res.ok().text(token)
 }
-
 ' > main.rs
 
 cargo run &  # Start server in background

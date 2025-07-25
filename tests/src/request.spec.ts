@@ -234,51 +234,7 @@ test.describe("Request Tests", () => {
         expect(body.rawBody === rawData);
         expect(body.contentType === "text/plain");
     });
-    ;
-    //
-    // test("Request accepts header", async ({request}) => {
-    //     const response = await request.get("/accepts-test", {
-    //         headers: {
-    //             Accept: "application/json, text/html, */*",
-    //         },
-    //     });
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(body.acceptsJson === true);
-    //     expect(body.acceptsHtml === true);
-    //     expect(body.acceptsXml === false);
-    // });
-    //
-    // test("Request content type", async ({request}) => {
-    //     const response = await request.post("/content-type-test", {
-    //         data: {test: "data"},
-    //         headers: {
-    //             "Content-Type": "application/json",
-    //         },
-    //     });
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(body.contentType === "application/json");
-    //     expect(body.isJson === true);
-    // });
-    //
-    // test("Request with range header", async ({request}) => {
-    //     const response = await request.get("/range-test", {
-    //         headers: {
-    //             Range: "bytes=0-1023",
-    //         },
-    //     });
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(body.range === "bytes=0-1023");
-    // });
-    //
+
     // test("Request with custom port", async ({request}) => {
     //     const response = await request.get("/port-test", {
     //         headers: {
@@ -293,41 +249,29 @@ test.describe("Request Tests", () => {
     //     expect(body.hostname === "localhost");
     // });
     //
-    // test("Request secure/insecure", async ({request}) => {
-    //     const response = await request.get("/secure-test");
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(body.secure === false); // Assuming HTTP for tests
-    // });
-    //
-    // test("Request with fresh/stale", async ({request}) => {
-    //     const response = await request.get("/fresh-test", {
-    //         headers: {
-    //             "If-None-Match": '"abc123"',
-    //         },
-    //     });
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(typeof body.fresh === "boolean");
-    //     expect(typeof body.stale === "boolean");
-    // });
-    //
-    // test("Request xhr detection", async ({request}) => {
-    //     const response = await request.get("/xhr-test", {
-    //         headers: {
-    //             "X-Requested-With": "XMLHttpRequest",
-    //         },
-    //     });
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(body.xhr === true);
-    // });
+
+    test("Request secure/insecure", async ({request}) => {
+        const response = await request.get("/secure-test");
+
+        expect(response.status()).toBe(200);
+
+        const body = await response.json();
+        expect(body.secure === false); // Assuming HTTP for tests
+    });
+
+
+    test("Request xhr detection", async ({request}) => {
+        const response = await request.get("/xhr-test", {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        });
+
+        expect(response.status()).toBe(200);
+
+        const body = await response.json();
+        expect(body.xhr === true);
+    });
 
     test("Empty request body", async ({request}) => {
         const response = await request.post("/empty-body-test");

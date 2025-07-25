@@ -63,6 +63,12 @@ pub struct HttpRequest {
     /// Protocol of the request (HTTP or HTTPs)
     pub protocol: String,
 
+    /// Boolean indicating if the request was made with AJAX (XMLHttpRequest).
+    pub xhr: bool,
+
+    /// Boolean indicating if the request was made with Https
+    pub is_secure: bool,
+
     /// The request's headers
     headers: HashMap<String, String>,
 
@@ -105,6 +111,8 @@ impl HttpRequest {
             data: HashMap::new(),
             body: RequestBody::new_text(""),
             cookies: HashMap::new(),
+            xhr: false,
+            is_secure: false,
         }
     }
 
@@ -432,6 +440,8 @@ impl HttpRequest {
             });
         let protocol = req.connection_info().scheme().to_string();
 
+        let is_secure = protocol == String::from("https");
+
         let mut headers = HashMap::new();
 
         req.headers().iter().for_each(|f| {
@@ -439,6 +449,8 @@ impl HttpRequest {
             let header_value = f.1.to_str().unwrap().to_string();
             headers.insert(header_name, header_value);
         });
+
+        let xhr = headers.get("X-Requested-With").unwrap_or(&String::new()) == "XMLHttpRequest";
 
         let mut cookies: HashMap<String, String> = HashMap::new();
 
@@ -524,6 +536,8 @@ impl HttpRequest {
             data: HashMap::new(),
             body: request_body,
             cookies,
+            xhr,
+            is_secure,
         })
     }
 }
