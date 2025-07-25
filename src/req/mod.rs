@@ -1,4 +1,6 @@
-use crate::types::{HttpMethods, RequestBody, RequestBodyContent, RequestBodyType};
+use crate::types::{
+    HttpMethods, HttpRequestError, RequestBody, RequestBodyContent, RequestBodyType,
+};
 use actix_web::HttpMessage;
 use futures::StreamExt;
 use std::collections::HashMap;
@@ -40,10 +42,10 @@ use std::collections::HashMap;
 
 pub struct HttpRequest {
     /// Dynamic route parameters extracted from the URL.
-    pub params: HashMap<String, String>,
+    params: HashMap<String, String>,
 
     /// Query parameters from the request URL.
-    pub query_params: HashMap<String, String>,
+    query_params: HashMap<String, String>,
 
     /// The full URL of the incoming request.
     pub origin_url: String,
@@ -64,7 +66,7 @@ pub struct HttpRequest {
     headers: HashMap<String, String>,
 
     /// The request's cookies
-    pub cookies: HashMap<String, String>,
+    cookies: HashMap<String, String>,
 
     // The Data set by middleware in the request to be used in the route handler
     data: HashMap<String, String>,
@@ -124,8 +126,99 @@ impl HttpRequest {
     /// println!("header: {:?}", header.unwrap());
     /// ```
 
-    pub fn get_header<T: Into<String>>(&self, header_name: T) -> Option<&String> {
-        self.headers.get(&header_name.into().to_lowercase())
+    pub fn get_header(&self, header_name: &str) -> Result<&str, HttpRequestError> {
+        let header_name = header_name.to_lowercase();
+        let header = self.headers.get(&header_name);
+
+        match header {
+            Some(header_str) => Ok(header_str),
+            None => Err(HttpRequestError::MissingHeader(header_name)),
+        }
+    }
+
+    /// Returns query parameters.
+    ///
+    /// ## Arguments
+    ///
+    /// * `query_name` - The name of the query parameter to retrieve
+    ///
+    /// ## Returns
+    ///
+    /// Returns `Ok(&str)` with the query parameter value if found, or
+    /// `Err(HttpRequestError::MissingParam)` if not found.
+    ///
+    /// ## Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// let id = req.get_query("id");
+    /// println!("Id: {:?}", id);
+    /// ```
+
+    pub fn get_query(&self, query_name: &str) -> Result<&str, HttpRequestError> {
+        let query = self.query_params.get(query_name).map(|v| v);
+
+        match query {
+            Some(query_str) => Ok(query_str),
+            None => Err(HttpRequestError::MissingQuery(query_name.to_string())),
+        }
+    }
+
+    /// Returns url parameters.
+    ///
+    /// ## Arguments
+    ///
+    /// * `param_name` - The name of the parameter to retrieve
+    ///
+    /// ## Returns
+    ///
+    /// Returns `Ok(&str)` with the parameter value if found, or
+    /// `Err(HttpRequestError::MissingParam)` if not found.
+    ///
+    /// ## Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    /// let id = req.get_params("id");
+    /// println!("Id: {:?}", id);
+    /// ```
+
+    pub fn get_params(&self, param_name: &str) -> Result<&str, HttpRequestError> {
+        let param = self.params.get(param_name).map(|v| v);
+
+        match param {
+            Some(param_str) => Ok(param_str),
+            None => Err(HttpRequestError::MissingParam(param_name.to_string())),
+        }
+    }
+
+    /// Retrieves a cookie value by name.
+    ///
+    /// ## Arguments
+    ///
+    /// * `name` - The name of the cookie to retrieve
+    ///
+    /// ## Returns
+    ///
+    /// Returns `Ok(&str)` with the cookie value if found, or
+    /// `Err(HttpRequestError::MissingCookie)` if not found.
+    ///
+    /// ## Example
+    /// ```rust
+    /// use ripress::context::HttpRequest;
+    ///
+    /// let req = HttpRequest::new();
+    /// match req.get_cookie("session_id") {
+    ///     Ok(session) => println!("Session ID: {}", session),
+    ///     Err(e) => println!("No session cookie found: {:?}", e)
+    /// }
+    /// ```
+
+    pub fn get_cookie(&self, name: &str) -> Result<&str, HttpRequestError> {
+        let cookie = self.cookies.get(name);
+
+        match cookie {
+            Some(cookie_str) => Ok(cookie_str),
+            None => Err(HttpRequestError::MissingCookie(name.to_string())),
+        }
     }
 
     /// Adds data from the middleware into the request.
@@ -166,6 +259,30 @@ impl HttpRequest {
 
     pub fn get_data<T: Into<String>>(&self, data_key: T) -> Option<&String> {
         self.data.get(&data_key.into())
+    }
+
+    /// Checks if the request body matches a specific content type.
+    ///
+    /// ## Arguments
+    ///
+    /// * `content_type` - The `RequestBodyType` to check against
+    ///
+    /// ## Returns
+    ///
+    /// Returns `true` if the content type matches, `false` otherwise.
+    ///
+    /// ## Example
+    /// ```rust
+    /// use ripress::{context::HttpRequest, types::RequestBodyType};
+    ///
+    /// let req = HttpRequest::new();
+    /// if req.is(RequestBodyType::JSON) {
+    ///     // Handle JSON content
+    /// }
+    /// ```
+
+    pub fn is(&self, content_type: RequestBodyType) -> bool {
+        self.body.content_type == content_type
     }
 
     /// Deserializes the request body as JSON into the specified type.
@@ -407,5 +524,91 @@ impl HttpRequest {
             body: request_body,
             cookies,
         })
+    }
+}
+
+/// Determines the content type from a content-type header string.
+///
+/// ## Arguments
+///
+/// * `content_type` - The content-type header value
+///
+/// ## Returns
+///
+/// Returns the appropriate `RequestBodyType` enum variant.
+
+pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
+    if content_type == "application/json" {
+        return RequestBodyType::JSON;
+    } else if content_type == "application/x-www-form-urlencoded" {
+        return RequestBodyType::FORM;
+    } else {
+        RequestBodyType::TEXT
+    }
+}
+
+#[cfg(test)]
+impl HttpRequest {
+    pub(crate) fn set_query(&mut self, key: &str, value: &str) {
+        self.query_params.insert(key.to_string(), value.to_string());
+    }
+
+    pub(crate) fn set_header(&mut self, key: &str, value: &str) {
+        self.headers.insert(key.to_string(), value.to_string());
+    }
+
+    pub(crate) fn set_cookie(&mut self, key: &str, value: &str) {
+        self.cookies.insert(key.to_string(), value.to_string());
+    }
+
+    pub(crate) fn set_param(&mut self, key: &str, value: &str) {
+        self.params.insert(key.to_string(), value.to_string());
+    }
+
+    pub(crate) fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)
+    where
+        J: serde::de::DeserializeOwned + serde::Serialize,
+    {
+        self.body.content_type = content_type;
+        self.body.content = RequestBodyContent::JSON(serde_json::to_value(json).unwrap());
+    }
+
+    pub(crate) fn set_text(&mut self, text: &str, content_type: RequestBodyType) {
+        self.body.content_type = content_type;
+        self.body.content = RequestBodyContent::TEXT(text.to_string());
+    }
+
+    pub(crate) fn set_form(&mut self, key: &str, value: &str, content_type: RequestBodyType) {
+        self.body.content_type = content_type;
+
+        match &mut self.body.content {
+            RequestBodyContent::FORM(existing) => {
+                existing.push('&');
+                existing.push_str(&format!("{key}={value}"));
+            }
+            _ => {
+                self.body.content = RequestBodyContent::FORM(format!("{key}={value}"));
+            }
+        }
+    }
+
+    pub(crate) fn set_content_type(&mut self, content_type: RequestBodyType) {
+        self.body.content_type = content_type;
+    }
+
+    pub(crate) fn set_method(&mut self, method: HttpMethods) {
+        self.method = method;
+    }
+
+    pub(crate) fn set_ip(&mut self, ip: String) {
+        self.ip = ip;
+    }
+
+    pub(crate) fn set_path(&mut self, path: String) {
+        self.path = path;
+    }
+
+    pub(crate) fn set_origin_url(&mut self, origin_url: String) {
+        self.origin_url = origin_url;
     }
 }

@@ -1,6 +1,6 @@
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
-use crate::types::{Fut, HttpMethods, Routes};
+use crate::types::{Fut, Handler, HttpMethods, Routes};
 use std::collections::HashMap;
 
 pub(crate) fn box_future<F>(future: F) -> Fut
