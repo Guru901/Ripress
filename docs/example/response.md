@@ -51,10 +51,9 @@ async fn json_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     };
 
     res.ok()
-       .json(response_body)  // No need for &, json() takes ownership
+       .json(response_body)
 }
 
-// Using serde_json::json! macro
 async fn quick_json(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
        .json(serde_json::json!({
@@ -114,34 +113,31 @@ use ripress::context::{HttpRequest, HttpResponse};
 
 // 400 Bad Request
 async fn bad_request(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.bad_request()
-       .json(serde_json::json!({
-           "error": "Invalid input",
-           "details": ["name is required", "age must be positive"]
-       }))
+    res.bad_request().json(serde_json::json!({
+        "error": "Invalid input",
+        "details": ["name is required", "age must be positive"]
+    }))
 }
 
 // 404 Not Found
 async fn not_found(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.not_found()
-       .json(serde_json::json!({
-           "error": "Resource not found",
-           "resource": "user/123"
-       }))
+    res.not_found().json(serde_json::json!({
+        "error": "Resource not found",
+        "resource": "user/123"
+    }))
 }
 
-// 401 Not Found
-async fn not_found(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+// 401 Unauthorized
+async fn unauthorized(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.unauthorized().text("Unauthorized")
 }
 
 // 500 Internal Server Error
 async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.internal_server_error()
-       .json(serde_json::json!({
-           "error": "Internal server error",
-           "request_id": "abc-123"
-       }))
+    res.internal_server_error().json(serde_json::json!({
+        "error": "Internal server error",
+        "request_id": "abc-123"
+    }))
 }
 ```
 
@@ -174,50 +170,29 @@ async fn check_headers(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ### Managing Cookies
 
 ```rust
-use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{
+    context::{HttpRequest, HttpResponse},
+    res::CookieOptions,
+};
 
 // Setting cookies
 async fn set_session(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_cookie("session_id", "abc123")
-       .set_cookie("user_id", "user_123")
-       .ok()
-       .json(serde_json::json!({
-           "message": "Session started"
-       }))
+    res.set_cookie("session_id", "abc123", CookieOptions::default())
+        .set_cookie("user_id", "user_123", CookieOptions::default())
+        .ok()
+        .json(serde_json::json!({
+            "message": "Session started"
+        }))
 }
 
 // Removing cookies (logout example)
 async fn logout(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.clear_cookie("session_id")
-       .clear_cookie("user_id")
-       .ok()
-       .json(serde_json::json!({
-           "message": "Logged out successfully"
-       }))
-}
-```
-
-## Content Types
-
-The content type is automatically set based on the response method used, but can be manually controlled:
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-use ripress::types::ResponseContentType;
-
-async fn custom_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_content_type(ResponseContentType::JSON)
-       .ok()
-       .json(serde_json::json!({
-           "message": "Custom content type response"
-       }))
-}
-
-// Text response with specific content type
-async fn text_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_content_type(ResponseContentType::TEXT)
-       .ok()
-       .text("Plain text response")
+        .clear_cookie("user_id")
+        .ok()
+        .json(serde_json::json!({
+            "message": "Logged out successfully"
+        }))
 }
 ```
 
@@ -226,20 +201,23 @@ async fn text_content_type(_req: HttpRequest, res: HttpResponse) -> HttpResponse
 ### Authentication Response
 
 ```rust
-use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{
+    context::{HttpRequest, HttpResponse},
+    res::CookieOptions,
+};
 
 async fn login(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_cookie("session_id", "abc123")
-       .set_header("X-Auth-Token", "jwt_token_here")
-       .ok()
-       .json(serde_json::json!({
-           "status": "success",
-           "user": {
-               "id": 1,
-               "name": "John Doe",
-               "role": "admin"
-           }
-       }))
+    res.set_cookie("session_id", "abc123", CookieOptions::default())
+        .set_header("X-Auth-Token", "jwt_token_here")
+        .ok()
+        .json(serde_json::json!({
+            "status": "success",
+            "user": {
+                "id": 1,
+                "name": "John Doe",
+                "role": "admin"
+            }
+        }))
 }
 ```
 

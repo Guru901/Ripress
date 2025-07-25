@@ -24,10 +24,13 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Checks if the `Content-Type` of the request matches the specified type.
 
 ```rust
-use ripress::{context::HttpRequest, types::RequestBodyType};
+use ripress::{req::HttpRequest, res::HttpResponse, types::RequestBodyType};
 
-let req = HttpRequest::new();
-req.is(RequestBodyType::JSON);
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    req.is(RequestBodyType::JSON);
+
+    res.ok()
+}
 ```
 
 Returns `true` if the `Content-Type` matches, otherwise `false`.
@@ -37,10 +40,14 @@ Returns `true` if the `Content-Type` matches, otherwise `false`.
 Returns the request's HTTP method.
 
 ```rust
-use ripress::{context::HttpRequest, types::HttpMethods};
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-let method: &HttpMethods = req.get_method();
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let req = HttpRequest::new();
+    let method = req.method;
+
+    res.ok()
+}
 ```
 
 Returns a reference to `HttpMethods` enum.
@@ -50,12 +57,12 @@ Returns a reference to `HttpMethods` enum.
 Returns the request's origin URL.
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-match req.get_origin_url() {
-    Ok(url) => println!("URL: {}", url),
-    Err(e) => println!("Error: {}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let origin_url = req.origin_url;
+
+    res.ok()
 }
 ```
 
@@ -66,17 +73,19 @@ match req.get_origin_url() {
 - For request: `GET /user/123?q=hello`
   - origin_url → `/user/123?q=hello`
 
-Returns `Result<&str, &str>`.
-
 ## Getting Request Path
 
 Returns the request's path.
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-let path: &str = req.get_path();
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let req = HttpRequest::new();
+    let path = req.path;
+
+    res.ok()
+}
 ```
 
 ### Example Cases:
@@ -84,19 +93,20 @@ let path: &str = req.get_path();
 - For request: `GET /user/123?q=hello`
   - path → `/user/123`
 
-Returns `&str`.
-
 ## Getting Request Cookies
 
 Returns the specified cookie value.
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-match req.get_cookie("session_id") {
-    Ok(value) => println!("Cookie: {}", value),
-    Err(e) => println!("Error: {:?}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.get_cookie("session_id") {
+        Ok(value) => println!("Cookie: {}", value),
+        Err(e) => println!("Error: {:?}", e),
+    }
+
+    res.ok()
 }
 ```
 
@@ -107,28 +117,29 @@ Returns `Result<&str, HttpRequestError>`.
 Returns the client's IP address.
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-match req.ip() {
-    Ok(ip) => println!("IP: {}", ip),
-    Err(e) => println!("Error: {}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let ip = req.ip;
+
+    res.ok()
 }
 ```
-
-Returns `Result<&str, &str>`.
 
 ## Getting Request Headers
 
 Returns the specified header value.
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-match req.get_header("content-type") {
-    Ok(value) => println!("Header: {}", value),
-    Err(e) => println!("Error: {:?}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.get_header("content-type") {
+        Ok(value) => println!("Header: {}", value),
+        Err(e) => println!("Error: {:?}", e),
+    }
+
+    res.ok()
 }
 ```
 
@@ -137,12 +148,15 @@ Returns `Result<&str, HttpRequestError>`.
 ## Accessing URL Parameters
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-match req.get_params("id") {
-    Ok(value) => println!("ID: {}", value),
-    Err(e) => println!("Error: {:?}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.get_params("id") {
+        Ok(value) => println!("ID: {}", value),
+        Err(e) => println!("Error: {:?}", e),
+    }
+
+    res.ok()
 }
 ```
 
@@ -157,12 +171,15 @@ Returns `Result<&str, HttpRequestError>`.
 ## Accessing Query Parameters
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-match req.get_query("q") {
-    Ok(value) => println!("Query: {}", value),
-    Err(e) => println!("Error: {:?}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.get_query("q") {
+        Ok(value) => println!("Query: {}", value),
+        Err(e) => println!("Error: {:?}", e),
+    }
+
+    res.ok()
 }
 ```
 
@@ -178,25 +195,31 @@ Returns `Result<&str, HttpRequestError>`.
 Returns the request's protocol.
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-let protocol: &str = req.get_protocol();
-println!("Protocol: {}", protocol); // "http" or "https"
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let protocol = req.protocol;
+    println!("Protocol: {}", protocol); // "http" or "https"
+
+    res.ok()
+}
 ```
 
-Returns `&str` containing the protocol.
+Returns `String` containing the protocol.
 
 ## Checking If Request Is Secure
 
 Returns whether the request was made over HTTPS.
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-let is_secure: bool = req.is_secure();
-println!("Is Secure: {}", is_secure);
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let is_secure = req.is_secure;
+    println!("Is Secure: {}", is_secure);
+
+    res.ok()
+}
 ```
 
 Returns `bool`.
@@ -204,45 +227,40 @@ Returns `bool`.
 ## Get data from request that is inserted by middleware
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-req.set_data("id", "123");
-let id = req.get_data("id");
-println!("Id: {:?}", id);
+async fn handler(mut req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    req.set_data("id", "123");
+    let id = req.get_data("id");
+    println!("Id: {:?}", id);
+
+    res.ok()
+}
 ```
 
 Returns `Option<&String>` with the data value if found, or `None` if not found.
-
-## Set data to request from middleware
-
-```rust
-use ripress::context::HttpRequest;
-
-let mut req = HttpRequest::new();
-req.set_data("id", "123");
-let id = req.get_data("id");
-println!("Id: {:?}", id);
-```
 
 ## Reading Request Body
 
 ### JSON Body
 
 ```rust
-use ripress::context::HttpRequest;
-use serde::Deserialize;
+use ripress::{req::HttpRequest, res::HttpResponse};
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct User {
     name: String,
     age: u8,
 }
 
-let req = HttpRequest::new();
-match req.json::<User>() {
-    Ok(user) => println!("Name: {}, Age: {}", user.name, user.age),
-    Err(e) => println!("Error: {}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.json::<User>() {
+        Ok(user) => println!("Name: {}, Age: {}", user.name, user.age),
+        Err(e) => println!("Error: {}", e),
+    }
+
+    res.ok()
 }
 ```
 
@@ -251,12 +269,15 @@ Returns `Result<J, String>` where `J` is your deserialized type.
 ### Text Body
 
 ```rust
-use ripress::context::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-match req.text() {
-    Ok(text) => println!("Text: {}", text),
-    Err(e) => println!("Error: {}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.text() {
+        Ok(text) => println!("Text: {}", text),
+        Err(e) => println!("Error: {}", e),
+    }
+
+    res.ok()
 }
 ```
 
@@ -265,16 +286,17 @@ Returns `Result<String, String>`.
 ### Form Data
 
 ```rust
-use ripress::context::HttpRequest;
-use std::collections::HashMap;
+use ripress::{req::HttpRequest, res::HttpResponse};
 
-let req = HttpRequest::new();
-match req.form_data() {
-    Ok(form) => {
-        println!("Key: {:?}", form.get("key"));
-        println!("Key2: {:?}", form.get("key2"));
-    },
-    Err(e) => println!("Error: {}", e)
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.form_data() {
+        Ok(form) => {
+            println!("Key: {:?}", form.get("key"));
+            println!("Key2: {:?}", form.get("key2"));
+        }
+        Err(e) => println!("Error: {}", e),
+    }
+    res.ok()
 }
 ```
 

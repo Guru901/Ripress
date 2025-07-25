@@ -68,67 +68,101 @@ use ripress::{
     context::{HttpRequest, HttpResponse},
 };
 
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    app.get("/hello", get_handler);
+
+    app.listen(3000, || {}).await.unwrap();
+}
+
 async fn get_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("GET request received")
 }
-
-let mut app = App::new();
-app.get("/hello", get_handler);
 ```
 
 #### POST Requests
 
 ```rust
-async fn post_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("POST request received")
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    app.post("/submit", post_handler);
+
+    app.listen(3000, || {}).await.unwrap();
 }
 
-let mut app = App::new();
-app.post("/submit", post_handler);
-```
-
-#### POST Requests
-
-```rust
 async fn post_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("HEAD request received")
 }
-
-let mut app = App::new();
-app.head("/submit", post_handler);
 ```
 
 #### PATCH Requests
 
 ```rust
-async fn patch_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("POST request received")
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    app.patch("/submit", patch_handler);
+
+    app.listen(3000, || {}).await.unwrap();
 }
 
-let mut app = App::new();
-app.patch("/submit", post_handler);
+async fn patch_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().text("PATCH request received")
+}
 ```
 
 #### PUT Requests
 
 ```rust
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    app.put("/update", put_handler);
+
+    app.listen(3000, || {}).await.unwrap();
+}
+
 async fn put_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("PUT request received")
 }
-
-let mut app = App::new();
-app.put("/update", put_handler);
 ```
 
 #### DELETE Requests
 
 ```rust
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    app.delete("/remove", delete_handler);
+
+    app.listen(3000, || {}).await.unwrap();
+}
+
 async fn delete_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("DELETE request received")
 }
-
-let mut app = App::new();
-app.delete("/remove", delete_handler);
 ```
 
 ## Middlewares
@@ -140,12 +174,17 @@ Middleware provides a powerful way to process HTTP requests and responses in a m
 Use the `.use_middleware()` method to add middleware to your application:
 
 ```rust
-let mut app = App::new();
+use ripress::app::App;
 
-app.use_middleware("/api/", |req, res, next| {
-    println!("here");
-    Box::pin(async move { next.run(req, res).await })
-});
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.use_middleware("/api/", |req, res, next| {
+        println!("here");
+        Box::pin(async move { next.run(req, res).await })
+    });
+}
 ```
 
 ### Order Matters
@@ -174,8 +213,13 @@ async fn user_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     }))
 }
 
-let mut app = App::new();
-app.get("/user/{id}", user_handler);
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    app.get("/user/{id}", user_handler);
+
+    app.listen(3000, || {}).await.unwrap();
+}
 ```
 
 ## Starting the Server
@@ -195,9 +239,11 @@ async fn main() {
     // Add your routes here
     app.get("/", home_handler);
 
-    // Start the server
-    println!("Server starting...");
-    app.listen(3000, || {}).await;
+    app.listen(3000, || {
+        println!("Server starting...");
+    })
+    .await
+    .unwrap();
 }
 
 async fn home_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {

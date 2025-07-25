@@ -7,7 +7,7 @@ use actix_web::HttpMessage;
 use futures::StreamExt;
 use std::collections::HashMap;
 
-// Represents an incoming HTTP request with comprehensive access to request data.
+/// Represents an incoming HTTP request with comprehensive access to request data.
 ///
 /// The HttpRequest struct provides methods to access and manipulate all aspects
 /// of an HTTP request including headers, cookies, query parameters, route parameters,

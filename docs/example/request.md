@@ -9,10 +9,10 @@ The `HttpRequest` object in Ripress provides various methods to extract and mani
 ### Getting HTTP Method
 
 ```rust
-use ripress::{context::{HttpRequest, HttpResponse}, types::HttpMethods};
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let method: &HttpMethods = req.get_method();
+    let method = req.method;
     res.ok().text(format!("Request method: {:?}", method))
 }
 ```
@@ -23,7 +23,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let path: &str = req.get_path();
+    let path = req.path;
     res.ok().text(format!("Request path: {}", path))
 }
 ```
@@ -34,10 +34,8 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match req.get_origin_url() {
-        Ok(url) => res.ok().text(format!("Full URL: {}", url)),
-        Err(e) => res.internal_server_error().text(format!("Error: {}", e))
-    }
+    let origin_url = req.origin_url;
+    res.ok().text(format!("Origin URL: {}", origin_url))
 }
 ```
 
@@ -60,10 +58,8 @@ async fn search(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match req.ip() {
-        Ok(ip) => res.ok().text(format!("Client IP: {}", ip)),
-        Err(e) => res.internal_server_error().text(format!("Error: {}", e))
-    }
+    let ip = req.ip;
+    res.ok().text(format!("Client IP: {}", ip))
 }
 ```
 
@@ -110,9 +106,9 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct User {
     name: String,
     email: String,
@@ -121,7 +117,7 @@ struct User {
 async fn save_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.json::<User>() {
         Ok(user) => res.ok().text(format!("Received user: {}", user.name)),
-        Err(e) => res.bad_request().text(format!("Invalid JSON body: {}", e))
+        Err(e) => res.bad_request().text(format!("Invalid JSON body: {}", e)),
     }
 }
 ```
@@ -173,7 +169,7 @@ async fn check_content_type(req: HttpRequest, res: HttpResponse) -> HttpResponse
 use ripress::context::{HttpRequest, HttpResponse};
 
 async fn check_protocol(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let protocol: &str = req.get_protocol();
+    let protocol = req.protocol;
     res.ok().text(format!("Protocol: {}", protocol))
 }
 ```
@@ -184,7 +180,7 @@ async fn check_protocol(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::context::{HttpRequest, HttpResponse};
 
 async fn check_is_secure(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let is_secure: bool = req.is_secure();
+    let is_secure: bool = req.is_secure;
     res.ok().text(format!("Is HTTPS: {}", is_secure))
 }
 ```

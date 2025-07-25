@@ -214,12 +214,27 @@ The `.write()` method:
 Set cookies using `.set_cookie()`:
 
 ```rust
-use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{
+    context::{HttpRequest, HttpResponse},
+    res::{CookieOptions, CookieSameSiteOptions},
+};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_cookie("session", "abc123")
-       .ok()
-       .text("Cookie set")
+    res.set_cookie(
+        "session",
+        "abc123",
+        CookieOptions {
+            http_only: true,
+            secure: true,
+            same_site: CookieSameSiteOptions::Strict,
+            path: Some("/".to_owned()),
+            domain: Some("".to_owned()),
+            max_age: None,
+            expires: None,
+        },
+    )
+    .ok()
+    .text("Cookie set")
 }
 ```
 
@@ -237,36 +252,22 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
-## Content Type
-
-The content type is automatically set based on the response method used (`.json()`, `.text()`), but can be manually set:
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-use ripress::types::ResponseContentType;
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_content_type(ResponseContentType::JSON)
-       .ok()
-       .json(serde_json::json!({
-           "message": "Custom content type"
-       }))
-}
-```
-
 ## Method Chaining
 
 All response methods support chaining for a fluent API:
 
 ```rust
-use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{
+    context::{HttpRequest, HttpResponse},
+    res::CookieOptions,
+};
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_header("X-Custom", "value")
-       .set_cookie("session", "abc123")
-       .ok()
-       .json(serde_json::json!({
-           "status": "success"
-       }))
+        .set_cookie("session", "abc123", CookieOptions::default())
+        .ok()
+        .json(serde_json::json!({
+            "status": "success"
+        }))
 }
 ```
