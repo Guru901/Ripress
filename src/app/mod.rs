@@ -11,13 +11,13 @@ where
 }
 use std::sync::Arc;
 
-pub struct Ripress {
+pub struct App {
     routes: Routes,
 }
 
-impl Ripress {
+impl App {
     pub fn new() -> Self {
-        Ripress {
+        App {
             routes: HashMap::new(),
         }
     }
@@ -32,6 +32,26 @@ impl Ripress {
             .insert(path.to_string(), (method, wrapped_handler));
     }
 
+    /// Add a GET route to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.get("/hello", handler);
+    /// ```
+
     pub fn get<F, Fut>(&mut self, path: &str, handler: F)
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
@@ -39,6 +59,26 @@ impl Ripress {
     {
         self.add_route(HttpMethod::GET, path, handler);
     }
+
+    /// Add a POST route to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.post("/hello", handler);
+    /// ```
 
     pub fn post<F, Fut>(&mut self, path: &str, handler: F)
     where
@@ -48,6 +88,26 @@ impl Ripress {
         self.add_route(HttpMethod::POST, path, handler);
     }
 
+    /// Add a PUT route to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.put("/hello", handler);
+    /// ```
+
     pub fn put<F, Fut>(&mut self, path: &str, handler: F)
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
@@ -55,6 +115,26 @@ impl Ripress {
     {
         self.add_route(HttpMethod::PUT, path, handler);
     }
+
+    /// Add a DELETE route to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.delete("/hello", handler);
+    /// ```
 
     pub fn delete<F, Fut>(&mut self, path: &str, handler: F)
     where
@@ -64,6 +144,26 @@ impl Ripress {
         self.add_route(HttpMethod::DELETE, path, handler);
     }
 
+    /// Add a HEAD route to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.head("/hello", handler);
+    /// ```
+
     pub fn head<F, Fut>(&mut self, path: &str, handler: F)
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
@@ -72,6 +172,26 @@ impl Ripress {
         self.add_route(HttpMethod::HEAD, path, handler);
     }
 
+    /// Add a PATCH route to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.patch("/hello", handler);
+    /// ```
+
     pub fn patch<F, Fut>(&mut self, path: &str, handler: F)
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
@@ -79,6 +199,27 @@ impl Ripress {
     {
         self.add_route(HttpMethod::PATCH, path, handler);
     }
+
+    /// Add a route to the application that matches all HTTP methods.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.all("/hello", handler);
+    ///
+    /// ```
 
     pub fn all<F, Fut>(&mut self, path: &str, handler: F)
     where
@@ -92,6 +233,26 @@ impl Ripress {
         self.add_route(HttpMethod::DELETE, path, handler.clone());
         self.add_route(HttpMethod::HEAD, path, handler);
     }
+
+    /// Starts the server and listens on the specified address.
+    ///
+    /// ## Arguments
+    ///
+    /// * `addr` - The address to listen on e.g. "127.0.0.1:3000".
+    ///
+    /// ## Example
+    ///
+    /// ```no_run
+    /// use ripress_again::{app::App, context::{HttpRequest, HttpResponse} };
+    /// use tokio;
+    ///
+    /// ##[tokio::main]
+    /// async fn main() {
+    ///     let mut app = App::new();
+    ///     app.listen(3000, || {println!("server running on port 3000")}).await.unwrap();
+    /// }
+    ///
+    /// ```
 
     pub async fn listen<F: FnOnce()>(&self, port: u16, cb: F) -> std::io::Result<()> {
         cb();

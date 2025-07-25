@@ -8,14 +8,14 @@ touch main.rs
 
 echo '
 
-use ripress_again::app::Ripress;
+use ripress_again::app::App;
 use ripress_again::context::{HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 #[tokio::main]
 async fn main() {
-    let mut app = Ripress::new();
+    let mut app = App::new();
 
     // request tests
     app.get("/cookie-test", cookie_handler);

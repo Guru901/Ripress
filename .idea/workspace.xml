@@ -12,9 +12,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="83a46955-1e1e-4daa-b03c-fbf7707aa09c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/scripts/test.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/project.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/project.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/test.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/mod.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,18 +37,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "Guru901"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Guru901&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/Guru901/ripress-again.git",
-    "accountId": "b0ec57b7-0798-4a6a-9b49-db8d390f239e"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Guru901/ripress-again.git&quot;,
+    &quot;accountId&quot;: &quot;b0ec57b7-0798-4a6a-9b49-db8d390f239e&quot;
   }
-}]]></component>
+}</component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="BNLbylvu" />
   </component>
@@ -67,7 +68,7 @@
     "RunOnceActivity.rust.reset.selective.auto.import": "true",
     "SHELLCHECK.PATH": "/Users/guru/Library/Application Support/JetBrains/RustRover2025.1/plugins/Shell Script/shellcheck",
     "deno.use.library": "true",
-    "git-widget-placeholder": "feat/tests",
+    "git-widget-placeholder": "feat/docs",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -114,7 +115,7 @@
       <updated>1752929031628</updated>
       <workItem from="1752929032719" duration="10479000" />
       <workItem from="1753201486294" duration="24654000" />
-      <workItem from="1753433027681" duration="3622000" />
+      <workItem from="1753433027681" duration="4167000" />
     </task>
     <servers />
   </component>
