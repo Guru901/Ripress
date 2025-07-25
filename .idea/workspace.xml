@@ -12,10 +12,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="83a46955-1e1e-4daa-b03c-fbf7707aa09c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/tests/playwright.config.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/src/request.spec.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/req/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/req/mod.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/src/response.spec.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -114,7 +111,7 @@
       <updated>1752929031628</updated>
       <workItem from="1752929032719" duration="10479000" />
       <workItem from="1753201486294" duration="24654000" />
-      <workItem from="1753433027681" duration="2429000" />
+      <workItem from="1753433027681" duration="2764000" />
     </task>
     <servers />
   </component>
