@@ -37,7 +37,7 @@ async fn main() {
 // requests test handler
 
 async fn cookie_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let session_id = req.cookies.get("sessionId").unwrap();
+    let session_id = req.get_cookie("sessionId").unwrap();
     res.ok().json(json!({
         "sessionId": session_id
     }))
@@ -51,8 +51,8 @@ async fn header_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 async fn query_and_param_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let param = req.params.get("param").unwrap();
-    let query = req.query_params.get("query").unwrap();
+    let param = req.get_params("param").unwrap();
+    let query = req.get_query("query").unwrap();
 
     res.ok().json(json!({
         "param": param,
