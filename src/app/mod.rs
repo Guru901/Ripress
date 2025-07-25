@@ -344,7 +344,7 @@ impl App {
                                         let response = next.run(our_req, our_res).await;
                                         response.to_responder()
                                     } else {
-                                        // No middlewares, just call the handler directly
+                                        // No middlewares, call the handler directly
                                         let response = handler(our_req, our_res).await;
                                         response.to_responder()
                                     }
