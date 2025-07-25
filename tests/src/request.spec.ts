@@ -202,38 +202,38 @@ test.describe("Request Tests", () => {
         expect(deleteBody.method === "DELETE");
     });
 
-    // test("URL-encoded form data", async ({request}) => {
-    //     const response = await request.post("/urlencoded-test", {
-    //         form: {
-    //             username: "testuser",
-    //             password: "secret123",
-    //             email: "test@example.com",
-    //         },
-    //     });
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(body.username === "testuser");
-    //     expect(body.password === "secret123");
-    //     expect(body.email === "test@example.com");
-    // });
-    //
-    // test("Raw body data", async ({request}) => {
-    //     const rawData = "raw text content";
-    //     const response = await request.post("/raw-body-test", {
-    //         data: rawData,
-    //         headers: {
-    //             "Content-Type": "text/plain",
-    //         },
-    //     });
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(body.rawBody === rawData);
-    //     expect(body.contentType === "text/plain");
-    // });
+    test("URL-encoded form data", async ({request}) => {
+        const response = await request.post("/urlencoded-test", {
+            form: {
+                username: "testuser",
+                password: "secret123",
+                email: "test@example.com",
+            },
+        });
+
+        expect(response.status()).toBe(200);
+
+        const body = await response.json();
+        expect(body.username === "testuser");
+        expect(body.password === "secret123");
+        expect(body.email === "test@example.com");
+    });
+
+    test("Raw body data", async ({request}) => {
+        const rawData = "raw text content";
+        const response = await request.post("/raw-body-test", {
+            data: rawData,
+            headers: {
+                "Content-Type": "text/plain",
+            },
+        });
+
+        expect(response.status()).toBe(200);
+
+        const body = await response.json();
+        expect(body.rawBody === rawData);
+        expect(body.contentType === "text/plain");
+    });
     //
     // test("Request with base URL and path", async ({request}) => {
     //     const response = await request.get("/base-url-test/api/v1/users");

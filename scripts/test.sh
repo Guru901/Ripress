@@ -35,6 +35,9 @@ async fn main() {
     app.put("/method-test", method_handler);
     app.delete("/method-test", method_handler);
 
+    app.post("/urlencoded-test", urlencoded_handler);
+    app.post("/raw-body-test", raw_body_handler);
+
     app.use_middleware("/auth", |mut req, res, next| {
         println!("Auth middleware");
         Box::pin(async move {
@@ -144,7 +147,7 @@ async fn multi_query_handler(req: HttpRequest, res: HttpResponse) -> HttpRespons
 
 async fn multi_param_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let user_id = req.get_params("user_id").unwrap();
-    let post_id = req.get_query("post_id").unwrap();
+    let post_id = req.get_params("post_id").unwrap();
 
     res.ok().json(json!({
         "userId": user_id,
@@ -183,6 +186,29 @@ async fn method_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().json(json!(method.to_string()))
 }
 
+async fn urlencoded_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let form_data = req.form_data().unwrap();
+    let username = form_data.get("username").unwrap();
+    let password = form_data.get("password").unwrap();
+    let email = form_data.get("email").unwrap();
+
+    res.ok().json(json!({
+        "username": username,
+        "password": password,
+        "email": email
+    }))
+}
+
+async fn raw_body_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let body = req.text().unwrap();
+    let content_type = req.get_header("content-type").unwrap();
+
+    res.ok().json(json!({
+        "rawBody": body,
+        "contentType": content_type
+    }))
+}
+
 // response test handler
 
 async fn get_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -193,7 +219,6 @@ async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let token = req.get_data("token").unwrap();
     res.ok().text(token)
 }
-
 ' > main.rs
 
 cargo run &  # Start server in background
