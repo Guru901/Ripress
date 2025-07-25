@@ -1,4 +1,9 @@
 pub mod app;
-pub mod req;
-pub mod res;
+mod req;
+mod res;
+pub mod context {
+    pub use super::req::HttpRequest;
+    pub use super::res::HttpResponse;
+}
+
 pub mod types;
