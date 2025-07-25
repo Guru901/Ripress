@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::context::HttpResponse;
+    use crate::res::CookieOptions;
     use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
     use actix_web::Responder;
     use serde_json::json;
@@ -68,14 +69,17 @@ mod tests {
         let data = json!({"message": "test"});
         let response = HttpResponse::new()
             .set_header("X-Custom", "value")
-            .set_cookie("session", "123")
+            .set_cookie("session", "123", CookieOptions::default())
             .status(201)
             .json(&data)
             .to_responder();
 
         assert_eq!(response.status(), 201);
         assert_eq!(response.headers().get("X-Custom").unwrap(), "value");
-        assert_eq!(response.headers().get("Set-Cookie").unwrap(), "session=123");
+        assert_eq!(
+            response.headers().get("Set-Cookie").unwrap(),
+            "session=123; HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0"
+        );
         assert_eq!(
             response.headers().get("Content-Type").unwrap(),
             "application/json"
@@ -140,11 +144,11 @@ mod tests {
     #[test]
     fn test_cookies() {
         let response = HttpResponse::new();
-        let response = response.set_cookie("key", "value");
-        assert_eq!(response.get_cookie("key".to_string()).unwrap(), "value");
+        let response = response.set_cookie("key", "value", CookieOptions::default());
+        assert_eq!(response.get_cookie("key").unwrap(), "value");
 
         let response = HttpResponse::new()
-            .set_cookie("session", "123")
+            .set_cookie("session", "123", CookieOptions::default())
             .clear_cookie("old_session")
             .ok()
             .text("test")
@@ -177,26 +181,23 @@ mod tests {
     #[test]
     fn test_clear_cookie() {
         let response = HttpResponse::new();
-        let response = response.set_cookie("session", "abc123");
+        let response = response.set_cookie("session", "abc123", CookieOptions::default());
 
-        assert_eq!(
-            response.get_cookie("session".to_string()).unwrap(),
-            "abc123"
-        );
+        assert_eq!(response.get_cookie("session").unwrap(), "abc123");
         let response = HttpResponse::new();
-        let response = response.set_cookie("session", "abc123");
+        let response = response.set_cookie("session", "abc123", CookieOptions::default());
         let response = response.clear_cookie("session");
 
         // Verify cookie is removed
-        assert_eq!(response.get_cookie("session".to_string()), None);
+        assert_eq!(response.get_cookie("session"), None);
 
         let response = HttpResponse::new();
 
-        let response = response.set_cookie("session", "abc123");
+        let response = response.set_cookie("session", "abc123", CookieOptions::default());
 
         let response = response.clear_cookie("non-existent");
 
-        assert_eq!(response.get_cookie("non-existent".to_string()), None);
+        assert_eq!(response.get_cookie("non-existent"), None);
     }
 
     #[test]

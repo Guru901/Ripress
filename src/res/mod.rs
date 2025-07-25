@@ -1,8 +1,10 @@
 use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
 use actix_web::Responder;
+use actix_web::cookie::SameSite;
 use actix_web::http::header::{HeaderName, HeaderValue};
 use serde::Serialize;
 use std::collections::HashMap;
+use std::hash::Hash;
 
 /// Represents an HTTP response being sent to the client.
 ///
@@ -39,6 +41,44 @@ use std::collections::HashMap;
 /// - `headers` - Response headers
 /// - `remove_cookies` - Cookies to be removed
 
+/// Options for the SameSite attribute of cookies.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CookieSameSiteOptions {
+    Strict,
+    Lax,
+    None,
+}
+
+pub struct CookieOptions {
+    pub http_only: bool,
+    pub secure: bool,
+    pub same_site: CookieSameSiteOptions,
+    pub path: Option<String>,
+    pub domain: Option<String>,
+    pub max_age: Option<i64>,
+    pub expires: Option<i64>,
+}
+
+impl Default for CookieOptions {
+    fn default() -> Self {
+        Self {
+            http_only: true,
+            secure: true,
+            same_site: CookieSameSiteOptions::None,
+            path: Some("/".to_string()),
+            domain: None,
+            max_age: None,
+            expires: None,
+        }
+    }
+}
+
+struct Cookie {
+    name: String,
+    value: String,
+    options: CookieOptions,
+}
+
 pub struct HttpResponse {
     // Response body content
     body: ResponseContentBody,
@@ -53,7 +93,7 @@ pub struct HttpResponse {
     pub headers: HashMap<String, String>,
 
     // Sets response cookies
-    cookies: HashMap<String, String>,
+    cookies: Vec<Cookie>,
 
     // Cookies to be removed
     remove_cookies: Vec<String>,
@@ -83,7 +123,7 @@ impl HttpResponse {
             body: ResponseContentBody::TEXT(String::new()),
             content_type: ResponseContentType::TEXT,
             headers: HashMap::new(),
-            cookies: HashMap::new(),
+            cookies: Vec::new(),
             remove_cookies: Vec::new(),
         }
     }
@@ -242,16 +282,25 @@ impl HttpResponse {
     /// # Example
     /// ```rust
     /// use ripress::context::HttpResponse;
+    /// use ripress::res::CookieOptions;
     ///
     /// let res = HttpResponse::new()
-    ///     .set_cookie("session", "abc123")
+    ///     .set_cookie("session", "abc123", CookieOptions::default())
     ///     .ok()
     ///     .text("Logged in");
     /// ```
 
-    pub fn set_cookie(mut self, cookie_name: &str, cookie_value: &str) -> Self {
-        self.cookies
-            .insert(cookie_name.to_string(), cookie_value.to_string());
+    pub fn set_cookie(
+        mut self,
+        cookie_name: &str,
+        cookie_value: &str,
+        options: CookieOptions,
+    ) -> Self {
+        self.cookies.push(Cookie {
+            name: cookie_name.to_owned(),
+            value: cookie_value.to_owned(),
+            options,
+        });
 
         self
     }
@@ -276,9 +325,9 @@ impl HttpResponse {
     /// ```
 
     pub fn clear_cookie(mut self, key: &str) -> Self {
-        self.cookies.remove(key);
+        self.cookies.retain(|cookie| cookie.name != key);
         self.remove_cookies.push(key.to_string());
-        return self;
+        self
     }
 
     /// Redirects the client to the specified URL.
@@ -480,9 +529,37 @@ impl HttpResponse {
                 .unwrap();
         });
 
-        self.cookies.iter().for_each(|(key, value)| {
+        self.cookies.iter().for_each(|cookie| {
             actix_res
-                .add_cookie(&actix_web::cookie::Cookie::build(key, value).finish())
+                .add_cookie(
+                    &actix_web::cookie::Cookie::build(
+                        cookie.name.to_string(),
+                        cookie.value.to_string(),
+                    )
+                    .expires(cookie.options.expires.and_then(|ts| {
+                        actix_web::cookie::time::OffsetDateTime::from_unix_timestamp(ts).ok()
+                    }))
+                    .http_only(cookie.options.http_only)
+                    .max_age(
+                        cookie
+                            .options
+                            .max_age
+                            .map(|secs| actix_web::cookie::time::Duration::seconds(secs))
+                            .unwrap_or_else(|| actix_web::cookie::time::Duration::seconds(0)),
+                    )
+                    .path(cookie.options.path.as_deref().unwrap_or("/"))
+                    .secure(cookie.options.secure)
+                    .same_site(match cookie.options.same_site {
+                        crate::res::CookieSameSiteOptions::Lax => actix_web::cookie::SameSite::Lax,
+                        crate::res::CookieSameSiteOptions::Strict => {
+                            actix_web::cookie::SameSite::Strict
+                        }
+                        crate::res::CookieSameSiteOptions::None => {
+                            actix_web::cookie::SameSite::None
+                        }
+                    })
+                    .finish(),
+                )
                 .expect("Failed to add cookie");
         });
 
@@ -512,7 +589,10 @@ impl HttpResponse {
         self.body
     }
 
-    pub(crate) fn get_cookie(self, key: String) -> Option<String> {
-        self.cookies.get(&key).cloned()
+    pub(crate) fn get_cookie(&self, key: &str) -> Option<String> {
+        self.cookies
+            .iter()
+            .find(|cookie| cookie.name == key)
+            .map(|cookie| cookie.value.clone())
     }
 }
