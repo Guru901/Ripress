@@ -7,7 +7,6 @@ cd src
 touch main.rs
 
 echo '
-
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
@@ -26,6 +25,21 @@ async fn main() {
     app.post("/json-test", json_handler);
     app.post("/text-test", text_handler);
     app.post("/form-test", form_handler);
+
+    app.use_middleware("/auth", |mut req, res, next| {
+        println!("Auth middleware");
+        Box::pin(async move {
+            if let Ok(token) = req.get_cookie("token") {
+                let token = token.to_string();
+                req.set_data("token", &token);
+                next.run(req, res).await
+            } else {
+                res.status(401).text("Unauthorized")
+            }
+        })
+    });
+
+    app.get("/auth", auth);
 
     // response tests
 
@@ -113,7 +127,10 @@ async fn get_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().set_cookie("test-cookie", "value").text("hehe")
 }
 
-
+async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let token = req.get_data("token").unwrap();
+    res.ok().text(token)
+}
 ' > main.rs
 
 cargo run &  # Start server in background

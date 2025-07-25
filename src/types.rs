@@ -2,6 +2,7 @@ use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::pin::Pin;
 use std::sync::Arc;
 
@@ -90,6 +91,20 @@ pub enum HttpMethods {
     PATCH,
 }
 
+impl Display for HttpMethods {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let method = match self {
+            HttpMethods::GET => "GET",
+            HttpMethods::PUT => "PUT",
+            HttpMethods::POST => "POST",
+            HttpMethods::DELETE => "DELETE",
+            HttpMethods::PATCH => "PATCH",
+            HttpMethods::HEAD => "HEAD",
+        };
+        write!(f, "{}", method)
+    }
+}
+
 pub type Routes = HashMap<String, (HttpMethods, Handler)>;
 
 #[derive(Debug, PartialEq)]
@@ -111,6 +126,7 @@ impl std::fmt::Display for HttpRequestError {
     }
 }
 
+#[derive(Debug)]
 pub enum HttpResponseError {
     MissingHeader(String),
 }
@@ -119,6 +135,52 @@ impl std::fmt::Display for HttpResponseError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             HttpResponseError::MissingHeader(header) => write!(f, "Header {} doesnt exist", header),
+        }
+    }
+}
+
+pub trait Middleware: Send + Sync + 'static {
+    fn handle(
+        &self,
+        req: HttpRequest,
+        res: HttpResponse,
+        next: Next,
+    ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
+
+    // Add this method to allow cloning of Box<dyn Middleware>
+    fn clone_box(&self) -> Box<dyn Middleware>;
+}
+
+// Implement Clone for Box<dyn Middleware>
+impl Clone for Box<dyn Middleware> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
+}
+
+pub struct Next {
+    pub middleware: Vec<Box<dyn Middleware>>,
+    pub handler: Handler,
+}
+
+impl Next {
+    pub fn new() -> Self {
+        Next {
+            middleware: Vec::new(),
+            handler: Arc::new(|_, _| Box::pin(async { HttpResponse::new() })),
+        }
+    }
+    pub async fn run(self, req: HttpRequest, res: HttpResponse) -> HttpResponse {
+        if let Some((current, rest)) = self.middleware.split_first() {
+            // Call the next middleware
+            let next = Next {
+                middleware: rest.to_vec(),
+                handler: self.handler.clone(),
+            };
+            current.handle(req, res, next).await
+        } else {
+            // No more middleware, call the handler
+            (self.handler)(req, res).await
         }
     }
 }
