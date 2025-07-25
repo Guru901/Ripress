@@ -1,4 +1,4 @@
-use crate::types::{ResponseContentBody, ResponseContentType};
+use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
 use actix_web::Responder;
 use actix_web::http::header::{HeaderName, HeaderValue};
 use serde::Serialize;
@@ -193,6 +193,39 @@ impl HttpResponse {
             .insert(header_name.to_string(), header_value.to_string());
 
         self
+    }
+
+    /// Gets a header from the response.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The name of the header to retrieve
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<String, HttpResponseError>` with the header value if found,
+    /// or `HttpResponseError::MissingHeader` if not found.
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::context::HttpResponse;
+    ///
+    /// let res = HttpResponse::new()
+    ///     .set_header("X-Custom", "value");
+    ///
+    /// match res.get_header("X-Custom") {
+    ///     Ok(value) => println!("Header value: {}", value),
+    ///     Err(e) => println!("Error: {:?}", e)
+    /// }
+    /// ```
+
+    pub fn get_header(&self, key: &str) -> Result<String, HttpResponseError> {
+        let header = self.headers.get(key);
+
+        match header {
+            Some(header_string) => Ok(header_string.clone()),
+            None => Err(HttpResponseError::MissingHeader(key.to_string())),
+        }
     }
 
     /// Sets a cookie in the response.

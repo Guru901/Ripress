@@ -98,27 +98,25 @@ test.describe("Request Tests", () => {
         expect(body.name === "test");
     });
 
-    // Will be uncommented when i implement middlewares
-    
-    // test("Auth - Should be authenticated", async ({request}) => {
-    //     const authResponse = await request.get("/auth", {
-    //         headers: {
-    //             Cookie: "token=123abc",
-    //         },
-    //     });
-    //
-    //     expect(authResponse.status()).toBe(200);
-    //
-    //     const body = await authResponse.text();
-    //     expect(body === "123abc");
-    // });
-    //
-    // test("Auth - isn't authenticated", async ({request}) => {
-    //     const authResponse = await request.get("/auth");
-    //
-    //     expect(authResponse.status()).toBe(401);
-    //
-    //     const body = await authResponse.text();
-    //     expect(body === "unauthorized");
-    // });
+    test("Auth - Should be authenticated", async ({request}) => {
+        const authResponse = await request.get("/auth", {
+            headers: {
+                Cookie: "token=123abc",
+            },
+        });
+
+        expect(authResponse.status()).toBe(200);
+
+        const body = await authResponse.text();
+        expect(body === "123abc");
+    });
+
+    test("Auth - isn't authenticated", async ({request}) => {
+        const authResponse = await request.get("/auth");
+
+        expect(authResponse.status()).toBe(401);
+
+        const body = await authResponse.text();
+        expect(body === "unauthorized");
+    });
 });

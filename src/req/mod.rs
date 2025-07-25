@@ -40,6 +40,7 @@ use std::collections::HashMap;
 /// }
 /// ```
 
+#[derive(Clone)]
 pub struct HttpRequest {
     /// Dynamic route parameters extracted from the URL.
     params: HashMap<String, String>,
