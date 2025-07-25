@@ -234,40 +234,7 @@ test.describe("Request Tests", () => {
         expect(body.rawBody === rawData);
         expect(body.contentType === "text/plain");
     });
-    //
-    // test("Request with base URL and path", async ({request}) => {
-    //     const response = await request.get("/base-url-test/api/v1/users");
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(body.baseUrl === "/base-url-test");
-    //     expect(body.originalUrl === "/base-url-test/api/v1/users");
-    //     expect(body.path === "/api/v1/users");
-    // });
-    //
-    // test("Request hostname and protocol", async ({request}) => {
-    //     const response = await request.get("/host-info");
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(body.hostname === "localhost");
-    //     expect(body.protocol === "http");
-    // });
-    //
-    // test("Request with subdomain", async ({request}) => {
-    //     const response = await request.get("/subdomain-test", {
-    //         headers: {
-    //             Host: "api.example.com",
-    //         },
-    //     });
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(body.subdomains).toContain("api");
-    // });
+    ;
     //
     // test("Request accepts header", async ({request}) => {
     //     const response = await request.get("/accepts-test", {
@@ -361,22 +328,14 @@ test.describe("Request Tests", () => {
     //     const body = await response.json();
     //     expect(body.xhr === true);
     // });
-    //
-    // test("Empty request body", async ({request}) => {
-    //     const response = await request.post("/empty-body-test");
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(!body.hasBody);
-    // });
-    //
-    // test("Request with route wildcards", async ({request}) => {
-    //     const response = await request.get("/wildcard-test/some/deep/path");
-    //
-    //     expect(response.status()).toBe(200);
-    //
-    //     const body = await response.json();
-    //     expect(body.wildcard === "some/deep/path");
-    // });
+
+    test("Empty request body", async ({request}) => {
+        const response = await request.post("/empty-body-test");
+
+        expect(response.status()).toBe(200);
+
+        const body = await response.json();
+        expect(!body.hasBody);
+    });
+
 });

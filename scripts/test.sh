@@ -7,6 +7,7 @@ cd src
 touch main.rs
 
 echo '
+
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
@@ -37,6 +38,8 @@ async fn main() {
 
     app.post("/urlencoded-test", urlencoded_handler);
     app.post("/raw-body-test", raw_body_handler);
+
+    app.post("/empty-body-test", empty_body_test);
 
     app.use_middleware("/auth", |mut req, res, next| {
         println!("Auth middleware");
@@ -209,6 +212,10 @@ async fn raw_body_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     }))
 }
 
+async fn empty_body_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().json(json!({}))
+}
+
 // response test handler
 
 async fn get_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -219,6 +226,7 @@ async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let token = req.get_data("token").unwrap();
     res.ok().text(token)
 }
+
 ' > main.rs
 
 cargo run &  # Start server in background
