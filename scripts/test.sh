@@ -9,6 +9,7 @@ touch main.rs
 echo '
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::res::{CookieOptions, CookieSameSiteOptions};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -41,6 +42,9 @@ async fn main() {
 
     app.get("/xhr-test", xhr_handler);
     app.get("/secure-test", secure_handler);
+    app.get("/custom-headers-test", custom_headers_test);
+    app.post("/created-test", created_test);
+    app.get("/custom-status-test", custom_status_test);
 
     app.use_middleware("/auth", |mut req, res, next| {
         println!("Auth middleware");
@@ -60,6 +64,8 @@ async fn main() {
     // response tests
 
     app.get("/get-cookie-test", get_cookie_test);
+    app.get("/multiple-cookies-test", get_multi_cookie_test);
+    app.get("/cookie-options-test", get_cookie_with_options_test);
 
     app.listen(8080, || {}).await.unwrap();
 }
@@ -213,7 +219,7 @@ async fn raw_body_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     }))
 }
 
-async fn empty_body_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn empty_body_handler(_: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().json(json!({}))
 }
 
@@ -229,7 +235,47 @@ async fn secure_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 // response test handler
 
 async fn get_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().set_cookie("test-cookie", "value").text("hehe")
+    res.ok()
+        .set_cookie("test-cookie", "value", CookieOptions::default())
+}
+
+async fn get_cookie_with_options_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().set_cookie(
+        "secure-cookie",
+        "value",
+        CookieOptions {
+            http_only: true,
+            same_site: CookieSameSiteOptions::Strict,
+            secure: true,
+            ..Default::default()
+        },
+    )
+}
+
+async fn get_multi_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+        .set_cookie("session", "abc123", CookieOptions::default())
+        .set_cookie("theme", "dark", CookieOptions::default())
+        .set_cookie("lang", "en", CookieOptions::default())
+}
+
+async fn custom_headers_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+        .set_header("x-custom-header", "custom-value")
+        .set_header("x-api-version", "1.0")
+        .set_header("x-powered-by", "Ripress")
+}
+
+async fn created_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.status(201).json(json!({
+        "created": true
+    }))
+}
+
+async fn custom_status_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.status(418).json(json!({
+        "statusText": "I m a teapot"
+    }))
 }
 
 async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
