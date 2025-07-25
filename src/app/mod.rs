@@ -29,12 +29,22 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res))) as Handler;
-        self.routes.insert(path.to_string(), {
-            let mut map = HashMap::new();
-            map.insert(method, wrapped_handler);
-            map
-        });
+        if self.routes.contains_key(path) {
+            let wrapped_handler =
+                Arc::new(move |req, res| box_future(handler(req, res))) as Handler;
+
+            if let Some(route_map) = self.routes.get_mut(path) {
+                route_map.insert(method, wrapped_handler);
+            }
+        } else {
+            let wrapped_handler =
+                Arc::new(move |req, res| box_future(handler(req, res))) as Handler;
+            self.routes.insert(path.to_string(), {
+                let mut map = HashMap::new();
+                map.insert(method, wrapped_handler);
+                map
+            });
+        }
     }
 
     /// Add a GET route to the application.
