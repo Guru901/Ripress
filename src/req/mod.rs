@@ -3,15 +3,15 @@ use actix_web::HttpMessage;
 use futures::StreamExt;
 use std::collections::HashMap;
 pub struct HttpRequest {
-    params: HashMap<String, String>,
-    query_params: HashMap<String, String>,
+    pub params: HashMap<String, String>,
+    pub query_params: HashMap<String, String>,
     pub origin_url: String,
     pub method: HttpMethod,
     pub ip: String,
     pub path: String,
     pub protocol: String,
     pub is_secure: bool,
-    pub headers: HashMap<String, String>,
+    headers: HashMap<String, String>,
     pub cookies: HashMap<String, String>,
     data: HashMap<String, String>,
     body: RequestBody,
@@ -35,18 +35,8 @@ impl HttpRequest {
         }
     }
 
-    pub fn get_param(&self, param_name: &str) -> Option<&str> {
-        match self.params.get(param_name) {
-            Some(param) => Some(param.as_str()),
-            None => None,
-        }
-    }
-
-    pub fn get_query_param(&self, query_param_name: &str) -> Option<&str> {
-        match self.query_params.get(query_param_name) {
-            Some(query_param) => Some(query_param.as_str()),
-            None => None,
-        }
+    pub fn get_header<T: Into<String>>(&self, header_name: T) -> Option<&String> {
+        self.headers.get(&header_name.into().to_lowercase())
     }
 
     pub fn set_data<T: Into<String>>(&mut self, data_key: T, data_value: T) {
