@@ -69,6 +69,7 @@ impl ResponseContentBody {
         ResponseContentBody::HTML(html.into())
     }
 }
+#[derive(Eq, PartialEq, Debug)]
 pub enum ResponseContentType {
     TEXT,
     JSON,
@@ -106,6 +107,18 @@ impl std::fmt::Display for HttpRequestError {
             HttpRequestError::MissingParam(param) => write!(f, "Param {} doesn't exist", param),
             HttpRequestError::MissingHeader(header) => write!(f, "Header {} doesn't exist", header),
             HttpRequestError::MissingQuery(query) => write!(f, "Query {} doesn't exist", query),
+        }
+    }
+}
+
+pub enum HttpResponseError {
+    MissingHeader(String),
+}
+
+impl std::fmt::Display for HttpResponseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            HttpResponseError::MissingHeader(header) => write!(f, "Header {} doesnt exist", header),
         }
     }
 }

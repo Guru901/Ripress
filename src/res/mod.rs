@@ -1,4 +1,4 @@
-use crate::types::{ResponseContentBody, ResponseContentType};
+use crate::types::{RequestBodyType, ResponseContentBody, ResponseContentType};
 use actix_web::Responder;
 use actix_web::http::header::{HeaderName, HeaderValue};
 use serde::Serialize;
@@ -44,7 +44,7 @@ pub struct HttpResponse {
     body: ResponseContentBody,
 
     // Content type of the response
-    content_type: ResponseContentType,
+    pub(crate) content_type: ResponseContentType,
 
     // Status code specified by the developer
     pub(crate) status_code: u16,
@@ -301,6 +301,7 @@ impl HttpResponse {
 
     pub fn html(mut self, html: &str) -> Self {
         self.body = ResponseContentBody::new_html(html);
+        self.content_type = ResponseContentType::HTML;
         self
     }
 
@@ -461,5 +462,24 @@ impl Responder for HttpResponse {
 
     fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse {
         self.to_responder()
+    }
+}
+
+#[cfg(test)]
+impl HttpResponse {
+    pub(crate) fn get_status_code(&self) -> u16 {
+        self.status_code
+    }
+
+    pub(crate) fn get_content_type(&self) -> &ResponseContentType {
+        &self.content_type
+    }
+
+    pub(crate) fn get_body(self) -> ResponseContentBody {
+        self.body
+    }
+
+    pub(crate) fn get_cookie(self, key: String) -> Option<String> {
+        self.cookies.get(&key).cloned()
     }
 }
