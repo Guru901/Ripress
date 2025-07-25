@@ -6,4 +6,5 @@ pub mod context {
     pub use super::res::HttpResponse;
 }
 
+mod tests;
 pub mod types;

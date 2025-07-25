@@ -26,30 +26,6 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
-### Adding Routes That Match All HTTP Methods
-
-Use `.all()` to handle any HTTP method:
-
-```rust
-use ripress::{
-    app::App,
-    context::{HttpRequest, HttpResponse},
-};
-
-#[tokio::main]
-async fn main() {
-    let mut app = App::new();
-
-    app.all("/hello", handler);
-
-    app.listen(3000, || {}).await;
-}
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("Hello from any method!")
-}
-```
-
 ## Serving Static Files
 
 The `static_files` method provides a simple way to serve static assets (such as HTML, CSS, JavaScript, images, etc.) from a local directory. It maps a URL path prefix to a directory on your file system.

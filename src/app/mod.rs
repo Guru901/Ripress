@@ -200,40 +200,6 @@ impl App {
         self.add_route(HttpMethods::PATCH, path, handler);
     }
 
-    /// Add a route to the application that matches all HTTP methods.
-    ///
-    /// ## Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.all("/hello", handler);
-    ///
-    /// ```
-
-    pub fn all<F, Fut>(&mut self, path: &str, handler: F)
-    where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + Clone + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
-    {
-        self.add_route(HttpMethods::GET, path, handler.clone());
-        self.add_route(HttpMethods::PATCH, path, handler.clone());
-        self.add_route(HttpMethods::POST, path, handler.clone());
-        self.add_route(HttpMethods::PUT, path, handler.clone());
-        self.add_route(HttpMethods::DELETE, path, handler.clone());
-        self.add_route(HttpMethods::HEAD, path, handler);
-    }
-
     /// Starts the server and listens on the specified address.
     ///
     /// ## Arguments
@@ -296,5 +262,16 @@ impl App {
         .bind(format!("127.0.0.1:{}", port))?
         .run()
         .await
+    }
+}
+
+#[cfg(test)]
+impl App {
+    pub(crate) fn get_routes(&self, path: &str, method: HttpMethods) -> Option<&Handler> {
+        if self.routes.get(path).unwrap().0 == method {
+            Some(&self.routes.get(path).unwrap().1)
+        } else {
+            None
+        }
     }
 }
