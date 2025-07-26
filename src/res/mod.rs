@@ -568,11 +568,15 @@ impl HttpResponse {
         E: Into<ResponseError> + Send + 'static,
     {
         self.is_stream = true;
+        self.headers
+            .insert("transfer-encoding".to_string(), "chunked".to_string());
+        self.headers
+            .insert("cache-control".to_string(), "no-cache".to_string());
         self.stream = Box::pin(stream.map(|result| result.map_err(Into::into)));
         self
     }
 
-    pub fn to_responder(self) -> actix_web::HttpResponse {
+    pub(crate) fn to_responder(self) -> actix_web::HttpResponse {
         let body = self.body;
         if self.is_stream {
             let mut actix_res = actix_web::HttpResponse::build(actix_web::http::StatusCode::OK);
