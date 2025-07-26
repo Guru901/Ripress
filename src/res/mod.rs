@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::pin::Pin;
 
 #[derive(Debug)]
-pub enum ResponseError {
+pub(crate) enum ResponseError {
     IoError(std::io::Error),
     Other(String),
 }
@@ -69,18 +69,37 @@ impl std::fmt::Display for ResponseError {
 /// Options for the SameSite attribute of cookies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CookieSameSiteOptions {
+    /// Sets the SameSite attribute to Strict
     Strict,
+
+    /// Sets the SameSite attribute to Lax
     Lax,
+
+    /// Sets the SameSite attribute to None
     None,
 }
 
+/// Options for setting cookies
 pub struct CookieOptions {
+    /// Sets the HttpOnly attribute
     pub http_only: bool,
+
+    /// Sets the Secure attribute
     pub secure: bool,
+
+    /// Sets the SameSite attribute
     pub same_site: CookieSameSiteOptions,
+
+    /// Sets the Path attribute
     pub path: Option<String>,
+
+    /// Sets the Domain attribute
     pub domain: Option<String>,
+
+    /// Sets the Max-Age attribute
     pub max_age: Option<i64>,
+
+    /// Sets the Expires attribute
     pub expires: Option<i64>,
 }
 
@@ -104,6 +123,41 @@ struct Cookie {
     options: CookieOptions,
 }
 
+/// Represents an HTTP response being sent to the client.
+///
+/// The HttpResponse struct provides methods to construct and manipulate HTTP responses
+/// including status codes, headers, cookies, and different types of response bodies.
+///
+/// # Examples
+///
+/// Basic usage:
+/// ```rust
+/// use ripress::context::HttpResponse;
+///
+/// let res = HttpResponse::new();
+/// res.ok().text("Hello, World!");
+/// ```
+///
+/// JSON response:
+/// ```rust
+/// use ripress::context::HttpResponse;
+/// use serde_json::json;
+///
+/// let res = HttpResponse::new();
+/// res.ok().json(json!({
+///     "message": "Success",
+///     "code": 200
+/// }));
+/// ```
+///
+/// # Fields
+/// - `status_code` - HTTP status code (e.g., 200, 404, 500)
+/// - `body` - Response body content (JSON, text)
+/// - `content_type` - Content-Type header value
+/// - `cookies` - Response cookies to be set
+/// - `headers` - Response headers
+/// - `remove_cookies` - Cookies to be removed
+
 pub struct HttpResponse {
     // Response body content
     body: ResponseContentBody,
@@ -114,7 +168,7 @@ pub struct HttpResponse {
     // Status code specified by the developer
     pub(crate) status_code: u16,
 
-    // Sets response headers
+    /// Sets response headers
     pub headers: HashMap<String, String>,
 
     // Sets response cookies
@@ -387,6 +441,25 @@ impl HttpResponse {
 
         self
     }
+
+    /// Permanently redirects the client to the specified URL.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The url to redirect to
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::context::HttpResponse;
+    /// use ripress::types::ResponseContentType;
+    ///
+    /// let res = HttpResponse::new();
+    /// res.permanent_redirect("https://www.example.com");
+    /// ```
 
     pub fn permanent_redirect(mut self, path: &str) -> Self {
         self.status_code = 301;
