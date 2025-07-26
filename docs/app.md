@@ -66,6 +66,7 @@ This integration allows your application to serve both dynamic routes and static
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns
 };
 
 #[tokio::main]
@@ -87,6 +88,7 @@ async fn get_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns
 };
 
 #[tokio::main]
@@ -108,6 +110,7 @@ async fn post_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns
 };
 
 #[tokio::main]
@@ -129,6 +132,7 @@ async fn patch_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns
 };
 
 #[tokio::main]
@@ -150,6 +154,7 @@ async fn put_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns
 };
 
 #[tokio::main]

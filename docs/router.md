@@ -11,76 +11,39 @@ To create a new router, use the `Router::new` method and specify the base path. 
 ```rust
 use ripress::router::Router;
 
-let mut router = Router::new("/api");
+#[tokio::main]
+async fn main() {
+    let mut router = Router::new("/api");
+}
 ```
 
 ## Defining Routes
 
 The Router offers methods corresponding to each HTTP method. Each method takes a static path and a handler function. The handler must be an async function that accepts an `HttpRequest` and an `HttpResponse`, then returns an `HttpResponse`.
 
-### GET Route
+### Defining Route
 
 ```rust
-use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
+use ripress::{app::App, req::HttpRequest, res::HttpResponse, router::Router, types::RouterFns};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    let mut router = Router::new("/api");
+    router.get("/hello", get_handler);
+    router.post("/hello", post_handler);
+
+    // The route will be /api/hello
+    router.register(&mut app);
+}
 
 async fn get_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("GET request handled")
 }
 
-let mut router = Router::new("/api");
-router.get("/hello", get_handler);
-```
-
-### POST Route
-
-```rust
-use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
-
 async fn post_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("POST request handled")
 }
-
-let mut router = Router::new("/api");
-router.post("/submit", post_handler);
-```
-
-### PUT Route
-
-```rust
-use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
-
-async fn put_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("PUT request handled")
-}
-
-let mut router = Router::new("/api");
-router.put("/update", put_handler);
-```
-
-### DELETE Route
-
-```rust
-use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
-
-async fn delete_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("DELETE request handled")
-}
-
-let mut router = Router::new("/api");
-router.delete("/remove", delete_handler);
-```
-
-### PATCH Route
-
-```rust
-use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
-
-async fn patch_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("PATCH request handled")
-}
-
-let mut router = Router::new("/api");
-router.patch("/modify", patch_handler);
 ```
 
 ## Registering the Router with an App
@@ -88,19 +51,27 @@ router.patch("/modify", patch_handler);
 After defining the routes using your router, register the router with an `App` instance. This will add all the router’s routes to the application with their full path (combining the router’s base path and the route’s defined path):
 
 ```rust
-use ripress::{app::App, router::Router, context::{HttpRequest, HttpResponse}};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    router::Router,
+    types::RouterFns,
+};
 
-async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("Hello from Router!")
+#[tokio::main]
+async fn main() {
+    async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+        res.ok().text("Hello from Router!")
+    }
+
+    let mut router = Router::new("/api");
+    // Define routes on the router
+    router.get("/hello", handler);
+
+    // Create an App instance and register the router
+    let mut app = App::new();
+    router.register(&mut app);
 }
-
-let mut router = Router::new("/api");
-// Define routes on the router
-router.get("/hello", handler);
-
-// Create an App instance and register the router
-let mut app = App::new();
-router.register(&mut app);
 ```
 
 ## How It Works
