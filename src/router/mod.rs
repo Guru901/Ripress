@@ -5,7 +5,10 @@ use crate::{
 use std::collections::HashMap;
 
 pub struct Router {
+    /// Base Path on which the router will be mounted to the app
     base_path: String,
+
+    /// Routes registered on the router
     routes: Routes,
 }
 

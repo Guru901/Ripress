@@ -89,7 +89,7 @@ mod tests {
     #[test]
     fn test_text_response() {
         let text_body = "Hello, World!";
-        let mut response = HttpResponse::new().text(text_body);
+        let response = HttpResponse::new().text(text_body);
 
         assert_eq!(response.get_content_type(), &ResponseContentType::TEXT);
         let response_2 = HttpResponse::new().text(text_body);
