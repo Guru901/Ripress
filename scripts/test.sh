@@ -7,16 +7,23 @@ cd src
 touch main.rs
 
 echo '
+use bytes::Bytes;
+use futures::stream;
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::middlewares::logger::logger;
 use ripress::res::{CookieOptions, CookieSameSiteOptions};
 use ripress::types::RouterFns;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::time::Duration;
+use tokio::time;
 
 #[tokio::main]
 async fn main() {
     let mut app = App::new();
+
+    app.use_middleware("/", logger(None));
 
     // request tests
     app.get("/cookie-test", cookie_handler);
@@ -65,10 +72,13 @@ async fn main() {
     app.get("/auth", auth);
 
     // response tests
-
     app.get("/get-cookie-test", get_cookie_test);
     app.get("/multiple-cookies-test", get_multi_cookie_test);
     app.get("/cookie-options-test", get_cookie_with_options_test);
+
+    // streaming tests
+    app.get("/stream-text", stream_text);
+    app.get("/stream-json", stream_json);
 
     app.listen(8080, || {}).await.unwrap();
 }
@@ -292,6 +302,40 @@ async fn permanent_redirect_test(req: HttpRequest, res: HttpResponse) -> HttpRes
 async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let token = req.get_data("token").unwrap();
     res.ok().text(token)
+}
+
+async fn stream_text(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let stream = stream::unfold(1, |state| async move {
+        if state < 20 {
+            time::sleep(Duration::from_millis(10)).await;
+            Some((
+                Ok::<Bytes, std::io::Error>(Bytes::from(format!("chunk{}\n", state))),
+                state + 1,
+            ))
+        } else {
+            None
+        }
+    });
+
+    res.write(stream)
+}
+
+async fn stream_json(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let stream = stream::unfold(1, |state| async move {
+        if state < 10 {
+            time::sleep(Duration::from_millis(10)).await;
+            Some((
+                Ok::<Bytes, std::io::Error>(Bytes::from(
+                    serde_json::to_vec(&json!({ "id": state })).unwrap(),
+                )),
+                state + 1,
+            ))
+        } else {
+            None
+        }
+    });
+
+    res.write(stream)
 }
 ' > main.rs
 
