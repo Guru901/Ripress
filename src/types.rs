@@ -213,18 +213,17 @@ pub trait RouterFns {
         }
     }
 
-    /// Add a GET route to the application.
+    /// Add a GET route to the application or router.
     ///
     /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example
+    /// ## Example (App)
     ///
     /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };    ///
-    ///
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
     /// use ripress::types::RouterFns;
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -233,6 +232,20 @@ pub trait RouterFns {
     ///
     /// let mut app = App::new();
     /// app.get("/hello", handler);
+    /// ```
+    ///
+    /// ## Example (Router)
+    ///
+    /// ```
+    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
+    /// use ripress::types::RouterFns;
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut router = Router::new();
+    /// router.get("/hello", handler);
     /// ```
 
     fn get<F, Fut>(&mut self, path: &str, handler: F)
@@ -243,17 +256,17 @@ pub trait RouterFns {
         self.add_route(HttpMethods::GET, path, handler);
     }
 
-    /// Add a POST route to the application.
+    /// Add a POST route to the application or router.
     ///
     /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example
+    /// ## Example (App)
     ///
     /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };    ///
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
     /// use ripress::types::RouterFns;
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -262,6 +275,20 @@ pub trait RouterFns {
     ///
     /// let mut app = App::new();
     /// app.post("/hello", handler);
+    /// ```
+    ///
+    /// ## Example (Router)
+    ///
+    /// ```
+    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
+    /// use ripress::types::RouterFns;
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut router = Router::new();
+    /// router.post("/hello", handler);
     /// ```
 
     fn post<F, Fut>(&mut self, path: &str, handler: F)
@@ -272,17 +299,17 @@ pub trait RouterFns {
         self.add_route(HttpMethods::POST, path, handler);
     }
 
-    /// Add a PUT route to the application.
+    /// Add a PUT route to the application or router.
     ///
     /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example
+    /// ## Example (App)
     ///
     /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };    ///
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
     /// use ripress::types::RouterFns;
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -291,6 +318,20 @@ pub trait RouterFns {
     ///
     /// let mut app = App::new();
     /// app.put("/hello", handler);
+    /// ```
+    ///
+    /// ## Example (Router)
+    ///
+    /// ```
+    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
+    /// use ripress::types::RouterFns;
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut router = Router::new();
+    /// router.put("/hello", handler);
     /// ```
 
     fn put<F, Fut>(&mut self, path: &str, handler: F)
@@ -301,18 +342,17 @@ pub trait RouterFns {
         self.add_route(HttpMethods::PUT, path, handler);
     }
 
-    /// Add a DELETE route to the application.
+    /// Add a DELETE route to the application or router.
     ///
     /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example
+    /// ## Example (App)
     ///
     /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };    ///
-    ///
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
     /// use ripress::types::RouterFns;
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -321,6 +361,20 @@ pub trait RouterFns {
     ///
     /// let mut app = App::new();
     /// app.delete("/hello", handler);
+    /// ```
+    ///
+    /// ## Example (Router)
+    ///
+    /// ```
+    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
+    /// use ripress::types::RouterFns;
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut router = Router::new();
+    /// router.delete("/hello", handler);
     /// ```
 
     fn delete<F, Fut>(&mut self, path: &str, handler: F)
@@ -331,18 +385,17 @@ pub trait RouterFns {
         self.add_route(HttpMethods::DELETE, path, handler);
     }
 
-    /// Add a HEAD route to the application.
+    /// Add a HEAD route to the application or router.
     ///
     /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example
+    /// ## Example (App)
     ///
     /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };    ///
-    ///
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
     /// use ripress::types::RouterFns;
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -351,6 +404,20 @@ pub trait RouterFns {
     ///
     /// let mut app = App::new();
     /// app.head("/hello", handler);
+    /// ```
+    ///
+    /// ## Example (Router)
+    ///
+    /// ```
+    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
+    /// use ripress::types::RouterFns;
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut router = Router::new();
+    /// router.head("/hello", handler);
     /// ```
 
     fn head<F, Fut>(&mut self, path: &str, handler: F)
@@ -361,18 +428,17 @@ pub trait RouterFns {
         self.add_route(HttpMethods::HEAD, path, handler);
     }
 
-    /// Add a PATCH route to the application.
+    /// Add a PATCH route to the application or router.
     ///
     /// ## Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example
+    /// ## Example (App)
     ///
     /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };    ///
-    ///
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
     /// use ripress::types::RouterFns;
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -381,6 +447,20 @@ pub trait RouterFns {
     ///
     /// let mut app = App::new();
     /// app.patch("/hello", handler);
+    /// ```
+    ///
+    /// ## Example (Router)
+    ///
+    /// ```
+    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
+    /// use ripress::types::RouterFns;
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut router = Router::new();
+    /// router.patch("/hello", handler);
     /// ```
 
     fn patch<F, Fut>(&mut self, path: &str, handler: F)
