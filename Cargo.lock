@@ -1048,6 +1048,7 @@ name = "ripress"
 version = "0.5.1"
 dependencies = [
  "actix-web",
+ "bytes",
  "futures",
  "serde",
  "serde_json",
