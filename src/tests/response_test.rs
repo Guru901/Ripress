@@ -1,11 +1,20 @@
 #[cfg(test)]
 mod tests {
     use crate::context::HttpRequest;
-    use crate::req::determine_content_type;
     use crate::types::HttpRequestError;
     use crate::types::{HttpMethods, RequestBodyType};
     use actix_web::FromRequest;
     use serde_json::json;
+
+    fn determine_content_type(content_type: &str) -> RequestBodyType {
+        if content_type == "application/json" {
+            return RequestBodyType::JSON;
+        } else if content_type == "application/x-www-form-urlencoded" {
+            return RequestBodyType::FORM;
+        } else {
+            RequestBodyType::TEXT
+        }
+    }
 
     #[test]
     fn test_get_query() {

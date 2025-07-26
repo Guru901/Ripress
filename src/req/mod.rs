@@ -406,7 +406,7 @@ impl HttpRequest {
         }
     }
 
-    pub async fn from_actix_request(
+    pub(crate) async fn from_actix_request(
         req: actix_web::HttpRequest,
         mut payload: actix_web::web::Payload,
     ) -> Result<Self, actix_web::Error> {
@@ -541,26 +541,6 @@ impl HttpRequest {
             xhr,
             is_secure,
         })
-    }
-}
-
-/// Determines the content type from a content-type header string.
-///
-/// ## Arguments
-///
-/// * `content_type` - The content-type header value
-///
-/// ## Returns
-///
-/// Returns the appropriate `RequestBodyType` enum variant.
-
-pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
-    if content_type == "application/json" {
-        return RequestBodyType::JSON;
-    } else if content_type == "application/x-www-form-urlencoded" {
-        return RequestBodyType::FORM;
-    } else {
-        RequestBodyType::TEXT
     }
 }
 
