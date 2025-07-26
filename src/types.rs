@@ -244,7 +244,7 @@ pub trait RouterFns {
     ///     res.ok().text("Hello, World!")
     /// }
     ///
-    /// let mut router = Router::new();
+    /// let mut router = Router::new("/api");
     /// router.get("/hello", handler);
     /// ```
 
@@ -287,7 +287,7 @@ pub trait RouterFns {
     ///     res.ok().text("Hello, World!")
     /// }
     ///
-    /// let mut router = Router::new();
+    /// let mut router = Router::new("/api");
     /// router.post("/hello", handler);
     /// ```
 
@@ -330,7 +330,7 @@ pub trait RouterFns {
     ///     res.ok().text("Hello, World!")
     /// }
     ///
-    /// let mut router = Router::new();
+    /// let mut router = Router::new("/api");
     /// router.put("/hello", handler);
     /// ```
 
@@ -373,7 +373,7 @@ pub trait RouterFns {
     ///     res.ok().text("Hello, World!")
     /// }
     ///
-    /// let mut router = Router::new();
+    /// let mut router = Router::new("/api");
     /// router.delete("/hello", handler);
     /// ```
 
@@ -416,7 +416,7 @@ pub trait RouterFns {
     ///     res.ok().text("Hello, World!")
     /// }
     ///
-    /// let mut router = Router::new();
+    /// let mut router = Router::new("/api");
     /// router.head("/hello", handler);
     /// ```
 
@@ -459,7 +459,7 @@ pub trait RouterFns {
     ///     res.ok().text("Hello, World!")
     /// }
     ///
-    /// let mut router = Router::new();
+    /// let mut router = Router::new("/api");
     /// router.patch("/hello", handler);
     /// ```
 
@@ -469,5 +469,10 @@ pub trait RouterFns {
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
         self.add_route(HttpMethods::PATCH, path, handler);
+    }
+
+    fn get_routes(&mut self, path: &str, method: HttpMethods) -> Option<&Handler> {
+        let routes = self.routes();
+        routes.get(path).and_then(|handlers| handlers.get(&method))
     }
 }

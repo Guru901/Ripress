@@ -193,12 +193,3 @@ impl App {
         .await
     }
 }
-
-#[cfg(test)]
-impl App {
-    pub(crate) fn get_routes(&self, path: &str, method: HttpMethods) -> Option<&Handler> {
-        self.routes
-            .get(path)
-            .and_then(|handlers| handlers.get(&method))
-    }
-}

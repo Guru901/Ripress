@@ -7,10 +7,10 @@ cd src
 touch main.rs
 
 echo '
-
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
 use ripress::res::{CookieOptions, CookieSameSiteOptions};
+use ripress::types::RouterFns;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -293,8 +293,6 @@ async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let token = req.get_data("token").unwrap();
     res.ok().text(token)
 }
-
-
 ' > main.rs
 
 cargo run &  # Start server in background

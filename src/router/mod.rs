@@ -27,6 +27,7 @@ impl Router {
     ///
     /// ```
     /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}, app::App};
+    /// use crate::ripress::types::RouterFns;
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
