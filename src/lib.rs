@@ -7,6 +7,6 @@ pub mod context {
 }
 
 pub mod middlewares;
+pub mod router;
 mod tests;
 pub mod types;
-pub mod router;

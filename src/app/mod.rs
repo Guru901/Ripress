@@ -2,8 +2,6 @@
 
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
-#[cfg(test)]
-use crate::types::Handler;
 use crate::types::{Fut, HttpMethods, Middleware, Next, RouterFns, Routes};
 use std::collections::HashMap;
 
@@ -14,6 +12,7 @@ where
     Box::pin(future)
 }
 
+/// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests. It follows an Express-like pattern for route handling.
 pub struct App {
     routes: Routes,
     middlewares: Vec<Box<dyn Middleware>>,
@@ -26,6 +25,14 @@ impl RouterFns for App {
 }
 
 impl App {
+    /// Creates a new App instance.
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::app::App;
+    ///
+    /// let mut app = App::new();
+    /// ```
     pub fn new() -> Self {
         App {
             routes: HashMap::new(),

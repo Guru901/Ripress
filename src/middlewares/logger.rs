@@ -16,8 +16,13 @@ use crate::{
 
 #[derive(Clone)]
 pub struct LoggerConfig {
+    /// Wheather to log the method
     pub method: bool,
+
+    /// Whether to log the path
     pub path: bool,
+
+    /// Whether to log the duration
     pub duration: bool,
 }
 

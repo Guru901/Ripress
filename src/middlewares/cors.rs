@@ -16,8 +16,13 @@ use crate::{
 
 #[derive(Clone)]
 pub struct CorsConfig {
+    /// The allowed origin for the request
     pub allowed_origin: String,
+
+    /// The allowed methods for the request
     pub allowed_methods: String,
+
+    /// Whether to allow credentials
     pub allow_credentials: bool,
 }
 
