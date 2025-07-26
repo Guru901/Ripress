@@ -9,3 +9,4 @@ pub mod context {
 pub mod middlewares;
 mod tests;
 pub mod types;
+pub mod router;

@@ -11,6 +11,7 @@ mod tests {
         app::{App, box_future},
         context::HttpResponse,
         tests::app_test::_test_handler,
+        types::RouterFns,
     };
 
     #[test]

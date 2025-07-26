@@ -2,7 +2,9 @@
 
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
-use crate::types::{Fut, Handler, HttpMethods, Middleware, Next, Routes};
+#[cfg(test)]
+use crate::types::Handler;
+use crate::types::{Fut, HttpMethods, Middleware, Next, RouterFns, Routes};
 use std::collections::HashMap;
 
 pub(crate) fn box_future<F>(future: F) -> Fut
@@ -11,11 +13,16 @@ where
 {
     Box::pin(future)
 }
-use std::sync::Arc;
 
 pub struct App {
     routes: Routes,
     middlewares: Vec<Box<dyn Middleware>>,
+}
+
+impl RouterFns for App {
+    fn routes(&mut self) -> &mut Routes {
+        &mut self.routes
+    }
 }
 
 impl App {
@@ -24,197 +31,6 @@ impl App {
             routes: HashMap::new(),
             middlewares: Vec::new(),
         }
-    }
-
-    fn add_route<F, Fut>(&mut self, method: HttpMethods, path: &str, handler: F)
-    where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
-    {
-        if self.routes.contains_key(path) {
-            let wrapped_handler =
-                Arc::new(move |req, res| box_future(handler(req, res))) as Handler;
-
-            if let Some(route_map) = self.routes.get_mut(path) {
-                route_map.insert(method, wrapped_handler);
-            }
-        } else {
-            let wrapped_handler =
-                Arc::new(move |req, res| box_future(handler(req, res))) as Handler;
-            self.routes.insert(path.to_string(), {
-                let mut map = HashMap::new();
-                map.insert(method, wrapped_handler);
-                map
-            });
-        }
-    }
-
-    /// Add a GET route to the application.
-    ///
-    /// ## Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.get("/hello", handler);
-    /// ```
-
-    pub fn get<F, Fut>(&mut self, path: &str, handler: F)
-    where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
-    {
-        self.add_route(HttpMethods::GET, path, handler);
-    }
-
-    /// Add a POST route to the application.
-    ///
-    /// ## Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.post("/hello", handler);
-    /// ```
-
-    pub fn post<F, Fut>(&mut self, path: &str, handler: F)
-    where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
-    {
-        self.add_route(HttpMethods::POST, path, handler);
-    }
-
-    /// Add a PUT route to the application.
-    ///
-    /// ## Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.put("/hello", handler);
-    /// ```
-
-    pub fn put<F, Fut>(&mut self, path: &str, handler: F)
-    where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
-    {
-        self.add_route(HttpMethods::PUT, path, handler);
-    }
-
-    /// Add a DELETE route to the application.
-    ///
-    /// ## Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.delete("/hello", handler);
-    /// ```
-
-    pub fn delete<F, Fut>(&mut self, path: &str, handler: F)
-    where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
-    {
-        self.add_route(HttpMethods::DELETE, path, handler);
-    }
-
-    /// Add a HEAD route to the application.
-    ///
-    /// ## Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.head("/hello", handler);
-    /// ```
-
-    pub fn head<F, Fut>(&mut self, path: &str, handler: F)
-    where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
-    {
-        self.add_route(HttpMethods::HEAD, path, handler);
-    }
-
-    /// Add a PATCH route to the application.
-    ///
-    /// ## Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// ## Example
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.patch("/hello", handler);
-    /// ```
-
-    pub fn patch<F, Fut>(&mut self, path: &str, handler: F)
-    where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
-    {
-        self.add_route(HttpMethods::PATCH, path, handler);
     }
 
     /// Add a middleware to the application.
