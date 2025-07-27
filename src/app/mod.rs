@@ -16,6 +16,7 @@ where
 pub struct App {
     routes: Routes,
     middlewares: Vec<Box<dyn Middleware>>,
+    pub(crate) static_files: HashMap<String, String>,
 }
 
 impl RouterFns for App {
@@ -37,6 +38,7 @@ impl App {
         App {
             routes: HashMap::new(),
             middlewares: Vec::new(),
+            static_files: HashMap::new(),
         }
     }
 
@@ -113,6 +115,31 @@ impl App {
         self
     }
 
+    /// Add a static file server to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `file` - The path to the file.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
+    ///
+    /// let mut app = App::new();
+    /// app.static_files("/public", "./public");
+    ///
+    /// ```
+
+    pub fn static_files(&mut self, path: &'static str, file: &'static str) {
+        self.static_files
+            .insert("serve_from".to_string(), file.to_string());
+
+        self.static_files
+            .insert("mount_path".to_string(), path.to_string());
+    }
+
     /// Starts the server and listens on the specified address.
     ///
     /// ## Arguments
@@ -137,63 +164,77 @@ impl App {
         cb();
         let routes = self.routes.clone();
         let middlewares = self.middlewares.clone();
+        let static_files = self.static_files.clone();
 
         actix_web::HttpServer::new(move || {
             let routes = routes.clone();
             let middlewares = middlewares.clone();
+            let static_files = static_files.clone();
 
-            routes
-                .iter()
-                .fold(actix_web::App::new(), move |mut app, (path, handlers)| {
-                    for (method, handler) in handlers {
-                        let route_method = match method {
-                            HttpMethods::GET => actix_web::web::get(),
-                            HttpMethods::POST => actix_web::web::post(),
-                            HttpMethods::PUT => actix_web::web::put(),
-                            HttpMethods::HEAD => actix_web::web::head(),
-                            HttpMethods::DELETE => actix_web::web::delete(),
-                            HttpMethods::PATCH => actix_web::web::patch(),
-                        };
+            let mut app =
+                routes
+                    .iter()
+                    .fold(actix_web::App::new(), move |mut app, (path, handlers)| {
+                        for (method, handler) in handlers {
+                            let route_method = match method {
+                                HttpMethods::GET => actix_web::web::get(),
+                                HttpMethods::POST => actix_web::web::post(),
+                                HttpMethods::PUT => actix_web::web::put(),
+                                HttpMethods::HEAD => actix_web::web::head(),
+                                HttpMethods::DELETE => actix_web::web::delete(),
+                                HttpMethods::PATCH => actix_web::web::patch(),
+                            };
 
-                        let handler = handler.clone();
-                        let path = path.clone();
-                        let middlewares = middlewares.clone();
+                            let handler = handler.clone();
+                            let path = path.clone();
+                            let middlewares = middlewares.clone();
 
-                        app = app.route(
-                            &path,
-                            route_method.to(
-                                move |req: actix_web::HttpRequest, payload: actix_web::web::Payload| {
-                                    let handler = handler.clone();
-                                    let middlewares = middlewares.clone();
+                            app = app.route(
+                        &path,
+                        route_method.to(
+                            move |req: actix_web::HttpRequest, payload: actix_web::web::Payload| {
+                                let handler = handler.clone();
+                                let middlewares = middlewares.clone();
 
-                                    async move {
-                                        let our_req = HttpRequest::from_actix_request(req, payload)
-                                            .await
-                                            .unwrap();
-                                        let our_res = HttpResponse::new();
+                                async move {
+                                    let our_req = HttpRequest::from_actix_request(req, payload)
+                                        .await
+                                        .unwrap();
+                                    let our_res = HttpResponse::new();
 
-                                        if !middlewares.is_empty() {
-                                            // Create a Next with our middlewares and handler
-                                            let next = Next {
-                                                middleware: middlewares.clone(),
-                                                handler: handler.clone(),
-                                            };
+                                    if !middlewares.is_empty() {
+                                        // Create a Next with our middlewares and handler
+                                        let next = Next {
+                                            middleware: middlewares.clone(),
+                                            handler: handler.clone(),
+                                        };
 
-                                            // Run the middleware chain
-                                            let response = next.run(our_req, our_res).await;
-                                            response.to_responder()
-                                        } else {
-                                            // No middlewares, call the handler directly
-                                            let response = handler(our_req, our_res).await;
-                                            response.to_responder()
-                                        }
+                                        // Run the middleware chain
+                                        let response = next.run(our_req, our_res).await;
+                                        response.to_responder()
+                                    } else {
+                                        // No middlewares, call the handler directly
+                                        let response = handler(our_req, our_res).await;
+                                        response.to_responder()
                                     }
-                                },
-                            ),
-                        );
-                    }
-                    app
-                })
+                                }
+                            },
+                        ),
+                    );
+                        }
+                        app
+                    });
+
+            // Add static files service if configured
+            if let (Some(mount_path), Some(serve_from)) = (
+                static_files.get("mount_path"),
+                static_files.get("serve_from"),
+            ) {
+                app = app
+                    .service(actix_files::Files::new(mount_path, serve_from).show_files_listing());
+            }
+
+            app
         })
         .bind(format!("127.0.0.1:{}", port))?
         .run()

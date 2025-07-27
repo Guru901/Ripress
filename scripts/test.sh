@@ -3,7 +3,38 @@ set -e  # Exit on error
 
 cargo test --all  # Run Rust tests
 
-cd src
+mkdir -p public/assets public/scripts
+cd public
+touch index.html app.js config.json readme.txt unknown-file.asdxyz styles.css
+curl -sL https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png -o logo.png
+curl -sL https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png -o photo.jpg
+touch assets/styles.css scripts/app.js
+
+echo '{}' > config.json
+echo 'body {
+    margin: 0;
+}' > assets/styles.css
+echo 'body {
+    margin: 0;
+}' > styles.css
+echo 'function main() {
+  document.querySelector("main");
+}' > app.js
+echo 'function main() {
+  document.querySelector("main");
+}' > scripts/app.js
+echo '<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body></body>
+</html>' > index.html
+echo 'This is a readme file' > readme.txt
+
+cd ../src
 touch main.rs
 
 echo '
@@ -80,7 +111,13 @@ async fn main() {
     app.get("/stream-text", stream_text);
     app.get("/stream-json", stream_json);
 
-    app.listen(8080, || {}).await.unwrap();
+    // Static Files test
+
+    app.static_files("/static", "../public");
+
+    app.listen(8080, || println!("Server is running on port 8080"))
+        .await
+        .unwrap();
 }
 
 // requests test handler

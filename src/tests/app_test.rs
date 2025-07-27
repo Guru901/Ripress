@@ -85,4 +85,23 @@ mod tests {
         let response = boxed.await;
         assert_eq!(response.status_code, 200);
     }
+
+    #[test]
+    fn test_static_files_configuration() {
+        let mut app = App::new();
+
+        app.static_files("/public", "./public");
+
+        let mount_path = app
+            .static_files
+            .get("mount_path")
+            .expect("mount_path should be set");
+        let serve_from = app
+            .static_files
+            .get("serve_from")
+            .expect("serve_from should be set");
+
+        assert_eq!(mount_path, "/public");
+        assert_eq!(serve_from, "./public");
+    }
 }
