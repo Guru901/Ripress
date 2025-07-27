@@ -395,3 +395,5 @@ kill $SERVER_PID  # Stop the server
 
 cd ../src
 rm main.rs
+cd ..
+rm -rf public
