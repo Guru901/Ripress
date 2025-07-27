@@ -1,11 +1,15 @@
 # Changelog
 
+## [0.6.1] - 2025-07-26
+
+- Readded static files serving capabilities
+
 ## [0.6.0] - 2025-07-26
 
-- Some internal changes to make it perform better
-- Added `res.permanent_redirect` method
-- Removed unnecessary code
-- Refactored a lot
+- some internal changes to make it perform better
+- added `res.permanent_redirect` method
+- removed unnecessary code
+- refactored a lot
 
 ## [0.5.1] - 2025-04-01
 
