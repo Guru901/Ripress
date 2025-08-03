@@ -175,7 +175,7 @@ pub struct HttpResponse {
     cookies: Vec<Cookie>,
 
     // Cookies to be removed
-    remove_cookies: Vec<String>,
+    remove_cookies: Vec<&'static str>,
 
     pub(crate) is_stream: bool,
 
@@ -407,9 +407,9 @@ impl HttpResponse {
     ///     .text("Logged out");
     /// ```
 
-    pub fn clear_cookie(mut self, key: &str) -> Self {
+    pub fn clear_cookie(mut self, key: &'static str) -> Self {
         self.cookies.retain(|cookie| cookie.name != key);
-        self.remove_cookies.push(key.to_string());
+        self.remove_cookies.push(key);
         self
     }
 
@@ -653,7 +653,7 @@ impl HttpResponse {
 
             actix_res.append_header(("Connection", "keep-alive"));
             self.remove_cookies.iter().for_each(|key| {
-                actix_res.cookie(actix_web::cookie::Cookie::build(key, "").finish());
+                actix_res.cookie(actix_web::cookie::Cookie::build(*key, "").finish());
             });
 
             self.cookies.iter().for_each(|cookie| {
@@ -715,7 +715,7 @@ impl HttpResponse {
 
             self.remove_cookies.iter().for_each(|key| {
                 actix_res
-                    .add_cookie(&actix_web::cookie::Cookie::build(key, "").finish())
+                    .add_cookie(&actix_web::cookie::Cookie::build(*key, "").finish())
                     .unwrap();
             });
 
