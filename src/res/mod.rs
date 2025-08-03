@@ -326,7 +326,7 @@ impl HttpResponse {
     ///
     /// # Returns
     ///
-    /// Returns `Result<String, HttpResponseError>` with the header value if found,
+    /// Returns `Result<&'static str, HttpResponseError>` with the header value if found,
     /// or `HttpResponseError::MissingHeader` if not found.
     ///
     /// # Example
