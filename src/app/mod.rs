@@ -67,11 +67,11 @@ impl App {
         F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static,
         Fut: std::future::Future<Output = HttpResponse> + Send + 'static,
     {
-        let path = path.into().unwrap_or("/").to_string();
+        let path = path.into().unwrap_or("/");
 
         struct Wrapper<F> {
             func: F,
-            path: String,
+            path: &'static str,
         }
 
         impl<F, Fut> Middleware for Wrapper<F>
@@ -90,7 +90,7 @@ impl App {
                     let fut = (self.func)(req, res, next);
                     Box::pin(fut)
                 } else {
-                    if req.path.starts_with(self.path.as_str()) {
+                    if req.path.starts_with(self.path) {
                         let fut = (self.func)(req, res, next);
                         Box::pin(fut)
                     } else {
@@ -102,7 +102,7 @@ impl App {
             fn clone_box(&self) -> Box<dyn Middleware> {
                 Box::new(Wrapper {
                     func: self.func.clone(),
-                    path: self.path.clone(),
+                    path: self.path,
                 })
             }
         }
