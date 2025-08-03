@@ -51,8 +51,8 @@ mod tests {
     #[tokio::test]
     async fn test_cors_custom_config() {
         let config = CorsConfig {
-            allowed_origin: "https://example.com".to_string(),
-            allowed_methods: "GET, POST".to_string(),
+            allowed_origin: "https://example.com",
+            allowed_methods: "GET, POST",
             allow_credentials: true,
         };
         let cors_mw = cors(Some(config.clone()));

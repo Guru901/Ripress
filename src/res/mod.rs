@@ -169,7 +169,7 @@ pub struct HttpResponse {
     pub(crate) status_code: u16,
 
     /// Sets response headers
-    pub headers: HashMap<String, String>,
+    pub headers: HashMap<&'static str, &'static str>,
 
     // Sets response cookies
     cookies: Vec<Cookie>,
@@ -313,10 +313,8 @@ impl HttpResponse {
     /// res.set_header("key", "value"); // Sets the key cookie to value
     /// ```
 
-    pub fn set_header(mut self, header_name: &str, header_value: &str) -> Self {
-        self.headers
-            .insert(header_name.to_string(), header_value.to_string());
-
+    pub fn set_header(mut self, header_name: &'static str, header_value: &'static str) -> Self {
+        self.headers.insert(header_name, header_value);
         self
     }
 
@@ -348,7 +346,7 @@ impl HttpResponse {
         let header = self.headers.get(key);
 
         match header {
-            Some(header_string) => Ok(header_string.clone()),
+            Some(header_string) => Ok(header_string.to_string()),
             None => Err(HttpResponseError::MissingHeader(key.to_string())),
         }
     }
@@ -434,11 +432,9 @@ impl HttpResponse {
     /// res.redirect("https://www.example.com");
     /// ```
 
-    pub fn redirect(mut self, path: &str) -> Self {
+    pub fn redirect(mut self, path: &'static str) -> Self {
         self.status_code = 302;
-        self.headers
-            .insert("Location".to_string(), path.to_string());
-
+        self.headers.insert("Location", path);
         self
     }
 
@@ -461,11 +457,9 @@ impl HttpResponse {
     /// res.permanent_redirect("https://www.example.com");
     /// ```
 
-    pub fn permanent_redirect(mut self, path: &str) -> Self {
+    pub fn permanent_redirect(mut self, path: &'static str) -> Self {
         self.status_code = 301;
-        self.headers
-            .insert("Location".to_string(), path.to_string());
-
+        self.headers.insert("Location", path);
         self
     }
 
@@ -641,10 +635,8 @@ impl HttpResponse {
         E: Into<ResponseError> + Send + 'static,
     {
         self.is_stream = true;
-        self.headers
-            .insert("transfer-encoding".to_string(), "chunked".to_string());
-        self.headers
-            .insert("cache-control".to_string(), "no-cache".to_string());
+        self.headers.insert("transfer-encoding", "chunked");
+        self.headers.insert("cache-control", "no-cache");
         self.stream = Box::pin(stream.map(|result| result.map_err(Into::into)));
         self
     }
@@ -655,9 +647,9 @@ impl HttpResponse {
             let mut actix_res = actix_web::HttpResponse::build(actix_web::http::StatusCode::OK);
             actix_res.content_type("text/event-stream");
 
-            self.headers.iter().for_each(|(key, value)| {
-                actix_res.append_header((key.as_str(), value.as_str()));
-            });
+            for (key, value) in self.headers.iter() {
+                actix_res.append_header((*key, *value));
+            }
 
             actix_res.append_header(("Connection", "keep-alive"));
             self.remove_cookies.iter().for_each(|key| {
