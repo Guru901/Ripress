@@ -118,8 +118,8 @@ impl Default for CookieOptions {
 }
 
 struct Cookie {
-    name: String,
-    value: String,
+    name: &'static str,
+    value: &'static str,
     options: CookieOptions,
 }
 
@@ -375,13 +375,13 @@ impl HttpResponse {
 
     pub fn set_cookie(
         mut self,
-        cookie_name: &str,
-        cookie_value: &str,
+        cookie_name: &'static str,
+        cookie_value: &'static str,
         options: CookieOptions,
     ) -> Self {
         self.cookies.push(Cookie {
-            name: cookie_name.to_owned(),
-            value: cookie_value.to_owned(),
+            name: cookie_name,
+            value: cookie_value,
             options,
         });
 
@@ -781,10 +781,10 @@ impl HttpResponse {
         self.body
     }
 
-    pub(crate) fn get_cookie(&self, key: &str) -> Option<String> {
+    pub(crate) fn get_cookie(&self, key: &str) -> Option<&'static str> {
         self.cookies
             .iter()
             .find(|cookie| cookie.name == key)
-            .map(|cookie| cookie.value.clone())
+            .map(|cookie| cookie.value)
     }
 }
