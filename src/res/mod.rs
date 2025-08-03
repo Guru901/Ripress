@@ -91,10 +91,10 @@ pub struct CookieOptions {
     pub same_site: CookieSameSiteOptions,
 
     /// Sets the Path attribute
-    pub path: Option<String>,
+    pub path: Option<&'static str>,
 
     /// Sets the Domain attribute
-    pub domain: Option<String>,
+    pub domain: Option<&'static str>,
 
     /// Sets the Max-Age attribute
     pub max_age: Option<i64>,
@@ -109,7 +109,7 @@ impl Default for CookieOptions {
             http_only: true,
             secure: true,
             same_site: CookieSameSiteOptions::None,
-            path: Some("/".to_string()),
+            path: Some("/"),
             domain: None,
             max_age: None,
             expires: None,
@@ -722,35 +722,35 @@ impl HttpResponse {
             self.cookies.iter().for_each(|cookie| {
                 actix_res
                     .add_cookie(
-                        &actix_web::cookie::Cookie::build(
-                            cookie.name.to_string(),
-                            cookie.value.to_string(),
-                        )
-                        .expires(cookie.options.expires.and_then(|ts| {
-                            actix_web::cookie::time::OffsetDateTime::from_unix_timestamp(ts).ok()
-                        }))
-                        .http_only(cookie.options.http_only)
-                        .max_age(
-                            cookie
-                                .options
-                                .max_age
-                                .map(|secs| actix_web::cookie::time::Duration::seconds(secs))
-                                .unwrap_or_else(|| actix_web::cookie::time::Duration::seconds(0)),
-                        )
-                        .path(cookie.options.path.as_deref().unwrap_or("/"))
-                        .secure(cookie.options.secure)
-                        .same_site(match cookie.options.same_site {
-                            crate::res::CookieSameSiteOptions::Lax => {
-                                actix_web::cookie::SameSite::Lax
-                            }
-                            crate::res::CookieSameSiteOptions::Strict => {
-                                actix_web::cookie::SameSite::Strict
-                            }
-                            crate::res::CookieSameSiteOptions::None => {
-                                actix_web::cookie::SameSite::None
-                            }
-                        })
-                        .finish(),
+                        &actix_web::cookie::Cookie::build(cookie.name, cookie.value)
+                            .expires(cookie.options.expires.and_then(|ts| {
+                                actix_web::cookie::time::OffsetDateTime::from_unix_timestamp(ts)
+                                    .ok()
+                            }))
+                            .http_only(cookie.options.http_only)
+                            .max_age(
+                                cookie
+                                    .options
+                                    .max_age
+                                    .map(|secs| actix_web::cookie::time::Duration::seconds(secs))
+                                    .unwrap_or_else(|| {
+                                        actix_web::cookie::time::Duration::seconds(0)
+                                    }),
+                            )
+                            .path(cookie.options.path.as_deref().unwrap_or("/"))
+                            .secure(cookie.options.secure)
+                            .same_site(match cookie.options.same_site {
+                                crate::res::CookieSameSiteOptions::Lax => {
+                                    actix_web::cookie::SameSite::Lax
+                                }
+                                crate::res::CookieSameSiteOptions::Strict => {
+                                    actix_web::cookie::SameSite::Strict
+                                }
+                                crate::res::CookieSameSiteOptions::None => {
+                                    actix_web::cookie::SameSite::None
+                                }
+                            })
+                            .finish(),
                     )
                     .expect("Failed to add cookie");
             });
