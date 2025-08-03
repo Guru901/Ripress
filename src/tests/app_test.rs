@@ -101,7 +101,7 @@ mod tests {
             .get("serve_from")
             .expect("serve_from should be set");
 
-        assert_eq!(mount_path, "/public");
-        assert_eq!(serve_from, "./public");
+        assert_eq!(mount_path, &"/public");
+        assert_eq!(serve_from, &"./public");
     }
 }

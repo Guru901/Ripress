@@ -16,7 +16,7 @@ where
 pub struct App {
     routes: Routes,
     middlewares: Vec<Box<dyn Middleware>>,
-    pub(crate) static_files: HashMap<String, String>,
+    pub(crate) static_files: HashMap<&'static str, &'static str>,
 }
 
 impl RouterFns for App {
@@ -133,11 +133,8 @@ impl App {
     /// ```
 
     pub fn static_files(&mut self, path: &'static str, file: &'static str) {
-        self.static_files
-            .insert("serve_from".to_string(), file.to_string());
-
-        self.static_files
-            .insert("mount_path".to_string(), path.to_string());
+        self.static_files.insert("serve_from", file);
+        self.static_files.insert("mount_path", path);
     }
 
     /// Starts the server and listens on the specified address.
