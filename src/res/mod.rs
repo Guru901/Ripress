@@ -12,7 +12,7 @@ use std::pin::Pin;
 #[derive(Debug)]
 pub(crate) enum ResponseError {
     IoError(std::io::Error),
-    Other(String),
+    Other(&'static str),
 }
 
 impl From<std::io::Error> for ResponseError {
@@ -342,11 +342,11 @@ impl HttpResponse {
     /// }
     /// ```
 
-    pub fn get_header(&self, key: &str) -> Result<String, HttpResponseError> {
+    pub fn get_header(&self, key: &str) -> Result<&'static str, HttpResponseError> {
         let header = self.headers.get(key);
 
         match header {
-            Some(header_string) => Ok(header_string.to_string()),
+            Some(header_string) => Ok(header_string),
             None => Err(HttpResponseError::MissingHeader(key.to_string())),
         }
     }
@@ -658,33 +658,32 @@ impl HttpResponse {
 
             self.cookies.iter().for_each(|cookie| {
                 actix_res.cookie(
-                    actix_web::cookie::Cookie::build(
-                        cookie.name.to_string(),
-                        cookie.value.to_string(),
-                    )
-                    .expires(cookie.options.expires.and_then(|ts| {
-                        actix_web::cookie::time::OffsetDateTime::from_unix_timestamp(ts).ok()
-                    }))
-                    .http_only(cookie.options.http_only)
-                    .max_age(
-                        cookie
-                            .options
-                            .max_age
-                            .map(|secs| actix_web::cookie::time::Duration::seconds(secs))
-                            .unwrap_or_else(|| actix_web::cookie::time::Duration::seconds(0)),
-                    )
-                    .path(cookie.options.path.as_deref().unwrap_or("/"))
-                    .secure(cookie.options.secure)
-                    .same_site(match cookie.options.same_site {
-                        crate::res::CookieSameSiteOptions::Lax => actix_web::cookie::SameSite::Lax,
-                        crate::res::CookieSameSiteOptions::Strict => {
-                            actix_web::cookie::SameSite::Strict
-                        }
-                        crate::res::CookieSameSiteOptions::None => {
-                            actix_web::cookie::SameSite::None
-                        }
-                    })
-                    .finish(),
+                    actix_web::cookie::Cookie::build(cookie.name, cookie.value)
+                        .expires(cookie.options.expires.and_then(|ts| {
+                            actix_web::cookie::time::OffsetDateTime::from_unix_timestamp(ts).ok()
+                        }))
+                        .http_only(cookie.options.http_only)
+                        .max_age(
+                            cookie
+                                .options
+                                .max_age
+                                .map(|secs| actix_web::cookie::time::Duration::seconds(secs))
+                                .unwrap_or_else(|| actix_web::cookie::time::Duration::seconds(0)),
+                        )
+                        .path(cookie.options.path.as_deref().unwrap_or("/"))
+                        .secure(cookie.options.secure)
+                        .same_site(match cookie.options.same_site {
+                            crate::res::CookieSameSiteOptions::Lax => {
+                                actix_web::cookie::SameSite::Lax
+                            }
+                            crate::res::CookieSameSiteOptions::Strict => {
+                                actix_web::cookie::SameSite::Strict
+                            }
+                            crate::res::CookieSameSiteOptions::None => {
+                                actix_web::cookie::SameSite::None
+                            }
+                        })
+                        .finish(),
                 );
             });
 
