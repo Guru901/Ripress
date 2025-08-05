@@ -5,7 +5,13 @@ use crate::types::{
 };
 use actix_web::HttpMessage;
 use futures::StreamExt;
-use std::{collections::HashMap, fmt::Display, hash::Hash};
+use std::{collections::HashMap, fmt::Display};
+
+pub mod headers;
+pub mod origin_url;
+
+use headers::Headers;
+use origin_url::Url;
 
 /// Represents an incoming HTTP request with comprehensive access to request data.
 ///
@@ -43,34 +49,6 @@ use std::{collections::HashMap, fmt::Display, hash::Hash};
 /// ```
 ///
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Url {
-    pub url_string: &'static str,
-}
-
-impl Display for Url {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.url_string)
-    }
-}
-
-impl Url {
-    fn new(url_string: &'static str) -> Self {
-        Self { url_string }
-    }
-
-    pub fn from<T: Into<String>>(url_string: T) -> Self {
-        let static_str: &'static str = Box::leak(url_string.into().into_boxed_str());
-        Self::new(static_str)
-    }
-}
-
-#[derive(Clone)]
-struct Params {
-    value: &'static str,
-    key: &'static str,
-}
-
 #[derive(Clone)]
 pub struct HttpRequest {
     /// Dynamic route parameters extracted from the URL.
@@ -101,7 +79,7 @@ pub struct HttpRequest {
     pub is_secure: bool,
 
     /// The request's headers
-    headers: HashMap<String, String>,
+    headers: Headers,
 
     /// The request's cookies
     cookies: HashMap<String, String>,
@@ -138,7 +116,7 @@ impl HttpRequest {
             ip: String::new(),
             path: String::new(),
             protocol: String::new(),
-            headers: HashMap::new(),
+            headers: Headers::new(),
             data: HashMap::new(),
             body: RequestBody::new_text(String::new()),
             cookies: HashMap::new(),
@@ -474,7 +452,7 @@ impl HttpRequest {
 
         let is_secure = protocol == String::from("https");
 
-        let mut headers = HashMap::new();
+        let mut headers = Headers::new();
 
         req.headers().iter().for_each(|f| {
             let header_name = f.0.to_string();
