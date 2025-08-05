@@ -111,7 +111,7 @@ impl HttpRequest {
             protocol: String::new(),
             headers: HashMap::new(),
             data: HashMap::new(),
-            body: RequestBody::new_text(""),
+            body: RequestBody::new_text(String::new()),
             cookies: HashMap::new(),
             xhr: false,
             is_secure: false,
@@ -362,7 +362,7 @@ impl HttpRequest {
 
         if body.content_type == RequestBodyType::TEXT {
             if let RequestBodyContent::TEXT(ref text_value) = body.content {
-                Ok(text_value.clone())
+                Ok(text_value.clone().to_owned())
             } else {
                 Err(String::from("Invalid text content"))
             }
@@ -390,7 +390,7 @@ impl HttpRequest {
         let body = &self.body;
 
         if body.content_type == RequestBodyType::FORM {
-            if let RequestBodyContent::FORM(ref text_value) = body.content {
+            if let RequestBodyContent::FORM(text_value) = &body.content {
                 serde_urlencoded::from_str::<HashMap<String, String>>(text_value)
                     .map_err(|e| e.to_string())?
                     .into_iter()
@@ -515,8 +515,8 @@ impl HttpRequest {
                 RequestBody::new_json(body_json)
             }
             RequestBodyType::TEXT => {
-                let body_string = match std::str::from_utf8(&body) {
-                    Ok(s) => s.to_string(),
+                let body_string = match String::from_utf8(body.to_vec()) {
+                    Ok(s) => s,
                     Err(_) => {
                         return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
                     }
@@ -570,21 +570,29 @@ impl HttpRequest {
         self.body.content = RequestBodyContent::JSON(serde_json::to_value(json).unwrap());
     }
 
-    pub(crate) fn set_text(&mut self, text: &str, content_type: RequestBodyType) {
+    pub(crate) fn set_text(&mut self, text: &'static str, content_type: RequestBodyType) {
         self.body.content_type = content_type;
-        self.body.content = RequestBodyContent::TEXT(text.to_string());
+        self.body.content = RequestBodyContent::TEXT(text)
     }
 
-    pub(crate) fn set_form(&mut self, key: &str, value: &str, content_type: RequestBodyType) {
+    pub(crate) fn set_form(
+        &mut self,
+        key: &'static str,
+        value: &'static str,
+        content_type: RequestBodyType,
+    ) {
         self.body.content_type = content_type;
 
         match &mut self.body.content {
             RequestBodyContent::FORM(existing) => {
-                existing.push('&');
-                existing.push_str(&format!("{key}={value}"));
+                let mut new_form = existing.to_string();
+                new_form.push('&');
+                new_form.push_str(&format!("{key}={value}"));
+                self.body.content = RequestBodyContent::FORM(Box::leak(new_form.into_boxed_str()));
             }
             _ => {
-                self.body.content = RequestBodyContent::FORM(format!("{key}={value}"));
+                let form_data = format!("{key}={value}");
+                self.body.content = RequestBodyContent::FORM(Box::leak(form_data.into_boxed_str()));
             }
         }
     }

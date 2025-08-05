@@ -14,17 +14,17 @@ pub struct RequestBody {
 }
 
 impl RequestBody {
-    pub fn new_text<T: Into<String>>(text: T) -> Self {
+    pub fn new_text(text: String) -> Self {
         RequestBody {
             content_type: RequestBodyType::TEXT,
-            content: RequestBodyContent::TEXT(text.into()),
+            content: RequestBodyContent::TEXT(Box::leak(text.into_boxed_str())),
         }
     }
 
-    pub fn new_form<T: Into<String>>(form_data: T) -> Self {
+    pub fn new_form(form_data: String) -> Self {
         RequestBody {
             content_type: RequestBodyType::FORM,
-            content: RequestBodyContent::FORM(form_data.into()),
+            content: RequestBodyContent::FORM(Box::leak(form_data.into_boxed_str())),
         }
     }
 
@@ -47,9 +47,9 @@ impl Copy for RequestBodyType {}
 
 #[derive(Debug, Clone)]
 pub enum RequestBodyContent {
-    TEXT(String),
+    TEXT(&'static str),
     JSON(serde_json::Value),
-    FORM(String),
+    FORM(&'static str),
 }
 
 pub enum ResponseContentBody {
