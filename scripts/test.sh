@@ -399,3 +399,5 @@ cd ../src
 rm main.rs
 cd ..
 rm -rf public
+
+echo "All Tests passed!"

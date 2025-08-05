@@ -6,16 +6,16 @@ use std::collections::HashMap;
 
 pub struct Router {
     /// Base Path on which the router will be mounted to the app
-    base_path: String,
+    base_path: &'static str,
 
     /// Routes registered on the router
     routes: Routes,
 }
 
 impl Router {
-    pub fn new(base_path: &str) -> Self {
+    pub fn new(base_path: &'static str) -> Self {
         Router {
-            base_path: base_path.to_owned(),
+            base_path: base_path,
             routes: HashMap::new(),
         }
     }
