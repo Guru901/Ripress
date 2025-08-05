@@ -78,7 +78,7 @@ pub struct HttpRequest {
     cookies: HashMap<String, String>,
 
     // The Data set by middleware in the request to be used in the route handler
-    data: HashMap<String, String>,
+    data: HashMap<&'static str, &'static str>,
 
     /// The request body, which may contain JSON, text, or form data.
     body: RequestBody,
@@ -247,7 +247,7 @@ impl HttpRequest {
     /// println!("Id: {:?}", id);
     /// ```
 
-    pub fn set_data<T: Into<String>>(&mut self, data_key: T, data_value: T) {
+    pub fn set_data<T: Into<&'static str>>(&mut self, data_key: T, data_value: T) {
         self.data.insert(data_key.into(), data_value.into());
     }
 
@@ -268,7 +268,7 @@ impl HttpRequest {
     /// println!("Id: {:?}", id);
     /// ```
 
-    pub fn get_data<T: Into<String>>(&self, data_key: T) -> Option<&String> {
+    pub fn get_data<T: Into<&'static str>>(&self, data_key: T) -> Option<&&'static str> {
         self.data.get(&data_key.into())
     }
 

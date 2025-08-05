@@ -38,6 +38,7 @@ cd ../src
 touch main.rs
 
 echo '
+
 use bytes::Bytes;
 use futures::stream;
 use ripress::app::App;
@@ -87,15 +88,12 @@ async fn main() {
     app.get("/redirect-test", redirect_test);
     app.get("/permanent-redirect-test", permanent_redirect_test);
 
-    app.use_middleware("/auth", |mut req, res, next| {
+    app.use_middleware("/auth", |req, res, next| {
         println!("Auth middleware");
         Box::pin(async move {
-            if let Ok(token) = req.get_cookie("token") {
-                let token = token.to_string();
-                req.set_data("token", &token);
-                next.run(req, res).await
-            } else {
-                res.status(401).text("Unauthorized")
+            match req.get_cookie("token") {
+                Ok(_) => next.run(req, res).await,
+                Err(_) => res.unauthorized().text("Unauthorized"),
             }
         })
     });
@@ -337,8 +335,10 @@ async fn permanent_redirect_test(req: HttpRequest, res: HttpResponse) -> HttpRes
 }
 
 async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let token = req.get_data("token").unwrap();
-    res.ok().text(token)
+    match req.get_cookie("token") {
+        Ok(token) => res.ok().text(token),
+        Err(_) => res.unauthorized().text("No token found"),
+    }
 }
 
 async fn stream_text(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -374,6 +374,8 @@ async fn stream_json(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
     res.write(stream)
 }
+
+
 ' > main.rs
 
 cargo run &  # Start server in background
