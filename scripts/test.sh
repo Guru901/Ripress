@@ -145,7 +145,7 @@ async fn query_and_param_handler(req: HttpRequest, res: HttpResponse) -> HttpRes
 }
 
 async fn path_and_origin_url_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let origin_url = req.origin_url;
+    let origin_url = req.origin_url.to_string();
     let path = req.path;
 
     res.ok().json(json!({
@@ -374,7 +374,6 @@ async fn stream_json(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
     res.write(stream)
 }
-
 
 ' > main.rs
 

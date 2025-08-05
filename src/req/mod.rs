@@ -5,7 +5,7 @@ use crate::types::{
 };
 use actix_web::HttpMessage;
 use futures::StreamExt;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display, hash::Hash};
 
 /// Represents an incoming HTTP request with comprehensive access to request data.
 ///
@@ -41,6 +41,35 @@ use std::collections::HashMap;
 ///     println!("User: {} is {} years old", user.name, user.age);
 /// }
 /// ```
+///
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Url {
+    pub url_string: &'static str,
+}
+
+impl Display for Url {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.url_string)
+    }
+}
+
+impl Url {
+    fn new(url_string: &'static str) -> Self {
+        Self { url_string }
+    }
+
+    pub fn from<T: Into<String>>(url_string: T) -> Self {
+        let static_str: &'static str = Box::leak(url_string.into().into_boxed_str());
+        Self::new(static_str)
+    }
+}
+
+#[derive(Clone)]
+struct Params {
+    value: &'static str,
+    key: &'static str,
+}
 
 #[derive(Clone)]
 pub struct HttpRequest {
@@ -51,7 +80,7 @@ pub struct HttpRequest {
     query_params: HashMap<String, String>,
 
     /// The full URL of the incoming request.
-    pub origin_url: String,
+    pub origin_url: Url,
 
     /// The HTTP method used for the request (e.g., GET, POST, PUT, DELETE).
     pub method: HttpMethods,
@@ -102,7 +131,7 @@ impl HttpRequest {
 
     pub fn new() -> Self {
         HttpRequest {
-            origin_url: String::new(),
+            origin_url: Url::new(""),
             params: HashMap::new(),
             query_params: HashMap::new(),
             method: HttpMethods::GET,
@@ -410,7 +439,8 @@ impl HttpRequest {
         req: actix_web::HttpRequest,
         mut payload: actix_web::web::Payload,
     ) -> Result<Self, actix_web::Error> {
-        let origin_url = req.full_url().to_string();
+        let origin_url_str = req.full_url().to_string();
+        let origin_url = Url::from(origin_url_str);
 
         let params: HashMap<String, String> = req
             .match_info()
@@ -613,7 +643,7 @@ impl HttpRequest {
         self.path = path;
     }
 
-    pub(crate) fn set_origin_url(&mut self, origin_url: String) {
+    pub(crate) fn set_origin_url(&mut self, origin_url: Url) {
         self.origin_url = origin_url;
     }
 }

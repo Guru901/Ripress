@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::context::HttpRequest;
+    use crate::req::Url;
     use crate::types::HttpRequestError;
     use crate::types::{HttpMethods, RequestBodyType};
     use actix_web::FromRequest;
@@ -229,11 +230,23 @@ mod tests {
     #[test]
     fn test_origin_url() {
         let mut req = HttpRequest::new();
-        req.set_origin_url("/user/1".to_string());
-        assert_eq!(req.origin_url, "/user/1");
 
-        req.set_origin_url("/user/1?q=hello".to_string());
-        assert_eq!(req.origin_url, "/user/1?q=hello");
+        req.set_origin_url(Url::from("value"));
+
+        assert_eq!(
+            req.origin_url,
+            Url {
+                url_string: "value"
+            }
+        );
+
+        req.set_origin_url(Url::from("/user/1?q=hello"));
+        assert_eq!(
+            req.origin_url,
+            Url {
+                url_string: "/user/1?q=hello"
+            }
+        );
     }
 
     #[test]
