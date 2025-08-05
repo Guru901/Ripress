@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::context::HttpRequest;
-    use crate::req::Url;
+    use crate::req::origin_url::Url;
     use crate::types::HttpRequestError;
     use crate::types::{HttpMethods, RequestBodyType};
     use actix_web::FromRequest;
