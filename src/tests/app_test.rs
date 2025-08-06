@@ -10,6 +10,7 @@ mod tests {
     use crate::{
         app::{App, box_future},
         context::HttpResponse,
+        res::response_status::StatusCode,
         tests::app_test::_test_handler,
         types::RouterFns,
     };
@@ -83,7 +84,7 @@ mod tests {
         let boxed = box_future(test_handler());
 
         let response = boxed.await;
-        assert_eq!(response.status_code, 200);
+        assert_eq!(response.status_code, StatusCode::Ok);
     }
 
     #[test]

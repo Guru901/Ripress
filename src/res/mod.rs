@@ -1,13 +1,19 @@
 #![warn(missing_docs)]
 
+use crate::res::response_status::StatusCode;
 use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
 use actix_web::Responder;
 use actix_web::http::header::{HeaderName, HeaderValue};
 use bytes::Bytes;
 use futures::{Stream, StreamExt, stream};
 use serde::Serialize;
-use std::collections::HashMap;
+use std::os::macos::raw::stat;
 use std::pin::Pin;
+
+pub mod response_headers;
+pub mod response_status;
+
+use response_headers::ResponseHeaders;
 
 #[derive(Debug)]
 pub(crate) enum ResponseError {
@@ -166,10 +172,10 @@ pub struct HttpResponse {
     pub(crate) content_type: ResponseContentType,
 
     // Status code specified by the developer
-    pub(crate) status_code: u16,
+    pub(crate) status_code: StatusCode,
 
     /// Sets response headers
-    pub headers: HashMap<&'static str, &'static str>,
+    pub headers: ResponseHeaders,
 
     // Sets response cookies
     cookies: Vec<Cookie>,
@@ -202,15 +208,89 @@ impl HttpResponse {
 
     pub fn new() -> Self {
         Self {
-            status_code: 200,
+            status_code: StatusCode::Ok,
             body: ResponseContentBody::TEXT(String::new()),
             content_type: ResponseContentType::TEXT,
-            headers: HashMap::new(),
+            headers: ResponseHeaders::new(),
             cookies: Vec::new(),
             remove_cookies: Vec::new(),
             is_stream: false,
             stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
         }
+    }
+
+    pub fn ok(mut self) -> Self {
+        self.status_code = StatusCode::Ok;
+        self
+    }
+
+    pub fn created(mut self) -> Self {
+        self.status_code = StatusCode::Created;
+        self
+    }
+
+    pub fn accepted(mut self) -> Self {
+        self.status_code = StatusCode::Accepted;
+        self
+    }
+
+    pub fn no_content(mut self) -> Self {
+        self.status_code = StatusCode::NoContent;
+        self
+    }
+    pub fn bad_request(mut self) -> Self {
+        self.status_code = StatusCode::BadRequest;
+        return self;
+    }
+
+    pub fn unauthorized(mut self) -> Self {
+        self.status_code = StatusCode::Unauthorized;
+        return self;
+    }
+
+    pub fn forbidden(mut self) -> Self {
+        self.status_code = StatusCode::Forbidden;
+        return self;
+    }
+
+    pub fn not_found(mut self) -> Self {
+        self.status_code = StatusCode::NotFound;
+        return self;
+    }
+
+    pub fn method_not_allowed(mut self) -> Self {
+        self.status_code = StatusCode::MethodNotAllowed;
+        return self;
+    }
+
+    pub fn conflict(mut self) -> Self {
+        self.status_code = StatusCode::Conflict;
+        return self;
+    }
+
+    pub fn internal_server_error(mut self) -> Self {
+        self.status_code = StatusCode::InternalServerError;
+        return self;
+    }
+
+    pub fn not_implemented(mut self) -> Self {
+        self.status_code = StatusCode::NotImplemented;
+        return self;
+    }
+
+    pub fn bad_gateway(mut self) -> Self {
+        self.status_code = StatusCode::BadGateway;
+        return self;
+    }
+
+    pub fn service_unavailable(mut self) -> Self {
+        self.status_code = StatusCode::ServiceUnavailable;
+        return self;
+    }
+
+    pub fn status(mut self, status_code: u16) -> Self {
+        self.status_code = StatusCode::from_u16(status_code);
+        return self;
     }
 
     /// Sets the response body to text.
@@ -280,30 +360,6 @@ impl HttpResponse {
         return self;
     }
 
-    /// Sets the status code of the response.
-    ///
-    /// # Arguments
-    ///
-    /// * `code` - The HTTP status code to set
-    ///
-    /// # Returns
-    ///
-    /// Returns `Self` for method chaining
-    ///
-    /// # Example
-    /// ```rust
-    /// use ripress::context::HttpResponse;
-    ///
-    /// let res = HttpResponse::new()
-    ///     .status(201)
-    ///     .text("Resource created");
-    /// ```
-
-    pub fn status(mut self, code: u16) -> Self {
-        self.status_code = code;
-        self
-    }
-
     /// Sets a header in the response.
     ///
     /// # Example
@@ -316,39 +372,6 @@ impl HttpResponse {
     pub fn set_header(mut self, header_name: &'static str, header_value: &'static str) -> Self {
         self.headers.insert(header_name, header_value);
         self
-    }
-
-    /// Gets a header from the response.
-    ///
-    /// # Arguments
-    ///
-    /// * `key` - The name of the header to retrieve
-    ///
-    /// # Returns
-    ///
-    /// Returns `Result<&'static str, HttpResponseError>` with the header value if found,
-    /// or `HttpResponseError::MissingHeader` if not found.
-    ///
-    /// # Example
-    /// ```rust
-    /// use ripress::context::HttpResponse;
-    ///
-    /// let res = HttpResponse::new()
-    ///     .set_header("X-Custom", "value");
-    ///
-    /// match res.get_header("X-Custom") {
-    ///     Ok(value) => println!("Header value: {}", value),
-    ///     Err(e) => println!("Error: {:?}", e)
-    /// }
-    /// ```
-
-    pub fn get_header(&self, key: &str) -> Result<&'static str, HttpResponseError> {
-        let header = self.headers.get(key);
-
-        match header {
-            Some(header_string) => Ok(header_string),
-            None => Err(HttpResponseError::MissingHeader(key.to_string())),
-        }
     }
 
     /// Sets a cookie in the response.
@@ -433,7 +456,7 @@ impl HttpResponse {
     /// ```
 
     pub fn redirect(mut self, path: &'static str) -> Self {
-        self.status_code = 302;
+        self.status_code = StatusCode::Redirect;
         self.headers.insert("Location", path);
         self
     }
@@ -458,7 +481,7 @@ impl HttpResponse {
     /// ```
 
     pub fn permanent_redirect(mut self, path: &'static str) -> Self {
-        self.status_code = 301;
+        self.status_code = StatusCode::PermanentRedirect;
         self.headers.insert("Location", path);
         self
     }
@@ -491,118 +514,6 @@ impl HttpResponse {
         self.body = ResponseContentBody::new_html(html);
         self.content_type = ResponseContentType::HTML;
         self
-    }
-
-    /// Sets the status code to 200 (OK).
-    ///
-    /// # Returns
-    ///
-    /// Returns `Self` for method chaining
-    ///
-    /// # Example
-    /// ```rust
-    /// use ripress::context::HttpResponse;
-    ///
-    /// let res = HttpResponse::new()
-    ///     .ok()
-    ///     .json(serde_json::json!({
-    ///         "status": "success",
-    ///         "message": "Operation completed"
-    ///     }));
-    /// ```
-
-    pub fn ok(mut self) -> Self {
-        self.status_code = 200;
-        self
-    }
-
-    /// Sets the status code to 401 (Unauthorized).
-    ///
-    /// # Returns
-    ///
-    /// Returns `Self` for method chaining
-    ///
-    /// # Example
-    /// ```rust
-    /// use ripress::context::HttpResponse;
-    ///
-    /// let res = HttpResponse::new()
-    ///     .unauthorized()
-    ///     .text("Unauthorized");
-    /// ```
-
-    pub fn unauthorized(mut self) -> Self {
-        self.status_code = 401;
-        return self;
-    }
-
-    /// Sets the status code to 400 (Bad Request).
-    ///
-    /// # Returns
-    ///
-    /// Returns `Self` for method chaining
-    ///
-    /// # Example
-    /// ```rust
-    /// use ripress::context::HttpResponse;
-    ///
-    /// let res = HttpResponse::new()
-    ///     .bad_request()
-    ///     .json(serde_json::json!({
-    ///         "error": "Invalid input",
-    ///         "details": "Missing required fields"
-    ///     }));
-    /// ```
-
-    pub fn bad_request(mut self) -> Self {
-        self.status_code = 400;
-        return self;
-    }
-
-    /// Sets the status code to 404 (Not Found).
-    ///
-    /// # Returns
-    ///
-    /// Returns `Self` for method chaining
-    ///
-    /// # Example
-    /// ```rust
-    /// use ripress::context::HttpResponse;
-    ///
-    /// let res = HttpResponse::new()
-    ///     .not_found()
-    ///     .json(serde_json::json!({
-    ///         "error": "Resource not found",
-    ///         "resource": "user/123"
-    ///     }));
-    /// ```
-
-    pub fn not_found(mut self) -> Self {
-        self.status_code = 404;
-        return self;
-    }
-
-    /// Sets the status code to 500 (Internal Server Error).
-    ///
-    /// # Returns
-    ///
-    /// Returns `Self` for method chaining
-    ///
-    /// # Example
-    /// ```rust
-    /// use ripress::context::HttpResponse;
-    ///
-    /// let res = HttpResponse::new()
-    ///     .internal_server_error()
-    ///     .json(serde_json::json!({
-    ///         "error": "Internal server error",
-    ///         "message": "Database connection failed"
-    ///     }));
-    /// ```
-
-    pub fn internal_server_error(mut self) -> Self {
-        self.status_code = 500;
-        return self;
     }
 
     /// Streams the response
@@ -648,7 +559,7 @@ impl HttpResponse {
             actix_res.content_type("text/event-stream");
 
             for (key, value) in self.headers.iter() {
-                actix_res.append_header((*key, *value));
+                actix_res.append_header((key.as_str(), value));
             }
 
             actix_res.append_header(("Connection", "keep-alive"));
@@ -689,7 +600,7 @@ impl HttpResponse {
 
             return actix_res.streaming(self.stream);
         } else {
-            let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code as u16)
+            let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code.as_u16())
                 .map(|status| match body {
                     ResponseContentBody::JSON(json) => actix_web::HttpResponse::build(status)
                         .content_type("application/json")
@@ -769,7 +680,7 @@ impl Responder for HttpResponse {
 #[cfg(test)]
 impl HttpResponse {
     pub(crate) fn get_status_code(&self) -> u16 {
-        self.status_code
+        self.status_code.as_u16()
     }
 
     pub(crate) fn get_content_type(&self) -> &ResponseContentType {

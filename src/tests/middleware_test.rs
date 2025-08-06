@@ -29,22 +29,27 @@ mod tests {
 
         // Check the headers set by the middleware.
         assert_eq!(
-            response.get_header("Access-Control-Allow-Origin").unwrap(),
+            response.headers.get("Access-Control-Allow-Origin").unwrap(),
             "*"
         );
         assert_eq!(
-            response.get_header("Access-Control-Allow-Methods").unwrap(),
+            response
+                .headers
+                .get("Access-Control-Allow-Methods")
+                .unwrap(),
             "GET, POST, PUT, DELETE, OPTIONS"
         );
         assert_eq!(
-            response.get_header("Access-Control-Allow-Headers").unwrap(),
+            response
+                .headers
+                .get("Access-Control-Allow-Headers")
+                .unwrap(),
             "Content-Type, Authorization"
         );
         // Default config does not allow credentials.
-        assert!(
-            response
-                .get_header("Access-Control-Allow-Credentials")
-                .is_err()
+        assert_eq!(
+            response.headers.get("Access-Control-Allow-Credentials"),
+            None
         );
     }
 
@@ -68,21 +73,28 @@ mod tests {
         let response = cors_mw(req, res, next).await;
 
         assert_eq!(
-            response.get_header("Access-Control-Allow-Origin").unwrap(),
+            response.headers.get("Access-Control-Allow-Origin").unwrap(),
             config.allowed_origin
         );
         assert_eq!(
-            response.get_header("Access-Control-Allow-Methods").unwrap(),
+            response
+                .headers
+                .get("Access-Control-Allow-Methods")
+                .unwrap(),
             config.allowed_methods
         );
         assert_eq!(
-            response.get_header("Access-Control-Allow-Headers").unwrap(),
+            response
+                .headers
+                .get("Access-Control-Allow-Headers")
+                .unwrap(),
             "Content-Type, Authorization"
         );
         // For custom config allow_credentials is set to true.
         assert_eq!(
             response
-                .get_header("Access-Control-Allow-Credentials")
+                .headers
+                .get("Access-Control-Allow-Credentials")
                 .unwrap(),
             "true"
         );
