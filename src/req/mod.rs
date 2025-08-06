@@ -5,7 +5,11 @@ use crate::types::{
 };
 use actix_web::{HttpMessage, web::Query};
 use futures::StreamExt;
-use std::{collections::HashMap, fmt::Display};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    net::{IpAddr, Ipv4Addr},
+};
 
 pub mod headers;
 pub mod origin_url;
@@ -68,7 +72,7 @@ pub struct HttpRequest {
     pub method: HttpMethods,
 
     /// The IP address of the client making the request.
-    pub ip: String,
+    pub ip: IpAddr,
 
     /// The requested endpoint path.
     pub path: String,
@@ -117,7 +121,7 @@ impl HttpRequest {
             params: RouteParams::new(),
             query_params: QueryParams::new(),
             method: HttpMethods::GET,
-            ip: String::new(),
+            ip: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             path: String::new(),
             protocol: String::new(),
             headers: Headers::new(),
@@ -371,6 +375,12 @@ impl HttpRequest {
                     .map(|addr| addr.ip().to_string())
                     .unwrap_or("unknown".to_string())
             });
+
+        let ip = match ip.parse::<IpAddr>() {
+            Ok(ip) => ip,
+            Err(_) => IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+        };
+
         let protocol = req.connection_info().scheme().to_string();
 
         let is_secure = protocol == String::from("https");
@@ -538,7 +548,7 @@ impl HttpRequest {
         self.method = method;
     }
 
-    pub(crate) fn set_ip(&mut self, ip: String) {
+    pub(crate) fn set_ip(&mut self, ip: IpAddr) {
         self.ip = ip;
     }
 

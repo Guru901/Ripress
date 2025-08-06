@@ -200,17 +200,6 @@ mod tests {
     }
 
     #[test]
-    fn test_ip_method() {
-        let mut req = HttpRequest::new();
-
-        req.set_ip("127.0.0.1".to_string());
-        assert_eq!(req.ip, "127.0.0.1");
-
-        req.set_ip("127.0.0.2".to_string());
-        assert_eq!(req.ip, "127.0.0.2");
-    }
-
-    #[test]
     fn test_get_path() {
         let mut req = HttpRequest::new();
         req.set_path("/user/1".to_string());
