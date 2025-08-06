@@ -3,16 +3,18 @@
 use crate::types::{
     HttpMethods, HttpRequestError, RequestBody, RequestBodyContent, RequestBodyType,
 };
-use actix_web::HttpMessage;
+use actix_web::{HttpMessage, web::Query};
 use futures::StreamExt;
 use std::{collections::HashMap, fmt::Display};
 
 pub mod headers;
 pub mod origin_url;
+pub mod query_params;
 pub mod route_params;
 
 use headers::Headers;
 use origin_url::Url;
+use query_params::QueryParams;
 use route_params::RouteParams;
 
 /// Represents an incoming HTTP request with comprehensive access to request data.
@@ -57,7 +59,7 @@ pub struct HttpRequest {
     pub params: RouteParams,
 
     /// Query parameters from the request URL.
-    query_params: HashMap<String, String>,
+    pub query_params: QueryParams,
 
     /// The full URL of the incoming request.
     pub origin_url: Url,
@@ -113,7 +115,7 @@ impl HttpRequest {
         HttpRequest {
             origin_url: Url::new(""),
             params: RouteParams::new(),
-            query_params: HashMap::new(),
+            query_params: QueryParams::new(),
             method: HttpMethods::GET,
             ip: String::new(),
             path: String::new(),
@@ -124,33 +126,6 @@ impl HttpRequest {
             cookies: HashMap::new(),
             xhr: false,
             is_secure: false,
-        }
-    }
-
-    /// Returns query parameters.
-    ///
-    /// ## Arguments
-    ///
-    /// * `query_name` - The name of the query parameter to retrieve
-    ///
-    /// ## Returns
-    ///
-    /// Returns `Ok(&str)` with the query parameter value if found, or
-    /// `Err(HttpRequestError::MissingParam)` if not found.
-    ///
-    /// ## Example
-    /// ```
-    /// let req = ripress::context::HttpRequest::new();
-    /// let id = req.get_query("id");
-    /// println!("Id: {:?}", id);
-    /// ```
-
-    pub fn get_query(&self, query_name: &str) -> Result<&str, HttpRequestError> {
-        let query = self.query_params.get(query_name).map(|v| v);
-
-        match query {
-            Some(query_str) => Ok(query_str),
-            None => Err(HttpRequestError::MissingQuery(query_name.to_string())),
         }
     }
 
@@ -424,6 +399,8 @@ impl HttpRequest {
         let query_params = url::form_urlencoded::parse(query_string.as_bytes())
             .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
             .collect::<HashMap<String, String>>();
+
+        let query_params = QueryParams::from_map(query_params);
 
         let mut body = actix_web::web::BytesMut::new();
 

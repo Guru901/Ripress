@@ -22,12 +22,9 @@ mod tests {
         let mut req = HttpRequest::new();
         req.set_query("q", "Ripress");
 
-        assert_eq!(req.get_query("q"), Ok("Ripress"));
+        assert_eq!(req.query_params.get("q"), Some("Ripress"));
 
-        assert_eq!(
-            req.get_query("nonexistent"),
-            Err(HttpRequestError::MissingQuery("nonexistent".to_string()))
-        );
+        assert_eq!(req.query_params.get("nonexistent"), None);
     }
 
     #[test]
