@@ -12,7 +12,7 @@ use std::{
 
 /// A struct that represents the request headers.
 /// And it's methods.
-pub mod headers;
+pub mod request_headers;
 
 /// A struct that represents the origin url of the request.
 /// And it's methods.
@@ -26,9 +26,9 @@ pub mod query_params;
 /// And it's methods.
 pub mod route_params;
 
-use headers::Headers;
 use origin_url::Url;
 use query_params::QueryParams;
+use request_headers::RequestHeaders;
 use route_params::RouteParams;
 
 /// Represents an incoming HTTP request with comprehensive access to request data.
@@ -97,7 +97,7 @@ pub struct HttpRequest {
     pub is_secure: bool,
 
     /// The request's headers
-    pub headers: Headers,
+    pub headers: RequestHeaders,
 
     /// The request's cookies
     cookies: HashMap<String, String>,
@@ -134,7 +134,7 @@ impl HttpRequest {
             ip: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             path: String::new(),
             protocol: String::new(),
-            headers: Headers::new(),
+            headers: RequestHeaders::new(),
             data: HashMap::new(),
             body: RequestBody::new_text(String::new()),
             cookies: HashMap::new(),
@@ -395,7 +395,7 @@ impl HttpRequest {
 
         let is_secure = protocol == String::from("https");
 
-        let mut headers = Headers::new();
+        let mut headers = RequestHeaders::new();
 
         req.headers().iter().for_each(|f| {
             let header_name = f.0.to_string();

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct Headers {
+pub struct RequestHeaders {
     inner: HashMap<String, Vec<String>>,
 }
 
-impl Headers {
+impl RequestHeaders {
     /// Create a new empty Headers collection
     pub fn new() -> Self {
         Self {
@@ -152,13 +152,13 @@ impl Headers {
     }
 }
 
-impl Default for Headers {
+impl Default for RequestHeaders {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl std::fmt::Display for Headers {
+impl std::fmt::Display for RequestHeaders {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (key, values) in &self.inner {
             for value in values {
@@ -170,7 +170,7 @@ impl std::fmt::Display for Headers {
 }
 
 // Convenient indexing syntax: headers["content-type"]
-impl std::ops::Index<&str> for Headers {
+impl std::ops::Index<&str> for RequestHeaders {
     type Output = str;
 
     fn index(&self, key: &str) -> &Self::Output {
