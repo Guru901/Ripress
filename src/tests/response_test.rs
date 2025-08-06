@@ -35,12 +35,9 @@ mod tests {
         let mut req = HttpRequest::new();
         req.set_param("q", "Ripress");
 
-        assert_eq!(req.get_params("q"), Ok("Ripress"));
+        assert_eq!(req.params.get("q"), Some("Ripress"));
 
-        assert_eq!(
-            req.get_params("nonexistent"),
-            Err(HttpRequestError::MissingParam("nonexistent".to_string()))
-        );
+        assert_eq!(req.params.get("nonexistent"), None);
     }
 
     #[test]
@@ -144,14 +141,11 @@ mod tests {
         let mut req = HttpRequest::new();
         req.set_header("key", "value");
 
-        assert_eq!(req.get_header("key").unwrap(), "value");
-        assert_eq!(
-            req.get_header("nonexistent"),
-            Err(HttpRequestError::MissingHeader("nonexistent".to_string()))
-        );
+        assert_eq!(req.headers.get("key").unwrap(), "value");
+        assert_eq!(req.headers.get("nonexistent"), None);
 
         req.set_header("another_key", "another_value");
-        let header = req.get_header("another_key").unwrap();
+        let header = req.headers.get("another_key").unwrap();
         assert_eq!(header, "another_value");
     }
 

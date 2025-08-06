@@ -38,7 +38,6 @@ cd ../src
 touch main.rs
 
 echo '
-
 use bytes::Bytes;
 use futures::stream;
 use ripress::app::App;
@@ -128,14 +127,14 @@ async fn cookie_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 async fn header_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let header_value = req.get_header("Test-Header").unwrap();
+    let header_value = req.headers.get("Test-Header").unwrap();
     res.ok().json(json!({
         "header": header_value
     }))
 }
 
 async fn query_and_param_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let param = req.get_params("param").unwrap();
+    let param = req.params.get("param").unwrap();
     let query = req.get_query("query").unwrap();
 
     res.ok().json(json!({
@@ -204,8 +203,8 @@ async fn multi_query_handler(req: HttpRequest, res: HttpResponse) -> HttpRespons
 }
 
 async fn multi_param_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let user_id = req.get_params("user_id").unwrap();
-    let post_id = req.get_params("post_id").unwrap();
+    let user_id = req.params.get("user_id").unwrap();
+    let post_id = req.params.get("post_id").unwrap();
 
     res.ok().json(json!({
         "userId": user_id,
@@ -226,10 +225,10 @@ async fn multi_cookie_handler(req: HttpRequest, res: HttpResponse) -> HttpRespon
 }
 
 async fn multi_header_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let user_agent = req.get_header("User-Agent").unwrap();
-    let accept = req.get_header("Accept").unwrap();
-    let auth = req.get_header("Authorization").unwrap();
-    let custom_header = req.get_header("X-Custom-Header").unwrap();
+    let user_agent = req.headers.get("User-Agent").unwrap();
+    let accept = req.headers.get("Accept").unwrap();
+    let auth = req.headers.get("Authorization").unwrap();
+    let custom_header = req.headers.get("X-Custom-Header").unwrap();
 
     res.ok().json(json!({
         "userAgent": user_agent,
@@ -259,7 +258,7 @@ async fn urlencoded_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse
 
 async fn raw_body_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let body = req.text().unwrap();
-    let content_type = req.get_header("content-type").unwrap();
+    let content_type = req.headers.get("content-type").unwrap();
 
     res.ok().json(json!({
         "rawBody": body,
@@ -374,7 +373,6 @@ async fn stream_json(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
     res.write(stream)
 }
-
 ' > main.rs
 
 cargo run &  # Start server in background

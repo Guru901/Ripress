@@ -14,7 +14,7 @@ impl Headers {
     }
 
     /// Create Headers from a HashMap<String, String>
-    pub fn from_map(map: HashMap<String, String>) -> Self {
+    pub(crate) fn from_map(map: HashMap<String, String>) -> Self {
         let mut headers = Self::new();
         for (key, value) in map {
             headers.insert(key, value);

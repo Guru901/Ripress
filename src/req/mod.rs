@@ -9,9 +9,11 @@ use std::{collections::HashMap, fmt::Display};
 
 pub mod headers;
 pub mod origin_url;
+pub mod route_params;
 
 use headers::Headers;
 use origin_url::Url;
+use route_params::RouteParams;
 
 /// Represents an incoming HTTP request with comprehensive access to request data.
 ///
@@ -52,7 +54,7 @@ use origin_url::Url;
 #[derive(Clone)]
 pub struct HttpRequest {
     /// Dynamic route parameters extracted from the URL.
-    params: HashMap<String, String>,
+    pub params: RouteParams,
 
     /// Query parameters from the request URL.
     query_params: HashMap<String, String>,
@@ -79,7 +81,7 @@ pub struct HttpRequest {
     pub is_secure: bool,
 
     /// The request's headers
-    headers: Headers,
+    pub headers: Headers,
 
     /// The request's cookies
     cookies: HashMap<String, String>,
@@ -110,7 +112,7 @@ impl HttpRequest {
     pub fn new() -> Self {
         HttpRequest {
             origin_url: Url::new(""),
-            params: HashMap::new(),
+            params: RouteParams::new(),
             query_params: HashMap::new(),
             method: HttpMethods::GET,
             ip: String::new(),
@@ -122,35 +124,6 @@ impl HttpRequest {
             cookies: HashMap::new(),
             xhr: false,
             is_secure: false,
-        }
-    }
-
-    /// Returns header based on the key.
-    ///
-    /// ## Arguments
-    ///
-    /// * `header_name` - The name of the header to retrieve
-    ///
-    /// ## Returns
-    ///
-    /// Returns `Ok(&str)` with the header value if found, or
-    /// `Err(HttpRequestError::MissingHeader)` if not found.
-    ///
-    /// ## Example
-    ///
-    /// ```no_run
-    /// let req = ripress::context::HttpRequest::new();
-    /// let header = req.get_header("id");
-    /// println!("header: {:?}", header.unwrap());
-    /// ```
-
-    pub fn get_header(&self, header_name: &str) -> Result<&str, HttpRequestError> {
-        let header_name = header_name.to_lowercase();
-        let header = self.headers.get(&header_name);
-
-        match header {
-            Some(header_str) => Ok(header_str),
-            None => Err(HttpRequestError::MissingHeader(header_name)),
         }
     }
 
@@ -178,33 +151,6 @@ impl HttpRequest {
         match query {
             Some(query_str) => Ok(query_str),
             None => Err(HttpRequestError::MissingQuery(query_name.to_string())),
-        }
-    }
-
-    /// Returns url parameters.
-    ///
-    /// ## Arguments
-    ///
-    /// * `param_name` - The name of the parameter to retrieve
-    ///
-    /// ## Returns
-    ///
-    /// Returns `Ok(&str)` with the parameter value if found, or
-    /// `Err(HttpRequestError::MissingParam)` if not found.
-    ///
-    /// ## Example
-    /// ```
-    /// let req = ripress::context::HttpRequest::new();
-    /// let id = req.get_params("id");
-    /// println!("Id: {:?}", id);
-    /// ```
-
-    pub fn get_params(&self, param_name: &str) -> Result<&str, HttpRequestError> {
-        let param = self.params.get(param_name).map(|v| v);
-
-        match param {
-            Some(param_str) => Ok(param_str),
-            None => Err(HttpRequestError::MissingParam(param_name.to_string())),
         }
     }
 
@@ -425,6 +371,8 @@ impl HttpRequest {
             .iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
+
+        let params = RouteParams::from_map(params);
 
         let method = req.method().as_str();
 
