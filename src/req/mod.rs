@@ -3,17 +3,27 @@
 use crate::types::{
     HttpMethods, HttpRequestError, RequestBody, RequestBodyContent, RequestBodyType,
 };
-use actix_web::{HttpMessage, web::Query};
+use actix_web::HttpMessage;
 use futures::StreamExt;
 use std::{
     collections::HashMap,
-    fmt::Display,
     net::{IpAddr, Ipv4Addr},
 };
 
+/// A struct that represents the request headers.
+/// And it's methods.
 pub mod headers;
+
+/// A struct that represents the origin url of the request.
+/// And it's methods.
 pub mod origin_url;
+
+/// A struct that represents the query parameters of the request.
+/// And it's methods.
 pub mod query_params;
+
+/// A struct that represents the route parameters of the request.
+/// And it's methods.
 pub mod route_params;
 
 use headers::Headers;
@@ -546,10 +556,6 @@ impl HttpRequest {
 
     pub(crate) fn set_method(&mut self, method: HttpMethods) {
         self.method = method;
-    }
-
-    pub(crate) fn set_ip(&mut self, ip: IpAddr) {
-        self.ip = ip;
     }
 
     pub(crate) fn set_path(&mut self, path: String) {
