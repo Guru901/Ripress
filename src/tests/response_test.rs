@@ -2,6 +2,7 @@
 mod tests {
     use crate::context::HttpRequest;
     use crate::req::origin_url::Url;
+    use crate::res::response_headers::ResponseHeaders;
     use crate::types::HttpRequestError;
     use crate::types::{HttpMethods, RequestBodyType};
     use actix_web::FromRequest;
@@ -273,5 +274,88 @@ mod tests {
         let _ = HttpRequest::from_actix_request(request, web_payload)
             .await
             .unwrap();
+    }
+
+    #[test]
+    fn test_basic_operations() {
+        let mut headers = ResponseHeaders::new();
+        headers.insert("Content-Type", "application/json");
+        headers.insert("X-Custom", "test-value");
+
+        assert_eq!(headers.get("content-type"), Some("application/json"));
+        assert_eq!(headers.get("CONTENT-TYPE"), Some("application/json")); // case insensitive
+        assert_eq!(headers.get("x-custom"), Some("test-value"));
+        assert!(headers.contains_key("Content-Type"));
+    }
+
+    #[test]
+    fn test_convenience_methods() {
+        let mut headers = ResponseHeaders::new();
+        headers.json();
+        headers.content_length(1024);
+        headers.location("https://example.com");
+
+        assert_eq!(headers.get("content-type"), Some("application/json"));
+        assert_eq!(headers.get("content-length"), Some("1024"));
+        assert_eq!(headers.get("location"), Some("https://example.com"));
+    }
+
+    #[test]
+    fn test_cors_headers() {
+        let mut headers = ResponseHeaders::new();
+        headers.cors_simple(Some("https://example.com"));
+
+        assert_eq!(
+            headers.get("access-control-allow-origin"),
+            Some("https://example.com")
+        );
+        assert!(headers.get("access-control-allow-methods").is_some());
+        assert!(headers.get("access-control-allow-headers").is_some());
+    }
+
+    #[test]
+    fn test_security_headers() {
+        let mut headers = ResponseHeaders::new();
+        headers.security_headers();
+
+        assert_eq!(headers.get("x-content-type-options"), Some("nosniff"));
+        assert_eq!(headers.get("x-xss-protection"), Some("1; mode=block"));
+        assert_eq!(headers.get("x-frame-options"), Some("DENY"));
+        assert!(!headers.contains_key("x-powered-by"));
+    }
+
+    #[test]
+    fn test_builder_pattern() {
+        let headers = ResponseHeaders::new()
+            .with_content_type("text/html")
+            .with_header("X-Custom", "value")
+            .with_cors(Some("*"))
+            .with_security();
+
+        assert_eq!(headers.get("content-type"), Some("text/html"));
+        assert_eq!(headers.get("x-custom"), Some("value"));
+        assert!(headers.contains_key("access-control-allow-origin"));
+        assert!(headers.contains_key("x-content-type-options"));
+    }
+
+    #[test]
+    fn test_dynamic_values() {
+        let mut headers = ResponseHeaders::new();
+        let dynamic_value = format!("session-{}", 12345);
+
+        headers.insert("X-Session-ID", dynamic_value.clone());
+        assert_eq!(headers.get("x-session-id"), Some(dynamic_value.as_str()));
+    }
+
+    #[test]
+    fn test_multiple_values() {
+        let mut headers = ResponseHeaders::new();
+        headers.insert("Set-Cookie", "session=abc123; HttpOnly");
+        headers.append("Set-Cookie", "theme=dark; Path=/");
+
+        let all_cookies = headers.get_all("set-cookie").unwrap();
+        assert_eq!(all_cookies.len(), 2);
+        assert!(all_cookies.contains(&"session=abc123; HttpOnly".to_string()));
+        assert!(all_cookies.contains(&"theme=dark; Path=/".to_string()));
     }
 }
