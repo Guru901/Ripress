@@ -1,29 +1,85 @@
+/// Represents the status code of an HTTP response.
+///
+/// This enum is used to represent the status code of an HTTP response. It
+/// provides a set of common status codes and a way to create custom status
+/// codes.
+///
+/// # Variants
+///
+/// - `Ok`: 200 OK
+/// - `Created`: 201 Created
+/// - `Accepted`: 202 Accepted
+/// - `NoContent`: 204 No Content
+/// - `Redirect`: 301 Moved Permanently
+/// - `PermanentRedirect`: 301 Moved Permanently
+/// - `BadRequest`: 400 Bad Request
+/// - `Unauthorized`: 401 Unauthorized
+/// - `Forbidden`: 403 Forbidden
+/// - `NotFound`: 404 Not Found
+/// - `MethodNotAllowed`: 405 Method Not Allowed
+/// - `Conflict`: 409 Conflict
+/// - `InternalServerError`: 500 Internal Server Error
+/// - `NotImplemented`: 501 Not Implemented
+/// - `BadGateway`: 502 Bad Gateway
+/// - `ServiceUnavailable`: 503 Service Unavailable
+/// - `Custom(u16)`: A custom status code with a given u16 value
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StatusCode {
-    Ok,        // 200
-    Created,   // 201
-    Accepted,  // 202
-    NoContent, // 204
+    /// 200 OK
+    Ok,
 
-    Redirect,          // 301
-    PermanentRedirect, // 302
+    /// 201 Created
+    Created,
 
-    BadRequest,       // 400
-    Unauthorized,     // 401
-    Forbidden,        // 403
-    NotFound,         // 404
-    MethodNotAllowed, // 405
-    Conflict,         // 409
+    /// 202 Accepted
+    Accepted,
 
-    InternalServerError, // 500
-    NotImplemented,      // 501
-    BadGateway,          // 502
-    ServiceUnavailable,  // 503
+    /// 204 No Content
+    NoContent,
 
-    Custom(u16), // Custom status
+    /// 301 Permanent Redirect
+    PermanentRedirect,
+
+    /// 302 Redirect
+    Redirect,
+
+    /// 400 Bad Request
+    BadRequest,
+
+    /// 401 Unauthorized
+    Unauthorized,
+
+    /// 403 Forbidden
+    Forbidden,
+
+    /// 404 Not Found
+    NotFound,
+
+    /// 405 Method Not Allowed
+    MethodNotAllowed,
+
+    /// 409 Conflict
+    Conflict,
+
+    /// 500 Internal Server Error
+    InternalServerError,
+
+    /// 501 Not Implemented
+    NotImplemented,
+
+    /// 502 Bad Gateway
+    BadGateway,
+
+    /// 503 Service Unavailable
+    ServiceUnavailable,
+
+    /// A custom status code with a given u16 value
+    Custom(u16),
 }
 
 impl StatusCode {
+    /// Returns the u16 value of the status code.
     pub fn as_u16(&self) -> u16 {
         match self {
             StatusCode::Ok => 200,
@@ -50,6 +106,7 @@ impl StatusCode {
         }
     }
 
+    /// Creates the status code from a given u16 value.
     pub fn from_u16(code: u16) -> StatusCode {
         match code {
             200 => StatusCode::Ok,
