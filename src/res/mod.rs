@@ -1,24 +1,39 @@
 #![warn(missing_docs)]
 
 use crate::res::response_status::StatusCode;
-use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
+use crate::types::{ResponseContentBody, ResponseContentType};
 use actix_web::Responder;
 use actix_web::http::header::{HeaderName, HeaderValue};
 use bytes::Bytes;
 use futures::{Stream, StreamExt, stream};
 use serde::Serialize;
-use std::os::macos::raw::stat;
 use std::pin::Pin;
 
+/// Contains the response headers struct and its methods.
 pub mod response_headers;
+
+/// Contains the response status enum and its methods.
 pub mod response_status;
 
 use response_headers::ResponseHeaders;
 
+/// Represents errors that can occur when generating an HTTP response.
+///
+/// This enum is used to encapsulate possible error types that may arise during
+/// the process of constructing or streaming an HTTP response. It is primarily
+/// used for error handling in streaming responses or when IO operations fail.
+///
+/// # Variants
+///
+/// - `IoError(std::io::Error)`: Represents an IO error that occurred, such as a failure
+///   to read from or write to a stream.
+/// - `_Other(&'static str)`: Represents a generic or custom error with a static string message.
 #[derive(Debug)]
-pub(crate) enum ResponseError {
+pub enum ResponseError {
+    /// An IO error occurred.
     IoError(std::io::Error),
-    Other(&'static str),
+    /// A generic or custom error with a static string message.
+    _Other(&'static str),
 }
 
 impl From<std::io::Error> for ResponseError {
@@ -32,7 +47,7 @@ impl std::fmt::Display for ResponseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ResponseError::IoError(e) => write!(f, "IO error: {}", e),
-            ResponseError::Other(e) => write!(f, "Error: {}", e),
+            ResponseError::_Other(e) => write!(f, "Error: {}", e),
         }
     }
 }
@@ -219,75 +234,91 @@ impl HttpResponse {
         }
     }
 
+    /// Sets the status code to 200 OK.
     pub fn ok(mut self) -> Self {
         self.status_code = StatusCode::Ok;
         self
     }
 
+    /// Sets the status code to 201 Created.
     pub fn created(mut self) -> Self {
         self.status_code = StatusCode::Created;
         self
     }
 
+    /// Sets the status code to 202 Accepted.
     pub fn accepted(mut self) -> Self {
         self.status_code = StatusCode::Accepted;
         self
     }
 
+    /// Sets the status code to 204 No Content.
     pub fn no_content(mut self) -> Self {
         self.status_code = StatusCode::NoContent;
         self
     }
+
+    /// Sets the status code to 400 Bad Request.
     pub fn bad_request(mut self) -> Self {
         self.status_code = StatusCode::BadRequest;
         return self;
     }
 
+    /// Sets the status code to 401 Unauthorized.
     pub fn unauthorized(mut self) -> Self {
         self.status_code = StatusCode::Unauthorized;
         return self;
     }
 
+    /// Sets the status code to 403 Forbidden.
     pub fn forbidden(mut self) -> Self {
         self.status_code = StatusCode::Forbidden;
         return self;
     }
 
+    /// Sets the status code to 404 Not Found.
     pub fn not_found(mut self) -> Self {
         self.status_code = StatusCode::NotFound;
         return self;
     }
 
+    /// Sets the status code to 405 Method Not Allowed.
     pub fn method_not_allowed(mut self) -> Self {
         self.status_code = StatusCode::MethodNotAllowed;
         return self;
     }
 
+    /// Sets the status code to 409 Conflict.
     pub fn conflict(mut self) -> Self {
         self.status_code = StatusCode::Conflict;
         return self;
     }
 
+    /// Sets the status code to 500 Internal Server Error.
     pub fn internal_server_error(mut self) -> Self {
         self.status_code = StatusCode::InternalServerError;
         return self;
     }
 
+    /// Sets the status code to 501 Not Implemented.
     pub fn not_implemented(mut self) -> Self {
         self.status_code = StatusCode::NotImplemented;
         return self;
     }
 
+    /// Sets the status code to 502 Bad Gateway.
     pub fn bad_gateway(mut self) -> Self {
         self.status_code = StatusCode::BadGateway;
         return self;
     }
 
+    /// Sets the status code to 503 Service Unavailable.
     pub fn service_unavailable(mut self) -> Self {
         self.status_code = StatusCode::ServiceUnavailable;
         return self;
     }
 
+    /// Sets the status code to a given u16 value.
     pub fn status(mut self, status_code: u16) -> Self {
         self.status_code = StatusCode::from_u16(status_code);
         return self;
