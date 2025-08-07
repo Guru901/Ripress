@@ -1,20 +1,23 @@
 use std::collections::HashMap;
 
+/// A struct that stores the request Request Headers.
+/// And it's methods.
+
 #[derive(Debug, Clone)]
 pub struct RequestHeaders {
     inner: HashMap<String, Vec<String>>,
 }
 
 impl RequestHeaders {
-    /// Create a new empty Headers collection
+    /// Create a new empty Request Headers collection
     pub fn new() -> Self {
         Self {
             inner: HashMap::new(),
         }
     }
 
-    /// Create Headers from a HashMap<String, String>
-    pub(crate) fn from_map(map: HashMap<String, String>) -> Self {
+    /// Create Request Headers from a HashMap<String, String>
+    pub(crate) fn _from_map(map: HashMap<String, String>) -> Self {
         let mut headers = Self::new();
         for (key, value) in map {
             headers.insert(key, value);
@@ -129,24 +132,24 @@ impl RequestHeaders {
         self.inner.keys()
     }
 
-    /// Get the number of unique headers
+    /// Get the number of unique Request Headers
     pub fn len(&self) -> usize {
         self.inner.len()
     }
 
-    /// Check if headers are empty
+    /// Check if Request Headers are empty
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
 
-    /// Iterate over all headers as (key, first_value) pairs
+    /// Iterate over all Request Headers as (key, first_value) pairs
     pub fn iter(&self) -> impl Iterator<Item = (&String, &str)> {
         self.inner
             .iter()
             .filter_map(|(k, v)| v.first().map(|first_val| (k, first_val.as_str())))
     }
 
-    /// Iterate over all headers including multiple values
+    /// Iterate over all Request Headers including multiple values
     pub fn iter_all(&self) -> impl Iterator<Item = (&String, &Vec<String>)> {
         self.inner.iter()
     }
@@ -169,7 +172,7 @@ impl std::fmt::Display for RequestHeaders {
     }
 }
 
-// Convenient indexing syntax: headers["content-type"]
+// Convenient indexing syntax: Request Headers["content-type"]
 impl std::ops::Index<&str> for RequestHeaders {
     type Output = str;
 
