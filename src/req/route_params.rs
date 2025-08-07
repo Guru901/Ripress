@@ -97,12 +97,6 @@ impl RouteParams {
         self.get_parsed::<u32>(name)
     }
 
-    /// Get a parameter as a UUID (if using uuid crate)
-    #[cfg(feature = "uuid")]
-    pub fn get_uuid(&self, name: &str) -> Result<uuid::Uuid, ParamError> {
-        self.get_parsed::<uuid::Uuid>(name)
-    }
-
     /// Get a parameter with a default value if not found or parsing fails
     pub fn get_or_default<T>(&self, name: &str, default: T) -> T
     where
