@@ -142,14 +142,18 @@ impl std::fmt::Display for HttpResponseError {
         }
     }
 }
+pub type FutMiddleware =
+    Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
+pub type HandlerMiddleware =
+    Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>;
 
 pub trait Middleware: Send + Sync + 'static {
     fn handle(
         &self,
-        req: HttpRequest,
+        req: &HttpRequest,
         res: HttpResponse,
         next: Next,
-    ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
+    ) -> Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
 
     // Add this method to allow cloning of Box<dyn Middleware>
     fn clone_box(&self) -> Box<dyn Middleware>;
@@ -164,24 +168,28 @@ impl Clone for Box<dyn Middleware> {
 
 pub struct Next {
     pub middleware: Vec<Box<dyn Middleware>>,
-    pub handler: Handler,
+    pub handler: HandlerMiddleware,
 }
 
 impl Next {
     pub fn new() -> Self {
         Next {
             middleware: Vec::new(),
-            handler: Arc::new(|_, _| Box::pin(async { HttpResponse::new() })),
+            handler: Arc::new(|_, _| Box::pin(async { (HttpRequest::new(), None) })),
         }
     }
-    pub async fn run(self, req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    pub async fn run(
+        self,
+        req: HttpRequest,
+        res: HttpResponse,
+    ) -> (HttpRequest, Option<HttpResponse>) {
         if let Some((current, rest)) = self.middleware.split_first() {
             // Call the next middleware
             let next = Next {
                 middleware: rest.to_vec(),
                 handler: self.handler.clone(),
             };
-            current.handle(req, res, next).await
+            current.handle(&req, res, next).await
         } else {
             // No more middleware, call the handler
             (self.handler)(req, res).await

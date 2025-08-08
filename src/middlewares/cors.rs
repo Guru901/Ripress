@@ -1,10 +1,4 @@
-#![warn(missing_docs)]
-
-use crate::{
-    context::HttpResponse,
-    req::HttpRequest,
-    types::{Fut, Next},
-};
+use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
 
 /// Configuration for the Cors Middleware
 ///
@@ -16,13 +10,8 @@ use crate::{
 
 #[derive(Clone)]
 pub struct CorsConfig {
-    /// The allowed origin for the request
     pub allowed_origin: &'static str,
-
-    /// The allowed methods for the request
     pub allowed_methods: &'static str,
-
-    /// Whether to allow credentials
     pub allow_credentials: bool,
 }
 
@@ -54,22 +43,23 @@ impl Default for CorsConfig {
 /// use ripress::{app::App, middlewares::cors::{cors, CorsConfig}};
 /// let mut app = App::new();
 /// app.use_middleware("", cors(Some(CorsConfig {
-///     allowed_origin: "https://example.com",
-///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS",
+///     allowed_origin: "https://example.com".to_string(),
+///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS".to_string(),
 ///     allow_credentials: true,
 /// })));
 /// ```
 
 pub fn cors(
     config: Option<CorsConfig>,
-) -> impl Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static {
-    move |req, mut res, next| {
+) -> impl Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+    move |req, mut res| {
         let config = config.clone().unwrap_or_default();
+        let req: HttpRequest = req.clone();
 
         Box::pin(async move {
             res = res
-                .set_header("Access-Control-Allow-Origin", &config.allowed_origin)
-                .set_header("Access-Control-Allow-Methods", &config.allowed_methods)
+                .set_header("Access-Control-Allow-Origin", config.allowed_origin)
+                .set_header("Access-Control-Allow-Methods", config.allowed_methods)
                 .set_header(
                     "Access-Control-Allow-Headers",
                     "Content-Type, Authorization",
@@ -78,12 +68,7 @@ pub fn cors(
             if config.allow_credentials {
                 res = res.set_header("Access-Control-Allow-Credentials", "true");
             }
-
-            // if req.method() == "OPTIONS" {
-            //     return res.ok().text(""); // Preflight response
-            // }
-
-            next.run(req, res).await
+            (req, Some(res))
         })
     }
 }

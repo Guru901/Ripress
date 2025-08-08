@@ -1,19 +1,34 @@
 #![warn(missing_docs)]
 
+use crate::helpers::exec_middleware;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
-use crate::types::{Fut, HttpMethods, Middleware, Next, RouterFns, Routes};
+use crate::types::{Fut, FutMiddleware, HttpMethods, RouterFns, Routes};
 use hyper::{Body, Response, Server};
 use routerify::ext::RequestExt;
 use routerify::{Router, RouterService};
 use std::collections::HashMap;
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 pub(crate) fn box_future<F>(future: F) -> Fut
 where
     F: Future<Output = HttpResponse> + Send + 'static,
 {
     Box::pin(future)
+}
+
+pub(crate) fn box_future_middleware<F>(future: F) -> FutMiddleware
+where
+    F: Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
+{
+    Box::pin(future)
+}
+
+#[derive(Clone)]
+pub struct Middleware {
+    pub func: Arc<dyn Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
+    pub path: String,
 }
 
 #[derive(Debug)]
@@ -50,7 +65,7 @@ impl From<ApiError> for Box<dyn std::error::Error + Send> {
 /// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests. It follows an Express-like pattern for route handling.
 pub struct App {
     routes: Routes,
-    middlewares: Vec<Box<dyn Middleware>>,
+    middlewares: Vec<Box<Middleware>>,
     pub(crate) static_files: HashMap<&'static str, &'static str>,
 }
 
@@ -89,9 +104,11 @@ impl App {
     /// use ripress::app::App;
     /// let mut app = App::new();
     ///
-    /// app.use_middleware("path", |req, res, next| {
-    ///     println!("here");
-    ///     Box::pin(async move { next.run(req, res).await })
+    /// app.use_middleware("path", |req, res| {
+    ///     let mut req = req.clone();
+    ///     Box::pin(async move {
+    ///         (req, None)
+    ///     })
     /// });
     ///
     /// ```
@@ -99,51 +116,15 @@ impl App {
     pub fn use_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static,
-        Fut: std::future::Future<Output = HttpResponse> + Send + 'static,
+        F: Fn(&mut HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
-        let path = path.into().unwrap_or("/");
+        let path = path.into().unwrap_or("/").to_string();
 
-        struct Wrapper<F> {
-            func: F,
-            path: &'static str,
-        }
-
-        impl<F, Fut> Middleware for Wrapper<F>
-        where
-            F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static,
-            Fut: std::future::Future<Output = HttpResponse> + Send + 'static,
-        {
-            fn handle(
-                &self,
-                req: HttpRequest,
-                res: HttpResponse,
-                next: Next,
-            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = HttpResponse> + Send + 'static>>
-            {
-                if self.path == "/" {
-                    let fut = (self.func)(req, res, next);
-                    Box::pin(fut)
-                } else {
-                    if req.path.starts_with(self.path) {
-                        let fut = (self.func)(req, res, next);
-                        Box::pin(fut)
-                    } else {
-                        Box::pin(async move { next.run(req, res).await })
-                    }
-                }
-            }
-
-            fn clone_box(&self) -> Box<dyn Middleware> {
-                Box::new(Wrapper {
-                    func: self.func.clone(),
-                    path: self.path,
-                })
-            }
-        }
-
-        self.middlewares.push(Box::new(Wrapper {
-            func: middleware,
+        self.middlewares.push(Box::new(Middleware {
+            func: Arc::new(move |req, res| -> crate::types::FutMiddleware {
+                box_future_middleware(middleware(req, res))
+            }),
             path: path,
         }));
 
@@ -203,6 +184,13 @@ impl App {
                     <HttpResponse as Clone>::clone(res).to_responder().unwrap()
                 }
             }
+        }
+
+        for middleware in self.middlewares.iter() {
+            let middleware = middleware.clone();
+            router = router.middleware(routerify::Middleware::pre(move |req| {
+                exec_middleware(req, middleware.clone())
+            }));
         }
 
         for (path, methods) in &self.routes {

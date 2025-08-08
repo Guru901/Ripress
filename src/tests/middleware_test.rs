@@ -16,16 +16,10 @@ mod tests {
     async fn test_cors_default_config() {
         // Use default config by passing None.
         let cors_mw = cors(None);
-        let req = HttpRequest::new();
+        let mut req = HttpRequest::new();
         let res = HttpResponse::new();
 
-        // Create a dummy Next that simply returns the given response.
-        let next = Next {
-            middleware: vec![],
-            handler: Arc::new(|_req, res| Box::pin(async { res })),
-        };
-
-        let response = cors_mw(req, res, next).await;
+        let response = cors_mw(&mut req, res).await.1.unwrap();
 
         // Check the headers set by the middleware.
         assert_eq!(
@@ -61,16 +55,10 @@ mod tests {
             allow_credentials: true,
         };
         let cors_mw = cors(Some(config.clone()));
-        let req = HttpRequest::new();
+        let mut req = HttpRequest::new();
         let res = HttpResponse::new();
 
-        // Create a dummy Next that simply returns the given response.
-        let next = Next {
-            middleware: vec![],
-            handler: Arc::new(|_req, res| Box::pin(async { res })),
-        };
-
-        let response = cors_mw(req, res, next).await;
+        let response = cors_mw(&mut req, res).await.1.unwrap();
 
         assert_eq!(
             response.headers.get("Access-Control-Allow-Origin").unwrap(),
@@ -104,16 +92,10 @@ mod tests {
     async fn test_logger_default_config() {
         // Use default config by passing None.
         let logger_mw = logger(None);
-        let req = HttpRequest::new();
+        let mut req = HttpRequest::new();
         let res = HttpResponse::new();
 
-        // Create a dummy Next that simply returns the given response.
-        let next = Next {
-            middleware: vec![],
-            handler: Arc::new(|_req, res| Box::pin(async { res })),
-        };
-
-        let _ = logger_mw(req, res, next).await;
+        let _ = logger_mw(&mut req, res).await;
     }
 
     #[tokio::test]
@@ -124,15 +106,9 @@ mod tests {
             path: true,
         };
         let logger_mw = logger(Some(config.clone()));
-        let req = HttpRequest::new();
+        let mut req = HttpRequest::new();
         let res = HttpResponse::new();
 
-        // Create a dummy Next that simply returns the given response.
-        let next = Next {
-            middleware: vec![],
-            handler: Arc::new(|_req, res| Box::pin(async { res })),
-        };
-
-        let _ = logger_mw(req, res, next).await;
+        let _ = logger_mw(&mut req, res).await;
     }
 }

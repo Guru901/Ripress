@@ -60,7 +60,7 @@ async fn main() {
     // request tests
     app.get("/cookie-test", cookie_handler);
     app.get("/header-test", header_handler);
-    app.get("/param-and-query-test/{param}", query_and_param_handler);
+    app.get("/param-and-query-test/:param", query_and_param_handler);
     app.get("/origin-url-and-path/test", path_and_origin_url_handler);
     app.get("/ip-test", ip_handler);
     app.post("/json-test", json_handler);
@@ -69,7 +69,7 @@ async fn main() {
     app.get("/multi-query", multi_query_handler);
     app.get("/multi-cookies", multi_cookie_handler);
     app.get("/multi-headers", multi_header_handler);
-    app.get("/users/{user_id}/posts/{post_id}", multi_param_handler);
+    app.get("/users/:user_id/posts/:post_id", multi_param_handler);
 
     app.get("/method-test", method_handler);
     app.post("/method-test", method_handler);
@@ -114,8 +114,7 @@ async fn main() {
     app.static_files("/static", "../public");
 
     app.listen(8080, || println!("Server is running on port 8080"))
-        .await
-        .unwrap();
+        .await;
 }
 
 // requests test handler

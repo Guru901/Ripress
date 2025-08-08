@@ -433,8 +433,13 @@ impl HttpResponse {
     /// res.set_header("key", "value"); // Sets the key cookie to value
     /// ```
 
-    pub fn set_header(mut self, header_name: &'static str, header_value: &'static str) -> Self {
-        self.headers.insert(header_name, header_value);
+    pub fn set_header<T: Into<String>>(
+        mut self,
+        header_name: &'static str,
+        header_value: T,
+    ) -> Self {
+        let static_str = Box::leak(header_value.into().into_boxed_str());
+        self.headers.insert(header_name, static_str);
         self
     }
 
