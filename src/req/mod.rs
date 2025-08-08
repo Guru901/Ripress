@@ -3,22 +3,32 @@
 use crate::types::{
     HttpMethods, HttpRequestError, RequestBody, RequestBodyContent, RequestBodyType,
 };
-use actix_web::{HttpMessage, web::Query};
+use actix_web::HttpMessage;
 use futures::StreamExt;
 use std::{
     collections::HashMap,
-    fmt::Display,
     net::{IpAddr, Ipv4Addr},
 };
 
-pub mod headers;
+/// A struct that represents the request headers.
+/// And it's methods.
+pub mod request_headers;
+
+/// A struct that represents the origin url of the request.
+/// And it's methods.
 pub mod origin_url;
+
+/// A struct that represents the query parameters of the request.
+/// And it's methods.
 pub mod query_params;
+
+/// A struct that represents the route parameters of the request.
+/// And it's methods.
 pub mod route_params;
 
-use headers::Headers;
 use origin_url::Url;
 use query_params::QueryParams;
+use request_headers::RequestHeaders;
 use route_params::RouteParams;
 
 /// Represents an incoming HTTP request with comprehensive access to request data.
@@ -87,7 +97,7 @@ pub struct HttpRequest {
     pub is_secure: bool,
 
     /// The request's headers
-    pub headers: Headers,
+    pub headers: RequestHeaders,
 
     /// The request's cookies
     cookies: HashMap<String, String>,
@@ -124,7 +134,7 @@ impl HttpRequest {
             ip: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             path: String::new(),
             protocol: String::new(),
-            headers: Headers::new(),
+            headers: RequestHeaders::new(),
             data: HashMap::new(),
             body: RequestBody::new_text(String::new()),
             cookies: HashMap::new(),
@@ -385,7 +395,7 @@ impl HttpRequest {
 
         let is_secure = protocol == String::from("https");
 
-        let mut headers = Headers::new();
+        let mut headers = RequestHeaders::new();
 
         req.headers().iter().for_each(|f| {
             let header_name = f.0.to_string();
@@ -546,10 +556,6 @@ impl HttpRequest {
 
     pub(crate) fn set_method(&mut self, method: HttpMethods) {
         self.method = method;
-    }
-
-    pub(crate) fn set_ip(&mut self, ip: IpAddr) {
-        self.ip = ip;
     }
 
     pub(crate) fn set_path(&mut self, path: String) {

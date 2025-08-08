@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+/// A struct that represents the origin url of the request.
+/// And it's methods.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Url {
     /// The url string

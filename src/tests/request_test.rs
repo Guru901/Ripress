@@ -9,7 +9,10 @@ mod tests {
     #[test]
     fn test_default_response() {
         let response = HttpResponse::new();
-        assert_eq!(response.status_code, 200);
+        assert_eq!(
+            response.status_code,
+            crate::res::response_status::StatusCode::Ok
+        );
 
         // Edge case: Check default body content
         if let ResponseContentBody::TEXT(body) = response.get_body() {
@@ -70,7 +73,7 @@ mod tests {
         let response = HttpResponse::new()
             .set_header("X-Custom", "value")
             .set_cookie("session", "123", CookieOptions::default())
-            .status(201)
+            .created()
             .json(&data)
             .to_responder();
 
