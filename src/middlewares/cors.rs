@@ -43,8 +43,8 @@ impl Default for CorsConfig {
 /// use ripress::{app::App, middlewares::cors::{cors, CorsConfig}};
 /// let mut app = App::new();
 /// app.use_middleware("", cors(Some(CorsConfig {
-///     allowed_origin: "https://example.com".to_string(),
-///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS".to_string(),
+///     allowed_origin: "https://example.com",
+///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS",
 ///     allow_credentials: true,
 /// })));
 /// ```

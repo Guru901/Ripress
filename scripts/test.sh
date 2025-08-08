@@ -38,7 +38,6 @@ cd ../src
 touch main.rs
 
 echo '
-
 use bytes::Bytes;
 use futures::stream;
 use ripress::app::App;
@@ -88,12 +87,14 @@ async fn main() {
     app.get("/redirect-test", redirect_test);
     app.get("/permanent-redirect-test", permanent_redirect_test);
 
-    app.use_middleware("/auth", |req, res, next| {
-        println!("Auth middleware");
+    app.use_middleware("/auth", |req, res| {
+        let has_token = req.get_cookie("token").is_ok();
+        let req_cloned = req.clone(); // owned
         Box::pin(async move {
-            match req.get_cookie("token") {
-                Ok(_) => next.run(req, res).await,
-                Err(_) => res.unauthorized().text("Unauthorized"),
+            if has_token {
+                (req_cloned, None)
+            } else {
+                (req_cloned, Some(res.unauthorized().text("No token found")))
             }
         })
     });

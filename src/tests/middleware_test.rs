@@ -1,15 +1,12 @@
 #[cfg(test)]
 mod tests {
 
-    use std::sync::Arc;
-
     use crate::{
         context::{HttpRequest, HttpResponse},
         middlewares::{
             cors::{CorsConfig, cors},
             logger::{LoggerConfig, logger},
         },
-        types::Next,
     };
 
     #[tokio::test]
