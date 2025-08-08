@@ -187,91 +187,10 @@ impl App {
     /// ##[tokio::main]
     /// async fn main() {
     ///     let mut app = App::new();
-    ///     app.listen(3000, || {println!("server running on port 3000")}).await.unwrap();
+    ///     app.listen(3000, || {println!("server running on port 3000")}).await;
     /// }
     ///
     /// ```
-
-    // pub async fn listen<F: FnOnce()>(&self, port: u16, cb: F) -> std::io::Result<()> {
-    //     cb();
-    //     let routes = self.routes.clone();
-    //     let middlewares = self.middlewares.clone();
-    //     let static_files = self.static_files.clone();
-
-    //     actix_web::HttpServer::new(move || {
-    //         let routes = routes.clone();
-    //         let middlewares = middlewares.clone();
-    //         let static_files = static_files.clone();
-
-    //         let mut app =
-    //             routes
-    //                 .iter()
-    //                 .fold(actix_web::App::new(), move |mut app, (path, handlers)| {
-    //                     for (method, handler) in handlers {
-    //                         let route_method = match method {
-    //                             HttpMethods::GET => actix_web::web::get(),
-    //                             HttpMethods::POST => actix_web::web::post(),
-    //                             HttpMethods::PUT => actix_web::web::put(),
-    //                             HttpMethods::HEAD => actix_web::web::head(),
-    //                             HttpMethods::DELETE => actix_web::web::delete(),
-    //                             HttpMethods::PATCH => actix_web::web::patch(),
-    //                         };
-
-    //                         let handler = handler.clone();
-    //                         let path = path.clone();
-    //                         let middlewares = middlewares.clone();
-
-    //                         app = app.route(
-    //                     &path,
-    //                     route_method.to(
-    //                         move |req: actix_web::HttpRequest, payload: actix_web::web::Payload| {
-    //                             let handler = handler.clone();
-    //                             let middlewares = middlewares.clone();
-
-    //                             async move {
-    //                                 let our_req = HttpRequest::from_actix_request(req, payload)
-    //                                     .await
-    //                                     .unwrap();
-    //                                 let our_res = HttpResponse::new();
-
-    //                                 if !middlewares.is_empty() {
-    //                                     // Create a Next with our middlewares and handler
-    //                                     let next = Next {
-    //                                         middleware: middlewares.clone(),
-    //                                         handler: handler.clone(),
-    //                                     };
-
-    //                                     // Run the middleware chain
-    //                                     let response = next.run(our_req, our_res).await;
-    //                                     response.to_responder()
-    //                                 } else {
-    //                                     // No middlewares, call the handler directly
-    //                                     let response = handler(our_req, our_res).await;
-    //                                     response.to_responder()
-    //                                 }
-    //                             }
-    //                         },
-    //                     ),
-    //                 );
-    //                     }
-    //                     app
-    //                 });
-
-    //         // Add static files service if configured
-    //         if let (Some(mount_path), Some(serve_from)) = (
-    //             static_files.get("mount_path"),
-    //             static_files.get("serve_from"),
-    //         ) {
-    //             app = app
-    //                 .service(actix_files::Files::new(mount_path, serve_from).show_files_listing());
-    //         }
-
-    //         app
-    //     })
-    //     .bind(format!("127.0.0.1:{}", port))?
-    //     .run()
-    //     .await
-    // }
 
     pub async fn listen<F: FnOnce()>(&self, port: u16, cb: F) {
         let mut router = Router::<Body, ApiError>::builder();

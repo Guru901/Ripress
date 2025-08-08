@@ -629,8 +629,17 @@ impl HttpResponse {
 
             for c in self.cookies.iter() {
                 let cookie = cookie::Cookie::build((c.name, c.value))
-                    .path("/")
-                    .http_only(true);
+                    .http_only(c.options.http_only)
+                    .same_site(match c.options.same_site {
+                        crate::res::CookieSameSiteOptions::Lax => cookie::SameSite::Lax,
+                        crate::res::CookieSameSiteOptions::Strict => cookie::SameSite::Strict,
+                        crate::res::CookieSameSiteOptions::None => cookie::SameSite::None,
+                    })
+                    .secure(c.options.secure)
+                    .path(c.options.path.unwrap_or("/"))
+                    .max_age(cookie::time::Duration::seconds(
+                        c.options.max_age.unwrap_or(0),
+                    ));
                 response = response.header(
                     SET_COOKIE,
                     HeaderValue::from_str(&cookie.to_string()).unwrap(),
@@ -675,8 +684,17 @@ impl HttpResponse {
 
             self.cookies.iter().for_each(|c| {
                 let cookie = cookie::Cookie::build((c.name, c.value))
-                    .path("/")
-                    .http_only(true);
+                    .http_only(c.options.http_only)
+                    .same_site(match c.options.same_site {
+                        crate::res::CookieSameSiteOptions::Lax => cookie::SameSite::Lax,
+                        crate::res::CookieSameSiteOptions::Strict => cookie::SameSite::Strict,
+                        crate::res::CookieSameSiteOptions::None => cookie::SameSite::None,
+                    })
+                    .secure(c.options.secure)
+                    .path(c.options.path.unwrap_or("/"))
+                    .max_age(cookie::time::Duration::seconds(
+                        c.options.max_age.unwrap_or(0),
+                    ));
                 response.headers_mut().append(
                     SET_COOKIE,
                     HeaderValue::from_str(&cookie.to_string()).unwrap(),
