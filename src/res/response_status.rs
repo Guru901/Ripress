@@ -104,7 +104,7 @@ impl Display for StatusCode {
                 StatusCode::NotImplemented => "Not Implemented",
                 StatusCode::BadGateway => "Bad Gateway",
                 StatusCode::ServiceUnavailable => "Service Unavailable",
-                StatusCode::Custom(code) => "Custom",
+                StatusCode::Custom(_code) => "Custom",
             }
         )
     }

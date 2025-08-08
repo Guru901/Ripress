@@ -41,6 +41,7 @@ pub enum RequestBodyType {
     JSON,
     TEXT,
     FORM,
+    EMPTY,
 }
 
 impl Copy for RequestBodyType {}
@@ -50,8 +51,10 @@ pub enum RequestBodyContent {
     TEXT(&'static str),
     JSON(serde_json::Value),
     FORM(&'static str),
+    EMPTY,
 }
 
+#[derive(Debug, Clone)]
 pub enum ResponseContentBody {
     TEXT(String),
     HTML(String),
@@ -71,7 +74,7 @@ impl ResponseContentBody {
         ResponseContentBody::HTML(html.into())
     }
 }
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub enum ResponseContentType {
     TEXT,
     JSON,
