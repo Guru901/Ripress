@@ -1,0 +1,2 @@
+[alias]
+cov = "tarpaulin --out Html --exclude-files src/test/ --exclude-files examples/"

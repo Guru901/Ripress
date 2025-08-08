@@ -1,6 +1,11 @@
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use crate::context::HttpResponse;
+    use crate::req::query_params::{QueryParams, SortDirection};
+    use crate::req::request_headers::RequestHeaders;
+    use crate::req::route_params::{ParamError, RouteParams};
     use crate::res::CookieOptions;
     use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
     use actix_web::Responder;
@@ -230,5 +235,244 @@ mod tests {
         let responder = response.respond_to(&acitx_req);
 
         assert_eq!(responder.status(), 401);
+    }
+
+    #[test]
+    fn test_case_insensitive() {
+        let mut headers = RequestHeaders::new();
+        headers.insert("Content-Type", "application/json");
+
+        assert_eq!(headers.get("content-type"), Some("application/json"));
+        assert_eq!(headers.get("CONTENT-TYPE"), Some("application/json"));
+        assert_eq!(headers.get("Content-Type"), Some("application/json"));
+    }
+
+    #[test]
+    fn test_multiple_values() {
+        let mut headers = RequestHeaders::new();
+        headers.insert("Accept", "text/html");
+        headers.append("Accept", "application/json");
+
+        let all_values = headers.get_all("accept").unwrap();
+        assert_eq!(all_values.len(), 2);
+        assert_eq!(headers.get("accept"), Some("text/html")); // First value
+    }
+
+    #[test]
+    fn test_headers_convenience_methods() {
+        let mut headers = RequestHeaders::new();
+        headers.insert("Content-Type", "application/json");
+        headers.insert("Accept", "application/json");
+
+        assert_eq!(headers.content_type(), Some("application/json"));
+        assert!(headers.accepts_json());
+        assert!(!headers.accepts_html());
+    }
+
+    #[test]
+    fn test_basic_operations() {
+        let mut params = RouteParams::new();
+        params.insert("id", "123");
+        params.insert("slug", "hello-world");
+
+        assert_eq!(params.get("id"), Some("123"));
+        assert_eq!(params.get("slug"), Some("hello-world"));
+        assert_eq!(params.get("missing"), None);
+    }
+
+    #[test]
+    fn test_type_parsing() {
+        let mut params = RouteParams::new();
+        params.insert("id", "123");
+        params.insert("user_id", "456");
+        params.insert("invalid", "not-a-number");
+
+        assert_eq!(params.get_int("id").unwrap(), 123);
+        assert!(params.get_int("invalid").is_err());
+        assert!(params.get_int("missing").is_err());
+    }
+
+    #[test]
+    fn test_param_convenience_methods() {
+        let mut params = RouteParams::new();
+        params.insert("id", "42");
+        params.insert("slug", "test-post");
+        params.insert("user_id", "100");
+
+        assert_eq!(params.id().unwrap(), 42);
+        assert_eq!(params.slug(), Some("test-post"));
+    }
+
+    #[test]
+    fn test_error_types() {
+        let params = RouteParams::new();
+
+        match params.get_int("missing") {
+            Err(ParamError::NotFound(name)) => assert_eq!(name, "missing"),
+            _ => panic!("Expected NotFound error"),
+        }
+
+        let mut params = RouteParams::new();
+        params.insert("invalid", "not-a-number");
+
+        match params.get_int("invalid") {
+            Err(ParamError::ParseError { param, value, .. }) => {
+                assert_eq!(param, "invalid");
+                assert_eq!(value, "not-a-number");
+            }
+            _ => panic!("Expected ParseError"),
+        }
+    }
+
+    #[test]
+    fn test_defaults() {
+        let mut params = RouteParams::new();
+        params.insert("valid", "10");
+
+        assert_eq!(params.get_or_default("valid", 5), 10);
+        assert_eq!(params.get_or_default("missing", 5), 5);
+        assert_eq!(params.get_or_default("invalid", 5), 5);
+    }
+
+    #[test]
+    fn test_from_map() {
+        let mut map = HashMap::new();
+        map.insert("id".to_string(), "123".to_string());
+        map.insert("name".to_string(), "test".to_string());
+
+        let params = RouteParams::from_map(map);
+        assert_eq!(params.get("id"), Some("123"));
+        assert_eq!(params.get("name"), Some("test"));
+    }
+
+    // Example of using the extract_params macro
+    #[test]
+    fn test_extract_macro() {
+        let mut params = RouteParams::new();
+        params.insert("id", "123");
+        params.insert("user_id", "456");
+
+        // This would be used in a real handler like:
+        // let (id, user_id) = extract_params!(params, { id: i32, user_id: i32 })?;
+    }
+
+    #[test]
+    fn test_from_query_string() {
+        let query =
+            QueryParams::from_query_string("page=2&limit=10&tags=rust&tags=web&active=true");
+
+        assert_eq!(query.get("page"), Some("2"));
+        assert_eq!(query.get("limit"), Some("10"));
+        assert_eq!(query.get("active"), Some("true"));
+
+        let tags = query.get_all("tags").unwrap();
+        assert_eq!(tags.len(), 2);
+        assert!(tags.contains(&"rust".to_string()));
+        assert!(tags.contains(&"web".to_string()));
+    }
+
+    #[test]
+    fn test_query_type_parsing() {
+        let query = QueryParams::from_query_string("page=2&limit=10&active=true&price=19.99");
+
+        assert_eq!(query.get_int("page").unwrap(), 2);
+        assert_eq!(query.get_uint("limit").unwrap(), 10);
+        assert_eq!(query.get_bool("active").unwrap(), true);
+        assert_eq!(query.get_float("price").unwrap(), 19.99);
+    }
+
+    #[test]
+    fn test_query_multiple_values() {
+        let query = QueryParams::from_query_string("tags=rust&tags=web&tags=backend");
+
+        let tags = query.get_all_parsed::<String>("tags").unwrap();
+        assert_eq!(tags.len(), 3);
+        assert!(tags.contains(&"rust".to_string()));
+        assert!(tags.contains(&"web".to_string()));
+        assert!(tags.contains(&"backend".to_string()));
+    }
+
+    #[test]
+    fn test_convenience_methods() {
+        let query =
+            QueryParams::from_query_string("page=3&limit=25&q=search+term&sort=name&order=desc");
+
+        assert_eq!(query.page(), 3);
+        assert_eq!(query.limit(), 25);
+        assert_eq!(query.search_query(), Some("search+term"));
+        assert_eq!(query.sort(), Some("name"));
+        assert_eq!(query.sort_direction(), SortDirection::Desc);
+    }
+
+    #[test]
+    fn test_boolean_parsing() {
+        let query = QueryParams::from_query_string(
+            "active=true&debug=1&verbose=yes&feature&disabled=false",
+        );
+
+        assert_eq!(query.get_bool("active").unwrap(), true);
+        assert_eq!(query.get_bool("debug").unwrap(), true);
+        assert_eq!(query.get_bool("verbose").unwrap(), true);
+        assert_eq!(query.get_bool("disabled").unwrap(), false);
+        assert!(query.is_truthy("feature")); // Parameter exists without value
+    }
+
+    #[test]
+    fn test_filters() {
+        let query = QueryParams::from_query_string(
+            "filter[status]=active&filter[type]=user&filter[role]=admin",
+        );
+
+        let filters = query.filters();
+        assert_eq!(filters.get("status").unwrap()[0], "active");
+        assert_eq!(filters.get("type").unwrap()[0], "user");
+        assert_eq!(filters.get("role").unwrap()[0], "admin");
+    }
+
+    #[test]
+    fn test_query_defaults() {
+        let query = QueryParams::from_query_string("existing=42");
+
+        assert_eq!(query.get_or_default("existing", 0), 42);
+        assert_eq!(query.get_or_default("missing", 100), 100);
+        assert_eq!(query.page(), 1); // Default page
+        assert_eq!(query.limit(), 20); // Default limit
+    }
+
+    #[test]
+    fn test_headers_from_map() {
+        let mut map = HashMap::new();
+        map.insert("id".to_string(), "123".to_string());
+        map.insert("name".to_string(), "test".to_string());
+
+        let headers = RequestHeaders::_from_map(map);
+        assert_eq!(headers.get("id"), Some("123"));
+        assert_eq!(headers.get("name"), Some("test"));
+    }
+
+    #[test]
+    fn test_headers_remove() {
+        let mut map = HashMap::new();
+        map.insert("id".to_string(), "123".to_string());
+        map.insert("name".to_string(), "test".to_string());
+
+        let mut headers = RequestHeaders::_from_map(map);
+
+        headers.remove("id");
+
+        assert_eq!(headers.get("id"), None);
+    }
+
+    #[test]
+    fn test_headers_contains_key() {
+        let mut map = HashMap::new();
+        map.insert("id".to_string(), "123".to_string());
+        map.insert("name".to_string(), "test".to_string());
+
+        let headers = RequestHeaders::_from_map(map);
+
+        assert_eq!(headers.contains_key("id"), true);
+        assert_eq!(headers.contains_key("name"), true);
+        assert_eq!(headers.contains_key("non-existent"), false);
     }
 }

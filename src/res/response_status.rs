@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 /// Represents the status code of an HTTP response.
 ///
 /// This enum is used to represent the status code of an HTTP response. It
@@ -76,6 +78,36 @@ pub enum StatusCode {
 
     /// A custom status code with a given u16 value
     Custom(u16),
+}
+
+impl Display for StatusCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let code = self.as_u16();
+        write!(
+            f,
+            "{} {}",
+            code,
+            match self {
+                StatusCode::Ok => "OK",
+                StatusCode::Created => "Created",
+                StatusCode::Accepted => "Accepted",
+                StatusCode::NoContent => "No Content",
+                StatusCode::Redirect => "Redirect",
+                StatusCode::PermanentRedirect => "Permanent Redirect",
+                StatusCode::BadRequest => "Bad Request",
+                StatusCode::Unauthorized => "Unauthorized",
+                StatusCode::Forbidden => "Forbidden",
+                StatusCode::NotFound => "Not Found",
+                StatusCode::MethodNotAllowed => "Method Not Allowed",
+                StatusCode::Conflict => "Conflict",
+                StatusCode::InternalServerError => "Internal Server Error",
+                StatusCode::NotImplemented => "Not Implemented",
+                StatusCode::BadGateway => "Bad Gateway",
+                StatusCode::ServiceUnavailable => "Service Unavailable",
+                StatusCode::Custom(code) => "Custom",
+            }
+        )
+    }
 }
 
 impl StatusCode {

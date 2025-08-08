@@ -3,6 +3,7 @@ mod tests {
     use crate::context::HttpRequest;
     use crate::req::origin_url::Url;
     use crate::res::response_headers::ResponseHeaders;
+    use crate::res::response_status::StatusCode;
     use crate::types::HttpRequestError;
     use crate::types::{HttpMethods, RequestBodyType};
     use actix_web::FromRequest;
@@ -357,5 +358,19 @@ mod tests {
         assert_eq!(all_cookies.len(), 2);
         assert!(all_cookies.contains(&"session=abc123; HttpOnly".to_string()));
         assert!(all_cookies.contains(&"theme=dark; Path=/".to_string()));
+    }
+
+    #[test]
+    fn test_status_code_conversion() {
+        assert_eq!(StatusCode::Ok.as_u16(), 200);
+        assert_eq!(StatusCode::from_u16(200), StatusCode::Ok);
+        assert_eq!(StatusCode::from_u16(999), StatusCode::Custom(999));
+    }
+
+    #[test]
+    fn test_display() {
+        assert_eq!(StatusCode::Ok.to_string(), "200 OK");
+        assert_eq!(StatusCode::NotFound.to_string(), "404 Not Found");
+        assert_eq!(StatusCode::Custom(999).to_string(), "999 Custom");
     }
 }
