@@ -8,7 +8,7 @@ use crate::{
 
 pub async fn exec_middleware(
     mut req: Request<Body>,
-    middleware: Box<Middleware>,
+    middleware: Middleware,
 ) -> Result<Request<Body>, ApiError> {
     let mw_func = middleware.func;
 

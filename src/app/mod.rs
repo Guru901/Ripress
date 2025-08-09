@@ -69,7 +69,7 @@ impl From<ApiError> for Box<dyn std::error::Error + Send> {
 /// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests. It follows an Express-like pattern for route handling.
 pub struct App {
     routes: Routes,
-    middlewares: Vec<Box<Middleware>>,
+    middlewares: Vec<Middleware>,
     pub(crate) static_files: HashMap<&'static str, &'static str>,
 }
 
@@ -125,12 +125,12 @@ impl App {
     {
         let path = path.into().unwrap_or("/").to_string();
 
-        self.middlewares.push(Box::new(Middleware {
+        self.middlewares.push(Middleware {
             func: Arc::new(move |req, res| -> crate::types::FutMiddleware {
                 box_future_middleware(middleware(req, res))
             }),
             path: path,
-        }));
+        });
 
         self
     }
