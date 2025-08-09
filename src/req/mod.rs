@@ -536,7 +536,8 @@ impl HttpRequest {
         };
 
         let is_secure = protocol == String::from("https");
-        let xhr = headers.get("X-Requested-With").unwrap_or(&String::new()) == "XMLHttpRequest";
+        let xhr_header = headers.get("X-Requested-With").unwrap_or("");
+        let xhr = xhr_header == "XMLHttpRequest";
 
         Ok(HttpRequest {
             params,
