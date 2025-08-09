@@ -532,7 +532,7 @@ impl HttpRequest {
                 let body_bytes = to_bytes(req.body_mut()).await;
 
                 let body_string = match body_bytes {
-                    Ok(bytes) => String::from_utf8((&bytes).to_vec()).unwrap(),
+                    Ok(bytes) => String::from_utf8((&bytes).to_vec()).unwrap_or(String::new()),
                     Err(err) => return Err(err),
                 };
 
