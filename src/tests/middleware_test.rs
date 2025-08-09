@@ -4,7 +4,7 @@ mod tests {
     use crate::{
         context::{HttpRequest, HttpResponse},
         middlewares::{
-            cors::{CorsConfig, cors},
+            // cors::{CorsConfig, cors},
             logger::{LoggerConfig, logger},
         },
     };

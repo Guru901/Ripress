@@ -20,7 +20,6 @@ bytes = "1.10.1"
 hyper = { version = "0.14.32", features = ["stream"] }
 routerify = "3.0.0"
 cookie = "0.18.1"
-hyper-util = "0.1.14"
 hyper-staticfile = "0.9"
 
 [package.metadata.docs.rs]
