@@ -438,8 +438,7 @@ impl HttpResponse {
         header_name: &'static str,
         header_value: T,
     ) -> Self {
-        let static_str = Box::leak(header_value.into().into_boxed_str());
-        self.headers.insert(header_name, static_str);
+        self.headers.insert(header_name, header_value.into());
         self
     }
 

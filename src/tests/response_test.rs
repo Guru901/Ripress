@@ -214,20 +214,10 @@ mod tests {
 
         req.set_origin_url(Url::new("value"));
 
-        assert_eq!(
-            req.origin_url,
-            Url {
-                url_string: "value"
-            }
-        );
+        assert_eq!(req.origin_url, Url::new("value"));
 
         req.set_origin_url(Url::new("/user/1?q=hello"));
-        assert_eq!(
-            req.origin_url,
-            Url {
-                url_string: "/user/1?q=hello"
-            }
-        );
+        assert_eq!(req.origin_url, Url::new("/user/1?q=hello"));
     }
 
     #[test]

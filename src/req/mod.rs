@@ -197,8 +197,8 @@ impl HttpRequest {
         self.data.insert(data_key.into(), data_value.into());
     }
 
-    pub fn get_all_data(&self) -> Option<&HashMap<String, String>> {
-        Some(&self.data)
+    pub fn get_all_data(&self) -> &HashMap<String, String> {
+        &self.data
     }
 
     /// Returns data stored in the request by the middleware.
@@ -609,10 +609,10 @@ impl HttpRequest {
             }
         }
 
-        if let Some(data) = self.get_all_data() {
-            if let Some(ext) = builder.extensions_mut() {
-                ext.insert(data.clone());
-            }
+        let data = self.get_all_data();
+
+        if let Some(ext) = builder.extensions_mut() {
+            ext.insert(data.clone());
         }
 
         let body = match &self.body.content {
@@ -666,9 +666,9 @@ impl HttpRequest {
         self.body.content = RequestBodyContent::JSON(serde_json::to_value(json).unwrap());
     }
 
-    pub(crate) fn set_text(&mut self, text: &'static str, content_type: RequestBodyType) {
+    pub(crate) fn set_text<T: Into<String>>(&mut self, text: T, content_type: RequestBodyType) {
         self.body.content_type = content_type;
-        self.body.content = RequestBodyContent::TEXT(text)
+        self.body.content = RequestBodyContent::TEXT(text.into())
     }
 
     pub(crate) fn set_form(
@@ -684,11 +684,11 @@ impl HttpRequest {
                 let mut new_form = existing.to_string();
                 new_form.push('&');
                 new_form.push_str(&format!("{key}={value}"));
-                self.body.content = RequestBodyContent::FORM(Box::leak(new_form.into_boxed_str()));
+                self.body.content = RequestBodyContent::FORM(new_form)
             }
             _ => {
                 let form_data = format!("{key}={value}");
-                self.body.content = RequestBodyContent::FORM(Box::leak(form_data.into_boxed_str()));
+                self.body.content = RequestBodyContent::FORM(form_data)
             }
         }
     }

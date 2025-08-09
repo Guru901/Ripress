@@ -5,7 +5,7 @@ use std::fmt::Display;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Url {
     /// The url string
-    pub url_string: &'static str,
+    pub url_string: String,
 }
 
 impl Display for Url {
@@ -17,7 +17,7 @@ impl Display for Url {
 impl Url {
     pub(crate) fn new<T: Into<String>>(url_string: T) -> Self {
         Self {
-            url_string: Box::leak(url_string.into().into_boxed_str()),
+            url_string: url_string.into(),
         }
     }
 }
