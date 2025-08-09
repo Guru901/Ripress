@@ -610,8 +610,9 @@ impl HttpRequest {
         }
 
         if let Some(data) = self.get_all_data() {
-            let extensions = builder.extensions_mut().unwrap();
-            extensions.insert(data.clone());
+            if let Some(ext) = builder.extensions_mut() {
+                ext.insert(data.clone());
+            }
         }
 
         let body = match &self.body.content {
