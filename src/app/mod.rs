@@ -237,15 +237,30 @@ impl App {
                         router = router.get(path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let mut our_req =
-                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
+                                    .await
+                                {
+                                    Ok(r) => r,
+                                    Err(e) => {
+                                        return Err(ApiError::Generic(
+                                            HttpResponse::new().bad_request().text(e.to_string()),
+                                        ));
+                                    }
+                                };
                                 req.params().iter().for_each(|(key, value)| {
                                     our_req.set_param(key, value);
                                 });
 
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                Ok(response.to_responder().unwrap())
+                                match response.to_responder() {
+                                    Ok(r) => Ok(r),
+                                    Err(_e) => Err(ApiError::Generic(
+                                        HttpResponse::new()
+                                            .bad_request()
+                                            .text("Failed to create response"),
+                                    )),
+                                }
                             }
                         });
                     }
@@ -253,15 +268,30 @@ impl App {
                         router = router.post(path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let mut our_req =
-                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
+                                    .await
+                                {
+                                    Ok(r) => r,
+                                    Err(e) => {
+                                        return Err(ApiError::Generic(
+                                            HttpResponse::new().bad_request().text(e.to_string()),
+                                        ));
+                                    }
+                                };
                                 req.params().iter().for_each(|(key, value)| {
                                     our_req.set_param(key, value);
                                 });
 
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                Ok(response.to_responder().unwrap())
+                                match response.to_responder() {
+                                    Ok(r) => Ok(r),
+                                    Err(_e) => Err(ApiError::Generic(
+                                        HttpResponse::new()
+                                            .bad_request()
+                                            .text("Failed to create response"),
+                                    )),
+                                }
                             }
                         });
                     }
@@ -269,14 +299,29 @@ impl App {
                         router = router.put(path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let mut our_req =
-                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
+                                    .await
+                                {
+                                    Ok(r) => r,
+                                    Err(e) => {
+                                        return Err(ApiError::Generic(
+                                            HttpResponse::new().bad_request().text(e.to_string()),
+                                        ));
+                                    }
+                                };
                                 req.params().iter().for_each(|(key, value)| {
                                     our_req.set_param(key, value);
                                 });
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                Ok(response.to_responder().unwrap())
+                                match response.to_responder() {
+                                    Ok(r) => Ok(r),
+                                    Err(_e) => Err(ApiError::Generic(
+                                        HttpResponse::new()
+                                            .bad_request()
+                                            .text("Failed to create response"),
+                                    )),
+                                }
                             }
                         });
                     }
@@ -284,14 +329,29 @@ impl App {
                         router = router.delete(path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let mut our_req =
-                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
+                                    .await
+                                {
+                                    Ok(r) => r,
+                                    Err(e) => {
+                                        return Err(ApiError::Generic(
+                                            HttpResponse::new().bad_request().text(e.to_string()),
+                                        ));
+                                    }
+                                };
                                 req.params().iter().for_each(|(key, value)| {
                                     our_req.set_param(key, value);
                                 });
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                Ok(response.to_responder().unwrap())
+                                match response.to_responder() {
+                                    Ok(r) => Ok(r),
+                                    Err(_e) => Err(ApiError::Generic(
+                                        HttpResponse::new()
+                                            .bad_request()
+                                            .text("Failed to create response"),
+                                    )),
+                                }
                             }
                         });
                     }
@@ -299,14 +359,29 @@ impl App {
                         router = router.patch(path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let mut our_req =
-                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
+                                    .await
+                                {
+                                    Ok(r) => r,
+                                    Err(e) => {
+                                        return Err(ApiError::Generic(
+                                            HttpResponse::new().bad_request().text(e.to_string()),
+                                        ));
+                                    }
+                                };
                                 req.params().iter().for_each(|(key, value)| {
                                     our_req.set_param(key, value);
                                 });
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                Ok(response.to_responder().unwrap())
+                                match response.to_responder() {
+                                    Ok(r) => Ok(r),
+                                    Err(_e) => Err(ApiError::Generic(
+                                        HttpResponse::new()
+                                            .bad_request()
+                                            .text("Failed to create response"),
+                                    )),
+                                }
                             }
                         });
                     }
@@ -314,14 +389,29 @@ impl App {
                         router = router.head(path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let mut our_req =
-                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
+                                    .await
+                                {
+                                    Ok(r) => r,
+                                    Err(e) => {
+                                        return Err(ApiError::Generic(
+                                            HttpResponse::new().bad_request().text(e.to_string()),
+                                        ));
+                                    }
+                                };
                                 req.params().iter().for_each(|(key, value)| {
                                     our_req.set_param(key, value);
                                 });
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                Ok(response.to_responder().unwrap())
+                                match response.to_responder() {
+                                    Ok(r) => Ok(r),
+                                    Err(_e) => Err(ApiError::Generic(
+                                        HttpResponse::new()
+                                            .bad_request()
+                                            .text("Failed to create response"),
+                                    )),
+                                }
                             }
                         });
                     }
@@ -329,14 +419,29 @@ impl App {
                         router = router.options(path, move |mut req| {
                             let handler = handler.clone();
                             async move {
-                                let mut our_req =
-                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
+                                    .await
+                                {
+                                    Ok(r) => r,
+                                    Err(e) => {
+                                        return Err(ApiError::Generic(
+                                            HttpResponse::new().bad_request().text(e.to_string()),
+                                        ));
+                                    }
+                                };
                                 req.params().iter().for_each(|(key, value)| {
                                     our_req.set_param(key, value);
                                 });
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                Ok(response.to_responder().unwrap())
+                                match response.to_responder() {
+                                    Ok(r) => Ok(r),
+                                    Err(_e) => Err(ApiError::Generic(
+                                        HttpResponse::new()
+                                            .bad_request()
+                                            .text("Failed to create response"),
+                                    )),
+                                }
                             }
                         });
                     }
