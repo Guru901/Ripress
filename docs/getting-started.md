@@ -19,7 +19,8 @@ Ripress is an Express-inspired web framework for Rust, designed to provide a sim
 ## Installation
 
 ```bash
-cargo add ripress tokio
+cargo add ripress
+cargo add tokio --features macros,rt-multi-thread
 ```
 
 ## Quick Start
