@@ -97,7 +97,7 @@ async fn main() {
             if has_token {
                 (req_cloned, None)
             } else {
-                (req_cloned, Some(res.unauthorized().text("No token found")))
+                (req_cloned, Some(res.unauthorized().text("unauthorized")))
             }
         })
     });
@@ -244,6 +244,7 @@ async fn multi_header_handler(req: HttpRequest, res: HttpResponse) -> HttpRespon
 
 async fn method_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let method = req.method;
+    println!("{}", method);
     res.ok().json(json!(method.to_string()))
 }
 
@@ -276,7 +277,9 @@ async fn empty_body_handler(_: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 async fn xhr_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let xhr = req.xhr;
-    res.ok().json(json!(xhr))
+    res.ok().json(json!({
+        "method": xhr
+    }))
 }
 async fn secure_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let secure = req.is_secure;
@@ -377,7 +380,6 @@ async fn stream_json(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
     res.write(stream)
 }
-
 
 ' > main.rs
 

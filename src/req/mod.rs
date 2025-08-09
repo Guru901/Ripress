@@ -6,7 +6,7 @@ use crate::{
 };
 use cookie::Cookie;
 use futures::StreamExt;
-use hyper::{Body, Method, Request, body::to_bytes};
+use hyper::{Body, Method, Request, body::to_bytes, header::HOST};
 use routerify::ext::RequestExt;
 use std::{
     collections::HashMap,
@@ -388,8 +388,26 @@ impl HttpRequest {
     pub(crate) async fn from_hyper_request(
         req: &mut Request<hyper::body::Body>,
     ) -> Result<Self, hyper::Error> {
-        let uri_string = req.uri().to_string();
-        let origin_url = Url::new(uri_string);
+        let origin_url = match req.uri().authority() {
+            Some(authority) => {
+                let scheme = req.uri().scheme_str().unwrap_or("http");
+                Url::new(format!("{}://{}", scheme, authority))
+            }
+            None => {
+                let uri_string = req
+                    .headers()
+                    .get(HOST)
+                    .and_then(|host| host.to_str().ok())
+                    .map(|host| {
+                        // Determine scheme (you might want to check for TLS context)
+                        let scheme = "http"; // or "https" if using TLS
+                        format!("{}://{}", scheme, host)
+                    })
+                    .unwrap_or(String::new());
+
+                Url::new(uri_string)
+            }
+        };
 
         let query_string = req.uri().query().unwrap_or("");
 
@@ -529,7 +547,7 @@ impl HttpRequest {
         })
     }
 
-    pub fn to_hyper_request(&self) -> Result<Request<Body>, Box<dyn std::error::Error>> {
+    pub(crate) fn to_hyper_request(&self) -> Result<Request<Body>, Box<dyn std::error::Error>> {
         let path = if self.path.is_empty() {
             "/".to_string()
         } else if !self.path.starts_with('/') {
