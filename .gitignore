@@ -2,3 +2,4 @@
 src/main.rs
 .idea
 tarpaulin-report.html
+test-results/.last-run.json
