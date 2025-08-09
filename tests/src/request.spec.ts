@@ -11,7 +11,7 @@ test.describe("Request Tests", () => {
     expect(cookieResponse.status()).toBe(200);
 
     const body = await cookieResponse.json();
-    expect(body.sessionId === "abc123");
+    expect(body.sessionId).toBe("abc123");
   });
 
   test("Set and check headers", async ({ request }) => {
@@ -24,7 +24,7 @@ test.describe("Request Tests", () => {
     expect(headerResponse.status()).toBe(200);
 
     const body = await headerResponse.json();
-    expect(body.header === "test-value");
+    expect(body.header).toBe("test-value");
   });
 
   test("Set and check params and query", async ({ request }) => {
@@ -35,8 +35,8 @@ test.describe("Request Tests", () => {
     expect(paramAndQueryResponse.status()).toBe(200);
 
     const body = await paramAndQueryResponse.json();
-    expect(body.param === "test");
-    expect(body.query === "test-query");
+    expect(body.param).toBe("test");
+    expect(body.query).toBe("test-query");
   });
 
   test("Set and get origin_url and path", async ({ request }) => {
@@ -47,10 +47,10 @@ test.describe("Request Tests", () => {
     expect(originUrlAndPathResponse.status()).toBe(200);
 
     const body = await originUrlAndPathResponse.json();
-    expect(
-      body.originUrl === "http://localhost:8080/origin-url-and-path/test?q=test"
+    expect(body.originUrl).toBe(
+      "http://localhost:8080/origin-url-and-path/test?q=test"
     );
-    expect(body.path === "/origin-url-and-path/test");
+    expect(body.path).toBe("/origin-url-and-path/test");
   });
 
   test("Test Ip", async ({ request }) => {
@@ -60,7 +60,7 @@ test.describe("Request Tests", () => {
 
     const body = await ipResponse.json();
 
-    expect(body.ip === "127.0.0.1");
+    expect(body.ip).toBe("127.0.0.1");
   });
 
   test("Set and get json body", async ({ request }) => {
@@ -71,8 +71,8 @@ test.describe("Request Tests", () => {
     expect(jsonResponse.status()).toBe(200);
 
     const body = await jsonResponse.json();
-    expect(body.name === "test");
-    expect(body.age === 123);
+    expect(body.name).toBe("test");
+    expect(body.age).toBe(123);
   });
 
   test("Set and get text body", async ({ request }) => {
@@ -83,7 +83,7 @@ test.describe("Request Tests", () => {
     expect(textResponse.status()).toBe(200);
 
     const body = await textResponse.text();
-    expect(body === "test");
+    expect(body).toBe("test");
   });
 
   test("Set and get form data", async ({ request }) => {
@@ -94,7 +94,7 @@ test.describe("Request Tests", () => {
     expect(jsonResponse.status()).toBe(200);
 
     const body = await jsonResponse.json();
-    expect(body.name === "test");
+    expect(body.name).toBe("test");
   });
 
   test("Auth - Should be authenticated", async ({ request }) => {
@@ -107,7 +107,7 @@ test.describe("Request Tests", () => {
     expect(authResponse.status()).toBe(200);
 
     const body = await authResponse.text();
-    expect(body === "123abc");
+    expect(body).toBe("123abc");
   });
 
   test("Auth - isn't authenticated", async ({ request }) => {
@@ -116,7 +116,7 @@ test.describe("Request Tests", () => {
     expect(authResponse.status()).toBe(401);
 
     const body = await authResponse.text();
-    expect(body === "unauthorized");
+    expect(body).toBe("unauthorized");
   });
 
   // Additional Request Object Tests
@@ -129,9 +129,9 @@ test.describe("Request Tests", () => {
     expect(response.status()).toBe(200);
 
     const body = await response.json();
-    expect(body.name === "john");
-    expect(body.age === "25");
-    expect(body.city === "NYC");
+    expect(body.name).toBe("john");
+    expect(body.age).toBe("25");
+    expect(body.city).toBe("NYC");
   });
 
   test("Multiple route parameters", async ({ request }) => {
@@ -140,8 +140,8 @@ test.describe("Request Tests", () => {
     expect(response.status()).toBe(200);
 
     const body = await response.json();
-    expect(body.userId === "123");
-    expect(body.postId === "456");
+    expect(body.userId).toBe("123");
+    expect(body.postId).toBe("456");
   });
 
   test("Multiple cookies", async ({ request }) => {
@@ -154,9 +154,9 @@ test.describe("Request Tests", () => {
     expect(response.status()).toBe(200);
 
     const body = await response.json();
-    expect(body.user === "john");
-    expect(body.theme === "dark");
-    expect(body.lang === "en");
+    expect(body.user).toBe("john");
+    expect(body.theme).toBe("dark");
+    expect(body.lang).toBe("en");
   });
 
   test("Multiple headers", async ({ request }) => {
@@ -172,36 +172,36 @@ test.describe("Request Tests", () => {
     expect(response.status()).toBe(200);
 
     const body = await response.json();
-    expect(body.userAgent === "TestBot/1.0");
-    expect(body.accept === "application/json");
-    expect(body.authorization === "Bearer token123");
-    expect(body.customHeader === "custom-value");
+    expect(body.userAgent).toBe("TestBot/1.0");
+    expect(body.accept).toBe("application/json");
+    expect(body.authorization).toBe("Bearer token123");
+    expect(body.customHeader).toBe("custom-value");
   });
 
   test("Request method detection", async ({ request }) => {
     const getResponse = await request.get("/method-test");
     expect(getResponse.status()).toBe(200);
     const getBody = await getResponse.json();
-    expect(getBody.method === "GET");
+    expect(getBody.method).toBe("GET");
 
     const postResponse = await request.post("/method-test", {
       data: {},
     });
     expect(postResponse.status()).toBe(200);
     const postBody = await postResponse.json();
-    expect(postBody.method === "POST");
+    expect(postBody.data).toBe("POST");
 
     const putResponse = await request.put("/method-test", {
       data: {},
     });
     expect(putResponse.status()).toBe(200);
     const putBody = await putResponse.json();
-    expect(putBody.method === "PUT");
+    expect(putBody.method).toBe("PUT");
 
     const deleteResponse = await request.delete("/method-test");
     expect(deleteResponse.status()).toBe(200);
     const deleteBody = await deleteResponse.json();
-    expect(deleteBody.method === "DELETE");
+    expect(deleteBody.method).toBe("DELETE");
   });
 
   test("URL-encoded form data", async ({ request }) => {
@@ -216,9 +216,9 @@ test.describe("Request Tests", () => {
     expect(response.status()).toBe(200);
 
     const body = await response.json();
-    expect(body.username === "testuser");
-    expect(body.password === "secret123");
-    expect(body.email === "test@example.com");
+    expect(body.username).toBe("testuser");
+    expect(body.password).toBe("secret123");
+    expect(body.email).toBe("test@example.com");
   });
 
   test("Raw body data", async ({ request }) => {
@@ -233,8 +233,8 @@ test.describe("Request Tests", () => {
     expect(response.status()).toBe(200);
 
     const body = await response.json();
-    expect(body.rawBody === rawData);
-    expect(body.contentType === "text/plain");
+    expect(body.rawBody).toBe(rawData);
+    expect(body.contentType).toBe("text/plain");
   });
 
   // test("Request with custom port", async ({request}) => {
@@ -258,7 +258,7 @@ test.describe("Request Tests", () => {
     expect(response.status()).toBe(200);
 
     const body = await response.json();
-    expect(body.secure === false); // Assuming HTTP for tests
+    expect(body.secure).toBe(false); // Assuming HTTP for tests
   });
 
   test("Request xhr detection", async ({ request }) => {
@@ -271,7 +271,7 @@ test.describe("Request Tests", () => {
     expect(response.status()).toBe(200);
 
     const body = await response.json();
-    expect(body.xhr === true);
+    expect(body.xhr).toBe(true);
   });
 
   test("Empty request body", async ({ request }) => {
