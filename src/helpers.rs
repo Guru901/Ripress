@@ -17,7 +17,7 @@ pub async fn exec_middleware(
         .await
         .map_err(ApiError::from)?;
 
-    if our_req.path.starts_with(middleware.path.as_str()) {
+    if path_matches(middleware.path.as_str(), our_req.path.as_str()) {
         let (modified_req, maybe_res) = mw_func(&mut our_req, our_res).await;
 
         match maybe_res {
@@ -31,6 +31,10 @@ pub async fn exec_middleware(
     } else {
         our_req.to_hyper_request().map_err(ApiError::from)
     }
+}
+
+fn path_matches(prefix: &str, path: &str) -> bool {
+    path == prefix || path.starts_with(&(prefix.to_string() + "/"))
 }
 
 pub fn get_all_query_params(queries: &QueryParams) -> String {
