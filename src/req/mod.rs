@@ -2,16 +2,15 @@
 
 use crate::{
     helpers::get_all_query_params,
-    res::HttpResponse,
     types::{HttpMethods, HttpRequestError, RequestBody, RequestBodyContent, RequestBodyType},
 };
 use cookie::Cookie;
-use futures::StreamExt;
 use hyper::{Body, Method, Request, body::to_bytes, header::HOST};
 use routerify::ext::RequestExt;
 use serde_json::Value;
 use std::{
     collections::HashMap,
+    hash::Hash,
     net::{IpAddr, Ipv4Addr},
 };
 
@@ -108,7 +107,7 @@ pub struct HttpRequest {
     cookies: HashMap<String, String>,
 
     // The Data set by middleware in the request to be used in the route handler
-    data: HashMap<&'static str, &'static str>,
+    data: HashMap<String, String>,
 
     /// The request body, which may contain JSON, text, or form data.
     body: RequestBody,
@@ -194,11 +193,11 @@ impl HttpRequest {
     /// println!("Id: {:?}", id);
     /// ```
 
-    pub fn set_data<T: Into<&'static str>>(&mut self, data_key: T, data_value: T) {
+    pub fn set_data<T: Into<String>>(&mut self, data_key: T, data_value: T) {
         self.data.insert(data_key.into(), data_value.into());
     }
 
-    pub fn get_all_data(&self) -> Option<&HashMap<&'static str, &'static str>> {
+    pub fn get_all_data(&self) -> Option<&HashMap<String, String>> {
         Some(&self.data)
     }
 
@@ -219,7 +218,7 @@ impl HttpRequest {
     /// println!("Id: {:?}", id);
     /// ```
 
-    pub fn get_data<T: Into<&'static str>>(&self, data_key: T) -> Option<&&'static str> {
+    pub fn get_data<T: Into<String>>(&self, data_key: T) -> Option<&String> {
         self.data.get(&data_key.into())
     }
 
@@ -473,7 +472,7 @@ impl HttpRequest {
         let mut data = HashMap::new();
 
         if let Some(ext_data) = req.extensions().get::<HashMap<String, String>>() {
-            data = ext_data.clone();
+            data = ext_data.clone()
         }
 
         let content_type = req
@@ -547,7 +546,7 @@ impl HttpRequest {
             path,
             protocol,
             headers,
-            data: HashMap::new(),
+            data,
             body: request_body,
             cookies: cookies_map,
             xhr,
