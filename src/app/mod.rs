@@ -11,6 +11,7 @@ use hyper_staticfile::Static;
 use routerify::ext::RequestExt;
 use routerify::{Router, RouterService};
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
@@ -45,6 +46,16 @@ unsafe impl Sync for ApiError {}
 impl From<HttpResponse> for ApiError {
     fn from(res: HttpResponse) -> Self {
         ApiError::Generic(res)
+    }
+}
+
+impl From<Infallible> for ApiError {
+    fn from(_: Infallible) -> Self {
+        ApiError::Generic(
+            HttpResponse::new()
+                .internal_server_error()
+                .text("Unhandled error"),
+        )
     }
 }
 
@@ -211,7 +222,11 @@ impl App {
 
             match api_err.as_ref() {
                 ApiError::Generic(res) => {
-                    <HttpResponse as Clone>::clone(res).to_responder().unwrap()
+                    // <HttpResponse as Clone>::clone(res).to_responder().unwrap()
+                    <HttpResponse as Clone>::clone(res)
+                        .to_responder()
+                        .map_err(ApiError::from)
+                        .unwrap()
                 }
             }
         }
