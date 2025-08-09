@@ -463,7 +463,9 @@ impl HttpRequest {
         let mut headers: HashMap<String, String> = HashMap::new();
 
         req.headers().iter().for_each(|(key, value)| {
-            headers.insert(key.to_string(), value.to_str().unwrap_or("").to_string());
+            if let Ok(header_value) = value.to_str() {
+                headers.insert(key.to_string(), header_value.to_string());
+            }
         });
 
         let headers = RequestHeaders::_from_map(headers);
