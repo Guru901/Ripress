@@ -181,7 +181,13 @@ impl App {
         let mut router = Router::<Body, ApiError>::builder();
 
         async fn error_handler(err: routerify::RouteError) -> Response<Body> {
-            let api_err = err.downcast::<ApiError>().unwrap();
+            let api_err = err.downcast::<ApiError>().unwrap_or_else(|_| {
+                return Box::new(ApiError::Generic(
+                    HttpResponse::new()
+                        .internal_server_error()
+                        .text("Unhandled error"),
+                ));
+            });
 
             match api_err.as_ref() {
                 ApiError::Generic(res) => {
