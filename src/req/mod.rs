@@ -504,7 +504,7 @@ impl HttpRequest {
                 let body_bytes = to_bytes(req.body_mut()).await;
 
                 let body_string = match body_bytes {
-                    Ok(bytes) => std::str::from_utf8(&bytes).unwrap().to_string(),
+                    Ok(bytes) => std::str::from_utf8(&bytes).unwrap_or("").to_string(),
                     Err(err) => return Err(err),
                 };
 
