@@ -93,6 +93,7 @@ pub enum HttpMethods {
     HEAD,
     DELETE,
     PATCH,
+    OPTIONS,
 }
 
 impl Display for HttpMethods {
@@ -104,6 +105,7 @@ impl Display for HttpMethods {
             HttpMethods::DELETE => "DELETE",
             HttpMethods::PATCH => "PATCH",
             HttpMethods::HEAD => "HEAD",
+            HttpMethods::OPTIONS => "OPTION",
         };
         write!(f, "{}", method)
     }

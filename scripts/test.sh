@@ -38,10 +38,12 @@ cd ../src
 touch main.rs
 
 echo '
+
 use bytes::Bytes;
 use futures::stream;
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::middlewares::cors::cors;
 use ripress::middlewares::logger::logger;
 use ripress::res::{CookieOptions, CookieSameSiteOptions};
 use ripress::types::RouterFns;
@@ -55,6 +57,7 @@ async fn main() {
     let mut app = App::new();
 
     app.use_middleware("/", logger(None));
+    app.use_middleware("/", cors(None));
 
     // request tests
     app.get("/cookie-test", cookie_handler);
@@ -374,6 +377,7 @@ async fn stream_json(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
     res.write(stream)
 }
+
 
 ' > main.rs
 

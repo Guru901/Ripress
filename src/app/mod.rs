@@ -4,11 +4,13 @@ use crate::helpers::exec_middleware;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::types::{Fut, FutMiddleware, HttpMethods, RouterFns, Routes};
-use hyper::{Body, Response, Server};
+use hyper::{Body, Error, Request, Response, Server};
+use hyper_staticfile::Static;
 use routerify::ext::RequestExt;
 use routerify::{Router, RouterService};
 use std::collections::HashMap;
 use std::net::SocketAddr;
+use std::path::Path;
 use std::sync::Arc;
 
 pub(crate) fn box_future<F>(future: F) -> Fut
@@ -193,6 +195,26 @@ impl App {
             }));
         }
 
+        if let (Some(mount_path), Some(serve_from)) = (
+            self.static_files.get("mount_path"),
+            self.static_files.get("serve_from"),
+        ) {
+            let serve_from = serve_from.to_string();
+            router = router.get(*mount_path, move |req| {
+                let serve_from = serve_from.clone();
+                async move {
+                    match Self::serve_static_with_headers(req, serve_from).await {
+                        Ok(res) => Ok(res),
+                        Err(e) => Err(ApiError::Generic(
+                            HttpResponse::new()
+                                .internal_server_error()
+                                .text(e.to_string()),
+                        )),
+                    }
+                }
+            });
+        }
+
         for (path, methods) in &self.routes {
             for (method, handler) in methods {
                 let handler = handler.clone();
@@ -289,6 +311,21 @@ impl App {
                             }
                         });
                     }
+                    HttpMethods::OPTIONS => {
+                        router = router.options(path, move |mut req| {
+                            let handler = handler.clone();
+                            async move {
+                                let mut our_req =
+                                    HttpRequest::from_hyper_request(&mut req).await.unwrap();
+                                req.params().iter().for_each(|(key, value)| {
+                                    our_req.set_param(key, value);
+                                });
+                                let our_res = HttpResponse::new();
+                                let response = handler(our_req, our_res).await;
+                                Ok(response.to_responder().unwrap())
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -306,6 +343,27 @@ impl App {
 
         if let Err(e) = server.await {
             eprintln!("server error: {}", e);
+        }
+    }
+
+    async fn serve_static_with_headers(
+        req: Request<Body>,
+        path: String,
+    ) -> Result<Response<Body>, std::io::Error> {
+        let static_service = Static::new(Path::new(path.as_str()));
+
+        match static_service.serve(req).await {
+            Ok(mut response) => {
+                // Add custom headers
+                response
+                    .headers_mut()
+                    .insert("Cache-Control", "public, max-age=86400".parse().unwrap());
+                response
+                    .headers_mut()
+                    .insert("X-Served-By", "hyper-staticfile".parse().unwrap());
+                Ok(response)
+            }
+            Err(e) => Err(e),
         }
     }
 }
