@@ -6,11 +6,11 @@ use crate::{
 };
 use cookie::Cookie;
 use hyper::{Body, Method, Request, body::to_bytes, header::HOST};
+use mime::Mime;
 use routerify::ext::RequestExt;
 use serde_json::Value;
 use std::{
     collections::HashMap,
-    hash::Hash,
     net::{IpAddr, Ipv4Addr},
 };
 
@@ -361,12 +361,21 @@ impl HttpRequest {
     }
 
     pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
-        if content_type == "application/json" {
-            return RequestBodyType::JSON;
-        } else if content_type == "application/x-www-form-urlencoded" {
-            return RequestBodyType::FORM;
-        } else {
-            RequestBodyType::TEXT
+        match content_type.parse::<Mime>() {
+            Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
+                (mime::APPLICATION, mime::JSON) => RequestBodyType::JSON,
+                (mime::APPLICATION, subtype) if subtype == "x-www-form-urlencoded" => {
+                    RequestBodyType::FORM
+                }
+                (mime::MULTIPART, mime::FORM_DATA) => RequestBodyType::FORM,
+                (mime::TEXT, _) => RequestBodyType::TEXT,
+                // Handle JSON variants
+                (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
+                    RequestBodyType::JSON
+                }
+                _ => RequestBodyType::TEXT,
+            },
+            Err(_) => RequestBodyType::TEXT, // Fallback for invalid MIME types
         }
     }
 

@@ -21,6 +21,7 @@ hyper = { version = "0.14.32", features = ["stream"] }
 routerify = "3.0.0"
 cookie = "0.18.1"
 hyper-staticfile = "0.9"
+mime = "0.3.17"
 
 [package.metadata.docs.rs]
 readme = "README.md"

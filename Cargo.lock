@@ -673,6 +673,7 @@ dependencies = [
  "futures",
  "hyper",
  "hyper-staticfile",
+ "mime",
  "routerify",
  "serde",
  "serde_json",
