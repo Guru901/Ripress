@@ -4,7 +4,9 @@ use crate::helpers::exec_middleware;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::types::{Fut, FutMiddleware, HttpMethods, RouterFns, Routes};
-use hyper::{Body, Error, Request, Response, Server};
+use hyper::header;
+use hyper::http::StatusCode;
+use hyper::{Body, Request, Response, Server};
 use hyper_staticfile::Static;
 use routerify::ext::RequestExt;
 use routerify::{Router, RouterService};
@@ -200,10 +202,16 @@ impl App {
             self.static_files.get("serve_from"),
         ) {
             let serve_from = serve_from.to_string();
-            router = router.get(*mount_path, move |req| {
-                let serve_from = serve_from.clone();
+            let mount_root = mount_path.to_string();
+            let mount_with_wildcard = format!("{}/*", mount_path);
+
+            let serve_from_clone = serve_from.clone();
+            let mount_root_clone = mount_root.clone();
+            router = router.get(mount_with_wildcard, move |req| {
+                let serve_from = serve_from_clone.clone();
+                let mount_root = mount_root_clone.clone();
                 async move {
-                    match Self::serve_static_with_headers(req, serve_from).await {
+                    match Self::serve_static_with_headers(req, mount_root, serve_from).await {
                         Ok(res) => Ok(res),
                         Err(e) => Err(ApiError::Generic(
                             HttpResponse::new()
@@ -348,19 +356,72 @@ impl App {
 
     async fn serve_static_with_headers(
         req: Request<Body>,
-        path: String,
+        mount_root: String,
+        fs_root: String,
     ) -> Result<Response<Body>, std::io::Error> {
-        let static_service = Static::new(Path::new(path.as_str()));
+        // Rewrite the request URI by stripping the mount_root prefix so that
+        // "/static/index.html" maps to "fs_root/index.html" rather than
+        // "fs_root/static/index.html".
+        let (mut parts, body) = req.into_parts();
+        let original_uri = parts.uri.clone();
+        let original_path = original_uri.path();
+        let if_none_match = parts
+            .headers
+            .get(header::IF_NONE_MATCH)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
 
-        match static_service.serve(req).await {
+        let trimmed_path = if original_path.starts_with(mount_root.as_str()) {
+            &original_path[mount_root.len()..]
+        } else {
+            original_path
+        };
+
+        let normalized_path = if trimmed_path.is_empty() {
+            "/"
+        } else {
+            trimmed_path
+        };
+
+        let new_path_and_query = if let Some(query) = original_uri.query() {
+            format!("{}?{}", normalized_path, query)
+        } else {
+            normalized_path.to_string()
+        };
+
+        parts.uri = new_path_and_query.parse().unwrap();
+        let rewritten_req = Request::from_parts(parts, body);
+
+        let static_service = Static::new(Path::new(fs_root.as_str()));
+
+        match static_service.serve(rewritten_req).await {
             Ok(mut response) => {
-                // Add custom headers
                 response
                     .headers_mut()
                     .insert("Cache-Control", "public, max-age=86400".parse().unwrap());
                 response
                     .headers_mut()
                     .insert("X-Served-By", "hyper-staticfile".parse().unwrap());
+                // Handle conditional request with If-None-Match since hyper-staticfile 0.9
+                // does not evaluate it. If ETag matches, return 304 with empty body.
+                if let Some(if_none_match_value) = if_none_match {
+                    if let Some(etag) = response.headers().get(header::ETAG) {
+                        if let Ok(etag_value) = etag.to_str() {
+                            if if_none_match_value == etag_value {
+                                let mut builder =
+                                    Response::builder().status(StatusCode::NOT_MODIFIED);
+                                if let Some(h) = builder.headers_mut() {
+                                    // carry forward ETag, Cache-Control, Last-Modified, etc.
+                                    for (k, v) in response.headers().iter() {
+                                        h.insert(k.clone(), v.clone());
+                                    }
+                                    h.remove(header::CONTENT_LENGTH);
+                                }
+                                return Ok(builder.body(Body::empty()).unwrap());
+                            }
+                        }
+                    }
+                }
                 Ok(response)
             }
             Err(e) => Err(e),
