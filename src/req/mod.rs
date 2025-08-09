@@ -425,6 +425,7 @@ impl HttpRequest {
             &Method::DELETE => HttpMethods::DELETE,
             &Method::PATCH => HttpMethods::PATCH,
             &Method::HEAD => HttpMethods::HEAD,
+            &Method::OPTIONS => HttpMethods::OPTIONS,
             _ => HttpMethods::GET,
         };
 
