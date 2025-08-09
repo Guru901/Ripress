@@ -1,9 +1,7 @@
-#![warn(missing_docs)]
-
 use crate::{
     context::HttpResponse,
     req::HttpRequest,
-    types::{Fut, Next},
+    types::{FutMiddleware, HttpMethods},
 };
 
 /// Configuration for the Cors Middleware
@@ -12,17 +10,13 @@ use crate::{
 ///
 /// * `allowed_origin` - The allowed origin for the request
 /// * `allowed_methods` - The allowed methods for the request
+/// * `allowed_headers` - The allowed headers for the request
 /// * `allow_credentials` - Whether to allow credentials
-
 #[derive(Clone)]
 pub struct CorsConfig {
-    /// The allowed origin for the request
     pub allowed_origin: &'static str,
-
-    /// The allowed methods for the request
     pub allowed_methods: &'static str,
-
-    /// Whether to allow credentials
+    pub allowed_headers: &'static str,
     pub allow_credentials: bool,
 }
 
@@ -31,6 +25,7 @@ impl Default for CorsConfig {
         CorsConfig {
             allowed_origin: "*",
             allowed_methods: "GET, POST, PUT, DELETE, OPTIONS",
+            allowed_headers: "Content-Type, Authorization",
             allow_credentials: false,
         }
     }
@@ -48,42 +43,64 @@ impl Default for CorsConfig {
 /// use ripress::{app::App, middlewares::cors::cors};
 /// let mut app = App::new();
 /// app.use_middleware("", cors(None));
+/// ```
 ///
-///```
-///```
+/// ```
 /// use ripress::{app::App, middlewares::cors::{cors, CorsConfig}};
 /// let mut app = App::new();
 /// app.use_middleware("", cors(Some(CorsConfig {
 ///     allowed_origin: "https://example.com",
 ///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS",
+///     allowed_headers: "Content-Type, Authorization",
 ///     allow_credentials: true,
 /// })));
 /// ```
-
 pub fn cors(
     config: Option<CorsConfig>,
-) -> impl Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static {
-    move |req, mut res, next| {
+) -> impl Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+    move |req, mut res| {
         let config = config.clone().unwrap_or_default();
+        let req_clone = req.clone();
 
         Box::pin(async move {
+            // Always add CORS headers
             res = res
-                .set_header("Access-Control-Allow-Origin", &config.allowed_origin)
-                .set_header("Access-Control-Allow-Methods", &config.allowed_methods)
-                .set_header(
-                    "Access-Control-Allow-Headers",
-                    "Content-Type, Authorization",
-                );
+                .set_header("Access-Control-Allow-Origin", config.allowed_origin)
+                .set_header("Access-Control-Allow-Methods", config.allowed_methods)
+                .set_header("Access-Control-Allow-Headers", config.allowed_headers);
 
             if config.allow_credentials {
                 res = res.set_header("Access-Control-Allow-Credentials", "true");
             }
 
-            // if req.method() == "OPTIONS" {
-            //     return res.ok().text(""); // Preflight response
-            // }
+            // Handle preflight OPTIONS requests - terminate here with 200
+            if req_clone.method == HttpMethods::OPTIONS {
+                return (req_clone, Some(res.ok()));
+            }
 
-            next.run(req, res).await
+            // For all other requests, add CORS headers but continue to next handler
+            (req_clone, None) // Continue to next middleware/handler
+        })
+    }
+}
+
+/// Alternative version that always continues (if you want CORS headers on all responses)
+pub fn cors_passthrough(
+    config: Option<CorsConfig>,
+) -> impl Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+    move |req, mut res| {
+        let config = config.clone().unwrap_or_default();
+        let req_clone = req.clone();
+
+        Box::pin(async move {
+            // This version always continues to the next handler
+            // CORS headers would need to be added by the actual route handlers
+            // or by a response middleware that runs after route handlers
+
+            // Store CORS config in request context for later use
+            // (This would require extending HttpRequest to store metadata)
+
+            (req_clone, None) // Always continue
         })
     }
 }

@@ -1,28 +1,17 @@
-#![warn(missing_docs)]
-
-use crate::{
-    context::HttpResponse,
-    req::HttpRequest,
-    types::{Fut, Next},
-};
+use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
 
 /// Configuration for the Logger Middleware
 ///
 /// ## Fields
 ///
-/// * `method` -  Wheather to log the method
+/// * `method` -  Whether to log the method
 /// * `path` - Whether to log the path
 /// * `duration` - Whether to log the duration
 
 #[derive(Clone)]
 pub struct LoggerConfig {
-    /// Wheather to log the method
     pub method: bool,
-
-    /// Whether to log the path
     pub path: bool,
-
-    /// Whether to log the duration
     pub duration: bool,
 }
 
@@ -61,17 +50,16 @@ impl Default for LoggerConfig {
 /// ```
 pub fn logger(
     config: Option<LoggerConfig>,
-) -> impl Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + Clone + 'static {
-    move |req, res, next| {
+) -> impl Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+    move |req, _| {
         let config = config.clone().unwrap_or_default();
+        let req = req.clone();
 
         let start_time = std::time::Instant::now();
-        let path = req.clone().path;
+        let path = req.path.clone();
+        let method = req.method.clone();
 
         Box::pin(async move {
-            let method = req.clone().method;
-
-            let res = next.run(req.clone(), res).await;
             let duration = start_time.elapsed();
 
             if config.path {
@@ -86,9 +74,9 @@ pub fn logger(
                 print!("method: {}", method);
             }
 
-            println!("");
+            println!();
 
-            res
+            (req, None)
         })
     }
 }

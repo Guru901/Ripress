@@ -14,17 +14,17 @@ pub struct RequestBody {
 }
 
 impl RequestBody {
-    pub fn new_text(text: String) -> Self {
+    pub fn new_text<T: Into<String>>(text: T) -> Self {
         RequestBody {
             content_type: RequestBodyType::TEXT,
-            content: RequestBodyContent::TEXT(Box::leak(text.into_boxed_str())),
+            content: RequestBodyContent::TEXT(text.into()),
         }
     }
 
-    pub fn new_form(form_data: String) -> Self {
+    pub fn new_form<T: Into<String>>(form_data: T) -> Self {
         RequestBody {
             content_type: RequestBodyType::FORM,
-            content: RequestBodyContent::FORM(Box::leak(form_data.into_boxed_str())),
+            content: RequestBodyContent::FORM(form_data.into()),
         }
     }
 
@@ -41,17 +41,20 @@ pub enum RequestBodyType {
     JSON,
     TEXT,
     FORM,
+    EMPTY,
 }
 
 impl Copy for RequestBodyType {}
 
 #[derive(Debug, Clone)]
 pub enum RequestBodyContent {
-    TEXT(&'static str),
+    TEXT(String),
     JSON(serde_json::Value),
-    FORM(&'static str),
+    FORM(String),
+    EMPTY,
 }
 
+#[derive(Debug, Clone)]
 pub enum ResponseContentBody {
     TEXT(String),
     HTML(String),
@@ -71,7 +74,7 @@ impl ResponseContentBody {
         ResponseContentBody::HTML(html.into())
     }
 }
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub enum ResponseContentType {
     TEXT,
     JSON,
@@ -90,6 +93,7 @@ pub enum HttpMethods {
     HEAD,
     DELETE,
     PATCH,
+    OPTIONS,
 }
 
 impl Display for HttpMethods {
@@ -101,6 +105,7 @@ impl Display for HttpMethods {
             HttpMethods::DELETE => "DELETE",
             HttpMethods::PATCH => "PATCH",
             HttpMethods::HEAD => "HEAD",
+            HttpMethods::OPTIONS => "OPTIONS",
         };
         write!(f, "{}", method)
     }
@@ -114,6 +119,7 @@ pub enum HttpRequestError {
     MissingParam(String),
     MissingHeader(String),
     MissingQuery(String),
+    InvalidJson(String),
 }
 
 impl std::fmt::Display for HttpRequestError {
@@ -123,6 +129,7 @@ impl std::fmt::Display for HttpRequestError {
             HttpRequestError::MissingParam(param) => write!(f, "Param {} doesn't exist", param),
             HttpRequestError::MissingHeader(header) => write!(f, "Header {} doesn't exist", header),
             HttpRequestError::MissingQuery(query) => write!(f, "Query {} doesn't exist", query),
+            HttpRequestError::InvalidJson(json) => write!(f, "JSON is invalid: {}", json),
         }
     }
 }
@@ -139,14 +146,18 @@ impl std::fmt::Display for HttpResponseError {
         }
     }
 }
+pub type FutMiddleware =
+    Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
+pub type HandlerMiddleware =
+    Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>;
 
 pub trait Middleware: Send + Sync + 'static {
     fn handle(
         &self,
-        req: HttpRequest,
+        req: &HttpRequest,
         res: HttpResponse,
         next: Next,
-    ) -> Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
+    ) -> Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
 
     // Add this method to allow cloning of Box<dyn Middleware>
     fn clone_box(&self) -> Box<dyn Middleware>;
@@ -161,24 +172,28 @@ impl Clone for Box<dyn Middleware> {
 
 pub struct Next {
     pub middleware: Vec<Box<dyn Middleware>>,
-    pub handler: Handler,
+    pub handler: HandlerMiddleware,
 }
 
 impl Next {
     pub fn new() -> Self {
         Next {
             middleware: Vec::new(),
-            handler: Arc::new(|_, _| Box::pin(async { HttpResponse::new() })),
+            handler: Arc::new(|_, _| Box::pin(async { (HttpRequest::new(), None) })),
         }
     }
-    pub async fn run(self, req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    pub async fn run(
+        self,
+        req: HttpRequest,
+        res: HttpResponse,
+    ) -> (HttpRequest, Option<HttpResponse>) {
         if let Some((current, rest)) = self.middleware.split_first() {
             // Call the next middleware
             let next = Next {
                 middleware: rest.to_vec(),
                 handler: self.handler.clone(),
             };
-            current.handle(req, res, next).await
+            current.handle(&req, res, next).await
         } else {
             // No more middleware, call the handler
             (self.handler)(req, res).await

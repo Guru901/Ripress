@@ -2,11 +2,12 @@
 
 use crate::res::response_status::StatusCode;
 use crate::types::{ResponseContentBody, ResponseContentType};
-use actix_web::Responder;
-use actix_web::http::header::{HeaderName, HeaderValue};
 use bytes::Bytes;
 use futures::{Stream, StreamExt, stream};
+use hyper::header::{HeaderName, HeaderValue, SET_COOKIE};
+use hyper::{Body, Response};
 use serde::Serialize;
+use std::convert::Infallible;
 use std::pin::Pin;
 
 /// Contains the response headers struct and its methods.
@@ -101,6 +102,7 @@ pub enum CookieSameSiteOptions {
 }
 
 /// Options for setting cookies
+#[derive(Debug, Clone)]
 pub struct CookieOptions {
     /// Sets the HttpOnly attribute
     pub http_only: bool,
@@ -138,9 +140,10 @@ impl Default for CookieOptions {
     }
 }
 
-struct Cookie {
-    name: &'static str,
-    value: &'static str,
+#[derive(Debug, Clone)]
+pub(crate) struct Cookie {
+    pub name: &'static str,
+    pub value: &'static str,
     options: CookieOptions,
 }
 
@@ -193,14 +196,44 @@ pub struct HttpResponse {
     pub headers: ResponseHeaders,
 
     // Sets response cookies
-    cookies: Vec<Cookie>,
+    pub(crate) cookies: Vec<Cookie>,
 
     // Cookies to be removed
-    remove_cookies: Vec<&'static str>,
+    pub(crate) remove_cookies: Vec<&'static str>,
 
     pub(crate) is_stream: bool,
 
     pub(crate) stream: Pin<Box<dyn Stream<Item = Result<Bytes, ResponseError>> + Send + 'static>>,
+}
+
+impl std::fmt::Debug for HttpResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HttpResponse")
+            .field("status_code", &self.status_code)
+            .field("body", &self.body)
+            .field("content_type", &self.content_type)
+            .field("cookies", &self.cookies)
+            .field("headers", &self.headers)
+            .field("remove_cookies", &self.remove_cookies)
+            .field("is_stream", &self.is_stream)
+            .field("stream", &"<stream>")
+            .finish()
+    }
+}
+
+impl Clone for HttpResponse {
+    fn clone(&self) -> Self {
+        Self {
+            status_code: self.status_code,
+            body: self.body.clone(),
+            content_type: self.content_type.clone(),
+            cookies: self.cookies.clone(),
+            headers: self.headers.clone(),
+            remove_cookies: self.remove_cookies.clone(),
+            is_stream: self.is_stream,
+            stream: Box::pin(stream::empty()),
+        }
+    }
 }
 
 impl HttpResponse {
@@ -400,8 +433,12 @@ impl HttpResponse {
     /// res.set_header("key", "value"); // Sets the key cookie to value
     /// ```
 
-    pub fn set_header(mut self, header_name: &'static str, header_value: &'static str) -> Self {
-        self.headers.insert(header_name, header_value);
+    pub fn set_header<T: Into<String>>(
+        mut self,
+        header_name: &'static str,
+        header_value: T,
+    ) -> Self {
+        self.headers.insert(header_name, header_value.into());
         self
     }
 
@@ -570,7 +607,6 @@ impl HttpResponse {
     ///
     /// res.write(stream);
     /// ```
-
     pub fn write<S, E>(mut self, stream: S) -> Self
     where
         S: Stream<Item = Result<Bytes, E>> + Send + 'static,
@@ -583,128 +619,105 @@ impl HttpResponse {
         self
     }
 
-    pub(crate) fn to_responder(self) -> actix_web::HttpResponse {
+    pub(crate) fn to_responder(self) -> Result<Response<Body>, Infallible> {
         let body = self.body;
         if self.is_stream {
-            let mut actix_res = actix_web::HttpResponse::build(actix_web::http::StatusCode::OK);
-            actix_res.content_type("text/event-stream");
+            let mut response = Response::builder().status(self.status_code.as_u16());
+            response = response.header("Content-Type", "text/event-stream");
 
             for (key, value) in self.headers.iter() {
-                actix_res.append_header((key.as_str(), value));
+                response = response.header(key.as_str(), value);
             }
 
-            actix_res.append_header(("Connection", "keep-alive"));
-            self.remove_cookies.iter().for_each(|key| {
-                actix_res.cookie(actix_web::cookie::Cookie::build(*key, "").finish());
-            });
+            response = response.header("Connection", "keep-alive");
 
-            self.cookies.iter().for_each(|cookie| {
-                actix_res.cookie(
-                    actix_web::cookie::Cookie::build(cookie.name, cookie.value)
-                        .expires(cookie.options.expires.and_then(|ts| {
-                            actix_web::cookie::time::OffsetDateTime::from_unix_timestamp(ts).ok()
-                        }))
-                        .http_only(cookie.options.http_only)
-                        .max_age(
-                            cookie
-                                .options
-                                .max_age
-                                .map(|secs| actix_web::cookie::time::Duration::seconds(secs))
-                                .unwrap_or_else(|| actix_web::cookie::time::Duration::seconds(0)),
-                        )
-                        .path(cookie.options.path.as_deref().unwrap_or("/"))
-                        .secure(cookie.options.secure)
-                        .same_site(match cookie.options.same_site {
-                            crate::res::CookieSameSiteOptions::Lax => {
-                                actix_web::cookie::SameSite::Lax
-                            }
-                            crate::res::CookieSameSiteOptions::Strict => {
-                                actix_web::cookie::SameSite::Strict
-                            }
-                            crate::res::CookieSameSiteOptions::None => {
-                                actix_web::cookie::SameSite::None
-                            }
-                        })
-                        .finish(),
+            for c in self.cookies.iter() {
+                let cookie = cookie::Cookie::build((c.name, c.value))
+                    .http_only(c.options.http_only)
+                    .same_site(match c.options.same_site {
+                        crate::res::CookieSameSiteOptions::Lax => cookie::SameSite::Lax,
+                        crate::res::CookieSameSiteOptions::Strict => cookie::SameSite::Strict,
+                        crate::res::CookieSameSiteOptions::None => cookie::SameSite::None,
+                    })
+                    .secure(c.options.secure)
+                    .path(c.options.path.unwrap_or("/"))
+                    .max_age(cookie::time::Duration::seconds(
+                        c.options.max_age.unwrap_or(0),
+                    ));
+                response = response.header(
+                    SET_COOKIE,
+                    HeaderValue::from_str(&cookie.to_string()).unwrap(),
+                );
+            }
+
+            for key in self.remove_cookies.iter() {
+                let expired_cookie = cookie::Cookie::build((key.to_owned(), ""))
+                    .path("/")
+                    .max_age(cookie::time::Duration::seconds(0));
+
+                response = response.header(
+                    SET_COOKIE,
+                    HeaderValue::from_str(&expired_cookie.to_string()).unwrap(),
+                );
+            }
+
+            return Ok(response.body(Body::wrap_stream(self.stream)).unwrap());
+        } else {
+            let mut response = match body {
+                ResponseContentBody::JSON(json) => Response::builder()
+                    .status(self.status_code.as_u16())
+                    .header("Content-Type", "application/json")
+                    .body(Body::from(serde_json::to_string(&json).unwrap())),
+                ResponseContentBody::TEXT(text) => Response::builder()
+                    .status(self.status_code.as_u16())
+                    .header("Content-Type", "text/plain")
+                    .body(Body::from(text)),
+                ResponseContentBody::HTML(html) => Response::builder()
+                    .status(self.status_code.as_u16())
+                    .header("Content-Type", "text/html")
+                    .body(Body::from(html)),
+            }
+            .unwrap();
+
+            for (key, value) in self.headers.iter() {
+                response.headers_mut().append(
+                    HeaderName::from_bytes(key.as_bytes()).unwrap(),
+                    HeaderValue::from_str(value).unwrap(),
+                );
+            }
+
+            self.cookies.iter().for_each(|c| {
+                let cookie = cookie::Cookie::build((c.name, c.value))
+                    .http_only(c.options.http_only)
+                    .same_site(match c.options.same_site {
+                        crate::res::CookieSameSiteOptions::Lax => cookie::SameSite::Lax,
+                        crate::res::CookieSameSiteOptions::Strict => cookie::SameSite::Strict,
+                        crate::res::CookieSameSiteOptions::None => cookie::SameSite::None,
+                    })
+                    .secure(c.options.secure)
+                    .path(c.options.path.unwrap_or("/"))
+                    .max_age(cookie::time::Duration::seconds(
+                        c.options.max_age.unwrap_or(0),
+                    ));
+                response.headers_mut().append(
+                    SET_COOKIE,
+                    HeaderValue::from_str(&cookie.to_string()).unwrap(),
                 );
             });
 
-            return actix_res.streaming(self.stream);
-        } else {
-            let mut actix_res = actix_web::http::StatusCode::from_u16(self.status_code.as_u16())
-                .map(|status| match body {
-                    ResponseContentBody::JSON(json) => actix_web::HttpResponse::build(status)
-                        .content_type("application/json")
-                        .json(json),
-                    ResponseContentBody::TEXT(text) => actix_web::HttpResponse::build(status)
-                        .content_type("text/plain")
-                        .body(text),
-                    ResponseContentBody::HTML(html) => actix_web::HttpResponse::build(status)
-                        .content_type("text/html")
-                        .body(html),
-                })
-                .unwrap_or_else(|_| {
-                    actix_web::HttpResponse::InternalServerError().body("Invalid status code")
-                });
-
-            self.headers.iter().for_each(|(key, value)| {
-                actix_res.headers_mut().append(
-                    HeaderName::from_bytes(key.as_bytes()).unwrap(),
-                    HeaderValue::from_str(value).unwrap(),
-                )
-            });
-
             self.remove_cookies.iter().for_each(|key| {
-                actix_res
-                    .add_cookie(&actix_web::cookie::Cookie::build(*key, "").finish())
-                    .unwrap();
+                let expired_cookie = cookie::Cookie::build((key.to_owned(), ""))
+                    .path("/")
+                    .max_age(cookie::time::Duration::seconds(0));
+
+                response.headers_mut().append(
+                    SET_COOKIE,
+                    HeaderValue::from_str(&expired_cookie.to_string()).unwrap(),
+                );
             });
 
-            self.cookies.iter().for_each(|cookie| {
-                actix_res
-                    .add_cookie(
-                        &actix_web::cookie::Cookie::build(cookie.name, cookie.value)
-                            .expires(cookie.options.expires.and_then(|ts| {
-                                actix_web::cookie::time::OffsetDateTime::from_unix_timestamp(ts)
-                                    .ok()
-                            }))
-                            .http_only(cookie.options.http_only)
-                            .max_age(
-                                cookie
-                                    .options
-                                    .max_age
-                                    .map(|secs| actix_web::cookie::time::Duration::seconds(secs))
-                                    .unwrap_or_else(|| {
-                                        actix_web::cookie::time::Duration::seconds(0)
-                                    }),
-                            )
-                            .path(cookie.options.path.as_deref().unwrap_or("/"))
-                            .secure(cookie.options.secure)
-                            .same_site(match cookie.options.same_site {
-                                crate::res::CookieSameSiteOptions::Lax => {
-                                    actix_web::cookie::SameSite::Lax
-                                }
-                                crate::res::CookieSameSiteOptions::Strict => {
-                                    actix_web::cookie::SameSite::Strict
-                                }
-                                crate::res::CookieSameSiteOptions::None => {
-                                    actix_web::cookie::SameSite::None
-                                }
-                            })
-                            .finish(),
-                    )
-                    .expect("Failed to add cookie");
-            });
-            return actix_res;
+            return Ok(response);
         }
-    }
-}
-
-impl Responder for HttpResponse {
-    type Body = actix_web::body::BoxBody;
-
-    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse {
-        self.to_responder()
     }
 }
 

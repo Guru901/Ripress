@@ -8,7 +8,6 @@ mod tests {
     use crate::req::route_params::{ParamError, RouteParams};
     use crate::res::CookieOptions;
     use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
-    use actix_web::Responder;
     use serde_json::json;
 
     #[test]
@@ -80,7 +79,8 @@ mod tests {
             .set_cookie("session", "123", CookieOptions::default())
             .created()
             .json(&data)
-            .to_responder();
+            .to_responder()
+            .unwrap();
 
         assert_eq!(response.status(), 201);
         assert_eq!(response.headers().get("X-Custom").unwrap(), "value");
@@ -108,7 +108,7 @@ mod tests {
             panic!("Expected TEXT body");
         }
 
-        assert_eq!(response.get_status_code(), actix_web::http::StatusCode::OK);
+        assert_eq!(response.get_status_code(), 200);
         assert_eq!(response.get_content_type(), &ResponseContentType::TEXT);
 
         // Edge case: Empty text body
@@ -142,9 +142,10 @@ mod tests {
         let response = HttpResponse::new()
             .set_header("X-Custom", "value")
             .html("<h1>Hello</h1>")
-            .to_responder();
+            .to_responder()
+            .unwrap();
 
-        assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+        assert_eq!(response.status(), 200);
         assert_eq!(response.headers().get("content-type").unwrap(), "text/html");
         assert_eq!(response.headers().get("x-custom").unwrap(), "value");
     }
@@ -157,33 +158,36 @@ mod tests {
 
         let response = HttpResponse::new()
             .set_cookie("session", "123", CookieOptions::default())
+            .set_cookie("another_cookie", "123", CookieOptions::default())
             .clear_cookie("old_session")
             .ok()
-            .text("test")
-            .to_responder();
+            .text("test");
 
-        let cookies: Vec<_> = response.cookies().collect();
+        let cookies: Vec<_> = response.cookies;
+        let remove_cookies: Vec<_> = response.remove_cookies;
         assert_eq!(cookies.len(), 2);
 
-        let session_cookie = cookies.iter().find(|c| c.name() == "session").unwrap();
-        assert_eq!(session_cookie.value(), "123");
+        let session_cookie = cookies.iter().find(|c| c.name == "session").unwrap();
+        assert_eq!(session_cookie.value, "123");
 
-        let cleared_cookie = cookies.iter().find(|c| c.name() == "old_session").unwrap();
-        assert_eq!(cleared_cookie.value(), "");
+        let cleared_cookie = remove_cookies
+            .iter()
+            .find(|c| c == &&"old_session")
+            .unwrap();
+
+        assert_eq!(*cleared_cookie, "old_session");
     }
 
     #[test]
     fn test_to_responder() {
         let response = HttpResponse::new().ok().text("OK");
-        let actix_response = response.to_responder();
-        assert_eq!(actix_response.status(), actix_web::http::StatusCode::OK);
+        let hyper_response = response.to_responder().unwrap();
+        assert_eq!(hyper_response.status(), 200);
 
         let response = HttpResponse::new().internal_server_error().text("Invalid");
-        let actix_response = response.to_responder();
-        assert_eq!(
-            actix_response.status(),
-            actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
-        );
+        let hyper_response = response.to_responder().unwrap();
+
+        assert_eq!(hyper_response.status(), 500);
     }
 
     #[test]
@@ -214,28 +218,28 @@ mod tests {
         assert_eq!(err_1.to_string(), "Header id doesnt exist");
     }
 
-    #[test]
-    fn test_respond_to() {
-        let response = HttpResponse::new().ok().text("OK");
-        let acitx_req = actix_web::test::TestRequest::default().to_http_request();
-        let responder = response.respond_to(&acitx_req);
+    // #[test]
+    // fn test_respond_to() {
+    //     let response = HttpResponse::new().ok().text("OK");
+    //     let acitx_req = actix_web::test::TestRequest::default().to_http_request();
+    //     let responder = response.respond_to(&acitx_req);
 
-        assert_eq!(responder.status(), 200);
+    //     assert_eq!(responder.status(), 200);
 
-        let response = HttpResponse::new()
-            .internal_server_error()
-            .text("internal server error");
-        let acitx_req = actix_web::test::TestRequest::default().to_http_request();
-        let responder = response.respond_to(&acitx_req);
+    //     let response = HttpResponse::new()
+    //         .internal_server_error()
+    //         .text("internal server error");
+    //     let acitx_req = actix_web::test::TestRequest::default().to_http_request();
+    //     let responder = response.respond_to(&acitx_req);
 
-        assert_eq!(responder.status(), 500);
+    //     assert_eq!(responder.status(), 500);
 
-        let response = HttpResponse::new().unauthorized();
-        let acitx_req = actix_web::test::TestRequest::default().to_http_request();
-        let responder = response.respond_to(&acitx_req);
+    //     let response = HttpResponse::new().unauthorized();
+    //     let acitx_req = actix_web::test::TestRequest::default().to_http_request();
+    //     let responder = response.respond_to(&acitx_req);
 
-        assert_eq!(responder.status(), 401);
-    }
+    //     assert_eq!(responder.status(), 401);
+    // }
 
     #[test]
     fn test_case_insensitive() {

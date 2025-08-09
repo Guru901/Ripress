@@ -43,6 +43,7 @@ use bytes::Bytes;
 use futures::stream;
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::middlewares::cors::cors;
 use ripress::middlewares::logger::logger;
 use ripress::res::{CookieOptions, CookieSameSiteOptions};
 use ripress::types::RouterFns;
@@ -56,11 +57,12 @@ async fn main() {
     let mut app = App::new();
 
     app.use_middleware("/", logger(None));
+    app.use_middleware("/", cors(None));
 
     // request tests
     app.get("/cookie-test", cookie_handler);
     app.get("/header-test", header_handler);
-    app.get("/param-and-query-test/{param}", query_and_param_handler);
+    app.get("/param-and-query-test/:param", query_and_param_handler);
     app.get("/origin-url-and-path/test", path_and_origin_url_handler);
     app.get("/ip-test", ip_handler);
     app.post("/json-test", json_handler);
@@ -69,7 +71,7 @@ async fn main() {
     app.get("/multi-query", multi_query_handler);
     app.get("/multi-cookies", multi_cookie_handler);
     app.get("/multi-headers", multi_header_handler);
-    app.get("/users/{user_id}/posts/{post_id}", multi_param_handler);
+    app.get("/users/:user_id/posts/:post_id", multi_param_handler);
 
     app.get("/method-test", method_handler);
     app.post("/method-test", method_handler);
@@ -88,12 +90,14 @@ async fn main() {
     app.get("/redirect-test", redirect_test);
     app.get("/permanent-redirect-test", permanent_redirect_test);
 
-    app.use_middleware("/auth", |req, res, next| {
-        println!("Auth middleware");
+    app.use_middleware("/auth", |req, res| {
+        let has_token = req.get_cookie("token").is_ok();
+        let req_cloned = req.clone(); // owned
         Box::pin(async move {
-            match req.get_cookie("token") {
-                Ok(_) => next.run(req, res).await,
-                Err(_) => res.unauthorized().text("Unauthorized"),
+            if has_token {
+                (req_cloned, None)
+            } else {
+                (req_cloned, Some(res.unauthorized().text("unauthorized")))
             }
         })
     });
@@ -114,8 +118,7 @@ async fn main() {
     app.static_files("/static", "../public");
 
     app.listen(8080, || println!("Server is running on port 8080"))
-        .await
-        .unwrap();
+        .await;
 }
 
 // requests test handler
@@ -241,6 +244,7 @@ async fn multi_header_handler(req: HttpRequest, res: HttpResponse) -> HttpRespon
 
 async fn method_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let method = req.method;
+    println!("{}", method);
     res.ok().json(json!(method.to_string()))
 }
 
@@ -273,7 +277,9 @@ async fn empty_body_handler(_: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 async fn xhr_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let xhr = req.xhr;
-    res.ok().json(json!(xhr))
+    res.ok().json(json!({
+        "method": xhr
+    }))
 }
 async fn secure_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let secure = req.is_secure;

@@ -1,10 +1,14 @@
 #![warn(missing_docs)]
 
-use crate::types::{
-    HttpMethods, HttpRequestError, RequestBody, RequestBodyContent, RequestBodyType,
+use crate::{
+    helpers::get_all_query_params,
+    types::{HttpMethods, HttpRequestError, RequestBody, RequestBodyContent, RequestBodyType},
 };
-use actix_web::HttpMessage;
-use futures::StreamExt;
+use cookie::Cookie;
+use hyper::{Body, Method, Request, body::to_bytes, header::HOST};
+use mime::Mime;
+use routerify::ext::RequestExt;
+use serde_json::Value;
 use std::{
     collections::HashMap,
     net::{IpAddr, Ipv4Addr},
@@ -103,7 +107,7 @@ pub struct HttpRequest {
     cookies: HashMap<String, String>,
 
     // The Data set by middleware in the request to be used in the route handler
-    data: HashMap<&'static str, &'static str>,
+    data: HashMap<String, String>,
 
     /// The request body, which may contain JSON, text, or form data.
     body: RequestBody,
@@ -189,8 +193,12 @@ impl HttpRequest {
     /// println!("Id: {:?}", id);
     /// ```
 
-    pub fn set_data<T: Into<&'static str>>(&mut self, data_key: T, data_value: T) {
+    pub fn set_data<T: Into<String>>(&mut self, data_key: T, data_value: T) {
         self.data.insert(data_key.into(), data_value.into());
+    }
+
+    pub fn get_all_data(&self) -> &HashMap<String, String> {
+        &self.data
     }
 
     /// Returns data stored in the request by the middleware.
@@ -210,7 +218,7 @@ impl HttpRequest {
     /// println!("Id: {:?}", id);
     /// ```
 
-    pub fn get_data<T: Into<&'static str>>(&self, data_key: T) -> Option<&&'static str> {
+    pub fn get_data<T: Into<String>>(&self, data_key: T) -> Option<&String> {
         self.data.get(&data_key.into())
     }
 
@@ -348,136 +356,199 @@ impl HttpRequest {
         }
     }
 
-    pub(crate) async fn from_actix_request(
-        req: actix_web::HttpRequest,
-        mut payload: actix_web::web::Payload,
-    ) -> Result<Self, actix_web::Error> {
-        let origin_url_str = req.full_url().to_string();
-        let origin_url = Url::from(origin_url_str);
+    pub(crate) fn set_param(&mut self, key: &str, value: &str) {
+        self.params.insert(key.to_string(), value.to_string());
+    }
 
-        let params: HashMap<String, String> = req
-            .match_info()
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
+    pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
+        match content_type.parse::<Mime>() {
+            Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
+                (mime::APPLICATION, mime::JSON) => RequestBodyType::JSON,
+                (mime::APPLICATION, subtype) if subtype == "x-www-form-urlencoded" => {
+                    RequestBodyType::FORM
+                }
+                (mime::MULTIPART, mime::FORM_DATA) => RequestBodyType::FORM,
+                (mime::TEXT, _) => RequestBodyType::TEXT,
+                // Handle JSON variants
+                (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
+                    RequestBodyType::JSON
+                }
+                _ => RequestBodyType::TEXT,
+            },
+            Err(_) => RequestBodyType::TEXT, // Fallback for invalid MIME types
+        }
+    }
 
-        let params = RouteParams::from_map(params);
+    fn get_cookies(req: &Request<Body>) -> Vec<Cookie<'_>> {
+        let mut cookies = Vec::new();
 
-        let method = req.method().as_str();
+        if let Some(header_value) = req.headers().get("cookie") {
+            if let Ok(header_str) = header_value.to_str() {
+                for cookie_str in header_str.split(';') {
+                    if let Ok(cookie) = Cookie::parse(cookie_str.trim()) {
+                        cookies.push(cookie);
+                    }
+                }
+            }
+        }
 
-        let method = match method {
-            "GET" => HttpMethods::GET,
-            "POST" => HttpMethods::POST,
-            "HEAD" => HttpMethods::HEAD,
-            "PUT" => HttpMethods::PUT,
-            _ => HttpMethods::GET,
+        cookies
+    }
+
+    pub(crate) async fn from_hyper_request(
+        req: &mut Request<hyper::body::Body>,
+    ) -> Result<Self, hyper::Error> {
+        let origin_url = match req.uri().authority() {
+            Some(authority) => {
+                let scheme = req.uri().scheme_str().unwrap_or("http");
+                Url::new(format!("{}://{}", scheme, authority))
+            }
+            None => {
+                let uri_string = req
+                    .headers()
+                    .get(HOST)
+                    .and_then(|host| host.to_str().ok())
+                    .map(|host| {
+                        // Determine scheme (you might want to check for TLS context)
+                        let scheme = "http"; // or "https" if using TLS
+                        format!("{}://{}", scheme, host)
+                    })
+                    .unwrap_or(String::new());
+
+                Url::new(uri_string)
+            }
         };
 
-        let path = req.path().to_string();
+        let query_string = req.uri().query().unwrap_or("");
+
+        let queries = url::form_urlencoded::parse(query_string.as_bytes())
+            .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
+            .collect::<HashMap<String, String>>();
+
+        let query_params = QueryParams::from_map(queries);
+
+        let method = match req.method() {
+            &Method::GET => HttpMethods::GET,
+            &Method::POST => HttpMethods::POST,
+            &Method::PUT => HttpMethods::PUT,
+            &Method::DELETE => HttpMethods::DELETE,
+            &Method::PATCH => HttpMethods::PATCH,
+            &Method::HEAD => HttpMethods::HEAD,
+            &Method::OPTIONS => HttpMethods::OPTIONS,
+            _ => HttpMethods::GET,
+        };
 
         let ip = req
             .headers()
             .get("X-Forwarded-For")
             .and_then(|val| val.to_str().ok())
             .map(|s| s.split(',').next().unwrap_or("").trim().to_string())
-            .unwrap_or_else(|| {
-                req.peer_addr()
-                    .map(|addr| addr.ip().to_string())
-                    .unwrap_or("unknown".to_string())
-            });
+            .unwrap_or(String::new());
 
         let ip = match ip.parse::<IpAddr>() {
             Ok(ip) => ip,
             Err(_) => IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
         };
 
-        let protocol = req.connection_info().scheme().to_string();
+        let path = req.uri().path().to_string();
 
-        let is_secure = protocol == String::from("https");
+        let mut cookies_map = HashMap::new();
+        let cookies = Self::get_cookies(&req);
 
-        let mut headers = RequestHeaders::new();
-
-        req.headers().iter().for_each(|f| {
-            let header_name = f.0.to_string();
-            let header_value = f.1.to_str().unwrap().to_string();
-            headers.insert(header_name, header_value);
+        cookies.iter().for_each(|cookie| {
+            let (name, value) = (cookie.name(), cookie.value());
+            cookies_map.insert(name.to_string(), value.to_string());
         });
 
-        let xhr = headers.get("X-Requested-With").unwrap_or(&String::new()) == "XMLHttpRequest";
+        let mut headers: HashMap<String, String> = HashMap::new();
 
-        let mut cookies: HashMap<String, String> = HashMap::new();
-
-        req.cookies().iter().for_each(|cookie| {
-            cookie.iter().for_each(|c| {
-                let (name, value) = (c.name(), c.value());
-                cookies.insert(name.to_string(), value.to_string());
-            })
-        });
-
-        let query_string = req.query_string();
-
-        let query_params = url::form_urlencoded::parse(query_string.as_bytes())
-            .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
-            .collect::<HashMap<String, String>>();
-
-        let query_params = QueryParams::from_map(query_params);
-
-        let mut body = actix_web::web::BytesMut::new();
-
-        let content_type = match req.content_type() {
-            "application/json" => RequestBodyType::JSON,
-            "application/x-www-form-urlencoded" => RequestBodyType::FORM,
-            _ => RequestBodyType::TEXT,
-        };
-
-        while let Some(chunk) = payload.next().await {
-            let chunk = chunk?;
-            if (body.len() + chunk.len()) > 262_144 {
-                return Err(actix_web::error::ErrorBadRequest("Body too large"));
+        req.headers().iter().for_each(|(key, value)| {
+            if let Ok(header_value) = value.to_str() {
+                headers.insert(key.to_string(), header_value.to_string());
             }
-            body.extend_from_slice(&chunk);
+        });
+
+        let headers = RequestHeaders::_from_map(headers);
+
+        let mut params = HashMap::new();
+
+        if let Some(param_routerify) = req.data::<routerify::RouteParams>() {
+            println!("Params: {:?}", param_routerify);
+            param_routerify.iter().for_each(|(key, value)| {
+                params.insert(key.to_string(), value.to_string());
+            });
         }
+
+        let params = RouteParams::from_map(params);
+
+        let mut data = HashMap::new();
+
+        if let Some(ext_data) = req.extensions().get::<HashMap<String, String>>() {
+            data = ext_data.clone()
+        }
+
+        let content_type = req
+            .headers()
+            .get("Content-Type")
+            .and_then(|val| val.to_str().ok())
+            .map(Self::determine_content_type)
+            .unwrap_or(RequestBodyType::EMPTY);
+
+        let protocol = req
+            .headers()
+            .get("x-forwarded-proto")
+            .and_then(|val| val.to_str().ok())
+            .unwrap_or("http")
+            .to_string();
 
         let request_body = match content_type {
             RequestBodyType::FORM => {
-                let form_data = match std::str::from_utf8(&body) {
-                    Ok(s) => s.to_string(),
-                    Err(_) => {
-                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
-                    }
+                let body_bytes = to_bytes(req.body_mut()).await;
+
+                let body_string = match body_bytes {
+                    Ok(bytes) => std::str::from_utf8(&bytes).unwrap_or("").to_string(),
+                    Err(err) => return Err(err),
                 };
 
-                RequestBody::new_form(form_data)
+                RequestBody::new_form(body_string)
             }
             RequestBodyType::JSON => {
-                let body_json = match std::str::from_utf8(&body) {
-                    Ok(s) => match serde_json::from_str::<serde_json::Value>(s) {
-                        Ok(json) => json,
-                        Err(e) => {
-                            return Err(actix_web::error::ErrorBadRequest(format!(
-                                "Invalid JSON: {}",
-                                e
-                            )));
+                let body_bytes = to_bytes(req.body_mut()).await;
+                let body_json = match body_bytes {
+                    Ok(bytes) => {
+                        let s = match std::str::from_utf8(&bytes) {
+                            Ok(s) => s,
+                            Err(_) => "",
+                        };
+                        match serde_json::from_str::<serde_json::Value>(s) {
+                            Ok(json) => json,
+                            Err(_) => Value::Null,
                         }
-                    },
-                    Err(_) => {
-                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
                     }
+                    Err(err) => return Err(err),
                 };
 
                 RequestBody::new_json(body_json)
             }
             RequestBodyType::TEXT => {
-                let body_string = match String::from_utf8(body.to_vec()) {
-                    Ok(s) => s,
-                    Err(_) => {
-                        return Err(actix_web::error::ErrorBadRequest("Invalid UTF-8 sequence"));
-                    }
+                let body_bytes = to_bytes(req.body_mut()).await;
+
+                let body_string = match body_bytes {
+                    Ok(bytes) => String::from_utf8((&bytes).to_vec()).unwrap_or(String::new()),
+                    Err(err) => return Err(err),
                 };
 
                 RequestBody::new_text(body_string)
             }
+            RequestBodyType::EMPTY => RequestBody {
+                content: RequestBodyContent::EMPTY,
+                content_type: RequestBodyType::EMPTY,
+            },
         };
+
+        let is_secure = protocol == String::from("https");
+        let xhr_header = headers.get("X-Requested-With").unwrap_or("");
+        let xhr = xhr_header == "XMLHttpRequest";
 
         Ok(HttpRequest {
             params,
@@ -488,12 +559,90 @@ impl HttpRequest {
             path,
             protocol,
             headers,
-            data: HashMap::new(),
+            data,
             body: request_body,
-            cookies,
+            cookies: cookies_map,
             xhr,
             is_secure,
         })
+    }
+
+    pub(crate) fn to_hyper_request(&self) -> Result<Request<Body>, Box<dyn std::error::Error>> {
+        let path = if self.path.is_empty() {
+            "/".to_string()
+        } else if !self.path.starts_with('/') {
+            return Err("Path must start with '/'".into());
+        } else {
+            self.path.clone()
+        };
+
+        let mut uri_builder = path.to_string();
+        if !self.query_params.is_empty() {
+            uri_builder.push('?');
+            uri_builder.push_str(&get_all_query_params(&self.query_params));
+        }
+
+        let uri: hyper::Uri = uri_builder
+            .parse()
+            .map_err(|e| format!("Failed to parse URI '{}': {}", uri_builder, e))?;
+
+        let mut builder = Request::builder()
+            .method(self.method.to_string().as_str())
+            .uri(uri);
+
+        // Rest of the code remains the same...
+        if let Some(headers) = builder.headers_mut() {
+            //
+            for header in self.headers.iter() {
+                if let Ok(header_name) = hyper::header::HeaderName::from_bytes(header.0.as_bytes())
+                {
+                    if let Ok(header_value) = hyper::header::HeaderValue::from_str(header.1) {
+                        headers.insert(header_name, header_value);
+                    }
+                }
+
+                let cookie_str: String = self
+                    .cookies
+                    .iter()
+                    .map(|(name, value)| format!("{}={}", name, value))
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                headers.insert(hyper::header::COOKIE, cookie_str.parse()?);
+            }
+        }
+
+        let data = self.get_all_data();
+
+        if let Some(ext) = builder.extensions_mut() {
+            ext.insert(data.clone());
+        }
+
+        let body = match &self.body.content {
+            RequestBodyContent::JSON(json) => {
+                builder
+                    .headers_mut()
+                    .unwrap()
+                    .insert(hyper::header::CONTENT_TYPE, "application/json".parse()?);
+                Body::from(serde_json::to_string(json)?)
+            }
+            RequestBodyContent::TEXT(text) => {
+                builder
+                    .headers_mut()
+                    .unwrap()
+                    .insert(hyper::header::CONTENT_TYPE, "text/plain".parse()?);
+                Body::from(text.clone())
+            }
+            RequestBodyContent::FORM(form) => {
+                builder.headers_mut().unwrap().insert(
+                    hyper::header::CONTENT_TYPE,
+                    "application/x-www-form-urlencoded".parse()?,
+                );
+                Body::from(form.clone())
+            }
+            RequestBodyContent::EMPTY => Body::empty(),
+        };
+
+        Ok(builder.body(body)?)
     }
 }
 
@@ -511,10 +660,6 @@ impl HttpRequest {
         self.cookies.insert(key.to_string(), value.to_string());
     }
 
-    pub(crate) fn set_param(&mut self, key: &str, value: &str) {
-        self.params.insert(key.to_string(), value.to_string());
-    }
-
     pub(crate) fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)
     where
         J: serde::de::DeserializeOwned + serde::Serialize,
@@ -523,9 +668,9 @@ impl HttpRequest {
         self.body.content = RequestBodyContent::JSON(serde_json::to_value(json).unwrap());
     }
 
-    pub(crate) fn set_text(&mut self, text: &'static str, content_type: RequestBodyType) {
+    pub(crate) fn set_text<T: Into<String>>(&mut self, text: T, content_type: RequestBodyType) {
         self.body.content_type = content_type;
-        self.body.content = RequestBodyContent::TEXT(text)
+        self.body.content = RequestBodyContent::TEXT(text.into())
     }
 
     pub(crate) fn set_form(
@@ -541,11 +686,11 @@ impl HttpRequest {
                 let mut new_form = existing.to_string();
                 new_form.push('&');
                 new_form.push_str(&format!("{key}={value}"));
-                self.body.content = RequestBodyContent::FORM(Box::leak(new_form.into_boxed_str()));
+                self.body.content = RequestBodyContent::FORM(new_form)
             }
             _ => {
                 let form_data = format!("{key}={value}");
-                self.body.content = RequestBodyContent::FORM(Box::leak(form_data.into_boxed_str()));
+                self.body.content = RequestBodyContent::FORM(form_data)
             }
         }
     }

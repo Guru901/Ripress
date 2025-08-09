@@ -6,7 +6,6 @@ mod tests {
     use crate::res::response_status::StatusCode;
     use crate::types::HttpRequestError;
     use crate::types::{HttpMethods, RequestBodyType};
-    use actix_web::FromRequest;
     use serde_json::json;
 
     fn determine_content_type(content_type: &str) -> RequestBodyType {
@@ -213,22 +212,12 @@ mod tests {
     fn test_origin_url() {
         let mut req = HttpRequest::new();
 
-        req.set_origin_url(Url::from("value"));
+        req.set_origin_url(Url::new("value"));
 
-        assert_eq!(
-            req.origin_url,
-            Url {
-                url_string: "value"
-            }
-        );
+        assert_eq!(req.origin_url, Url::new("value"));
 
-        req.set_origin_url(Url::from("/user/1?q=hello"));
-        assert_eq!(
-            req.origin_url,
-            Url {
-                url_string: "/user/1?q=hello"
-            }
-        );
+        req.set_origin_url(Url::new("/user/1?q=hello"));
+        assert_eq!(req.origin_url, Url::new("/user/1?q=hello"));
     }
 
     #[test]
@@ -260,21 +249,8 @@ mod tests {
     fn test_set_and_get_data() {
         let mut req = HttpRequest::new();
         req.set_data("id", "123");
-        assert_eq!(req.get_data("id"), Some(&"123"));
+        assert_eq!(req.get_data("id"), Some(&String::from("123")));
         assert_eq!(req.get_data("nonexistent"), None);
-    }
-
-    #[tokio::test]
-    async fn test_from_actix_request() {
-        let request = actix_web::test::TestRequest::default().to_http_request();
-        let mut payload = actix_web::dev::Payload::None;
-        let web_payload = actix_web::web::Payload::from_request(&request, &mut payload)
-            .await
-            .unwrap();
-
-        let _ = HttpRequest::from_actix_request(request, web_payload)
-            .await
-            .unwrap();
     }
 
     #[test]
