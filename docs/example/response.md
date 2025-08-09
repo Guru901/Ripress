@@ -308,7 +308,7 @@ use tokio::fs::File;
 use tokio::io::{AsyncReadExt, BufReader};
 
 async fn stream_file(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let file = File::open("large_file.txt").await.unwrap();
+    let file = File::open("large_file.txt").await;
     let reader = BufReader::new(file);
 
     let stream = stream::unfold(reader, |mut reader| async move {

@@ -169,13 +169,8 @@ impl HttpRequest {
     /// }
     /// ```
 
-    pub fn get_cookie(&self, name: &str) -> Result<&str, HttpRequestError> {
-        let cookie = self.cookies.get(name);
-
-        match cookie {
-            Some(cookie_str) => Ok(cookie_str),
-            None => Err(HttpRequestError::MissingCookie(name.to_string())),
-        }
+    pub fn get_cookie(&self, name: &str) -> Option<&String> {
+        self.cookies.get(name)
     }
 
     /// Adds data from the middleware into the request.

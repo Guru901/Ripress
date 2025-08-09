@@ -32,7 +32,7 @@ where
 
 #[derive(Clone)]
 pub struct Middleware {
-    pub func: Arc<dyn Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
+    pub func: Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
     pub path: String,
 }
 
@@ -151,7 +151,7 @@ impl App {
     pub fn use_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(&mut HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();

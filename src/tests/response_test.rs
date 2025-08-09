@@ -153,10 +153,7 @@ mod tests {
         req.set_cookie("key", "value");
 
         assert_eq!(req.get_cookie("key").unwrap(), "value");
-        assert_eq!(
-            req.get_cookie("nonexistent"),
-            Err(HttpRequestError::MissingCookie("nonexistent".to_string()))
-        );
+        assert_eq!(req.get_cookie("nonexistent"), None);
 
         req.set_cookie("another_key", "another_value");
         let cookie = req.get_cookie("another_key").unwrap();
