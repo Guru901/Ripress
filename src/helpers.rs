@@ -1,10 +1,10 @@
-use hyper::{Body, Request};
-
 use crate::{
     app::{ApiError, Middleware},
     req::{HttpRequest, query_params::QueryParams},
     res::HttpResponse,
 };
+use hyper::{Body, Request};
+use url::form_urlencoded::Serializer;
 
 pub async fn exec_middleware(
     mut req: Request<Body>,
@@ -38,11 +38,9 @@ fn path_matches(prefix: &str, path: &str) -> bool {
 }
 
 pub fn get_all_query_params(queries: &QueryParams) -> String {
-    let mut query_params = String::new();
-
-    queries.iter().for_each(|(key, value)| {
-        query_params.push_str(&format!("{}={}&", key, value));
-    });
-
-    query_params
+    let mut ser = Serializer::new(String::new());
+    for (k, v) in queries.iter() {
+        ser.append_pair(k, v);
+    }
+    ser.finish()
 }
