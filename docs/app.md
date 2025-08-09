@@ -164,6 +164,28 @@ async fn delete_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
+#### OPTIONS Requests
+
+```rust
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    app.options("/submit", option_handler);
+
+    app.listen(3000, || {}).await;
+}
+
+async fn option_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().text("OPTIONS request received")
+}
+```
+
 ## Middlewares
 
 Middleware provides a powerful way to process HTTP requests and responses in a modular, reusable manner.
@@ -179,10 +201,20 @@ use ripress::app::App;
 async fn main() {
     let mut app = App::new();
 
-    app.use_middleware("/api/", |req, res, next| {
-        println!("here");
-        Box::pin(async move { next.run(req, res).await })
+    app.use_middleware("/api/", |req, res| {
+        // In Ripress middleware, you control whether the request continues to the next handler or middleware
+        // by what you return:
+        // - If you return (request, Some(response)), the middleware short-circuits and sends the response immediately.
+        // - If you return (request, None), the request is allowed to continue to the next middleware or handler.
+        // For example, to allow the request to continue:
+        Box::pin(async move { (req, None) })
+        // Or, to block the request and send a response:
+        // Box::pin(async move {
+        //     (req, Some(res.text("Blocked by middleware")))
+        // })
     });
+
+    app.listen(3000, || {}).await;
 }
 ```
 
@@ -195,17 +227,19 @@ The middleware will be applied to /api/\* in this case
 
 ## Dynamic Route Parameters
 
-Routes can include dynamic parameters using `{paramName}` syntax:
+Routes can include dynamic parameters using `:paramName` syntax:
 
 ```rust
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns,
 };
 use serde_json::json;
 
 async fn user_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let user_id = req.get_params("id").unwrap_or("unknown".to_string());
+    let user_id = req.params.get("id").unwrap_or("unknown");
+
     res.ok().json(json!({
         "userId": user_id,
         "message": "User details retrieved"
@@ -217,7 +251,7 @@ async fn main() {
     let mut app = App::new();
     app.get("/user/{id}", user_handler);
 
-    app.listen(3000, || {}).await.unwrap();
+    app.listen(3000, || {}).await;
 }
 ```
 
@@ -229,6 +263,7 @@ Use the `.listen()` method to start the server:
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns,
 };
 
 #[tokio::main]
@@ -241,8 +276,7 @@ async fn main() {
     app.listen(3000, || {
         println!("Server starting...");
     })
-    .await
-    .unwrap();
+    .await;
 }
 
 async fn home_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
