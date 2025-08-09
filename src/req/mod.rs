@@ -2,12 +2,14 @@
 
 use crate::{
     helpers::get_all_query_params,
+    res::HttpResponse,
     types::{HttpMethods, HttpRequestError, RequestBody, RequestBodyContent, RequestBodyType},
 };
 use cookie::Cookie;
 use futures::StreamExt;
 use hyper::{Body, Method, Request, body::to_bytes, header::HOST};
 use routerify::ext::RequestExt;
+use serde_json::Value;
 use std::{
     collections::HashMap,
     net::{IpAddr, Ipv4Addr},
@@ -503,8 +505,14 @@ impl HttpRequest {
                 let body_bytes = to_bytes(req.body_mut()).await;
                 let body_json = match body_bytes {
                     Ok(bytes) => {
-                        let s = std::str::from_utf8(&bytes).unwrap();
-                        serde_json::from_str::<serde_json::Value>(s).unwrap()
+                        let s = match std::str::from_utf8(&bytes) {
+                            Ok(s) => s,
+                            Err(_) => "",
+                        };
+                        match serde_json::from_str::<serde_json::Value>(s) {
+                            Ok(json) => json,
+                            Err(_) => Value::Null,
+                        }
                     }
                     Err(err) => return Err(err),
                 };

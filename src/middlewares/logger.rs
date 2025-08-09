@@ -74,7 +74,7 @@ pub fn logger(
                 print!("method: {}", method);
             }
 
-            println!("");
+            println!();
 
             (req, None)
         })
