@@ -42,6 +42,22 @@ pub enum ApiError {
 
 unsafe impl Sync for ApiError {}
 
+impl From<HttpResponse> for ApiError {
+    fn from(res: HttpResponse) -> Self {
+        ApiError::Generic(res)
+    }
+}
+
+impl From<hyper::Error> for ApiError {
+    fn from(err: hyper::Error) -> Self {
+        ApiError::Generic(
+            HttpResponse::new()
+                .internal_server_error()
+                .text(err.to_string()),
+        )
+    }
+}
+
 impl std::error::Error for ApiError {}
 
 impl std::fmt::Display for ApiError {
@@ -54,15 +70,19 @@ impl std::fmt::Display for ApiError {
     }
 }
 
-impl From<HttpResponse> for ApiError {
-    fn from(res: HttpResponse) -> Self {
-        ApiError::Generic(res)
-    }
-}
-
 impl From<ApiError> for Box<dyn std::error::Error + Send> {
     fn from(error: ApiError) -> Self {
         Box::new(error)
+    }
+}
+
+impl From<Box<dyn std::error::Error>> for ApiError {
+    fn from(error: Box<dyn std::error::Error>) -> Self {
+        ApiError::Generic(
+            HttpResponse::new()
+                .internal_server_error()
+                .text(error.to_string()),
+        )
     }
 }
 

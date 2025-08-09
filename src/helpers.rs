@@ -13,21 +13,23 @@ pub async fn exec_middleware(
     let mw_func = middleware.func;
 
     let our_res = HttpResponse::new();
-    let mut our_req = HttpRequest::from_hyper_request(&mut req).await.unwrap();
+    let mut our_req = HttpRequest::from_hyper_request(&mut req)
+        .await
+        .map_err(ApiError::from)?;
 
     if our_req.path.starts_with(middleware.path.as_str()) {
         let (modified_req, maybe_res) = mw_func(&mut our_req, our_res).await;
 
         match maybe_res {
             None => {
-                return Ok(modified_req.to_hyper_request().unwrap());
+                return modified_req.to_hyper_request().map_err(ApiError::from);
             }
             Some(res) => {
                 return Err(ApiError::Generic(res));
             }
         }
     } else {
-        Ok(our_req.to_hyper_request().unwrap())
+        our_req.to_hyper_request().map_err(ApiError::from)
     }
 }
 
