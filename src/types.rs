@@ -105,7 +105,7 @@ impl Display for HttpMethods {
             HttpMethods::DELETE => "DELETE",
             HttpMethods::PATCH => "PATCH",
             HttpMethods::HEAD => "HEAD",
-            HttpMethods::OPTIONS => "OPTION",
+            HttpMethods::OPTIONS => "OPTIONS",
         };
         write!(f, "{}", method)
     }
