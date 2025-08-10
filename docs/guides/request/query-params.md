@@ -19,7 +19,7 @@ A comprehensive URL query string parameter parsing and management system for Rus
 ## Basic Usage
 
 ```rust
-use your_crate::{QueryParams, QueryParamError};
+use ripress::req::query_params::{QueryParamError, QueryParams};
 
 // Parse from query string
 let query = QueryParams::from_query_string("page=2&limit=10&tags=rust&tags=web&active=true");
@@ -420,7 +420,7 @@ let sort_field = query.sort().unwrap_or("created_at");
 Gets the sort direction from 'order', 'dir', or 'direction' parameters.
 
 ```rust
-use your_crate::SortDirection;
+use ripress::req::query_params::SortDirection;
 
 let direction = query.sort_direction(); // SortDirection::Asc or SortDirection::Desc
 match direction {
@@ -517,7 +517,7 @@ Multiple values found when single value expected (currently not used but availab
 ### Pagination Handler
 
 ```rust
-use your_crate::{QueryParams, QueryParamError};
+use ripress::req::query_params::{QueryParamError, QueryParams};
 
 fn handle_pagination(query: QueryParams) -> Result<PaginationInfo, ApiError> {
     let page = query.page().max(1); // Ensure minimum page 1

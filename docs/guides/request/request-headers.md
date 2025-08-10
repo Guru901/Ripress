@@ -18,7 +18,7 @@ A thread-safe, case-insensitive HTTP header management struct for Rust web appli
 ## Basic Usage
 
 ```rust
-use your_crate::RequestHeaders;
+use ripress::req::request_headers::RequestHeaders;
 
 // Create new empty headers
 let mut headers = RequestHeaders::new();

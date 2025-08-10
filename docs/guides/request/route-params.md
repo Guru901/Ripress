@@ -18,7 +18,7 @@ A type-safe URL parameter extraction system for Rust web applications supporting
 ## Basic Usage
 
 ```rust
-use your_crate::{RouteParams, ParamError};
+use ripress::req::route_params::{ParamError, RouteParams};
 
 // Create from route matching (typically done by your router)
 let mut params = RouteParams::new();
@@ -42,7 +42,7 @@ let article_slug = params.slug(); // Some("hello-world")
 ## Error Handling
 
 ```rust
-use your_crate::{RouteParams, ParamError};
+use ripress::req::route_params{RouteParams, ParamError};
 
 let params = RouteParams::new();
 
@@ -360,7 +360,7 @@ match params.get_int("invalid_number") {
 For extracting multiple parameters with validation:
 
 ```rust
-use your_crate::extract_params;
+use ripress::extract_params;
 
 // Extract multiple parameters at once
 let result = extract_params!(params, {
@@ -388,7 +388,7 @@ match result {
 ### REST API Handler
 
 ```rust
-use your_crate::{RouteParams, ParamError};
+use ripress::req::route_params::{ParamError, RouteParams};
 
 fn get_user_posts(params: RouteParams) -> Result<Vec<Post>, ApiError> {
     // Extract required ID

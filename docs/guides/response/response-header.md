@@ -19,7 +19,7 @@ A comprehensive HTTP response header management system for Rust web applications
 ## Basic Usage
 
 ```rust
-use your_crate::ResponseHeaders;
+use ripress::res::response_headers::ResponseHeaders;
 
 // Create new headers
 let mut headers = ResponseHeaders::new();
@@ -656,7 +656,7 @@ println!("Response headers:\n{}", headers);
 ### JSON API Response
 
 ```rust
-use your_crate::ResponseHeaders;
+use ripress::res::response_headers::ResponseHeaders;
 
 fn json_api_response(data: &str) -> (ResponseHeaders, String) {
     let headers = ResponseHeaders::new()
@@ -815,7 +815,7 @@ fn error_response(status_code: u16, message: &str) -> (ResponseHeaders, String) 
 
 ```rust
 use actix_web::{HttpResponse, Result};
-use your_crate::ResponseHeaders;
+use ripress::res::response_headers::ResponseHeaders;
 
 async fn api_handler() -> Result<HttpResponse> {
     let headers = ResponseHeaders::new()
@@ -838,7 +838,7 @@ async fn api_handler() -> Result<HttpResponse> {
 
 ```rust
 use warp::{Reply, reply::Response};
-use your_crate::ResponseHeaders;
+use ripress::res::response_headers::ResponseHeaders;
 
 fn with_headers(reply: impl Reply, headers: ResponseHeaders) -> Response {
     let mut response = reply.into_response();
@@ -867,7 +867,7 @@ async fn api_handler() -> Result<impl Reply, warp::Rejection> {
 
 ```rust
 use axum::{response::{Response, Json}, http::HeaderMap};
-use your_crate::ResponseHeaders;
+use ripress::res::response_headers::ResponseHeaders;
 
 async fn api_handler() -> Response {
     let headers = ResponseHeaders::new()
