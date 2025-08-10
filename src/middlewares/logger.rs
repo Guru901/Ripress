@@ -1,5 +1,4 @@
-use crate::types::HandlerMiddleware;
-use std::sync::Arc;
+use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
 
 /// Configuration for the Logger Middleware
 ///
@@ -8,6 +7,7 @@ use std::sync::Arc;
 /// * `method` -  Whether to log the method
 /// * `path` - Whether to log the path
 /// * `duration` - Whether to log the duration
+
 #[derive(Clone)]
 pub struct LoggerConfig {
     pub method: bool,
@@ -48,26 +48,35 @@ impl Default for LoggerConfig {
 ///     path: true,
 /// })));
 /// ```
-pub fn logger(config: Option<LoggerConfig>) -> HandlerMiddleware {
-    Arc::new(move |req, _| {
+pub fn logger(
+    config: Option<LoggerConfig>,
+) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+    move |req, _| {
         let config = config.clone().unwrap_or_default();
         let req = req.clone();
+
         let start_time = std::time::Instant::now();
         let path = req.path.clone();
         let method = req.method.clone();
+
         Box::pin(async move {
             let duration = start_time.elapsed();
+
             if config.path {
                 print!("path: {}, ", path);
             }
+
             if config.duration {
                 print!("Time taken: {}ms, ", duration.as_millis());
             }
+
             if config.method {
                 print!("method: {}", method);
             }
+
             println!();
+
             (req, None)
         })
-    })
+    }
 }

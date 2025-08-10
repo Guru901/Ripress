@@ -1,5 +1,8 @@
-use crate::types::{HandlerMiddleware, HttpMethods};
-use std::sync::Arc;
+use crate::{
+    context::HttpResponse,
+    req::HttpRequest,
+    types::{FutMiddleware, HttpMethods},
+};
 
 /// Configuration for the Cors Middleware
 ///
@@ -52,25 +55,31 @@ impl Default for CorsConfig {
 ///     allow_credentials: true,
 /// })));
 /// ```
-pub fn cors(config: Option<CorsConfig>) -> HandlerMiddleware {
-    Arc::new(move |req, mut res| {
+pub fn cors(
+    config: Option<CorsConfig>,
+) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+    move |req, mut res| {
         let config = config.clone().unwrap_or_default();
         let req_clone = req.clone();
+
         Box::pin(async move {
             // Always add CORS headers
             res = res
                 .set_header("Access-Control-Allow-Origin", config.allowed_origin)
                 .set_header("Access-Control-Allow-Methods", config.allowed_methods)
                 .set_header("Access-Control-Allow-Headers", config.allowed_headers);
+
             if config.allow_credentials {
                 res = res.set_header("Access-Control-Allow-Credentials", "true");
             }
+
             // Handle preflight OPTIONS requests - terminate here with 200
             if req_clone.method == HttpMethods::OPTIONS {
                 return (req_clone, Some(res.ok()));
             }
+
             // For all other requests, add CORS headers but continue to next handler
             (req_clone, None) // Continue to next middleware/handler
         })
-    })
+    }
 }
