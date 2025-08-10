@@ -54,10 +54,6 @@ cargo add serde_json
 
 # For environment variables
 cargo add dotenv
-
-# For logging
-cargo add env_logger
-cargo add log
 ```
 
 ## Verify Installation
