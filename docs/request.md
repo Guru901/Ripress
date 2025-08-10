@@ -178,9 +178,10 @@ async fn main() {
 }
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match req.get_cookie("session_id") {
-        Ok(value) => println!("Cookie: {}", value),
-        Err(e) => println!("Error: {:?}", e),
+    if let Some(value) = req.get_cookie("session_id") {
+        println!("Cookie: {}", value);
+    } else {
+        println!("Cookie not found");
     }
     res.ok()
 }
