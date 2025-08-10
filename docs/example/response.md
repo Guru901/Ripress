@@ -9,11 +9,23 @@ The `HttpResponse` object in Ripress provides various methods for handling respo
 Send text responses using the `.text()` method.
 
 ```rust
-use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
 
-async fn text_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok()
-       .text("Hello, World!")
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || {}).await;
+}
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().text("Hello, World!")
 }
 ```
 
@@ -22,11 +34,23 @@ async fn text_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Send html responses using the `.html()` method.
 
 ```rust
-use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || {}).await;
+}
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok()
-       .html("<h1>Hello, World!</h1>")
+    res.ok().html("<h1>Hello, World!</h1>")
 }
 ```
 
@@ -35,7 +59,11 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 To return a JSON response, use `.json()` with a serializable Rust struct.
 
 ```rust
-use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -44,22 +72,22 @@ struct Message {
     code: i32,
 }
 
-async fn json_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || {}).await;
+}
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let response_body = Message {
         message: "Success".to_string(),
         code: 200,
     };
 
-    res.ok()
-       .json(response_body)
-}
-
-async fn quick_json(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok()
-       .json(serde_json::json!({
-           "message": "Success",
-           "code": 200
-       }))
+    res.ok().json(response_body)
 }
 ```
 
@@ -99,10 +127,6 @@ use ripress::context::{HttpRequest, HttpResponse};
 // 200 OK
 async fn ok_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
-       .json(serde_json::json!({
-           "status": "success",
-           "data": { "id": 1, "name": "John" }
-       }))
 }
 ```
 
@@ -113,31 +137,22 @@ use ripress::context::{HttpRequest, HttpResponse};
 
 // 400 Bad Request
 async fn bad_request(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.bad_request().json(serde_json::json!({
-        "error": "Invalid input",
-        "details": ["name is required", "age must be positive"]
-    }))
+    res.bad_request()
 }
 
 // 404 Not Found
 async fn not_found(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.not_found().json(serde_json::json!({
-        "error": "Resource not found",
-        "resource": "user/123"
-    }))
+    res.not_found()
 }
 
 // 401 Unauthorized
 async fn unauthorized(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.unauthorized().text("Unauthorized")
+    res.unauthorized()
 }
 
 // 500 Internal Server Error
 async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.internal_server_error().json(serde_json::json!({
-        "error": "Internal server error",
-        "request_id": "abc-123"
-    }))
+    res.internal_server_error()
 }
 ```
 
@@ -147,22 +162,30 @@ async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{app::App, types::RouterFns};
 
-// Setting multiple headers
-async fn set_headers(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_header("X-Request-ID", "abc-123")
-       .set_header("X-Custom-Header", "custom-value")
-       .ok()
-       .json(serde_json::json!({ "status": "success" }))
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+    app.get("/check-headers", check_headers);
+
+    app.listen(3000, || {}).await;
 }
 
-// Reading headers
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_header("X-Request-ID", "abc-123")
+        .set_header("X-Custom-Header", "custom-value")
+        .ok()
+        .json(serde_json::json!({ "status": "success" }))
+}
+
 async fn check_headers(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match res.get_header("X-Custom-Header") {
-        Ok(value) => res.ok()
-                       .json(serde_json::json!({ "header": value })),
-        Err(_) => res.bad_request()
-                     .text("Missing required header")
+    let headers = res.headers.clone();
+    match headers.get("X-Custom-Header") {
+        Some(value) => res.ok().json(serde_json::json!({ "header": value })),
+        None => res.bad_request().text("Missing required header"),
     }
 }
 ```
@@ -170,12 +193,20 @@ async fn check_headers(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ### Managing Cookies
 
 ```rust
-use ripress::{
-    context::{HttpRequest, HttpResponse},
-    res::CookieOptions,
-};
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::res::CookieOptions;
+use ripress::{app::App, types::RouterFns};
 
-// Setting cookies
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", set_session);
+    app.get("/logout", logout);
+
+    app.listen(3000, || {}).await;
+}
+
 async fn set_session(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_cookie("session_id", "abc123", CookieOptions::default())
         .set_cookie("user_id", "user_123", CookieOptions::default())
@@ -201,10 +232,18 @@ async fn logout(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ### Authentication Response
 
 ```rust
-use ripress::{
-    context::{HttpRequest, HttpResponse},
-    res::CookieOptions,
-};
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::res::CookieOptions;
+use ripress::{app::App, types::RouterFns};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/login", login);
+
+    app.listen(3000, || {}).await;
+}
 
 async fn login(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_cookie("session_id", "abc123", CookieOptions::default())
@@ -225,20 +264,31 @@ async fn login(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::res::CookieOptions;
+use ripress::{app::App, types::RouterFns};
 
-async fn validation_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || {}).await;
+}
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.bad_request()
-       .set_header("X-Error-Code", "VALIDATION_ERROR")
-       .json(serde_json::json!({
-           "error": "Validation failed",
-           "code": "VALIDATION_ERROR",
-           "details": {
-               "fields": [
-                   {"field": "email", "error": "Invalid email format"},
-                   {"field": "age", "error": "Must be over 18"}
-               ]
-           }
-       }))
+        .set_header("X-Error-Code", "VALIDATION_ERROR")
+        .json(serde_json::json!({
+            "error": "Validation failed",
+            "code": "VALIDATION_ERROR",
+            "details": {
+                "fields": [
+                    {"field": "email", "error": "Invalid email format"},
+                    {"field": "age", "error": "Must be over 18"}
+                ]
+            }
+        }))
 }
 ```
 
@@ -249,11 +299,22 @@ async fn validation_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse 
 Here's a basic example of streaming numbers:
 
 ```rust
-use ripress::context::{HttpRequest, HttpResponse};
 use bytes::Bytes;
+use futures::StreamExt;
 use futures::stream;
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{app::App, types::RouterFns};
 
-async fn basic_stream(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || {}).await;
+}
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let stream = stream::iter(0..5)
         .map(|n| Ok::<Bytes, std::io::Error>(Bytes::from(format!("Number: {}\n", n))));
 
@@ -266,27 +327,32 @@ async fn basic_stream(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Here's an example of streaming real-time updates with delays:
 
 ```rust
-use ripress::context::{HttpRequest, HttpResponse};
-use bytes::Bytes;
-use futures::stream;
-use tokio::time;
 use std::time::Duration;
 
-async fn realtime_updates(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+use bytes::Bytes;
+use futures::stream;
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{app::App, types::RouterFns};
+use tokio::time;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || {}).await;
+}
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let stream = stream::unfold(0, |state| async move {
         if state < 100 {
             // Simulate some processing time
             time::sleep(Duration::from_millis(100)).await;
 
-            let data = format!("Update {}: {}\n",
-                state,
-                chrono::Local::now().format("%H:%M:%S")
-            );
+            let data = format!("Update {}\n", state,);
 
-            Some((
-                Ok::<Bytes, std::io::Error>(Bytes::from(data)),
-                state + 1,
-            ))
+            Some((Ok::<Bytes, std::io::Error>(Bytes::from(data)), state + 1))
         } else {
             None
         }
@@ -301,14 +367,24 @@ async fn realtime_updates(_req: HttpRequest, res: HttpResponse) -> HttpResponse 
 Here's an example of streaming a large file:
 
 ```rust
-use ripress::context::{HttpRequest, HttpResponse};
 use bytes::Bytes;
 use futures::stream;
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{app::App, types::RouterFns};
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, BufReader};
 
-async fn stream_file(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let file = File::open("large_file.txt").await;
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || {}).await;
+}
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let file = File::open("large_file.txt").await.unwrap();
     let reader = BufReader::new(file);
 
     let stream = stream::unfold(reader, |mut reader| async move {
@@ -322,12 +398,8 @@ async fn stream_file(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
         }
     });
 
-    res.set_header("Content-Type", "text/plain")
-       .write(stream)
+    res.set_header("Content-Type", "text/plain").write(stream)
 }
 ```
 
-```
-
 These examples demonstrate different use cases for streaming responses, from simple number sequences to real-time updates and file streaming.
-```

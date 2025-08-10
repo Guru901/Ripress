@@ -4,6 +4,7 @@
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns,
 };
 
 #[tokio::main]
