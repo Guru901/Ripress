@@ -220,7 +220,7 @@ async fn main() {
 async fn update_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let user_id = req.params.get("id").unwrap_or("0");
 
-    if let (body) = req.json::<Value>() {
+    if let Ok(body) = req.json::<Value>() {
         // Update user logic here
         res.ok().json(json!({
             "id": user_id,
