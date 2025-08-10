@@ -9,8 +9,7 @@ use std::collections::HashMap;
 /// ## Example
 ///
 /// ```
-/// use std::collections::HashMap;
-/// use mycrate::RequestHeaders;
+/// use ripress::req::request_headers::RequestHeaders;
 ///
 /// let mut headers = RequestHeaders::new();
 /// headers.insert("Content-Type", "application/json");
@@ -31,6 +30,8 @@ impl RequestHeaders {
     ///
     /// # Example
     /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
     /// let headers = RequestHeaders::new();
     /// assert!(headers.is_empty());
     /// ```
@@ -60,6 +61,8 @@ impl RequestHeaders {
     ///
     /// # Example
     /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
     /// let mut headers = RequestHeaders::new();
     /// headers.insert("Content-Type", "application/json");
     /// assert_eq!(headers.content_type(), Some("application/json"));
@@ -81,6 +84,8 @@ impl RequestHeaders {
     ///
     /// # Example
     /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
     /// let mut headers = RequestHeaders::new();
     /// headers.append("Set-Cookie", "id=1");
     /// headers.append("Set-Cookie", "theme=dark");
@@ -101,6 +106,8 @@ impl RequestHeaders {
     ///
     /// # Example
     /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
     /// let mut headers = RequestHeaders::new();
     /// headers.append("Accept", "application/json");
     /// headers.append("Accept", "text/html");
@@ -119,6 +126,8 @@ impl RequestHeaders {
     ///
     /// # Example
     /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
     /// let mut headers = RequestHeaders::new();
     /// headers.append("Accept", "application/json");
     /// headers.append("Accept", "text/html");
@@ -209,6 +218,8 @@ impl RequestHeaders {
     ///
     /// # Example
     /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
     /// let mut headers = RequestHeaders::new();
     /// headers.insert("Content-Type", "application/json");
     /// for key in headers.keys() {
@@ -259,6 +270,8 @@ impl std::fmt::Display for RequestHeaders {
     ///
     /// # Example
     /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
     /// let mut headers = RequestHeaders::new();
     /// headers.insert("Content-Type", "application/json");
     /// println!("{}", headers);
@@ -280,6 +293,8 @@ impl std::ops::Index<&str> for RequestHeaders {
     /// Provides convenient indexing syntax:
     ///
     /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
     /// let mut headers = RequestHeaders::new();
     /// headers.insert("Content-Type", "application/json");
     /// assert_eq!(&headers["content-type"], "application/json");
