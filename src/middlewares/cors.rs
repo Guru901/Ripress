@@ -83,24 +83,3 @@ pub fn cors(
         })
     }
 }
-
-/// Alternative version that always continues (if you want CORS headers on all responses)
-pub fn cors_passthrough(
-    config: Option<CorsConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
-    move |req, mut res| {
-        let config = config.clone().unwrap_or_default();
-        let req_clone = req.clone();
-
-        Box::pin(async move {
-            // This version always continues to the next handler
-            // CORS headers would need to be added by the actual route handlers
-            // or by a response middleware that runs after route handlers
-
-            // Store CORS config in request context for later use
-            // (This would require extending HttpRequest to store metadata)
-
-            (req_clone, None) // Always continue
-        })
-    }
-}
