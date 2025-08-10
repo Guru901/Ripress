@@ -141,7 +141,7 @@ use ripress::{
 async fn main() {
     let mut app = App::new();
 
-    app.get("/", handler);
+    app.get("/:id", handler);
 
     app.listen(3000, || {}).await;
 }
