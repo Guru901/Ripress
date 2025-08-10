@@ -16,7 +16,7 @@ use std::str::FromStr;
 /// ## Example
 ///
 /// ```
-/// use mycrate::RouteParams;
+/// use ripress::req::route_params::RouteParams;
 ///
 /// let mut params = RouteParams::new();
 /// params.insert("id", "42");
@@ -92,7 +92,10 @@ impl RouteParams {
     ///
     /// # Example
     /// ```
-    /// let mut map = std::collections::HashMap::new();
+    /// use ripress::req::route_params::RouteParams;
+    /// use std::collections::HashMap;
+    ///
+    /// let mut map = HashMap::new();
     /// map.insert("id".into(), "123".into());
     /// let params = RouteParams::from_map(map);
     /// assert_eq!(params.get("id"), Some("123"));
@@ -145,7 +148,7 @@ impl RouteParams {
     ///
     /// let mut params = RouteParams::new();
     /// params.insert("id", "123");
-    /// assert_eq!(params.get_parsed::<i32>("id"), Some(123));
+    /// assert_eq!(params.get_parsed::<i32>("id"), Ok(123));
     /// ```
     pub fn get_parsed<T>(&self, name: &str) -> Result<T, ParamError>
     where
@@ -287,7 +290,7 @@ impl std::ops::Index<&str> for RouteParams {
     ///
     /// let mut params = RouteParams::new();
     /// params.insert("user_id", "something");
-    /// assert_eq!(&headers["user_id"], "something");
+    /// assert_eq!(&params["user_id"], "something");
     /// ```
     ///
     /// # Panics
