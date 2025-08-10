@@ -11,11 +11,22 @@ The `HttpResponse` object in Ripress provides methods for constructing HTTP resp
 Send plain text responses using the `.text()` method.
 
 ```rust
+use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::RouterFns;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server runing on port 3000"))
+        .await
+}
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok()
-       .text("Hello, World!")
+    res.ok().text("Hello, World!")
 }
 ```
 
@@ -24,11 +35,22 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Send html responses using the `.html()` method.
 
 ```rust
+use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::RouterFns;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server runing on port 3000"))
+        .await
+}
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok()
-       .html("<h1>Hello, World!</h1>")
+    res.ok().html("<h1>Hello, World!</h1>")
 }
 ```
 
@@ -37,23 +59,34 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Send JSON responses using the `.json()` method with any serializable type.
 
 ```rust
+use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::RouterFns;
 use serde::Serialize;
 
 #[derive(Serialize)]
 struct User {
     name: String,
-    age: u32
+    age: u32,
+}
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server runing on port 3000"))
+        .await
 }
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let user = User {
         name: "John".to_string(),
-        age: 30
+        age: 30,
     };
 
-    res.ok()
-       .json(user)
+    res.ok().json(user)
 }
 ```
 
@@ -64,13 +97,24 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Set specific status codes using `.status()`:
 
 ```rust
+use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::RouterFns;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server runing on port 3000"))
+        .await
+}
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.status(201)
-       .json(serde_json::json!({
-           "message": "Resource created"
-       }))
+    res.status(201).json(serde_json::json!({
+        "message": "Resource created"
+    }))
 }
 ```
 
@@ -102,40 +146,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
-#### 404 Not Found
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.not_found()
-       .text("Resource not found")
-}
-```
-
-#### 401 Unauthorized
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.unauthorized()
-       .text("Unauthorized")
-}
-```
-
-#### 500 Internal Server Error
-
-```rust
-use ripress::context::{HttpRequest, HttpResponse};
-
-async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.internal_server_error()
-       .json(serde_json::json!({
-           "error": "Internal server error"
-       }))
-}
-```
+For more details on status codes, see the [Status Codes](#status-codes) section.
 
 ## Headers
 
@@ -144,12 +155,24 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Add custom headers using `.set_header()`:
 
 ```rust
+use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::RouterFns;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server runing on port 3000"))
+        .await
+}
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_header("X-Custom-Header", "value")
-       .ok()
-       .text("Headers set")
+        .ok()
+        .text("Headers set")
 }
 ```
 
@@ -158,17 +181,32 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Retrieve header values using `.get_header()`:
 
 ```rust
+use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::RouterFns;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server runing on port 3000"))
+        .await
+}
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match res.get_header("X-Custom-Header") {
-        Ok(value) => res.ok().text(format!("Header value: {}", value)),
-        Err(_) => res.not_found().text("Header not found")
+    let headers = res.headers.clone();
+
+    if let Some(value) = headers.get("X-Custom-Header") {
+        res.ok().text(format!("Header value: {}", value))
+    } else {
+        res.not_found().text("Header not found")
     }
 }
 ```
 
-Returns `Result<String, HttpResponseError>`.
+Returns `Option<&str>`.
 
 ## Streaming Responses
 
@@ -214,10 +252,20 @@ The `.write()` method:
 Set cookies using `.set_cookie()`:
 
 ```rust
-use ripress::{
-    context::{HttpRequest, HttpResponse},
-    res::{CookieOptions, CookieSameSiteOptions},
-};
+use ripress::app::App;
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::res::{CookieOptions, CookieSameSiteOptions};
+use ripress::types::RouterFns;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server runing on port 3000"))
+        .await
+}
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_cookie(
@@ -227,8 +275,8 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
             http_only: true,
             secure: true,
             same_site: CookieSameSiteOptions::Strict,
-            path: Some("/".to_owned()),
-            domain: Some("".to_owned()),
+            path: Some("/"),
+            domain: Some(""),
             max_age: None,
             expires: None,
         },
@@ -243,12 +291,22 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Remove cookies using `.clear_cookie()`:
 
 ```rust
+use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
+use ripress::types::RouterFns;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server runing on port 3000"))
+        .await
+}
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.clear_cookie("session")
-       .ok()
-       .text("Cookie removed")
+    res.clear_cookie("session").ok().text("Cookie removed")
 }
 ```
 
@@ -257,10 +315,20 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 All response methods support chaining for a fluent API:
 
 ```rust
-use ripress::{
-    context::{HttpRequest, HttpResponse},
-    res::CookieOptions,
-};
+use ripress::app::App;
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::res::CookieOptions;
+use ripress::types::RouterFns;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server runing on port 3000"))
+        .await
+}
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_header("X-Custom", "value")
