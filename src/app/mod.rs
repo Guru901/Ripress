@@ -3,7 +3,7 @@
 use crate::helpers::exec_middleware;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
-use crate::types::{Fut, FutMiddleware, HttpMethods, RouterFns, Routes};
+use crate::types::{Fut, FutMiddleware, HandlerMiddleware, HttpMethods, RouterFns, Routes};
 use hyper::header;
 use hyper::http::StatusCode;
 use hyper::{Body, Request, Response, Server};
@@ -32,7 +32,7 @@ where
 
 #[derive(Clone)]
 pub struct Middleware {
-    pub func: Arc<dyn Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
+    pub func: Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
     pub path: String,
 }
 
@@ -139,11 +139,9 @@ impl App {
     /// use ripress::app::App;
     /// let mut app = App::new();
     ///
-    /// app.use_middleware("path", |req, res| {
+    /// app.use_middleware("path", |req, _res| async move {
     ///     let mut req = req.clone();
-    ///     Box::pin(async move {
-    ///         (req, None)
-    ///     })
+    ///     (req, None)
     /// });
     ///
     /// ```
@@ -151,19 +149,23 @@ impl App {
     pub fn use_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(&mut HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
-
         self.middlewares.push(Middleware {
-            func: Arc::new(move |req, res| -> crate::types::FutMiddleware {
-                box_future_middleware(middleware(req, res))
-            }),
+            func: Self::middleware_from_closure(middleware),
             path: path,
         });
-
         self
+    }
+
+    fn middleware_from_closure<F, Fut>(f: F) -> HandlerMiddleware
+    where
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
+    {
+        Arc::new(move |req, res| box_future_middleware(f(req, res)))
     }
 
     /// Add a static file server to the application.

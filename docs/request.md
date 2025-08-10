@@ -11,7 +11,22 @@ HttpRequest is automatically passed to route handlers.
 Example:
 
 ```rust
-use ripress::{context::{HttpRequest, HttpResponse}};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let body = req.text().unwrap_or("No body".to_string());
@@ -24,11 +39,25 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Checks if the `Content-Type` of the request matches the specified type.
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse, types::RequestBodyType};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::{RequestBodyType, RouterFns},
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     req.is(RequestBodyType::JSON);
-
     res.ok()
 }
 ```
@@ -40,12 +69,25 @@ Returns `true` if the `Content-Type` matches, otherwise `false`.
 Returns the request's HTTP method.
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let req = HttpRequest::new();
     let method = req.method;
-
     res.ok()
 }
 ```
@@ -57,33 +99,53 @@ Returns a reference to `HttpMethods` enum.
 Returns the request's origin URL.
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let origin_url = req.origin_url;
-
     res.ok()
 }
 ```
-
-### Example Cases:
-
-- For request: `GET /user/123`
-  - origin_url → `/user/123`
-- For request: `GET /user/123?q=hello`
-  - origin_url → `/user/123?q=hello`
 
 ## Getting Request Path
 
 Returns the request's path.
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let req = HttpRequest::new();
     let path = req.path;
-
     res.ok()
 }
 ```
@@ -98,14 +160,29 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Returns the specified cookie value.
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match req.get_cookie("session_id") {
-        Ok(value) => println!("Cookie: {}", value),
-        Err(e) => println!("Error: {:?}", e),
+    if let Some(value) = req.get_cookie("session_id") {
+        println!("Cookie: {}", value);
+    } else {
+        println!("Cookie not found");
     }
-
     res.ok()
 }
 ```
@@ -117,11 +194,25 @@ Returns `Result<&str, HttpRequestError>`.
 Returns the client's IP address.
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let ip = req.ip;
-
     res.ok()
 }
 ```
@@ -131,52 +222,95 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Returns the specified header value.
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match req.get_header("content-type") {
-        Ok(value) => println!("Header: {}", value),
-        Err(e) => println!("Error: {:?}", e),
+    match req.headers.get("content-type") {
+        Some(value) => println!("Header: {}", value),
+        None => println!("Header not found"),
     }
-
     res.ok()
 }
 ```
 
-Returns `Result<&str, HttpRequestError>`.
+Returns `Option<&str>`.
 
 ## Accessing URL Parameters
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/:id", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match req.get_params("id") {
-        Ok(value) => println!("ID: {}", value),
-        Err(e) => println!("Error: {:?}", e),
+    match req.params.get("id") {
+        Some(value) => println!("ID: {}", value),
+        None => println!("id not found"),
     }
-
     res.ok()
 }
 ```
 
 Example:
 
-- Route: `GET /user/{id}`
+- Route: `GET /user/:id`
 - Request: `GET /user/123`
-- `get_params("id")` returns `Ok("123")`
+- `params.get()` returns `Some("123")`
 
-Returns `Result<&str, HttpRequestError>`.
+Returns `Option<&str>`
 
 ## Accessing Query Parameters
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/:id", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match req.get_query("q") {
-        Ok(value) => println!("Query: {}", value),
-        Err(e) => println!("Error: {:?}", e),
+    match req.query_params.get("q") {
+        Some(value) => println!("Query: {}", value),
+        None => println!("Query Param not found"),
     }
 
     res.ok()
@@ -186,16 +320,31 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Example:
 
 - URL: `GET /search?q=Ripress`
-- `get_query("q")` returns `Ok("Ripress")`
+- `query_params.get("q")` returns `Some("Ripress")`
 
-Returns `Result<&str, HttpRequestError>`.
+Returns `Option<&str>`
 
 ## Getting Request Protocol
 
 Returns the request's protocol.
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/:id", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let protocol = req.protocol;
@@ -212,7 +361,22 @@ Returns `String` containing the protocol.
 Returns whether the request was made over HTTPS.
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/:id", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let is_secure = req.is_secure;
@@ -227,11 +391,36 @@ Returns `bool`.
 ## Get data from request that is inserted by middleware
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
 
-async fn handler(mut req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    req.set_data("id", "123");
-    let id = req.get_data("id");
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.use_middleware("/auth", |req, res| async {
+        if let Some(token) = req.get_cookie("token") {
+            // check auth here
+            let mut req = req.clone();
+            req.set_data("user_id", &token);
+            return (req, None);
+        } else {
+            return (req, Some(res.unauthorized().text("token not found")));
+        }
+    });
+
+    app.get("/auth/sign-in", sign_in_handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
+
+async fn sign_in_handler(mut req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let id = req.get_data("user_id");
     println!("Id: {:?}", id);
 
     res.ok()
@@ -245,13 +434,28 @@ Returns `Option<&String>` with the data value if found, or `None` if not found.
 ### JSON Body
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
 struct User {
     name: String,
     age: u8,
+}
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
 }
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -269,7 +473,22 @@ Returns `Result<J, String>` where `J` is your deserialized type.
 ### Text Body
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.text() {
@@ -286,7 +505,22 @@ Returns `Result<String, String>`.
 ### Form Data
 
 ```rust
-use ripress::{req::HttpRequest, res::HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.form_data() {

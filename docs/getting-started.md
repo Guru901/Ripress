@@ -6,15 +6,21 @@ Ripress is an Express-inspired web framework for Rust, designed to provide a sim
 
 ## Features
 
-- Express-like routing.
-- JSON and text response helpers.
-- Query parameter and URL parameter extraction.
-- Support for application/json and text/plain request bodies.
+- Express-like routing with `App` and `Router`
+- Async handler support (built on `tokio`)
+- Request and response objects (`HttpRequest`, `HttpResponse`)
+- Built-in JSON, text, and form parsing
+- Middleware support
+- Route parameters and query parsing
+- Type-safe handler signatures
+- Easy error handling
+- Extensible via custom middleware
 
 ## Installation
 
 ```bash
 cargo add ripress
+cargo add tokio --features macros,rt-multi-thread
 ```
 
 ## Quick Start
@@ -23,6 +29,7 @@ cargo add ripress
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns,
 };
 use serde_json::json;
 
@@ -34,7 +41,10 @@ async fn main() {
     app.get("/user/{id}", find_user);
     app.post("/submit", submit_form);
 
-    app.listen(3000, || {}).await.unwrap();
+    app.listen(3000, || {
+        println!("Server is running on port 3000");
+    })
+    .await;
 }
 
 async fn index(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -43,11 +53,11 @@ async fn index(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 async fn find_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let user_id = req.get_params("id");
+    let user_id = req.params.get("id");
 
     match user_id {
-        Ok(user_id) => res.status(200).text(format!("Hello, {user_id}")),
-        Err(err) => res.not_found().text(err.to_string()),
+        Some(user_id) => res.status(200).text(format!("Hello, {user_id}")),
+        None => res.text("User id is required"),
     }
 }
 

@@ -4,6 +4,7 @@
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns,
 };
 
 #[tokio::main]
@@ -13,7 +14,7 @@ async fn main() {
     app.get("/", home);
     app.get("/about", about);
 
-    app.listen(3000, || {}).await.unwrap();
+    app.listen(3000, || {}).await;
 }
 
 async fn home(_req: HttpRequest, res: HttpResponse) -> HttpResponse {

@@ -271,6 +271,49 @@ pub trait RouterFns {
         self.add_route(HttpMethods::GET, path, handler);
     }
 
+    /// Add a OPTIONS route to the application or router.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `handler` - The handler function for the route.
+    ///
+    /// ## Example (App)
+    ///
+    /// ```
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
+    /// use ripress::types::RouterFns;
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.options("/hello", handler);
+    /// ```
+    ///
+    /// ## Example (Router)
+    ///
+    /// ```
+    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
+    /// use ripress::types::RouterFns;
+    ///
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().text("Hello, World!")
+    /// }
+    ///
+    /// let mut router = Router::new("/api");
+    /// router.options("/hello", handler);
+    /// ```
+
+    fn options<F, Fut>(&mut self, path: &str, handler: F)
+    where
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = HttpResponse> + Send + 'static,
+    {
+        self.add_route(HttpMethods::OPTIONS, path, handler);
+    }
+
     /// Add a POST route to the application or router.
     ///
     /// ## Arguments

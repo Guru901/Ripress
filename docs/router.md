@@ -9,11 +9,14 @@ The `Router` struct provides a simple way to group and manage routes under a com
 To create a new router, use the `Router::new` method and specify the base path. For example:
 
 ```rust
-use ripress::router::Router;
+use ripress::{app::App, router::Router};
 
 #[tokio::main]
 async fn main() {
-    let mut router = Router::new("/api");
+    let mut app = App::new();
+    let router = Router::new("/api");
+
+    router.register(&mut app);
 }
 ```
 
@@ -24,7 +27,12 @@ The Router offers methods corresponding to each HTTP method. Each method takes a
 ### Defining Route
 
 ```rust
-use ripress::{app::App, req::HttpRequest, res::HttpResponse, router::Router, types::RouterFns};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    router::Router,
+    types::RouterFns,
+};
 
 #[tokio::main]
 async fn main() {

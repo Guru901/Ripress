@@ -91,7 +91,7 @@ async fn main() {
     app.get("/permanent-redirect-test", permanent_redirect_test);
 
     app.use_middleware("/auth", |req, res| {
-        let has_token = req.get_cookie("token").is_ok();
+        let has_token = req.get_cookie("token").is_some();
         let req_cloned = req.clone(); // owned
         Box::pin(async move {
             if has_token {
@@ -342,8 +342,8 @@ async fn permanent_redirect_test(req: HttpRequest, res: HttpResponse) -> HttpRes
 
 async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.get_cookie("token") {
-        Ok(token) => res.ok().text(token),
-        Err(_) => res.unauthorized().text("No token found"),
+        Some(token) => res.ok().text(token),
+        None => res.unauthorized().text("No token found"),
     }
 }
 
@@ -380,7 +380,6 @@ async fn stream_json(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
     res.write(stream)
 }
-
 ' > main.rs
 
 cargo run &  # Start server in background

@@ -50,7 +50,7 @@ impl Default for LoggerConfig {
 /// ```
 pub fn logger(
     config: Option<LoggerConfig>,
-) -> impl Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
     move |req, _| {
         let config = config.clone().unwrap_or_default();
         let req = req.clone();

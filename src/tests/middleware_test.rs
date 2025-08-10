@@ -93,7 +93,7 @@ mod tests {
         let mut req = HttpRequest::new();
         let res = HttpResponse::new();
 
-        let _ = logger_mw(&mut req, res).await;
+        let _ = logger_mw(req, res).await;
     }
 
     #[tokio::test]
@@ -107,6 +107,6 @@ mod tests {
         let mut req = HttpRequest::new();
         let res = HttpResponse::new();
 
-        let _ = logger_mw(&mut req, res).await;
+        let _ = logger_mw(req, res).await;
     }
 }

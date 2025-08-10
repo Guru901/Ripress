@@ -11,14 +11,14 @@ Creates a new App instance:
 ```rust
 use ripress::app::App;
 
-let mut app = App::new();
+let app = App::new();
 ```
 
 ## Route Handling Methods
 
 ### Basic Route Handler Pattern
 
-All route handlers follow this pattern:
+All route handlers must follow this pattern:
 
 ```rust
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -35,28 +35,22 @@ The `static_files` method provides a simple way to serve static assets (such as 
 ```rust
 use ripress::app::App;
 
-let mut app = App::new();
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
 
-// Serve files from the "./public" directory when requests come to "/public"
-app.static_files("/public", "./public");
+    // Serve files from the "./public" directory when requests come to "/public"
+    app.static_files("/public", "./public");
 
-app.get("/", |req, res| async { res.ok().text("Hello, World!") });
+    app.get("/", |req, res| async { res.ok().text("Hello, World!") });
 
-app.listen(3000, || {
-    println!("Listening on port 3000");
-})
-.await;
+    app.listen(3000, || {
+        println!("Listening on port 3000");
+    })
+    .await
+    .unwrap();
+}
 ```
-
-### Usage Details
-
-- **URL Path Prefix:**  
-  The first argument is the URL path prefix (e.g., `/public`). Requests starting with this prefix will be treated as requests for static files.
-
-- **Directory Path:**  
-  The second argument is the local file system directory that contains your static assets (e.g., `"./public"`). Ensure that the path is correct relative to the project root.
-
-This integration allows your application to serve both dynamic routes and static content easily.
 
 ### HTTP Method-Specific Routes
 
@@ -74,7 +68,7 @@ async fn main() {
     let mut app = App::new();
     app.get("/hello", get_handler);
 
-    app.listen(3000, || {}).await.unwrap();
+    app.listen(3000, || {}).await;
 }
 
 async fn get_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -88,7 +82,7 @@ async fn get_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
-    types::RouterFns
+    types::RouterFns,
 };
 
 #[tokio::main]
@@ -96,11 +90,11 @@ async fn main() {
     let mut app = App::new();
     app.post("/submit", post_handler);
 
-    app.listen(3000, || {}).await.unwrap();
+    app.listen(3000, || {}).await;
 }
 
 async fn post_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("HEAD request received")
+    res.ok().text("POST request received")
 }
 ```
 
@@ -110,7 +104,7 @@ async fn post_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
-    types::RouterFns
+    types::RouterFns,
 };
 
 #[tokio::main]
@@ -118,7 +112,7 @@ async fn main() {
     let mut app = App::new();
     app.patch("/submit", patch_handler);
 
-    app.listen(3000, || {}).await.unwrap();
+    app.listen(3000, || {}).await;
 }
 
 async fn patch_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -132,7 +126,7 @@ async fn patch_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
-    types::RouterFns
+    types::RouterFns,
 };
 
 #[tokio::main]
@@ -140,7 +134,7 @@ async fn main() {
     let mut app = App::new();
     app.put("/update", put_handler);
 
-    app.listen(3000, || {}).await.unwrap();
+    app.listen(3000, || {}).await;
 }
 
 async fn put_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -154,7 +148,7 @@ async fn put_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
-    types::RouterFns
+    types::RouterFns,
 };
 
 #[tokio::main]
@@ -162,11 +156,33 @@ async fn main() {
     let mut app = App::new();
     app.delete("/remove", delete_handler);
 
-    app.listen(3000, || {}).await.unwrap();
+    app.listen(3000, || {}).await;
 }
 
 async fn delete_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("DELETE request received")
+}
+```
+
+#### OPTIONS Requests
+
+```rust
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    app.options("/submit", option_handler);
+
+    app.listen(3000, || {}).await;
+}
+
+async fn option_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().text("OPTIONS request received")
 }
 ```
 
@@ -185,10 +201,20 @@ use ripress::app::App;
 async fn main() {
     let mut app = App::new();
 
-    app.use_middleware("/api/", |req, res, next| {
-        println!("here");
-        Box::pin(async move { next.run(req, res).await })
+    app.use_middleware("/api/", |req, res| {
+        // In Ripress middleware, you control whether the request continues to the next handler or middleware
+        // by what you return:
+        // - If you return (request, Some(response)), the middleware short-circuits and sends the response immediately.
+        // - If you return (request, None), the request is allowed to continue to the next middleware or handler.
+        // For example, to allow the request to continue:
+        Box::pin(async move { (req, None) })
+        // Or, to block the request and send a response:
+        // Box::pin(async move {
+        //     (req, Some(res.text("Blocked by middleware")))
+        // })
     });
+
+    app.listen(3000, || {}).await;
 }
 ```
 
@@ -201,17 +227,19 @@ The middleware will be applied to /api/\* in this case
 
 ## Dynamic Route Parameters
 
-Routes can include dynamic parameters using `{paramName}` syntax:
+Routes can include dynamic parameters using `:paramName` syntax:
 
 ```rust
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns,
 };
 use serde_json::json;
 
 async fn user_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let user_id = req.get_params("id").unwrap_or("unknown".to_string());
+    let user_id = req.params.get("id").unwrap_or("unknown");
+
     res.ok().json(json!({
         "userId": user_id,
         "message": "User details retrieved"
@@ -223,7 +251,7 @@ async fn main() {
     let mut app = App::new();
     app.get("/user/{id}", user_handler);
 
-    app.listen(3000, || {}).await.unwrap();
+    app.listen(3000, || {}).await;
 }
 ```
 
@@ -235,6 +263,7 @@ Use the `.listen()` method to start the server:
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns,
 };
 
 #[tokio::main]
@@ -247,8 +276,7 @@ async fn main() {
     app.listen(3000, || {
         println!("Server starting...");
     })
-    .await
-    .unwrap();
+    .await;
 }
 
 async fn home_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {

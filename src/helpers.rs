@@ -18,7 +18,7 @@ pub async fn exec_middleware(
         .map_err(ApiError::from)?;
 
     if path_matches(middleware.path.as_str(), our_req.path.as_str()) {
-        let (modified_req, maybe_res) = mw_func(&mut our_req, our_res).await;
+        let (modified_req, maybe_res) = mw_func(our_req, our_res).await;
 
         match maybe_res {
             None => {
