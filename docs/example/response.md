@@ -181,9 +181,8 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
         .json(serde_json::json!({ "status": "success" }))
 }
 
-async fn check_headers(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let headers = res.headers.clone();
-    match headers.get("X-Custom-Header") {
+async fn check_headers(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.headers.get("X-Custom-Header") {
         Some(value) => res.ok().json(serde_json::json!({ "header": value })),
         None => res.bad_request().text("Missing required header"),
     }
