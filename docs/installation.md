@@ -144,7 +144,7 @@ app.listen(8080, || {
 Now that you have Ripress installed, you can:
 
 - Follow the [Getting Started Guide](getting-started.md) for a comprehensive tutorial
-- Check out the [Examples](examples/) for common use cases
+- Check out the [Examples](./example/basic-routing.md) for common use cases
 - Explore the [API Reference](api-reference/) for detailed documentation
 
 ## Development Setup
