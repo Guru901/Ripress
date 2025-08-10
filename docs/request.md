@@ -247,7 +247,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
-Returns `Result<&str, HttpRequestError>`.
+Returns `Option<&str>`.
 
 ## Accessing URL Parameters
 

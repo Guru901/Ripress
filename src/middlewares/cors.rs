@@ -87,7 +87,7 @@ pub fn cors(
 /// Alternative version that always continues (if you want CORS headers on all responses)
 pub fn cors_passthrough(
     config: Option<CorsConfig>,
-) -> impl Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
     move |req, mut res| {
         let config = config.clone().unwrap_or_default();
         let req_clone = req.clone();

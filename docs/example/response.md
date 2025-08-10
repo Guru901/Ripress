@@ -384,7 +384,15 @@ async fn main() {
 }
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let file = File::open("large_file.txt").await.unwrap();
+    let file = match File::open("large_file.txt").await {
+        Ok(f) => f,
+        Err(e) => {
+            return res
+                .internal_server_error()
+                .text(format!("Failed to open file: {}", e));
+        }
+    };
+
     let reader = BufReader::new(file);
 
     let stream = stream::unfold(reader, |mut reader| async move {
