@@ -42,7 +42,7 @@ let article_slug = params.slug(); // Some("hello-world")
 ## Error Handling
 
 ```rust
-use ripress::req::route_params{RouteParams, ParamError};
+use ripress::req::route_params::{RouteParams, ParamError};
 
 let params = RouteParams::new();
 
