@@ -392,7 +392,9 @@ use ripress::req::route_params::{ParamError, RouteParams};
 
 fn get_user_posts(params: RouteParams) -> Result<Vec<Post>, ApiError> {
     // Extract required ID
-    let user_id = params.id()?;
+ let user_id = params.id().map_err(|e| ApiError::Generic(
+   HttpResponse::new().bad_request().text(e.to_string())
+    ))?;
 
     // Extract optional pagination parameters
     let page = params.get_or_default("page", 1);

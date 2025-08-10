@@ -2,7 +2,6 @@
 name = "ripress"
 version = "0.6.1"
 edition = "2024"
-rust-version = "1.75"
 description = "An attempt to make an http server library like express.js in rust"
 license = "MIT"
 authors = ["You guru911u@gmail.com"]
