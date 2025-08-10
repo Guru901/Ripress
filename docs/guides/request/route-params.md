@@ -78,6 +78,8 @@ let params = RouteParams::new();
 Creates `RouteParams` from an existing `HashMap` (useful for migration from older code).
 
 ```rust
+use std::collections::HashMap;
+
 let mut map = HashMap::new();
 map.insert("id".to_string(), "123".to_string());
 let params = RouteParams::from_map(map);
