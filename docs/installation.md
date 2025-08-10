@@ -39,8 +39,8 @@ Alternatively, you can manually add them to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ripress = "0.1"
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+ripress = "0.6.1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
 ### Optional Dependencies
@@ -61,6 +61,13 @@ cargo add dotenv
 Create a simple "Hello World" server to verify everything is working:
 
 Replace the contents of `src/main.rs` with:
+
+Note: The example below uses the `serde_json::json!` macro. Ensure these are installed first:
+
+```bash
+cargo add serde --features derive
+cargo add serde_json
+```
 
 ```rust
 use ripress::{
