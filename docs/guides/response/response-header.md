@@ -606,6 +606,8 @@ for (name, values) in headers.iter_all() {
 Converts to a single-value `HashMap` (takes first value for each header).
 
 ```rust
+use std::collections::HashMap;
+
 let map: HashMap<String, String> = headers.to_map();
 ```
 
