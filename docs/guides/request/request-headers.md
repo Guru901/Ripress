@@ -1,6 +1,6 @@
 # RequestHeaders Documentation
 
-A thread-safe, case-insensitive HTTP header management struct for Rust web applications.
+A case-insensitive HTTP header management struct for Rust web applications.
 
 ## Overview
 
@@ -375,7 +375,7 @@ fn request_logging(headers: &RequestHeaders) {
 
 ## Thread Safety
 
-`RequestHeaders` implements `Clone` and `Debug`, making it suitable for use in multi-threaded web servers. The struct itself is not `Send + Sync` by default, but can be easily shared by cloning when needed.
+`RequestHeaders` derives `Clone` and `Debug` (after adding the derives above). Its inner `HashMap<String, Vec<String>>` is also `Send + Sync`, so the struct can be shared across threads via standard Rust ownership rules. For mutation, clone per thread or wrap in your preferred synchronization primitive.
 
 ## Performance Considerations
 
