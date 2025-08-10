@@ -510,7 +510,7 @@ struct CreateUserRequest {
 async fn main() {
     let mut app = App::new();
 
-    app.get("/create-user", create_user_typed);
+    app.post("/create-user", create_user_typed);
 
     app.listen(3000, || {
         println!("Server running on http://localhost:3000");
@@ -548,7 +548,7 @@ use serde_json::json;
 async fn main() {
     let mut app = App::new();
 
-    app.get("/handle-form", handle_form);
+    app.post("/handle-form", handle_form);
 
     app.listen(3000, || {
         println!("Server running on http://localhost:3000");
