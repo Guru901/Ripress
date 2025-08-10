@@ -346,7 +346,7 @@ Sets the `X-Powered-By` header.
 - `value`: Technology identifier
 
 ```rust
-headers.powered_by("Rust/Actix-Web");
+headers.powered_by("Rust/Ripress");
 ```
 
 #### `remove_powered_by(&mut self)`
@@ -806,82 +806,6 @@ fn error_response(status_code: u16, message: &str) -> (ResponseHeaders, String) 
 
     let body = format!(r#"{{"error": "{}", "status": {}}}"#, message, status_code);
     (headers, body)
-}
-```
-
-## Integration with Web Frameworks
-
-### With Actix Web
-
-```rust
-use actix_web::{HttpResponse, Result};
-use ripress::res::response_headers::ResponseHeaders;
-
-async fn api_handler() -> Result<HttpResponse> {
-    let headers = ResponseHeaders::new()
-        .with_content_type("application/json")
-        .with_security()
-        .with_cors(Some("https://myapp.com"));
-
-    let mut response = HttpResponse::Ok();
-
-    // Add headers to response
-    for (name, value) in headers.iter() {
-        response.insert_header((name.as_str(), value));
-    }
-
-    response.json(serde_json::json!({"message": "Hello, world!"}))
-}
-```
-
-### With Warp
-
-```rust
-use warp::{Reply, reply::Response};
-use ripress::res::response_headers::ResponseHeaders;
-
-fn with_headers(reply: impl Reply, headers: ResponseHeaders) -> Response {
-    let mut response = reply.into_response();
-
-    for (name, value) in headers.iter() {
-        response.headers_mut().insert(
-            name.parse().unwrap(),
-            value.parse().unwrap()
-        );
-    }
-
-    response
-}
-
-async fn api_handler() -> Result<impl Reply, warp::Rejection> {
-    let headers = ResponseHeaders::new()
-        .with_json()
-        .with_security();
-
-    let data = serde_json::json!({"message": "Hello, world!"});
-    Ok(with_headers(warp::reply::json(&data), headers))
-}
-```
-
-### With Axum
-
-```rust
-use axum::{response::{Response, Json}, http::HeaderMap};
-use ripress::res::response_headers::ResponseHeaders;
-
-async fn api_handler() -> Response {
-    let headers = ResponseHeaders::new()
-        .with_content_type("application/json")
-        .with_security();
-
-    let mut header_map = HeaderMap::new();
-    for (name, value) in headers.iter() {
-        if let (Ok(name), Ok(value)) = (name.parse(), value.parse()) {
-            header_map.insert(name, value);
-        }
-    }
-
-    (header_map, Json(serde_json::json!({"message": "Hello, world!"}))).into_response()
 }
 ```
 
