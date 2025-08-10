@@ -139,11 +139,9 @@ impl App {
     /// use ripress::app::App;
     /// let mut app = App::new();
     ///
-    /// app.use_middleware("path", |req, res| {
+    /// app.use_middleware("path", |req, _res| async move {
     ///     let mut req = req.clone();
-    ///     Box::pin(async move {
-    ///         (req, None)
-    ///     })
+    ///     (req, None)
     /// });
     ///
     /// ```
