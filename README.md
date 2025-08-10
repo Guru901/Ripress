@@ -32,32 +32,34 @@ Ripress is a web framework inspired by Express.js.
 You can add `ripress` to your project using Cargo:
 
 ```sh
-cargo add ripress tokio
-```
-
-Or manually add it to your `Cargo.toml`:
-
-```toml
-[dependencies]
-ripress = "0.6.1"
-tokio = { version = "1.46.1", features = ["full"] }
+cargo add ripress
+cargo add tokio --features macros,rt-multi-thread
 ```
 
 ## Basic Example
 
 ```rust
-use ripress::app::App;
-use ripress::context::{HttpRequest, HttpResponse};
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
 
 #[tokio::main]
 async fn main() {
     let mut app = App::new();
-    app.get("/", hello_world);
-    app.listen(3000, || {}).await;
+
+    app.get("/", handler);
+
+    app.listen(3000, || {
+        println!("Server is running on port 3000");
+    })
+    .await;
 }
 
-async fn hello_world(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok().text("Hello, world!")
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.status(200)
+        .json(json!({"message": "Welcome to Ripress!"}))
 }
 ```
 
