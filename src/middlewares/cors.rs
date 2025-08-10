@@ -21,7 +21,7 @@ impl Default for CorsConfig {
     fn default() -> Self {
         CorsConfig {
             allowed_origin: "*",
-            allowed_methods: "GET, POST, PUT, DELETE, OPTIONS",
+            allowed_methods: "GET, POST, PUT, DELETE, OPTIONS, HEAD",
             allowed_headers: "Content-Type, Authorization",
             allow_credentials: false,
         }
@@ -47,7 +47,7 @@ impl Default for CorsConfig {
 /// let mut app = App::new();
 /// app.use_middleware("", cors(Some(CorsConfig {
 ///     allowed_origin: "https://example.com",
-///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS",
+///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS, HEAD",
 ///     allowed_headers: "Content-Type, Authorization",
 ///     allow_credentials: true,
 /// })));
