@@ -57,7 +57,7 @@ impl Default for CorsConfig {
 /// ```
 pub fn cors(
     config: Option<CorsConfig>,
-) -> impl Fn(&mut HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
     move |req, mut res| {
         let config = config.clone().unwrap_or_default();
         let req_clone = req.clone();

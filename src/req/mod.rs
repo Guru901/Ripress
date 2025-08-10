@@ -163,9 +163,10 @@ impl HttpRequest {
     /// use ripress::context::HttpRequest;
     ///
     /// let req = HttpRequest::new();
+    ///
     /// match req.get_cookie("session_id") {
-    ///     Ok(session) => println!("Session ID: {}", session),
-    ///     Err(e) => println!("No session cookie found: {:?}", e)
+    ///     Some(session) => println!("Session ID: {}", session),
+    ///     None => println!("No session cookie found")
     /// }
     /// ```
 
