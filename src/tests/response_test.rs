@@ -2,10 +2,11 @@
 mod tests {
     use crate::context::HttpRequest;
     use crate::req::origin_url::Url;
+    use crate::req::request_body::RequestBodyType;
     use crate::res::response_headers::ResponseHeaders;
     use crate::res::response_status::StatusCode;
+    use crate::types::HttpMethods;
     use crate::types::HttpRequestError;
-    use crate::types::{HttpMethods, RequestBodyType};
     use serde_json::json;
 
     fn determine_content_type(content_type: &str) -> RequestBodyType {

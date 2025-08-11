@@ -1,5 +1,6 @@
 #![warn(missing_docs)]
 
+use crate::app::api_error::ApiError;
 use crate::helpers::exec_middleware;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
@@ -11,10 +12,11 @@ use hyper_staticfile::Static;
 use routerify::ext::RequestExt;
 use routerify::{Router, RouterService};
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
+
+pub(crate) mod api_error;
 
 pub(crate) fn box_future<F>(future: F) -> Fut
 where
@@ -34,67 +36,6 @@ where
 pub struct Middleware {
     pub func: Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
     pub path: String,
-}
-
-#[derive(Debug)]
-pub enum ApiError {
-    Generic(HttpResponse),
-}
-
-unsafe impl Sync for ApiError {}
-
-impl From<HttpResponse> for ApiError {
-    fn from(res: HttpResponse) -> Self {
-        ApiError::Generic(res)
-    }
-}
-
-impl From<Infallible> for ApiError {
-    fn from(_: Infallible) -> Self {
-        ApiError::Generic(
-            HttpResponse::new()
-                .internal_server_error()
-                .text("Unhandled error"),
-        )
-    }
-}
-
-impl From<hyper::Error> for ApiError {
-    fn from(err: hyper::Error) -> Self {
-        ApiError::Generic(
-            HttpResponse::new()
-                .internal_server_error()
-                .text(err.to_string()),
-        )
-    }
-}
-
-impl std::error::Error for ApiError {}
-
-impl std::fmt::Display for ApiError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            ApiError::Generic(msg) => {
-                write!(f, "Middleware Error: {:?}", msg)
-            }
-        }
-    }
-}
-
-impl From<ApiError> for Box<dyn std::error::Error + Send> {
-    fn from(error: ApiError) -> Self {
-        Box::new(error)
-    }
-}
-
-impl From<Box<dyn std::error::Error>> for ApiError {
-    fn from(error: Box<dyn std::error::Error>) -> Self {
-        ApiError::Generic(
-            HttpResponse::new()
-                .internal_server_error()
-                .text(error.to_string()),
-        )
-    }
 }
 
 /// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests. It follows an Express-like pattern for route handling.
