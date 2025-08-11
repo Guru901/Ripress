@@ -22,6 +22,7 @@ routerify = "3.0.0"
 cookie = "0.18.1"
 hyper-staticfile = "0.9"
 mime = "0.3.17"
+urlencoding = "2.1.3"
 
 [package.metadata.docs.rs]
 readme = "README.md"
