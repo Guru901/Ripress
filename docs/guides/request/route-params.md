@@ -453,6 +453,9 @@ fn update_user_settings(params: RouteParams) -> Result<(), ApiError> {
 ### Migration from HashMap
 
 ```rust
+use std::collections::HashMap;
+use ripress::req::route_params::RouteParams;
+
 // Before: using HashMap directly
 fn old_handler(params: HashMap<String, String>) -> Result<Response, Error> {
     let id_str = params.get("id").ok_or(Error::MissingId)?;

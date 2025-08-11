@@ -695,6 +695,9 @@ fn validate_api_query(query: QueryParams) -> Result<ApiQuery, Vec<QueryParamErro
 ## Migration from HashMap
 
 ```rust
+use std::collections::HashMap;
+use ripress::req::query_params::QueryParams;
+
 // Before: using HashMap directly
 fn old_handler(params: HashMap<String, String>) -> Result<Response, Error> {
     let page_str = params.get("page").unwrap_or("1");
