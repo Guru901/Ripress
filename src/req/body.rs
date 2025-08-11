@@ -577,11 +577,11 @@ impl<'a> IntoIterator for &'a FormData {
 }
 
 impl<'a> IntoIterator for &'a mut FormData {
-    type Item = (&'a String, &'a String);
-    type IntoIter = std::collections::hash_map::Iter<'a, String, String>;
+    type Item = (&'a String, &'a mut String);
+    type IntoIter = std::collections::hash_map::IterMut<'a, String, String>;
 
     /// Creates an iterator over references to key-value pairs.
     fn into_iter(self) -> Self::IntoIter {
-        self.inner.iter()
+        self.inner.iter_mut()
     }
 }
