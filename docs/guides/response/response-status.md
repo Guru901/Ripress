@@ -210,7 +210,7 @@ The `Display` implementation follows the standard HTTP format of "code descripti
 
 ## Performance Notes
 
-- The enum uses `#[repr(u16)]` internally for efficient storage
+- The enum is a zero-allocation, Copy type; conversions are constant-time
 - All operations are zero-cost abstractions
 - Pattern matching compiles to efficient jump tables
 - No heap allocations are required for any operations
