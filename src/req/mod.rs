@@ -1,6 +1,7 @@
 #![warn(missing_docs)]
 
-use crate::{helpers::get_all_query_params, req::body::FormData, types::HttpMethods};
+use crate::req::body::FormData;
+use crate::{helpers::get_all_query_params, types::HttpMethods};
 use cookie::Cookie;
 use hyper::{Body, Method, Request, body::to_bytes, header::HOST};
 use mime::Mime;
@@ -711,11 +712,8 @@ impl HttpRequest {
         match &mut self.body.content {
             RequestBodyContent::FORM(existing) => {
                 existing.insert(key, value);
-                self.body.content = RequestBodyContent::FORM(existing.clone());
             }
             _ => {
-                use crate::req::body::FormData;
-
                 let mut form_data = FormData::new();
                 form_data.insert(key, value);
 
