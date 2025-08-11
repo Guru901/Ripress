@@ -196,6 +196,21 @@ impl HttpRequest {
         self.data.insert(data_key.into(), data_value.into());
     }
 
+    /// Returns all data stored in the request by the middleware.
+    ///
+    /// ## Returns
+    ///
+    /// Returns `&HashMap<String, String>` with the data.
+    ///
+    /// ## Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    ///
+    /// let data = req.get_all_data();
+    ///
+    /// println!("Data: {:?}", data);
+    /// ```
+
     pub fn get_all_data(&self) -> &HashMap<String, String> {
         &self.data
     }
