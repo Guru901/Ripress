@@ -473,7 +473,7 @@ fn new_handler(params: RouteParams) -> Result<Response, Error> {
 
 // Easy migration path
 fn transitional_handler(old_params: HashMap<String, String>) -> Result<Response, Error> {
-    let params = RouteParams::from(old_params);
+    let params = RouteParams::from_map(old_params);
     new_handler(params)
 }
 ```
