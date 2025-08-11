@@ -518,13 +518,24 @@ impl HttpRequest {
                     Err(err) => return Err(err),
                 };
 
-                let form_data = FormData::from_query_string(&body_string);
+                // Only attempt to parse application/x-www-form-urlencoded here.
+                let is_multipart = req
+                    .headers()
+                    .get(hyper::header::CONTENT_TYPE)
+                    .and_then(|v| v.to_str().ok())
+                    .map(|ct| ct.contains("multipart/form-data"))
+                    .unwrap_or(false);
 
-                match form_data {
-                    Ok(form_data) => RequestBody::new_form(form_data),
-                    Err(e) => {
-                        println!("Error parsing form data: {}", e);
-                        RequestBody::new_form(FormData::new())
+                if is_multipart {
+                    // TODO: implement multipart parsing; for now, keep empty to avoid mis-parsing.
+                    RequestBody::new_form(FormData::new())
+                } else {
+                    match FormData::from_query_string(&body_string) {
+                        Ok(fd) => RequestBody::new_form(fd),
+                        Err(_e) => {
+                            // Prefer logging via `log`/`tracing` instead of printing.
+                            RequestBody::new_form(FormData::new())
+                        }
                     }
                 }
             }
