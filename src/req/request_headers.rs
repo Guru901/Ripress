@@ -1,7 +1,24 @@
 use std::collections::HashMap;
 
-/// A struct that stores the request Request Headers.
-/// And it's methods.
+/// A case-insensitive collection of HTTP request headers.
+///
+/// `RequestHeaders` stores HTTP request header names and their values in a
+/// normalized (lowercased) form. It supports multiple values per header and
+/// provides helper methods for commonly used headers.
+///
+/// ## Example
+///
+/// ```
+/// use ripress::req::request_headers::RequestHeaders;
+///
+/// let mut headers = RequestHeaders::new();
+/// headers.insert("Content-Type", "application/json");
+/// headers.append("Set-Cookie", "id=123");
+/// headers.append("Set-Cookie", "theme=dark");
+///
+/// assert_eq!(headers.content_type(), Some("application/json"));
+/// assert_eq!(headers.get_all("set-cookie").unwrap().len(), 2);
+/// ```
 
 #[derive(Debug, Clone)]
 pub struct RequestHeaders {
@@ -9,14 +26,27 @@ pub struct RequestHeaders {
 }
 
 impl RequestHeaders {
-    /// Create a new empty Request Headers collection
+    /// Creates a new, empty `RequestHeaders` collection.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
+    /// let headers = RequestHeaders::new();
+    /// assert!(headers.is_empty());
+    /// ```
+
     pub fn new() -> Self {
         Self {
             inner: HashMap::new(),
         }
     }
 
-    /// Create Request Headers from a HashMap<String, String>
+    /// Creates a `RequestHeaders` instance from a `HashMap<String, String>`.
+    ///
+    /// Each header in the map will be stored with a single value.
+    /// Primarily intended for internal use.
+
     pub(crate) fn _from_map(map: HashMap<String, String>) -> Self {
         let mut headers = Self::new();
         for (key, value) in map {
@@ -25,7 +55,19 @@ impl RequestHeaders {
         headers
     }
 
-    /// Insert a single header value (replaces existing)
+    /// Inserts a header value, replacing any existing values for the header name.
+    ///
+    /// Header names are stored in lowercase for case-insensitive matching.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
+    /// let mut headers = RequestHeaders::new();
+    /// headers.insert("Content-Type", "application/json");
+    /// assert_eq!(headers.content_type(), Some("application/json"));
+    /// ```
+
     pub fn insert<K, V>(&mut self, key: K, value: V)
     where
         K: AsRef<str>,
@@ -36,7 +78,20 @@ impl RequestHeaders {
         self.inner.insert(key, vec![value]);
     }
 
-    /// Append a header value (supports multiple values)
+    /// Appends a value to an existing header or creates it if not present.
+    ///
+    /// Useful for headers that allow multiple values, such as `Set-Cookie` or `Accept`.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
+    /// let mut headers = RequestHeaders::new();
+    /// headers.append("Set-Cookie", "id=1");
+    /// headers.append("Set-Cookie", "theme=dark");
+    /// assert_eq!(headers.get_all("Set-Cookie").unwrap().len(), 2);
+    /// ```
+
     pub fn append<K, V>(&mut self, key: K, value: V)
     where
         K: AsRef<str>,
@@ -47,7 +102,18 @@ impl RequestHeaders {
         self.inner.entry(key).or_default().push(value);
     }
 
-    /// Get the first value for a header (most common case)
+    /// Returns the **first** value for the given header name, if present.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
+    /// let mut headers = RequestHeaders::new();
+    /// headers.append("Accept", "application/json");
+    /// headers.append("Accept", "text/html");
+    /// assert_eq!(headers.get("Accept"), Some("application/json"));
+    /// ```
+
     pub fn get<K>(&self, key: K) -> Option<&str>
     where
         K: AsRef<str>,
@@ -56,7 +122,18 @@ impl RequestHeaders {
         self.inner.get(&key)?.first().map(|s| s.as_str())
     }
 
-    /// Get all values for a header
+    /// Returns **all values** for the given header name.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
+    /// let mut headers = RequestHeaders::new();
+    /// headers.append("Accept", "application/json");
+    /// headers.append("Accept", "text/html");
+    /// assert_eq!(headers.get_all("Accept").unwrap().len(), 2);
+    /// ```
+
     pub fn get_all<K>(&self, key: K) -> Option<&Vec<String>>
     where
         K: AsRef<str>,
@@ -65,7 +142,7 @@ impl RequestHeaders {
         self.inner.get(&key)
     }
 
-    /// Check if a header exists
+    /// Checks whether a header exists.
     pub fn contains_key<K>(&self, key: K) -> bool
     where
         K: AsRef<str>,
@@ -74,7 +151,7 @@ impl RequestHeaders {
         self.inner.contains_key(&key)
     }
 
-    /// Remove a header completely
+    /// Removes a header entirely, returning its values if present.
     pub fn remove<K>(&mut self, key: K) -> Option<Vec<String>>
     where
         K: AsRef<str>,
@@ -83,73 +160,100 @@ impl RequestHeaders {
         self.inner.remove(&key)
     }
 
-    /// Get Content-Type header
+    /// Returns the value of the `Content-Type` header, if present.
     pub fn content_type(&self) -> Option<&str> {
         self.get("content-type")
     }
 
-    /// Get Authorization header
+    /// Returns the value of the `Authorization` header, if present.
     pub fn authorization(&self) -> Option<&str> {
         self.get("authorization")
     }
 
-    /// Get User-Agent header
+    /// Returns the value of the `User-Agent` header, if present.
     pub fn user_agent(&self) -> Option<&str> {
         self.get("user-agent")
     }
 
-    /// Get Accept header
+    /// Returns the value of the `Accept` header, if present.
     pub fn accept(&self) -> Option<&str> {
         self.get("accept")
     }
 
-    /// Get Host header
+    /// Returns the value of the `Host` header, if present.
     pub fn host(&self) -> Option<&str> {
         self.get("host")
     }
 
-    /// Get X-Forwarded-For header (useful for getting real IP behind proxies)
+    /// Returns the value of the `X-Forwarded-For` header, if present.
+    ///
+    /// This can be useful for retrieving the real IP address of a client
+    /// behind proxies.
+
     pub fn x_forwarded_for(&self) -> Option<&str> {
         self.get("x-forwarded-for")
     }
 
-    /// Check if request accepts JSON
+    /// Returns `true` if the `Accept` header indicates the client accepts JSON.
+    ///
+    /// Matches if the `Accept` header contains `application/json` or `*/*`.
+
     pub fn accepts_json(&self) -> bool {
         self.accept()
             .map(|accept| accept.contains("application/json") || accept.contains("*/*"))
             .unwrap_or(false)
     }
 
-    /// Check if request accepts HTML
+    /// Returns `true` if the `Accept` header indicates the client accepts HTML.
+    ///
+    /// Matches if the `Accept` header contains `text/html` or `*/*`.
+
     pub fn accepts_html(&self) -> bool {
         self.accept()
             .map(|accept| accept.contains("text/html") || accept.contains("*/*"))
             .unwrap_or(false)
     }
 
-    /// Get all header names (keys)
+    /// Returns an iterator over all header names.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
+    /// let mut headers = RequestHeaders::new();
+    /// headers.insert("Content-Type", "application/json");
+    /// for key in headers.keys() {
+    ///     println!("{}", key);
+    /// }
+    /// ```
+
     pub fn keys(&self) -> impl Iterator<Item = &String> {
         self.inner.keys()
     }
 
-    /// Get the number of unique Request Headers
+    /// Returns the number of unique header names.
+
     pub fn len(&self) -> usize {
         self.inner.len()
     }
 
-    /// Check if Request Headers are empty
+    /// Returns `true` if there are no headers.
+
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
 
-    /// Iterate over all Request Headers as (key, first_value) pairs
+    /// Iterates over all headers as `(name, first_value)` pairs.
+    ///
+    /// Useful when you only need the first value for each header.
+
     pub fn iter(&self) -> impl Iterator<Item = (&String, &str)> {
         self.inner
             .iter()
             .filter_map(|(k, v)| v.first().map(|first_val| (k, first_val.as_str())))
     }
 
-    /// Iterate over all Request Headers including multiple values
+    /// Iterates over all headers as `(name, all_values)` pairs.
     pub fn iter_all(&self) -> impl Iterator<Item = (&String, &Vec<String>)> {
         self.inner.iter()
     }
@@ -162,6 +266,17 @@ impl Default for RequestHeaders {
 }
 
 impl std::fmt::Display for RequestHeaders {
+    /// Formats the headers as `key: value` lines.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
+    /// let mut headers = RequestHeaders::new();
+    /// headers.insert("Content-Type", "application/json");
+    /// println!("{}", headers);
+    /// ```
+
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (key, values) in &self.inner {
             for value in values {
@@ -172,9 +287,22 @@ impl std::fmt::Display for RequestHeaders {
     }
 }
 
-// Convenient indexing syntax: Request Headers["content-type"]
 impl std::ops::Index<&str> for RequestHeaders {
     type Output = str;
+
+    /// Provides convenient indexing syntax:
+    ///
+    /// ```
+    /// use ripress::req::request_headers::RequestHeaders;
+    ///
+    /// let mut headers = RequestHeaders::new();
+    /// headers.insert("Content-Type", "application/json");
+    /// assert_eq!(&headers["content-type"], "application/json");
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the header does not exist.
 
     fn index(&self, key: &str) -> &Self::Output {
         self.get(key)

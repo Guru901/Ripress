@@ -1,10 +1,10 @@
-# Ripress
+# Ripress 🚀
 
 ## Overview
 
-Ripress is an Express-inspired web framework for Rust, designed to provide a simple and intuitive experience for handling HTTP requests and responses.
+Ripress is an Express-inspired web framework for Rust, designed to provide a simple and intuitive experience for handling HTTP requests and responses. 🦀
 
-## Features
+## Features ✨
 
 - Express-like routing with `App` and `Router`
 - Async handler support (built on `tokio`)

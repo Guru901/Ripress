@@ -218,29 +218,6 @@ mod tests {
         assert_eq!(err_1.to_string(), "Header id doesnt exist");
     }
 
-    // #[test]
-    // fn test_respond_to() {
-    //     let response = HttpResponse::new().ok().text("OK");
-    //     let acitx_req = actix_web::test::TestRequest::default().to_http_request();
-    //     let responder = response.respond_to(&acitx_req);
-
-    //     assert_eq!(responder.status(), 200);
-
-    //     let response = HttpResponse::new()
-    //         .internal_server_error()
-    //         .text("internal server error");
-    //     let acitx_req = actix_web::test::TestRequest::default().to_http_request();
-    //     let responder = response.respond_to(&acitx_req);
-
-    //     assert_eq!(responder.status(), 500);
-
-    //     let response = HttpResponse::new().unauthorized();
-    //     let acitx_req = actix_web::test::TestRequest::default().to_http_request();
-    //     let responder = response.respond_to(&acitx_req);
-
-    //     assert_eq!(responder.status(), 401);
-    // }
-
     #[test]
     fn test_case_insensitive() {
         let mut headers = RequestHeaders::new();
