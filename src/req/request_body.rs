@@ -1,3 +1,5 @@
+use std::{fmt::Display, mem::Discriminant};
+
 use crate::req::body::FormData;
 
 #[derive(Debug, Clone)]
@@ -38,6 +40,17 @@ pub enum RequestBodyType {
 }
 
 impl Copy for RequestBodyType {}
+
+impl ToString for RequestBodyType {
+    fn to_string(&self) -> String {
+        match self {
+            RequestBodyType::JSON => "application/json".to_string(),
+            RequestBodyType::TEXT => "text/plain".to_string(),
+            RequestBodyType::FORM => "application/x-www-form-urlencoded".to_string(),
+            RequestBodyType::EMPTY => "".to_string(),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum RequestBodyContent {

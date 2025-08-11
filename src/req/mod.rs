@@ -518,7 +518,7 @@ impl HttpRequest {
                     Err(err) => return Err(err),
                 };
 
-                let form_data = FormData::from_multipart(&body_string, "691761002120033188098636");
+                let form_data = FormData::from_query_string(&body_string);
 
                 match form_data {
                     Ok(form_data) => RequestBody::new_form(form_data),

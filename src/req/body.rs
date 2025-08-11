@@ -1,4 +1,5 @@
 use std::{collections::HashMap, fmt::Display};
+use urlencoding::decode;
 
 /// A convenient wrapper around `HashMap<String, String>` for handling form data.
 ///
@@ -402,144 +403,29 @@ impl FormData {
             .join("&")
     }
 
-    /// Parses multipart/form-data content into form data.
-    ///
-    /// This handles the multipart format used by HTML forms with `enctype="multipart/form-data"`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let multipart_data = r#"----------------------------691761002120033188098636
-    /// Content-Disposition: form-data; name="name"
-    ///
-    /// test
-    /// ----------------------------691761002120033188098636--"#;
-    ///
-    /// let form = FormData::from_multipart(multipart_data, "691761002120033188098636").unwrap();
-    /// assert_eq!(form.get("name"), Some("test"));
-    /// ```
-    pub fn from_multipart(data: &str, boundary: &str) -> Result<Self, String> {
-        let mut form_data = FormData::new();
-        let full_boundary = format!("--{}", boundary);
-        let end_boundary = format!("--{}--", boundary);
-
-        // Split by boundary lines
-        let parts: Vec<&str> = data.split(&full_boundary).collect();
-
-        for part in parts {
-            let part = part.trim();
-
-            // Skip empty parts and end boundary
-            if part.is_empty() || part.starts_with("--") {
-                continue;
-            }
-
-            // Parse the part
-            if let Some((headers, content)) = part
-                .split_once("\r\n\r\n")
-                .or_else(|| part.split_once("\n\n"))
-            {
-                // Parse Content-Disposition header
-                for line in headers.lines() {
-                    let line = line.trim();
-                    if line.starts_with("Content-Disposition:") {
-                        if let Some(name) = Self::extract_form_field_name(line) {
-                            let content = content.trim_end_matches(&end_boundary).trim();
-                            form_data.insert(name, content.to_string());
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(form_data)
-    }
-
-    /// Extracts the field name from a Content-Disposition header.
-    fn extract_form_field_name(header: &str) -> Option<String> {
-        // Look for name="fieldname" in the header
-        if let Some(name_start) = header.find(r#"name=""#) {
-            let name_content = &header[name_start + 6..]; // Skip 'name="'
-            if let Some(end_quote) = name_content.find('"') {
-                return Some(name_content[..end_quote].to_string());
-            }
-        }
-        None
-    }
-
-    /// Auto-detects the format and parses form data accordingly.
-    ///
-    /// This method attempts to parse the input as either URL-encoded or multipart data.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// // URL-encoded
-    /// let form1 = FormData::parse("name=test&age=25").unwrap();
-    ///
-    /// // Multipart (requires boundary detection)
-    /// let multipart_data = r#"----------------------------691761002120033188098636
-    /// Content-Disposition: form-data; name="name"
-    ///
-    /// test
-    /// ----------------------------691761002120033188098636--"#;
-    /// let form2 = FormData::parse_with_boundary(multipart_data, Some("691761002120033188098636")).unwrap();
-    /// ```
-    pub fn parse(data: &str) -> Result<Self, String> {
-        // Try URL-encoded first (simpler format)
-        if !data.contains("Content-Disposition") && (data.contains('=') || data.contains('&')) {
-            Self::from_query_string(data)
-        } else {
-            Err("Unable to auto-detect format. Use specific parsing methods instead.".to_string())
-        }
-    }
-
-    /// Parses form data with an optional boundary for multipart data.
-    pub fn parse_with_boundary(data: &str, boundary: Option<&str>) -> Result<Self, String> {
-        if let Some(boundary) = boundary {
-            Self::from_multipart(data, boundary)
-        } else if data.contains("Content-Disposition") {
-            // Try to extract boundary from the data
-            if let Some(boundary) = Self::extract_boundary_from_data(data) {
-                Self::from_multipart(data, &boundary)
-            } else {
-                Err("Multipart data detected but no boundary found".to_string())
-            }
-        } else {
-            Self::from_query_string(data)
-        }
-    }
-
-    /// Attempts to extract the boundary from multipart data.
-    fn extract_boundary_from_data(data: &str) -> Option<String> {
-        // Look for boundary pattern at the start
-        let lines: Vec<&str> = data.lines().collect();
-        if let Some(first_line) = lines.first() {
-            let line = first_line.trim();
-            if line.starts_with("--") && !line.ends_with("--") {
-                // Extract boundary (remove the leading --)
-                return Some(line[2..].to_string());
-            }
-        }
-        None
-    }
     ///
     /// Parses a URL-encoded query string into form data.
     ///
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let form = FormData::from_query_string("name=John%20Doe&age=30").unwrap();
     /// assert_eq!(form.get("name"), Some("John Doe"));
     /// assert_eq!(form.get("age"), Some("30"));
     /// ```
     pub fn from_query_string(query: &str) -> Result<Self, String> {
         use urlencoding::decode;
+
         let mut form_data = FormData::new();
 
         if query.is_empty() {
             return Ok(form_data);
+        }
+
+        if query.contains(", ") && !query.contains("&") {
+            return Self::from_comma_separated(query);
         }
 
         for pair in query.split('&') {
@@ -555,6 +441,33 @@ impl FormData {
                 let decoded_key =
                     decode(pair).map_err(|e| format!("Failed to decode key '{}': {}", pair, e))?;
                 form_data.insert(decoded_key.into_owned(), String::new());
+            }
+        }
+
+        println!("form_data: {:?}", form_data);
+
+        Ok(form_data)
+    }
+
+    pub fn from_comma_separated(query: &str) -> Result<Self, String> {
+        use urlencoding::decode;
+        let mut form_data = FormData::new();
+
+        if query.is_empty() {
+            return Ok(form_data);
+        }
+
+        // Try comma separation first, then fall back to ampersand
+        let separator = if query.contains(", ") { ", " } else { "&" };
+
+        for pair in query.split(separator) {
+            let pair = pair.trim(); // Remove any extra whitespace
+            if let Some((key, value)) = pair.split_once('=') {
+                let decoded_key = decode(key.trim())
+                    .map_err(|e| format!("Failed to decode key '{}': {}", key, e))?;
+                let decoded_value = decode(value.trim())
+                    .map_err(|e| format!("Failed to decode value '{}': {}", value, e))?;
+                form_data.insert(decoded_key.into_owned(), decoded_value.into_owned());
             }
         }
 

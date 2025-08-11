@@ -9,6 +9,7 @@ mod tests {
     use crate::req::route_params::{ParamError, RouteParams};
     use crate::res::CookieOptions;
     use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
+    use hyper::Request;
     use serde_json::json;
 
     #[test]
@@ -518,46 +519,5 @@ mod tests {
 
         assert_eq!(form.remove("key"), Some("value".to_string()));
         assert!(form.is_empty());
-    }
-
-    #[test]
-    fn test_multipart_parsing() {
-        let multipart_data = r#"----------------------------691761002120033188098636
-Content-Disposition: form-data; name="name"
-
-test
-----------------------------691761002120033188098636
-Content-Disposition: form-data; name="email"
-
-user@example.com
-----------------------------691761002120033188098636--"#;
-
-        let form = FormData::from_multipart(multipart_data, "691761002120033188098636").unwrap();
-        assert_eq!(form.get("name"), Some("test"));
-        assert_eq!(form.get("email"), Some("user@example.com"));
-    }
-
-    #[test]
-    fn test_multipart_parsing_auto_boundary() {
-        let multipart_data = r#"----------------------------691761002120033188098636
-Content-Disposition: form-data; name="name"
-
-test
-----------------------------691761002120033188098636--"#;
-
-        let form = FormData::parse_with_boundary(multipart_data, None).unwrap();
-        assert_eq!(form.get("name"), Some("test"));
-    }
-
-    #[test]
-    fn test_multipart_with_special_chars() {
-        let multipart_data = r#"----------------------------691761002120033188098636
-Content-Disposition: form-data; name="invalid"
-
-%%form%data
-----------------------------691761002120033188098636--"#;
-
-        let form = FormData::from_multipart(multipart_data, "691761002120033188098636").unwrap();
-        assert_eq!(form.get("invalid"), Some("%%form%data"));
     }
 }
