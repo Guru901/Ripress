@@ -9,13 +9,14 @@ use std::{collections::HashMap, fmt::Display};
 ///
 /// ```rust
 /// use std::collections::HashMap;
+/// use ripress::req::body::FormData;
 ///
 /// let mut form = FormData::new();
 /// form.insert("username", "alice");
 /// form.insert("email", "alice@example.com");
 ///
 /// assert_eq!(form.get("username"), Some("alice"));
-/// assert_eq!(form["email"], "alice@example.com");
+/// assert_eq!(&form["email"], "alice@example.com");
 ///
 /// // Convert from HashMap
 /// let mut map = HashMap::new();
@@ -33,6 +34,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let form = FormData::new();
     /// assert!(form.is_empty());
     /// ```
@@ -47,6 +50,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let form = FormData::with_capacity(10);
     /// assert!(form.is_empty());
     /// ```
@@ -63,6 +68,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// assert_eq!(form.insert("key", "value"), None);
     /// assert_eq!(form.insert("key", "new_value"), Some("value".to_string()));
@@ -80,6 +87,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("key", "value");
     /// assert_eq!(form.get("key"), Some("value"));
@@ -94,6 +103,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("key", "value");
     /// assert_eq!(form.get_or("key", "default"), "value");
@@ -108,6 +119,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("key", "value");
     /// if let Some(value) = form.get_mut("key") {
@@ -126,6 +139,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let form = FormData::new();
     /// let map = form.as_map();
     /// assert!(map.is_empty());
@@ -139,6 +154,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("a", "1");
     /// form.insert("b", "2");
@@ -155,6 +172,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("a", "1");
     /// form.insert("b", "2");
@@ -171,6 +190,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// assert_eq!(form.len(), 0);
     /// form.insert("key", "value");
@@ -185,6 +206,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// assert!(form.is_empty());
     /// form.insert("key", "value");
@@ -199,6 +222,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("key", "value");
     /// assert_eq!(form.remove("key"), Some("value".to_string()));
@@ -213,6 +238,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("key", "value");
     /// assert!(form.contains_key("key"));
@@ -228,6 +255,7 @@ impl FormData {
     ///
     /// ```rust
     /// use std::collections::HashMap;
+    /// use ripress::req::body::FormData;
     ///
     /// let mut map = HashMap::new();
     /// map.insert("key".to_string(), "value".to_string());
@@ -243,6 +271,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("a", "1");
     /// form.insert("b", "2");
@@ -260,6 +290,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("key", "value");
     /// form.clear();
@@ -274,6 +306,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("keep", "yes");
     /// form.insert("remove", "no");
@@ -294,6 +328,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// let pairs = vec![("a", "1"), ("b", "2")];
     /// form.extend(pairs);
@@ -316,6 +352,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.append("tags", "rust");
     /// form.append("tags", "web");
@@ -345,6 +383,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("name", "John Doe");
     /// form.insert("age", "30");
@@ -367,6 +407,8 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let form = FormData::from_query_string("name=John%20Doe&age=30").unwrap();
     /// assert_eq!(form.get("name"), Some("John Doe"));
     /// assert_eq!(form.get("age"), Some("30"));
@@ -410,6 +452,8 @@ impl Display for FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("name", "Alice");
     /// form.insert("age", "30");
@@ -451,6 +495,8 @@ where
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let pairs = vec![("name", "Alice"), ("age", "30")];
     /// let form: FormData = pairs.into_iter().collect();
     /// assert_eq!(form.len(), 2);
@@ -480,6 +526,8 @@ impl std::ops::Index<&str> for FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form_data = FormData::new();
     /// form_data.insert("username", "alice");
     /// assert_eq!(&form_data["username"], "alice");
@@ -503,6 +551,8 @@ impl IntoIterator for FormData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::FormData;
+    ///
     /// let mut form = FormData::new();
     /// form.insert("a", "1");
     /// form.insert("b", "2");
