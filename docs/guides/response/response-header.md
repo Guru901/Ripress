@@ -318,8 +318,16 @@ Sets the `Last-Modified` header.
 - `date`: Last modification date (RFC 7231 format)
 
 ```rust
+use chrono::Utc;
+
 headers.last_modified("Wed, 21 Oct 2015 07:28:00 GMT");
-headers.last_modified(&chrono::Utc::now().format("%a, %d %b %Y %H:%M:%S GMT").to_string());
+headers.last_modified(&Utc::now().format("%a, %d %b %Y %H:%M:%S GMT").to_string());
+```
+
+Also note users must add chrono:
+
+```bash
+cargo add chrono
 ```
 
 ### Server Information
