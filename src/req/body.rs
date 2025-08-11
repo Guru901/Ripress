@@ -443,9 +443,6 @@ impl FormData {
                 form_data.insert(decoded_key.into_owned(), String::new());
             }
         }
-
-        println!("form_data: {:?}", form_data);
-
         Ok(form_data)
     }
 
