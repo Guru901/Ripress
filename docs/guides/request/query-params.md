@@ -470,7 +470,7 @@ if query.contains("page") {
 
 #### Display Formatting
 
-The struct implements `Display` to recreate query strings:
+The struct implements `Display` to recreate query strings (NOTE: output is not percent-encoded and is intended primarily for debugging/logging):
 
 ```rust
 println!("Query string: {}", query);
