@@ -250,16 +250,21 @@ let limit = query.get_uint("limit")?;
 
 #### `get_bool(&self, name: &str) -> Result<bool, QueryParamError>`
 
-Gets a parameter as a boolean with flexible parsing.
+Gets a parameter as a boolean with flexible, case-insensitive parsing. Does **not** trim whitespace, so values with leading/trailing spaces will not match the expected tokens.
 
 **Supported values:**
 
-- **True**: `"true"`, `"1"`, `"yes"`, `"on"`
-- **False**: `"false"`, `"0"`, `"no"`, `"off"`, `""` (empty)
+- **True**: `"true"`, `"1"`, `"yes"`, `"on"` (case-insensitive)
+- **False**: `"false"`, `"0"`, `"no"`, `"off"`, `""` (empty string, case-insensitive)
+
+**Note:** The `is_truthy` method uses different semantics - it returns `true` whenever the parameter exists, regardless of its value. So `is_truthy("debug")` can be `true` even when `get_bool("debug")` would return `false` (e.g., for `?debug=false`).
 
 ```rust
-let is_active = query.get_bool("active")?;
-let debug_mode = query.get_bool("debug")?;
+let is_active = query.get_bool("active")?; // ?active=TRUE → true
+let debug_mode = query.get_bool("debug")?; // ?debug=false → false
+
+// Contrast with is_truthy:
+let has_debug = query.is_truthy("debug"); // ?debug=false → true (parameter exists)
 ```
 
 #### `get_float(&self, name: &str) -> Result<f64, QueryParamError>`
