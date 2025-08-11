@@ -361,19 +361,19 @@ impl FormData {
     /// ```
     pub fn append<K, V>(&mut self, key: K, value: V)
     where
-        K: Into<String> + AsRef<str>,
+        K: Into<String>,
         V: Into<String>,
     {
-        let key_str = key.as_ref();
+        let key_string = key.into();
         let value_string = value.into();
 
-        match self.inner.get_mut(key_str) {
+        match self.inner.get_mut(&key_string) {
             Some(existing) => {
                 existing.push(',');
                 existing.push_str(&value_string);
             }
             None => {
-                self.inner.insert(key.into(), value_string);
+                self.inner.insert(key_string, value_string);
             }
         }
     }
