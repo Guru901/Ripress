@@ -1,4 +1,5 @@
 use std::{collections::HashMap, fmt::Display};
+use urlencoding::decode;
 
 /// A convenient wrapper around `HashMap<String, String>` for handling form data.
 ///
@@ -402,6 +403,7 @@ impl FormData {
             .join("&")
     }
 
+    ///
     /// Parses a URL-encoded query string into form data.
     ///
     /// # Examples
@@ -420,19 +422,46 @@ impl FormData {
             return Ok(form_data);
         }
 
+        if query.contains(", ") && !query.contains("&") {
+            return Self::from_comma_separated(query);
+        }
+
         for pair in query.split('&') {
             if let Some((key, value)) = pair.split_once('=') {
-                let decoded_key = urlencoding::decode(key)
-                    .map_err(|e| format!("Failed to decode key '{}': {}", key, e))?;
-                let decoded_value = urlencoding::decode(value)
+                let decoded_key =
+                    decode(key).map_err(|e| format!("Failed to decode key '{}': {}", key, e))?;
+                let decoded_value = decode(value)
                     .map_err(|e| format!("Failed to decode value '{}': {}", value, e))?;
 
                 form_data.insert(decoded_key.into_owned(), decoded_value.into_owned());
             } else {
                 // Handle key without value
-                let decoded_key = urlencoding::decode(pair)
-                    .map_err(|e| format!("Failed to decode key '{}': {}", pair, e))?;
+                let decoded_key =
+                    decode(pair).map_err(|e| format!("Failed to decode key '{}': {}", pair, e))?;
                 form_data.insert(decoded_key.into_owned(), String::new());
+            }
+        }
+        Ok(form_data)
+    }
+
+    pub fn from_comma_separated(query: &str) -> Result<Self, String> {
+        let mut form_data = FormData::new();
+
+        if query.is_empty() {
+            return Ok(form_data);
+        }
+
+        // Try comma separation first, then fall back to ampersand
+        let separator = if query.contains(", ") { ", " } else { "&" };
+
+        for pair in query.split(separator) {
+            let pair = pair.trim(); // Remove any extra whitespace
+            if let Some((key, value)) = pair.split_once('=') {
+                let decoded_key = decode(key.trim())
+                    .map_err(|e| format!("Failed to decode key '{}': {}", key, e))?;
+                let decoded_value = decode(value.trim())
+                    .map_err(|e| format!("Failed to decode value '{}': {}", value, e))?;
+                form_data.insert(decoded_key.into_owned(), decoded_value.into_owned());
             }
         }
 

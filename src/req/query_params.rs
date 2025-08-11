@@ -398,13 +398,3 @@ impl From<HashMap<String, String>> for QueryParams {
         Self::from_map(map)
     }
 }
-
-// Simple URL decoding (in practice, you'd use a proper URL encoding crate)
-mod urlencoding {
-    use std::borrow::Cow;
-
-    pub fn decode(input: &str) -> Result<Cow<str>, std::str::Utf8Error> {
-        // Simplified implementation - use proper crate in production
-        Ok(Cow::Borrowed(input))
-    }
-}

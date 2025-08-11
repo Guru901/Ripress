@@ -1,3 +1,7 @@
+use std::{fmt::Display, mem::Discriminant};
+
+use crate::req::body::FormData;
+
 #[derive(Debug, Clone)]
 pub struct RequestBody {
     pub content: RequestBodyContent,
@@ -12,10 +16,10 @@ impl RequestBody {
         }
     }
 
-    pub fn new_form<T: Into<String>>(form_data: T) -> Self {
+    pub fn new_form(form_data: FormData) -> Self {
         RequestBody {
             content_type: RequestBodyType::FORM,
-            content: RequestBodyContent::FORM(form_data.into()),
+            content: RequestBodyContent::FORM(form_data),
         }
     }
 
@@ -37,10 +41,21 @@ pub enum RequestBodyType {
 
 impl Copy for RequestBodyType {}
 
+impl ToString for RequestBodyType {
+    fn to_string(&self) -> String {
+        match self {
+            RequestBodyType::JSON => "application/json".to_string(),
+            RequestBodyType::TEXT => "text/plain".to_string(),
+            RequestBodyType::FORM => "application/x-www-form-urlencoded".to_string(),
+            RequestBodyType::EMPTY => "".to_string(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum RequestBodyContent {
     TEXT(String),
     JSON(serde_json::Value),
-    FORM(String),
+    FORM(FormData),
     EMPTY,
 }

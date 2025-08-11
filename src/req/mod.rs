@@ -1,5 +1,6 @@
 #![warn(missing_docs)]
 
+use crate::req::body::FormData;
 use crate::{helpers::get_all_query_params, types::HttpMethods};
 use cookie::Cookie;
 use hyper::{Body, Method, Request, body::to_bytes, header::HOST};
@@ -196,6 +197,21 @@ impl HttpRequest {
         self.data.insert(data_key.into(), data_value.into());
     }
 
+    /// Returns all data stored in the request by the middleware.
+    ///
+    /// ## Returns
+    ///
+    /// Returns `&HashMap<String, String>` with the data.
+    ///
+    /// ## Example
+    /// ```
+    /// let req = ripress::context::HttpRequest::new();
+    ///
+    /// let data = req.get_all_data();
+    ///
+    /// println!("Data: {:?}", data);
+    /// ```
+
     pub fn get_all_data(&self) -> &HashMap<String, String> {
         &self.data
     }
@@ -335,18 +351,11 @@ impl HttpRequest {
     /// This function returns a HashMap of the form data.
     /// Returns an `Result<HashMap<String, String>>`, where `Ok(HashMap<String, String>)` contains the form_data if it is valid form data, or `Err(error)` if it is not.
 
-    pub fn form_data(&self) -> Result<HashMap<String, String>, String> {
-        let mut form_data: HashMap<String, String> = HashMap::new();
+    pub fn form_data(&self) -> Result<&FormData, String> {
         let body = &self.body;
 
         if body.content_type == RequestBodyType::FORM {
-            if let RequestBodyContent::FORM(text_value) = &body.content {
-                serde_urlencoded::from_str::<HashMap<String, String>>(text_value)
-                    .map_err(|e| e.to_string())?
-                    .into_iter()
-                    .for_each(|(k, v)| {
-                        form_data.insert(k, v);
-                    });
+            if let RequestBodyContent::FORM(form_data) = &body.content {
                 Ok(form_data)
             } else {
                 Err(String::from("Invalid form content"))
@@ -510,7 +519,26 @@ impl HttpRequest {
                     Err(err) => return Err(err),
                 };
 
-                RequestBody::new_form(body_string)
+                // Only attempt to parse application/x-www-form-urlencoded here.
+                let is_multipart = req
+                    .headers()
+                    .get(hyper::header::CONTENT_TYPE)
+                    .and_then(|v| v.to_str().ok())
+                    .map(|ct| ct.contains("multipart/form-data"))
+                    .unwrap_or(false);
+
+                if is_multipart {
+                    // TODO: implement multipart parsing; for now, keep empty to avoid mis-parsing.
+                    RequestBody::new_form(FormData::new())
+                } else {
+                    match FormData::from_query_string(&body_string) {
+                        Ok(fd) => RequestBody::new_form(fd),
+                        Err(_e) => {
+                            // Prefer logging via `log`/`tracing` instead of printing.
+                            RequestBody::new_form(FormData::new())
+                        }
+                    }
+                }
             }
             RequestBodyType::JSON => {
                 let body_bytes = to_bytes(req.body_mut()).await;
@@ -637,7 +665,7 @@ impl HttpRequest {
                     hyper::header::CONTENT_TYPE,
                     "application/x-www-form-urlencoded".parse()?,
                 );
-                Body::from(form.clone())
+                Body::from(form.to_string().clone())
             }
             RequestBodyContent::EMPTY => Body::empty(),
         };
@@ -683,13 +711,12 @@ impl HttpRequest {
 
         match &mut self.body.content {
             RequestBodyContent::FORM(existing) => {
-                let mut new_form = existing.to_string();
-                new_form.push('&');
-                new_form.push_str(&format!("{key}={value}"));
-                self.body.content = RequestBodyContent::FORM(new_form)
+                existing.insert(key, value);
             }
             _ => {
-                let form_data = format!("{key}={value}");
+                let mut form_data = FormData::new();
+                form_data.insert(key, value);
+
                 self.body.content = RequestBodyContent::FORM(form_data)
             }
         }

@@ -27,7 +27,7 @@ impl From<Infallible> for ApiError {
 impl From<hyper::Error> for ApiError {
     fn from(err: hyper::Error) -> Self {
         // Log the internal error and return a generic 500
-        println!("hyper error: {}", err);
+        eprintln!("hyper error: {}", err);
 
         ApiError::Generic(
             HttpResponse::new()
@@ -46,7 +46,7 @@ impl From<ApiError> for Box<dyn std::error::Error + Send> {
 impl From<Box<dyn std::error::Error>> for ApiError {
     fn from(error: Box<dyn std::error::Error>) -> Self {
         // Log the internal error and return a generic 500
-        println!("internal error: {}", error);
+        eprintln!("internal error: {}", error);
 
         ApiError::Generic(
             HttpResponse::new()
