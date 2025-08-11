@@ -1,5 +1,5 @@
 use crate::{
-    app::{ApiError, Middleware},
+    app::{Middleware, api_error::ApiError},
     req::{HttpRequest, query_params::QueryParams},
     res::HttpResponse,
 };
@@ -13,7 +13,7 @@ pub async fn exec_middleware(
     let mw_func = middleware.func;
 
     let our_res = HttpResponse::new();
-    let mut our_req = HttpRequest::from_hyper_request(&mut req)
+    let our_req = HttpRequest::from_hyper_request(&mut req)
         .await
         .map_err(ApiError::from)?;
 

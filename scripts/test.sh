@@ -320,23 +320,23 @@ async fn custom_headers_test(_req: HttpRequest, res: HttpResponse) -> HttpRespon
         .set_header("x-powered-by", "Ripress")
 }
 
-async fn created_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn created_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.status(201).json(json!({
         "created": true
     }))
 }
 
-async fn custom_status_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn custom_status_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.status(418).json(json!({
         "statusText": "I m a teapot"
     }))
 }
 
-async fn redirect_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn redirect_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.redirect("/redirected")
 }
 
-async fn permanent_redirect_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn permanent_redirect_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.permanent_redirect("/new-location")
 }
 
@@ -347,7 +347,7 @@ async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     }
 }
 
-async fn stream_text(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn stream_text(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let stream = stream::unfold(1, |state| async move {
         if state < 20 {
             time::sleep(Duration::from_millis(10)).await;
@@ -363,7 +363,7 @@ async fn stream_text(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.write(stream)
 }
 
-async fn stream_json(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn stream_json(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let stream = stream::unfold(1, |state| async move {
         if state < 10 {
             time::sleep(Duration::from_millis(10)).await;
@@ -380,6 +380,8 @@ async fn stream_json(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
     res.write(stream)
 }
+
+
 ' > main.rs
 
 cargo run &  # Start server in background
