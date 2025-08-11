@@ -3,6 +3,7 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::context::HttpResponse;
+    use crate::req::body::FormData;
     use crate::req::query_params::{QueryParams, SortDirection};
     use crate::req::request_headers::RequestHeaders;
     use crate::req::route_params::{ParamError, RouteParams};
@@ -455,5 +456,40 @@ mod tests {
         assert_eq!(headers.contains_key("id"), true);
         assert_eq!(headers.contains_key("name"), true);
         assert_eq!(headers.contains_key("non-existent"), false);
+    }
+
+    #[test]
+    fn test_basic_form_operations() {
+        let mut form = FormData::new();
+        assert!(form.is_empty());
+
+        form.insert("key", "value");
+        assert_eq!(form.get("key"), Some("value"));
+        assert_eq!(form.len(), 1);
+        assert!(!form.is_empty());
+
+        assert_eq!(form.remove("key"), Some("value".to_string()));
+        assert!(form.is_empty());
+    }
+
+    #[test]
+    fn test_append() {
+        let mut form = FormData::new();
+        form.append("tags", "rust");
+        form.append("tags", "web");
+        assert_eq!(form.get("tags"), Some("rust,web"));
+    }
+
+    #[test]
+    fn test_query_string() {
+        let mut form = FormData::new();
+        form.insert("name", "John Doe");
+        form.insert("age", "30");
+
+        let query = form.to_query_string();
+        let parsed = FormData::from_query_string(&query).unwrap();
+
+        assert_eq!(parsed.get("name"), Some("John Doe"));
+        assert_eq!(parsed.get("age"), Some("30"));
     }
 }

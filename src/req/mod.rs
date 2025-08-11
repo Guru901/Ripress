@@ -23,6 +23,8 @@ pub mod origin_url;
 /// And it's methods.
 pub mod query_params;
 
+pub mod body;
+
 /// A struct that represents the route parameters of the request.
 /// And it's methods.
 pub mod route_params;
