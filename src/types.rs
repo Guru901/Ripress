@@ -8,53 +8,6 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
-pub struct RequestBody {
-    pub content: RequestBodyContent,
-    pub content_type: RequestBodyType,
-}
-
-impl RequestBody {
-    pub fn new_text<T: Into<String>>(text: T) -> Self {
-        RequestBody {
-            content_type: RequestBodyType::TEXT,
-            content: RequestBodyContent::TEXT(text.into()),
-        }
-    }
-
-    pub fn new_form<T: Into<String>>(form_data: T) -> Self {
-        RequestBody {
-            content_type: RequestBodyType::FORM,
-            content: RequestBodyContent::FORM(form_data.into()),
-        }
-    }
-
-    pub fn new_json<T: Into<serde_json::Value>>(json: T) -> Self {
-        RequestBody {
-            content_type: RequestBodyType::JSON,
-            content: RequestBodyContent::JSON(json.into()),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum RequestBodyType {
-    JSON,
-    TEXT,
-    FORM,
-    EMPTY,
-}
-
-impl Copy for RequestBodyType {}
-
-#[derive(Debug, Clone)]
-pub enum RequestBodyContent {
-    TEXT(String),
-    JSON(serde_json::Value),
-    FORM(String),
-    EMPTY,
-}
-
-#[derive(Debug, Clone)]
 pub enum ResponseContentBody {
     TEXT(String),
     HTML(String),
@@ -151,7 +104,7 @@ pub type FutMiddleware =
 pub type HandlerMiddleware =
     Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>;
 
-pub trait Middleware: Send + Sync + 'static {
+pub trait MiddlewareTrait: Send + Sync + 'static {
     fn handle(
         &self,
         req: &HttpRequest,
@@ -160,18 +113,18 @@ pub trait Middleware: Send + Sync + 'static {
     ) -> Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
 
     // Add this method to allow cloning of Box<dyn Middleware>
-    fn clone_box(&self) -> Box<dyn Middleware>;
+    fn clone_box(&self) -> Box<dyn MiddlewareTrait>;
 }
 
 // Implement Clone for Box<dyn Middleware>
-impl Clone for Box<dyn Middleware> {
+impl Clone for Box<dyn MiddlewareTrait> {
     fn clone(&self) -> Self {
         self.clone_box()
     }
 }
 
 pub struct Next {
-    pub middleware: Vec<Box<dyn Middleware>>,
+    pub middleware: Vec<Box<dyn MiddlewareTrait>>,
     pub handler: HandlerMiddleware,
 }
 

@@ -1,9 +1,6 @@
 #![warn(missing_docs)]
 
-use crate::{
-    helpers::get_all_query_params,
-    types::{HttpMethods, HttpRequestError, RequestBody, RequestBodyContent, RequestBodyType},
-};
+use crate::{helpers::get_all_query_params, types::HttpMethods};
 use cookie::Cookie;
 use hyper::{Body, Method, Request, body::to_bytes, header::HOST};
 use mime::Mime;
@@ -31,6 +28,10 @@ pub mod body;
 /// A struct that represents the route parameters of the request.
 /// And it's methods.
 pub mod route_params;
+
+pub mod request_body;
+
+use request_body::{RequestBody, RequestBodyContent, RequestBodyType};
 
 use origin_url::Url;
 use query_params::QueryParams;
@@ -232,7 +233,8 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```rust
-    /// use ripress::{context::HttpRequest, types::RequestBodyType};
+    /// use ripress::{context::HttpRequest};
+    /// use ripress::req::request_body::RequestBodyType;
     ///
     /// let req = HttpRequest::new();
     /// if req.is(RequestBodyType::JSON) {
