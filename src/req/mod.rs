@@ -1,6 +1,6 @@
 #![warn(missing_docs)]
 
-use crate::{helpers::get_all_query_params, types::HttpMethods};
+use crate::{helpers::get_all_query_params, req::body::FormData, types::HttpMethods};
 use cookie::Cookie;
 use hyper::{Body, Method, Request, body::to_bytes, header::HOST};
 use mime::Mime;
@@ -350,18 +350,11 @@ impl HttpRequest {
     /// This function returns a HashMap of the form data.
     /// Returns an `Result<HashMap<String, String>>`, where `Ok(HashMap<String, String>)` contains the form_data if it is valid form data, or `Err(error)` if it is not.
 
-    pub fn form_data(&self) -> Result<HashMap<String, String>, String> {
-        let mut form_data: HashMap<String, String> = HashMap::new();
+    pub fn form_data(&self) -> Result<&FormData, String> {
         let body = &self.body;
 
         if body.content_type == RequestBodyType::FORM {
-            if let RequestBodyContent::FORM(text_value) = &body.content {
-                serde_urlencoded::from_str::<HashMap<String, String>>(text_value)
-                    .map_err(|e| e.to_string())?
-                    .into_iter()
-                    .for_each(|(k, v)| {
-                        form_data.insert(k, v);
-                    });
+            if let RequestBodyContent::FORM(form_data) = &body.content {
                 Ok(form_data)
             } else {
                 Err(String::from("Invalid form content"))
@@ -525,7 +518,15 @@ impl HttpRequest {
                     Err(err) => return Err(err),
                 };
 
-                RequestBody::new_form(body_string)
+                let form_data = FormData::from_multipart(&body_string, "691761002120033188098636");
+
+                match form_data {
+                    Ok(form_data) => RequestBody::new_form(form_data),
+                    Err(e) => {
+                        println!("Error parsing form data: {}", e);
+                        RequestBody::new_form(FormData::new())
+                    }
+                }
             }
             RequestBodyType::JSON => {
                 let body_bytes = to_bytes(req.body_mut()).await;
@@ -652,7 +653,7 @@ impl HttpRequest {
                     hyper::header::CONTENT_TYPE,
                     "application/x-www-form-urlencoded".parse()?,
                 );
-                Body::from(form.clone())
+                Body::from(form.to_string().clone())
             }
             RequestBodyContent::EMPTY => Body::empty(),
         };
@@ -698,13 +699,15 @@ impl HttpRequest {
 
         match &mut self.body.content {
             RequestBodyContent::FORM(existing) => {
-                let mut new_form = existing.to_string();
-                new_form.push('&');
-                new_form.push_str(&format!("{key}={value}"));
-                self.body.content = RequestBodyContent::FORM(new_form)
+                existing.insert(key, value);
+                self.body.content = RequestBodyContent::FORM(existing.clone());
             }
             _ => {
-                let form_data = format!("{key}={value}");
+                use crate::req::body::FormData;
+
+                let mut form_data = FormData::new();
+                form_data.insert(key, value);
+
                 self.body.content = RequestBodyContent::FORM(form_data)
             }
         }

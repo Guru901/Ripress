@@ -252,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn test_basic_operations() {
+    fn test_basic_params_operations() {
         let mut params = RouteParams::new();
         params.insert("id", "123");
         params.insert("slug", "hello-world");
@@ -459,20 +459,6 @@ mod tests {
     }
 
     #[test]
-    fn test_basic_form_operations() {
-        let mut form = FormData::new();
-        assert!(form.is_empty());
-
-        form.insert("key", "value");
-        assert_eq!(form.get("key"), Some("value"));
-        assert_eq!(form.len(), 1);
-        assert!(!form.is_empty());
-
-        assert_eq!(form.remove("key"), Some("value".to_string()));
-        assert!(form.is_empty());
-    }
-
-    #[test]
     fn test_append() {
         let mut form = FormData::new();
         form.append("tags", "rust");
@@ -491,5 +477,87 @@ mod tests {
 
         assert_eq!(parsed.get("name"), Some("John Doe"));
         assert_eq!(parsed.get("age"), Some("30"));
+    }
+
+    #[test]
+    fn test_raw_form_data_preservation() {
+        let mut form = FormData::new();
+        form.insert("invalid", "%%form%data");
+
+        // Raw data should be preserved in get()
+        assert_eq!(form.get("invalid"), Some("%%form%data"));
+
+        // But should be URL-encoded when converted to query string
+        let query = form.to_query_string();
+        assert!(query.contains("invalid=%25%25form%25data"));
+
+        // And should decode back correctly
+        let parsed = FormData::from_query_string(&query).unwrap();
+        assert_eq!(parsed.get("invalid"), Some("%%form%data"));
+    }
+
+    #[test]
+    fn test_url_encoding_edge_cases() {
+        let mut form = FormData::new();
+        form.insert("special", "hello world+&=");
+
+        let query = form.to_query_string();
+        let parsed = FormData::from_query_string(&query).unwrap();
+
+        assert_eq!(parsed.get("special"), Some("hello world+&="));
+    }
+    #[test]
+    fn test_basic_form_operations() {
+        let mut form = FormData::new();
+        assert!(form.is_empty());
+
+        form.insert("key", "value");
+        assert_eq!(form.get("key"), Some("value"));
+        assert_eq!(form.len(), 1);
+        assert!(!form.is_empty());
+
+        assert_eq!(form.remove("key"), Some("value".to_string()));
+        assert!(form.is_empty());
+    }
+
+    #[test]
+    fn test_multipart_parsing() {
+        let multipart_data = r#"----------------------------691761002120033188098636
+Content-Disposition: form-data; name="name"
+
+test
+----------------------------691761002120033188098636
+Content-Disposition: form-data; name="email"
+
+user@example.com
+----------------------------691761002120033188098636--"#;
+
+        let form = FormData::from_multipart(multipart_data, "691761002120033188098636").unwrap();
+        assert_eq!(form.get("name"), Some("test"));
+        assert_eq!(form.get("email"), Some("user@example.com"));
+    }
+
+    #[test]
+    fn test_multipart_parsing_auto_boundary() {
+        let multipart_data = r#"----------------------------691761002120033188098636
+Content-Disposition: form-data; name="name"
+
+test
+----------------------------691761002120033188098636--"#;
+
+        let form = FormData::parse_with_boundary(multipart_data, None).unwrap();
+        assert_eq!(form.get("name"), Some("test"));
+    }
+
+    #[test]
+    fn test_multipart_with_special_chars() {
+        let multipart_data = r#"----------------------------691761002120033188098636
+Content-Disposition: form-data; name="invalid"
+
+%%form%data
+----------------------------691761002120033188098636--"#;
+
+        let form = FormData::from_multipart(multipart_data, "691761002120033188098636").unwrap();
+        assert_eq!(form.get("invalid"), Some("%%form%data"));
     }
 }

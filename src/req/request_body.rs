@@ -1,3 +1,5 @@
+use crate::req::body::FormData;
+
 #[derive(Debug, Clone)]
 pub struct RequestBody {
     pub content: RequestBodyContent,
@@ -12,10 +14,10 @@ impl RequestBody {
         }
     }
 
-    pub fn new_form<T: Into<String>>(form_data: T) -> Self {
+    pub fn new_form(form_data: FormData) -> Self {
         RequestBody {
             content_type: RequestBodyType::FORM,
-            content: RequestBodyContent::FORM(form_data.into()),
+            content: RequestBodyContent::FORM(form_data),
         }
     }
 
@@ -41,6 +43,6 @@ impl Copy for RequestBodyType {}
 pub enum RequestBodyContent {
     TEXT(String),
     JSON(serde_json::Value),
-    FORM(String),
+    FORM(FormData),
     EMPTY,
 }

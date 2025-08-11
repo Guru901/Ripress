@@ -127,12 +127,6 @@ mod tests {
 
         req.set_json(json!({"key": "value"}), RequestBodyType::FORM);
         assert!(req.form_data().is_err());
-
-        req.set_form("invalid", "%%form%data", RequestBodyType::FORM);
-        assert_ne!(
-            req.form_data().unwrap().get("invalid").unwrap(),
-            "%%form%data"
-        );
     }
 
     #[test]
