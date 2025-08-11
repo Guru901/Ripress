@@ -416,8 +416,6 @@ impl FormData {
     /// assert_eq!(form.get("age"), Some("30"));
     /// ```
     pub fn from_query_string(query: &str) -> Result<Self, String> {
-        use urlencoding::decode;
-
         let mut form_data = FormData::new();
 
         if query.is_empty() {
@@ -447,7 +445,6 @@ impl FormData {
     }
 
     pub fn from_comma_separated(query: &str) -> Result<Self, String> {
-        use urlencoding::decode;
         let mut form_data = FormData::new();
 
         if query.is_empty() {
