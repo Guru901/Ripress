@@ -149,7 +149,10 @@ impl HttpRequest {
             protocol: String::new(),
             headers: RequestHeaders::new(),
             data: RequestData::new(),
-            body: RequestBody::new_text(TextData::new(String::new())),
+            body: RequestBody {
+                content: RequestBodyContent::EMPTY,
+                content_type: RequestBodyType::EMPTY,
+            },
             cookies: HashMap::new(),
             xhr: false,
             is_secure: false,
