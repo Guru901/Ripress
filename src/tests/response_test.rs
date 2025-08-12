@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
     use crate::context::HttpRequest;
+    use crate::req::body::RequestBodyType;
     use crate::req::origin_url::Url;
-    use crate::req::request_body::RequestBodyType;
     use crate::res::response_headers::ResponseHeaders;
     use crate::res::response_status::StatusCode;
     use crate::types::HttpMethods;

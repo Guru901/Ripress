@@ -3,13 +3,12 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::context::HttpResponse;
-    use crate::req::body::FormData;
+    use crate::req::body::form_data::FormData;
     use crate::req::query_params::{QueryParams, SortDirection};
     use crate::req::request_headers::RequestHeaders;
     use crate::req::route_params::{ParamError, RouteParams};
     use crate::res::CookieOptions;
     use crate::types::{HttpResponseError, ResponseContentBody, ResponseContentType};
-    use hyper::Request;
     use serde_json::json;
 
     #[test]
