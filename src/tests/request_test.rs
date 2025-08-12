@@ -4,6 +4,7 @@ mod tests {
 
     use crate::context::HttpResponse;
     use crate::req::body::form_data::FormData;
+    use crate::req::body::text_data::{TextData, TextDataError};
     use crate::req::query_params::{QueryParams, SortDirection};
     use crate::req::request_headers::RequestHeaders;
     use crate::req::route_params::{ParamError, RouteParams};
@@ -518,5 +519,51 @@ mod tests {
 
         assert_eq!(form.remove("key"), Some("value".to_string()));
         assert!(form.is_empty());
+    }
+
+    #[test]
+    fn test_new_from_string() {
+        let text = TextData::new("Hello, world!".to_string());
+        assert_eq!(text.as_str().unwrap(), "Hello, world!");
+        assert_eq!(text.len_bytes(), 13);
+        assert_eq!(text.charset(), Some("utf-8"));
+    }
+
+    #[test]
+    fn test_from_bytes() {
+        let bytes = "Hello, 世界!".as_bytes().to_vec();
+        let text = TextData::from_bytes(bytes).unwrap();
+
+        assert_eq!(text.as_str().unwrap(), "Hello, 世界!");
+        assert_eq!(text.len_chars().unwrap(), 10);
+    }
+
+    #[test]
+    fn test_invalid_utf8() {
+        let invalid_bytes = vec![0xFF, 0xFE, 0xFD];
+        let result = TextData::from_bytes(invalid_bytes);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_size_limit() {
+        let large_text = "x".repeat(1000);
+        let bytes = large_text.as_bytes().to_vec();
+        let result = TextData::from_bytes_with_limit(bytes, 500);
+        assert!(matches!(result, Err(TextDataError::TooLarge { .. })));
+    }
+
+    #[test]
+    fn test_truncation() {
+        let text = TextData::new("Hello, 世界!".to_string());
+        let truncated = text.truncated_bytes(8);
+        // Should truncate at valid UTF-8 boundary
+        assert!(truncated.as_str().is_ok());
+    }
+
+    #[test]
+    fn test_display() {
+        let text = TextData::new("Test display".to_string());
+        assert_eq!(format!("{}", text), "Test display");
     }
 }
