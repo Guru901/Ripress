@@ -46,9 +46,9 @@
 #[derive(Debug, Clone)]
 pub struct RequestBody {
     /// The actual body content data
-    pub content: RequestBodyContent,
+    content: RequestBodyContent,
     /// The MIME type representing the format of the content
-    pub content_type: RequestBodyType,
+    content_type: RequestBodyType,
 }
 
 /// Module containing form data structures and utilities.
@@ -312,7 +312,6 @@ pub enum RequestBodyType {
 ///
 /// This allows the enum to be copied rather than moved, which is efficient
 /// since all variants are zero-sized and the enum is small.
-
 impl ToString for RequestBodyType {
     /// Converts the request body type to its corresponding MIME type string.
     ///
