@@ -676,7 +676,7 @@ impl HttpRequest {
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "text/plain".parse()?);
-                Body::from(text.to_string())
+                Body::from(text.as_bytes().to_vec())
             }
             RequestBodyContent::FORM(form) => {
                 builder.headers_mut().unwrap().insert(
