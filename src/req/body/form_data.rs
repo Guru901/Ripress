@@ -444,6 +444,42 @@ impl FormData {
         Ok(form_data)
     }
 
+    /// Parses a comma-separated query string into form data.
+    ///
+    /// This method specifically handles comma-separated key-value pairs, which is
+    /// an alternative format to the standard ampersand-separated query strings.
+    /// It supports both ", " (comma-space) and "&" separators as fallback.
+    ///
+    /// # Arguments
+    ///
+    /// * `query` - The comma-separated query string to parse
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(FormData)` - Successfully parsed form data
+    /// * `Err(String)` - Error message if parsing or URL decoding fails
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::req::body::form_data::FormData;
+    ///
+    /// // Comma-space separated
+    /// let form = FormData::from_comma_separated("name=Alice, age=30, city=Boston").unwrap();
+    /// assert_eq!(form.get("name"), Some("Alice"));
+    /// assert_eq!(form.get("age"), Some("30"));
+    /// assert_eq!(form.get("city"), Some("Boston"));
+    ///
+    /// // Falls back to ampersand separation if no comma-space found
+    /// let form = FormData::from_comma_separated("name=Bob&age=25").unwrap();
+    /// assert_eq!(form.get("name"), Some("Bob"));
+    ///
+    /// // Handles URL encoding
+    /// let form = FormData::from_comma_separated("name=John%20Doe, location=New%20York").unwrap();
+    /// assert_eq!(form.get("name"), Some("John Doe"));
+    /// assert_eq!(form.get("location"), Some("New York"));
+    /// ```
+
     pub fn from_comma_separated(query: &str) -> Result<Self, String> {
         let mut form_data = FormData::new();
 
