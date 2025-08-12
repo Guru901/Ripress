@@ -255,7 +255,7 @@ impl RequestBody {
 /// let another_json = json_type; // Copy
 /// assert_eq!(json_type, another_json); // PartialEq
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum RequestBodyType {
     /// JSON content type (`application/json`).
     ///
@@ -312,7 +312,6 @@ pub enum RequestBodyType {
 ///
 /// This allows the enum to be copied rather than moved, which is efficient
 /// since all variants are zero-sized and the enum is small.
-impl Copy for RequestBodyType {}
 
 impl ToString for RequestBodyType {
     /// Converts the request body type to its corresponding MIME type string.
