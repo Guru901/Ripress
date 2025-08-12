@@ -34,6 +34,10 @@ pub mod request_body;
 
 use request_body::{RequestBody, RequestBodyContent, RequestBodyType};
 
+mod data;
+
+use data::RequestData;
+
 use origin_url::Url;
 use query_params::QueryParams;
 use request_headers::RequestHeaders;
@@ -111,7 +115,7 @@ pub struct HttpRequest {
     cookies: HashMap<String, String>,
 
     // The Data set by middleware in the request to be used in the route handler
-    data: HashMap<String, String>,
+    data: RequestData,
 
     /// The request body, which may contain JSON, text, or form data.
     body: RequestBody,
@@ -143,7 +147,7 @@ impl HttpRequest {
             path: String::new(),
             protocol: String::new(),
             headers: RequestHeaders::new(),
-            data: HashMap::new(),
+            data: RequestData::new(),
             body: RequestBody::new_text(String::new()),
             cookies: HashMap::new(),
             xhr: false,
@@ -209,10 +213,10 @@ impl HttpRequest {
     ///
     /// let data = req.get_all_data();
     ///
-    /// println!("Data: {:?}", data);
+    /// println!("Data: {}", data);
     /// ```
 
-    pub fn get_all_data(&self) -> &HashMap<String, String> {
+    pub fn get_all_data(&self) -> &RequestData {
         &self.data
     }
 
@@ -233,7 +237,7 @@ impl HttpRequest {
     /// println!("Id: {:?}", id);
     /// ```
 
-    pub fn get_data<T: Into<String>>(&self, data_key: T) -> Option<&String> {
+    pub fn get_data<T: Into<String>>(&self, data_key: T) -> Option<String> {
         self.data.get(&data_key.into())
     }
 
@@ -490,10 +494,10 @@ impl HttpRequest {
 
         let params = RouteParams::from_map(params);
 
-        let mut data = HashMap::new();
+        let mut data = RequestData::new();
 
         if let Some(ext_data) = req.extensions().get::<HashMap<String, String>>() {
-            data = ext_data.clone()
+            data = RequestData::from_map(ext_data.clone());
         }
 
         let content_type = req
