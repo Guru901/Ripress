@@ -26,7 +26,7 @@ impl std::error::Error for TextDataError {}
 
 #[derive(Clone, PartialEq, Eq, Serialize)]
 pub struct TextData {
-    pub inner: Vec<u8>,
+    inner: Vec<u8>,
     charset: Option<String>,
 }
 
