@@ -90,7 +90,7 @@ mod tests {
     async fn test_logger_default_config() {
         // Use default config by passing None.
         let logger_mw = logger(None);
-        let mut req = HttpRequest::new();
+        let req = HttpRequest::new();
         let res = HttpResponse::new();
 
         let _ = logger_mw(req, res).await;
@@ -104,7 +104,7 @@ mod tests {
             path: true,
         };
         let logger_mw = logger(Some(config.clone()));
-        let mut req = HttpRequest::new();
+        let req = HttpRequest::new();
         let res = HttpResponse::new();
 
         let _ = logger_mw(req, res).await;
