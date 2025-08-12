@@ -46,9 +46,9 @@
 #[derive(Debug, Clone)]
 pub struct RequestBody {
     /// The actual body content data
-    pub(crate) content: RequestBodyContent,
+    pub content: RequestBodyContent,
     /// The MIME type representing the format of the content
-    pub(crate) content_type: RequestBodyType,
+    pub content_type: RequestBodyType,
 }
 
 /// Module containing form data structures and utilities.
