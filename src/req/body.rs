@@ -261,36 +261,6 @@ pub mod form_data {
         /// ```
         pub fn len(&self) -> usize {
             self.inner.len()
-    /// Appends or updates a value, creating a comma-separated list if the key already exists.
-    ///
-    /// This is useful for form fields that can have multiple values.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use ripress::req::body::FormData;
-    ///
-    /// let mut form = FormData::new();
-    /// form.append("tags", "rust");
-    /// form.append("tags", "web");
-    /// assert_eq!(form.get("tags"), Some("rust,web"));
-    /// ```
-    pub fn append<K, V>(&mut self, key: K, value: V)
-    where
-        K: Into<String>,
-        V: Into<String>,
-    {
-        let key_string = key.into();
-        let value_string = value.into();
-
-        match self.inner.get_mut(&key_string) {
-            Some(existing) => {
-                existing.push(',');
-                existing.push_str(&value_string);
-            }
-            None => {
-                self.inner.insert(key_string, value_string);
-            }
         }
 
         /// Returns `true` if the form data contains no key-value pairs.
@@ -695,7 +665,7 @@ pub mod form_data {
             self.inner.iter()
         }
     }
-
+}
 
 impl<'a> IntoIterator for &'a mut FormData {
     type Item = (&'a String, &'a mut String);
