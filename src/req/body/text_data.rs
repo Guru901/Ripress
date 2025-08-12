@@ -101,8 +101,8 @@ impl TextData {
         &self.inner
     }
 
-    /// Get raw bytes mutably
-    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+    /// Get raw bytes mutably (internal only; may violate UTF-8 invariants)
+    pub(crate) fn as_bytes_mut(&mut self) -> &mut [u8] {
         &mut self.inner
     }
 
