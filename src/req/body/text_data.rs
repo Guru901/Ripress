@@ -240,7 +240,7 @@ impl TextData {
     /// assert_eq!(text.as_str().unwrap(), "Hello!");
     ///
     /// let invalid = TextData::from_raw_bytes(vec![0xFF], None);
-    /// assert!(text.as_str().is_ok());
+    /// assert!(invalid.as_str().is_err());
     /// ```
     pub fn as_str(&self) -> Result<&str, TextDataError> {
         std::str::from_utf8(&self.inner).map_err(TextDataError::InvalidUtf8)
