@@ -241,7 +241,7 @@ mod tests {
     fn test_set_and_get_data() {
         let mut req = HttpRequest::new();
         req.set_data("id", "123");
-        assert_eq!(req.get_data("id"), Some(&String::from("123")));
+        assert_eq!(req.get_data("id"), Some(String::from("123")));
         assert_eq!(req.get_data("nonexistent"), None);
     }
 
