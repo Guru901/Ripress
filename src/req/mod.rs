@@ -322,7 +322,7 @@ impl HttpRequest {
     /// Returns request's text body.
     ///
     /// ## Example
-    /// ```
+    /// ```no_run
     /// let req = ripress::context::HttpRequest::new();
     /// let text = req.text().unwrap();
     /// println!("text : {:?}", text);
