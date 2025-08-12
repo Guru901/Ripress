@@ -2,7 +2,7 @@
 
 use crate::{
     helpers::get_all_query_params,
-    req::body::{RequestBody, RequestBodyContent, RequestBodyType},
+    req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
     types::HttpMethods,
 };
 use cookie::Cookie;
@@ -30,8 +30,6 @@ pub mod query_params;
 /// Structs that represents the body of the requests.
 /// And it's methods.
 pub mod body;
-
-use crate::req::body::form_data::FormData;
 
 /// A struct that represents the route parameters of the request.
 /// And it's methods.
@@ -151,7 +149,7 @@ impl HttpRequest {
             protocol: String::new(),
             headers: RequestHeaders::new(),
             data: RequestData::new(),
-            body: RequestBody::new_text(String::new()),
+            body: RequestBody::new_text(TextData::new(String::new())),
             cookies: HashMap::new(),
             xhr: false,
             is_secure: false,
@@ -330,12 +328,12 @@ impl HttpRequest {
     /// This function returns the text body of the request.
     /// Returns an `Result<String>`, where `Ok(String)` contains the body if it is valid text, or `Err(error)` if it is not.
 
-    pub fn text(&self) -> Result<String, String> {
+    pub fn text(&self) -> Result<&str, String> {
         let body = &self.body;
 
         if body.content_type == RequestBodyType::TEXT {
             if let RequestBodyContent::TEXT(ref text_value) = body.content {
-                Ok(text_value.clone().to_owned())
+                Ok(text_value.as_str().unwrap())
             } else {
                 Err(String::from("Invalid text content"))
             }
@@ -569,11 +567,17 @@ impl HttpRequest {
                 let body_bytes = to_bytes(req.body_mut()).await;
 
                 let body_string = match body_bytes {
-                    Ok(bytes) => String::from_utf8((&bytes).to_vec()).unwrap_or(String::new()),
+                    Ok(bytes) => TextData::from_bytes(bytes.as_ref().to_vec()),
                     Err(err) => return Err(err),
                 };
 
-                RequestBody::new_text(body_string)
+                match body_string {
+                    Ok(text) => RequestBody::new_text(text),
+                    Err(err) => {
+                        eprintln!("Error while parsing text body: {}", err);
+                        RequestBody::new_text(TextData::new(String::new()))
+                    }
+                }
             }
             RequestBodyType::EMPTY => RequestBody {
                 content: RequestBodyContent::EMPTY,
@@ -665,7 +669,7 @@ impl HttpRequest {
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "text/plain".parse()?);
-                Body::from(text.clone())
+                Body::from(text.to_string())
             }
             RequestBodyContent::FORM(form) => {
                 builder.headers_mut().unwrap().insert(
@@ -703,9 +707,9 @@ impl HttpRequest {
         self.body.content = RequestBodyContent::JSON(serde_json::to_value(json).unwrap());
     }
 
-    pub(crate) fn set_text<T: Into<String>>(&mut self, text: T, content_type: RequestBodyType) {
+    pub(crate) fn set_text(&mut self, text: TextData, content_type: RequestBodyType) {
         self.body.content_type = content_type;
-        self.body.content = RequestBodyContent::TEXT(text.into())
+        self.body.content = RequestBodyContent::TEXT(text)
     }
 
     pub(crate) fn set_form(

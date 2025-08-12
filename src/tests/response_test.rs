@@ -2,6 +2,7 @@
 mod tests {
     use crate::context::HttpRequest;
     use crate::req::body::RequestBodyType;
+    use crate::req::body::TextData;
     use crate::req::origin_url::Url;
     use crate::res::response_headers::ResponseHeaders;
     use crate::res::response_status::StatusCode;
@@ -80,7 +81,10 @@ mod tests {
 
         // Test 3 - Invalid JSON Content
 
-        req.set_text("{invalid json}", RequestBodyType::JSON);
+        req.set_text(
+            TextData::new("{invalid json}".to_string()),
+            RequestBodyType::JSON,
+        );
 
         assert!(req.json::<User>().is_err());
     }
@@ -91,13 +95,13 @@ mod tests {
 
         let mut req = HttpRequest::new();
 
-        req.set_text("Ripress", RequestBodyType::TEXT);
+        req.set_text(TextData::new("Ripress".to_string()), RequestBodyType::TEXT);
 
-        assert_eq!(req.text(), Ok("Ripress".to_string()));
+        assert_eq!(req.text().unwrap().to_string(), "Ripress".to_string());
 
         // Test 2 - Invalid Body Type
 
-        req.set_text("", RequestBodyType::JSON);
+        req.set_text(TextData::new("".to_string()), RequestBodyType::JSON);
 
         assert!(req.text().is_err());
 
