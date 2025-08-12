@@ -106,15 +106,9 @@ impl RequestData {
     /// Get value as bytes
     pub fn get(&self, key: impl AsRef<[u8]>) -> Option<String> {
         let key = ByteKey::new(key);
-        let data = self.inner.get(&key);
-
-        match data {
-            Some(data) => match String::from_utf8(data.clone()) {
-                Ok(s) => Some(s),
-                Err(_) => None,
-            },
-            None => None,
-        }
+        self.inner.get(&key).and_then(|data| {
+            String::from_utf8(data.clone()).ok()
+        })
     }
 
     /// Remove and return the value
