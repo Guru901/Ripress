@@ -333,7 +333,11 @@ impl HttpRequest {
 
         if body.content_type == RequestBodyType::TEXT {
             if let RequestBodyContent::TEXT(ref text_value) = body.content {
-                Ok(text_value.as_str().unwrap())
+                let value = text_value.as_str();
+                match value {
+                    Ok(value) => Ok(value),
+                    Err(err) => Err(err.to_string()),
+                }
             } else {
                 Err(String::from("Invalid text content"))
             }

@@ -30,9 +30,10 @@ pub struct TextData {
     charset: Option<String>,
 }
 
-impl Into<String> for TextData {
-    fn into(self) -> String {
-        self.as_str().unwrap().to_string()
+impl TryFrom<TextData> for String {
+    type Error = TextDataError;
+    fn try_from(value: TextData) -> Result<Self, Self::Error> {
+        value.into_string()
     }
 }
 
