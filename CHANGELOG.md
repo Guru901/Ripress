@@ -1,5 +1,46 @@
 # Changelog
 
+## [1.0.0] - 2025-07-26
+
+This release finalizes the API for the 1.x series. Several request/response
+methods have been made type-safe, and some method names have been changed or
+removed for consistency.
+
+### Breaking Changes
+
+- `req.form_data()` now returns `FormData` instead of `HashMap<String, String>`.
+- `req.text()` now returns `TextData` instead of `String`.
+- `req.ip` now returns `IpAddr` instead of `String`.
+- `req.origin_url` now returns `Url` instead of `String`.
+- `req.query_params` now returns `QueryParams` instead of `HashMap`.
+- `req.route_params` now returns `RouteParams` instead of `HashMap`.
+- `req.header` now returns `RequestHeaders` instead of `HashMap`.
+- Removed `req.get_headers()` → use `req.headers.get()` instead.
+- `res.headers` now returns `ResponseHeaders` instead of `HashMap`.
+- Removed `res.set_header()` → set headers via `res.headers.insert()` or equivalent.
+- Public API audited: all request/response accessors now use strongly typed wrappers.
+
+### Added
+
+- `RequestHeaders` struct for request headers.
+- `RequestData` struct for generic request extensions.
+- `FormData` struct for parsed form fields.
+- `TextData` struct for plain-text bodies.
+- `QueryParams` struct for parsed query parameters.
+- `RouteParams` struct for path parameters.
+- `ResponseHeaders` struct for response headers.
+- `ResponseStatus` enum for HTTP status codes.
+
+### Removed
+
+- `req.get_header()` — use `req.headers.get()`.
+- `res.set_header()` — use the new `ResponseHeaders` API.
+
+### Internal / Other
+
+- Middleware API stabilized for 1.x.
+- Documentation updated with new types and examples.
+
 ## [0.6.1] - 2025-07-26
 
 - Readded static files serving capabilities
