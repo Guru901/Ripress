@@ -6,7 +6,7 @@ use crate::{
     types::HttpMethods,
 };
 use cookie::Cookie;
-use hyper::{Body, Method, Request, body::to_bytes, header::HOST};
+use hyper::{Body, Request, body::to_bytes, header::HOST};
 use mime::Mime;
 use routerify::ext::RequestExt;
 use serde_json::Value;
@@ -448,16 +448,7 @@ impl HttpRequest {
 
         let query_params = QueryParams::from_map(queries);
 
-        let method = match req.method() {
-            &Method::GET => HttpMethods::GET,
-            &Method::POST => HttpMethods::POST,
-            &Method::PUT => HttpMethods::PUT,
-            &Method::DELETE => HttpMethods::DELETE,
-            &Method::PATCH => HttpMethods::PATCH,
-            &Method::HEAD => HttpMethods::HEAD,
-            &Method::OPTIONS => HttpMethods::OPTIONS,
-            _ => HttpMethods::GET,
-        };
+        let method = HttpMethods::from(req.method());
 
         let ip = req
             .headers()

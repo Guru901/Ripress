@@ -862,26 +862,3 @@ impl From<RouteParams> for HashMap<String, String> {
         params.params
     }
 }
-
-/// Macro for easy parameter extraction with validation
-#[macro_export]
-macro_rules! extract_params {
-    ($params:expr, { $($name:ident: $type:ty),* $(,)? }) => {{
-        let mut errors = Vec::new();
-        $(
-            let $name = match $params.get_parsed::<$type>(stringify!($name)) {
-                Ok(val) => val,
-                Err(e) => {
-                    errors.push(e);
-                    continue;
-                }
-            };
-        )*
-
-        if !errors.is_empty() {
-            return Err(errors);
-        }
-
-        Ok(($($name,)*))
-    }};
-}
