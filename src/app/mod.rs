@@ -32,9 +32,44 @@ where
     Box::pin(future)
 }
 
+/// Represents a middleware in the Ripress application.
+///
+/// A `Middleware` consists of a function and an associated path. The function is an
+/// asynchronous closure or function that takes an [`HttpRequest`] and [`HttpResponse`],
+/// and returns a future resolving to a tuple of the potentially modified request and an
+/// optional response. If the middleware returns `Some(response)`, the response is sent
+/// immediately and further processing is halted. If it returns `None`, the request
+/// continues through the middleware chain and to the route handler.
+///
+/// The `path` field specifies the route prefix or pattern for which this middleware
+/// should be applied. Middlewares are matched in the order they are added to the app.
+///
+/// # Example
+///
+/// ```rust
+/// use ripress::app::Middleware;
+/// use std::sync::Arc;
+///
+/// let mw = Middleware {
+///     func: Arc::new(|req, res| Box::pin(async move {
+///         // Your middleware logic here
+///         (req, None)
+///     })),
+///     path: "/api".to_string(),
+/// };
+/// ```
 #[derive(Clone)]
 pub struct Middleware {
+    /// The middleware function.
+    ///
+    /// This is an `Arc`-wrapped closure or function pointer that takes an [`HttpRequest`]
+    /// and [`HttpResponse`], and returns a boxed future resolving to a tuple of the
+    /// (possibly modified) request and an optional response.
     pub func: Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
+
+    /// The path or route prefix this middleware applies to.
+    ///
+    /// If the incoming request path starts with this string, the middleware will be invoked.
     pub path: String,
 }
 
