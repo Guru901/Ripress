@@ -1,12 +1,12 @@
 #![warn(missing_docs)]
 
 use crate::{
-    helpers::get_all_query_params,
+    helpers::get_all_query,
     req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
     types::HttpMethods,
 };
 use cookie::Cookie;
-use hyper::{Body, Method, Request, body::to_bytes, header::HOST};
+use hyper::{Body, Request, body::to_bytes, header::HOST};
 use mime::Mime;
 use routerify::ext::RequestExt;
 use serde_json::Value;
@@ -35,9 +35,11 @@ pub mod body;
 /// And it's methods.
 pub mod route_params;
 
-mod data;
+/// A struct that represents the request data of the request.
+/// And it's methods.
+pub mod request_data;
 
-use data::RequestData;
+use request_data::RequestData;
 
 use origin_url::Url;
 use query_params::QueryParams;
@@ -86,7 +88,7 @@ pub struct HttpRequest {
     pub params: RouteParams,
 
     /// Query parameters from the request URL.
-    pub query_params: QueryParams,
+    pub query: QueryParams,
 
     /// The full URL of the incoming request.
     pub origin_url: Url,
@@ -142,7 +144,7 @@ impl HttpRequest {
         HttpRequest {
             origin_url: Url::new(""),
             params: RouteParams::new(),
-            query_params: QueryParams::new(),
+            query: QueryParams::new(),
             method: HttpMethods::GET,
             ip: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             path: String::new(),
@@ -446,18 +448,9 @@ impl HttpRequest {
             .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
             .collect::<HashMap<String, String>>();
 
-        let query_params = QueryParams::from_map(queries);
+        let query = QueryParams::from_map(queries);
 
-        let method = match req.method() {
-            &Method::GET => HttpMethods::GET,
-            &Method::POST => HttpMethods::POST,
-            &Method::PUT => HttpMethods::PUT,
-            &Method::DELETE => HttpMethods::DELETE,
-            &Method::PATCH => HttpMethods::PATCH,
-            &Method::HEAD => HttpMethods::HEAD,
-            &Method::OPTIONS => HttpMethods::OPTIONS,
-            _ => HttpMethods::GET,
-        };
+        let method = HttpMethods::from(req.method());
 
         let ip = req
             .headers()
@@ -598,7 +591,7 @@ impl HttpRequest {
 
         Ok(HttpRequest {
             params,
-            query_params,
+            query: query,
             origin_url,
             method,
             ip,
@@ -623,9 +616,9 @@ impl HttpRequest {
         };
 
         let mut uri_builder = path.to_string();
-        if !self.query_params.is_empty() {
+        if !self.query.is_empty() {
             uri_builder.push('?');
-            uri_builder.push_str(&get_all_query_params(&self.query_params));
+            uri_builder.push_str(&get_all_query(&self.query));
         }
 
         let uri: hyper::Uri = uri_builder
@@ -695,7 +688,7 @@ impl HttpRequest {
 #[cfg(test)]
 impl HttpRequest {
     pub(crate) fn set_query(&mut self, key: &str, value: &str) {
-        self.query_params.insert(key.to_string(), value.to_string());
+        self.query.insert(key.to_string(), value.to_string());
     }
 
     pub(crate) fn set_header(&mut self, key: &str, value: &str) {

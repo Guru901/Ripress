@@ -470,9 +470,9 @@ async fn main() {
 }
 
 async fn search_users(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let query = req.query_params.get("q").unwrap_or("");
+    let query = req.query.get("q").unwrap_or("");
     let limit = req
-        .query_params
+        .query
         .get("limit")
         .and_then(|l| l.parse::<usize>().ok())
         .unwrap_or(10);
@@ -802,11 +802,11 @@ async fn validate_input(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let mut errors = Vec::new();
 
     // Validate required fields
-    if !req.query_params.contains("email") {
+    if !req.query.contains("email") {
         errors.push("Email is required");
     }
 
-    if let Some(age) = req.query_params.get("age") {
+    if let Some(age) = req.query.get("age") {
         if age.parse::<u32>().is_err() {
             errors.push("Age must be a valid number");
         }

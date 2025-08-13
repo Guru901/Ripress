@@ -51,13 +51,15 @@ impl std::error::Error for TextDataError {}
 ///
 /// ```rust
 /// // Creating from a string (always valid UTF-8)
+/// use ripress::req::body::text_data::TextData;
+///
 /// let text = TextData::new("Hello, world!".to_string());
 /// assert_eq!(text.as_str().unwrap(), "Hello, world!");
 ///
 /// // Creating from bytes with validation
 /// let bytes = "Hello, 世界!".as_bytes().to_vec();
 /// let text = TextData::from_bytes(bytes).unwrap();
-/// assert_eq!(text.len_chars().unwrap(), 9); // 7 ASCII + 2 Chinese characters
+/// assert_eq!(text.len_chars().unwrap(), 10);
 ///
 /// // Working with potentially invalid UTF-8
 /// let mixed_bytes = vec![72, 101, 108, 108, 111, 0xFF, 0xFE]; // "Hello" + invalid bytes
@@ -93,6 +95,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let text = TextData::new("Hello, world!".to_string());
     /// assert_eq!(text.charset(), Some("utf-8"));
     /// assert!(text.is_valid_utf8());
@@ -121,7 +125,10 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// // Valid UTF-8
+    ///
     /// let bytes = "Hello, 世界!".as_bytes().to_vec();
     /// let text = TextData::from_bytes(bytes).unwrap();
     /// assert_eq!(text.as_str().unwrap(), "Hello, 世界!");
@@ -159,6 +166,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let small_text = "Hi!".as_bytes().to_vec();
     /// let text = TextData::from_bytes_with_limit(small_text, 10).unwrap();
     /// assert_eq!(text.len_bytes(), 3);
@@ -196,6 +205,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// // Creating with unknown encoding
     /// let raw_bytes = vec![0xC4, 0xE9, 0xF1, 0xF2]; // Some encoding
     /// let text = TextData::from_raw_bytes(raw_bytes, Some("cp1252".to_string()));
@@ -223,11 +234,13 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let text = TextData::new("Hello!".to_string());
     /// assert_eq!(text.as_str().unwrap(), "Hello!");
     ///
     /// let invalid = TextData::from_raw_bytes(vec![0xFF], None);
-    /// assert!(text.as_str().is_err());
+    /// assert!(invalid.as_str().is_err());
     /// ```
     pub fn as_str(&self) -> Result<&str, TextDataError> {
         std::str::from_utf8(&self.inner).map_err(TextDataError::InvalidUtf8)
@@ -246,6 +259,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let valid = TextData::new("Hello!".to_string());
     /// assert_eq!(valid.as_str_lossy(), "Hello!");
     ///
@@ -268,6 +283,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let text = TextData::new("Hello!".to_string());
     /// let string = text.into_string().unwrap();
     /// assert_eq!(string, "Hello!");
@@ -289,6 +306,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let invalid = TextData::from_raw_bytes(vec![b'H', b'i', 0xFF], None);
     /// assert_eq!(invalid.into_string_lossy(), "Hi�");
     /// ```
@@ -304,6 +323,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let text = TextData::new("Hello!".to_string());
     /// assert_eq!(text.as_bytes(), b"Hello!");
     /// ```
@@ -332,6 +353,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let text = TextData::new("Hello!".to_string());
     /// let bytes = text.into_bytes();
     /// assert_eq!(bytes, b"Hello!");
@@ -348,6 +371,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let ascii = TextData::new("Hello".to_string());
     /// assert_eq!(ascii.len_bytes(), 5);
     ///
@@ -371,6 +396,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let ascii = TextData::new("Hello".to_string());
     /// assert_eq!(ascii.len_chars().unwrap(), 5);
     ///
@@ -387,6 +414,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let empty = TextData::new(String::new());
     /// assert!(empty.is_empty());
     ///
@@ -411,6 +440,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let utf8_text = TextData::new("Hello".to_string());
     /// assert_eq!(utf8_text.charset(), Some("utf-8"));
     ///
@@ -433,6 +464,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let mut text = TextData::from_raw_bytes(vec![0xE9], None);
     /// text.set_charset("iso-8859-1".to_string());
     /// assert_eq!(text.charset(), Some("iso-8859-1"));
@@ -450,6 +483,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let valid = TextData::new("Hello, 世界!".to_string());
     /// assert!(valid.is_valid_utf8());
     ///
@@ -473,6 +508,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let text = TextData::new("Line 1\nLine 2\nLine 3".to_string());
     /// let lines: Vec<&str> = text.lines().unwrap().collect();
     /// assert_eq!(lines, vec!["Line 1", "Line 2", "Line 3"]);
@@ -493,6 +530,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let text = TextData::new("  Hello, world!  ".to_string());
     /// assert_eq!(text.trim().unwrap(), "Hello, world!");
     /// ```
@@ -516,6 +555,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let text = TextData::new("Hello, world!".to_string());
     /// assert!(text.contains("world").unwrap());
     /// assert!(!text.contains("Rust").unwrap());
@@ -541,6 +582,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let text = TextData::new("apple,banana,cherry".to_string());
     /// let parts: Vec<&str> = text.split(",").unwrap().collect();
     /// assert_eq!(parts, vec!["apple", "banana", "cherry"]);
@@ -565,6 +608,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let mut text = TextData::new("Hello, world!".to_string());
     /// text.truncate_bytes(5);
     /// assert_eq!(text.as_str().unwrap(), "Hello");
@@ -600,6 +645,8 @@ impl TextData {
     /// # Examples
     ///
     /// ```rust
+    /// use ripress::req::body::text_data::TextData;
+    ///
     /// let text = TextData::new("Hello, world!".to_string());
     /// let short = text.truncated_bytes(5);
     /// assert_eq!(short.as_str().unwrap(), "Hello");
@@ -689,6 +736,8 @@ impl TryFrom<Vec<u8>> for TextData {
 /// # Examples
 ///
 /// ```rust
+/// use ripress::req::body::text_data::TextData;
+///
 /// let text = TextData::new("Hello".to_string());
 /// let bytes: &[u8] = &*text; // Deref coercion
 /// assert_eq!(bytes, b"Hello");

@@ -37,7 +37,7 @@ fn path_matches(prefix: &str, path: &str) -> bool {
     path == prefix || path.starts_with(&(prefix.to_string() + "/"))
 }
 
-pub fn get_all_query_params(queries: &QueryParams) -> String {
+pub fn get_all_query(queries: &QueryParams) -> String {
     let mut ser = Serializer::new(String::new());
     for (k, v) in queries.iter() {
         ser.append_pair(k, v);

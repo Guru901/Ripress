@@ -1,6 +1,7 @@
 use crate::app::box_future;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
+use hyper::Method;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -47,6 +48,21 @@ pub enum HttpMethods {
     DELETE,
     PATCH,
     OPTIONS,
+}
+
+impl From<&Method> for HttpMethods {
+    fn from(method: &Method) -> Self {
+        match method {
+            &Method::GET => HttpMethods::GET,
+            &Method::POST => HttpMethods::POST,
+            &Method::PUT => HttpMethods::PUT,
+            &Method::DELETE => HttpMethods::DELETE,
+            &Method::PATCH => HttpMethods::PATCH,
+            &Method::HEAD => HttpMethods::HEAD,
+            &Method::OPTIONS => HttpMethods::OPTIONS,
+            _ => HttpMethods::GET,
+        }
+    }
 }
 
 impl Display for HttpMethods {

@@ -12,7 +12,6 @@ A type-safe URL parameter extraction system for Rust web applications supporting
 - **Comprehensive error handling**: Detailed error messages for missing parameters and parse failures
 - **Convenience methods**: Built-in helpers for common parameter types and patterns
 - **Flexible API**: Multiple ways to access parameters with different error handling strategies
-- **Macro support**: Easy bulk parameter extraction with validation
 - **Backward compatibility**: Seamless conversion to/from `HashMap<String, String>`
 
 ## Basic Usage
@@ -355,36 +354,6 @@ match params.get_int("invalid_number") {
 }
 ```
 
-## Bulk Parameter Extraction
-
-### `extract_params!` Macro
-
-For extracting multiple parameters with validation:
-
-```rust
-use ripress::extract_params;
-
-// Extract multiple parameters at once
-let result = extract_params!(params, {
-    id: i32,
-    user_id: u32,
-    active: bool
-});
-
-match result {
-    Ok((id, user_id, active)) => {
-        // All parameters parsed successfully
-        handle_request(id, user_id, active);
-    },
-    Err(errors) => {
-        // One or more parameters failed to parse
-        for error in errors {
-            eprintln!("Parameter error: {}", error);
-        }
-    }
-}
-```
-
 ## Real-World Examples
 
 ### REST API Handler
@@ -428,26 +397,6 @@ fn get_article(params: RouteParams) -> Result<Article, ApiError> {
 }
 
 // Route: GET /articles/:id or GET /articles/:slug
-```
-
-### Complex Parameter Validation
-
-```rust
-fn update_user_settings(params: RouteParams) -> Result<(), ApiError> {
-    // Use the extract macro for complex validation
-    let (user_id, theme_id, notifications) = extract_params!(params, {
-        user_id: u32,
-        theme_id: u8,
-        notifications: bool
-    }).map_err(ApiError::ParameterErrors)?;
-
-    // Additional business logic validation
-    if theme_id > 10 {
-        return Err(ApiError::InvalidTheme);
-    }
-
-    update_settings(user_id, theme_id, notifications)
-}
 ```
 
 ### Migration from HashMap

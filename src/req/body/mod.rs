@@ -21,6 +21,7 @@
 ///
 /// ```rust
 /// use ripress::req::body::{RequestBody, FormData, TextData};
+///
 /// use serde_json::json;
 ///
 /// // JSON body
@@ -36,7 +37,7 @@
 /// let form_body = RequestBody::new_form(form);
 ///
 /// // Text body
-/// let text_data = TextData::new("Hello, world!").unwrap();
+/// let text_data = TextData::new(String::from("Hello, world!"));
 /// let text_body = RequestBody::new_text(text_data);
 ///
 /// // Usage in HTTP client
@@ -84,9 +85,10 @@ impl RequestBody {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::{RequestBody, TextData};
+    /// use ripress::req::body::{RequestBody, RequestBodyType};
+    /// use ripress::req::body::text_data::TextData;
     ///
-    /// let text_data = TextData::new("Hello, server!").unwrap();
+    /// let text_data = TextData::new(String::from("Hello, server!"));
     /// let body = RequestBody::new_text(text_data);
     ///
     /// assert_eq!(body.content_type, RequestBodyType::TEXT);
@@ -123,7 +125,7 @@ impl RequestBody {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::{RequestBody, FormData};
+    /// use ripress::req::body::{RequestBody, RequestBodyType, FormData};
     ///
     /// let mut form = FormData::new();
     /// form.insert("username", "alice");
@@ -173,7 +175,7 @@ impl RequestBody {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestBody;
+    /// use ripress::req::body::{RequestBody, RequestBodyType};
     /// use serde_json::json;
     /// use serde::Serialize;
     ///
@@ -253,7 +255,7 @@ impl RequestBody {
 /// let another_json = json_type; // Copy
 /// assert_eq!(json_type, another_json); // PartialEq
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum RequestBodyType {
     /// JSON content type (`application/json`).
     ///
@@ -310,8 +312,6 @@ pub enum RequestBodyType {
 ///
 /// This allows the enum to be copied rather than moved, which is efficient
 /// since all variants are zero-sized and the enum is small.
-impl Copy for RequestBodyType {}
-
 impl ToString for RequestBodyType {
     /// Converts the request body type to its corresponding MIME type string.
     ///
@@ -400,7 +400,7 @@ impl ToString for RequestBodyType {
 /// form.insert("field", "value");
 /// let form_content = RequestBodyContent::FORM(form);
 ///
-/// let text_data = TextData::new("Hello").unwrap();
+/// let text_data = TextData::new(String::from("Hello"));
 /// let text_content = RequestBodyContent::TEXT(text_data);
 ///
 /// let empty_content = RequestBodyContent::EMPTY;
@@ -414,7 +414,7 @@ impl ToString for RequestBodyType {
 ///         println!("Form has {} fields", form.len());
 ///     }
 ///     RequestBodyContent::TEXT(text) => {
-///         println!("Text content: {}", text.as_str());
+///         println!("Text content: {:?}", text.as_str());
 ///     }
 ///     RequestBodyContent::EMPTY => {
 ///         println!("No body content");
@@ -445,7 +445,7 @@ pub enum RequestBodyContent {
     ///
     /// # Examples
     /// - Error messages
-    /// - Log entries  
+    /// - Log entries
     /// - Plain text file content
     /// - Simple string data
     TEXT(TextData),
