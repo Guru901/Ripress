@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
+use serde::Serialize;
+
 /// A collection of parameters extracted from a route's URL pattern.
 ///
 /// `RouteParams` provides a type-safe way to handle URL path parameters in web routes.
@@ -130,7 +132,7 @@ pub struct RouteParams {
 ///
 /// This enum provides detailed information about parameter access failures,
 /// making it easier to provide meaningful error messages to users or logs.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum ParamError {
     /// The parameter with the given name does not exist in the route.
     ///
