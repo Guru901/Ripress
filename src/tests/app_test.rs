@@ -16,7 +16,7 @@ mod tests {
     };
 
     #[test]
-    pub fn test_add_get_route() {
+    fn test_add_get_route() {
         let mut app = App::new();
         app.get("/user/{id}", _test_handler);
         assert!(
@@ -26,7 +26,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_add_head_route() {
+    fn test_add_head_route() {
         let mut app = App::new();
         app.head("/user/{id}", _test_handler);
         assert!(
@@ -36,7 +36,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_add_post_route() {
+    fn test_add_post_route() {
         let mut app = App::new();
         app.post("/user/{id}", _test_handler);
 
@@ -46,7 +46,7 @@ mod tests {
         );
     }
     #[test]
-    pub fn test_add_delete_route() {
+    fn test_add_delete_route() {
         let mut app = App::new();
         app.delete("/user/{id}", _test_handler);
         assert!(
@@ -56,7 +56,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_add_patch_route() {
+    fn test_add_patch_route() {
         let mut app = App::new();
         app.patch("/user/{id}", _test_handler);
         assert!(
@@ -66,7 +66,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_add_put_route() {
+    fn test_add_put_route() {
         let mut app = App::new();
         app.put("/user/{id}", _test_handler);
         assert!(

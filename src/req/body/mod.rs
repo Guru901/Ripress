@@ -101,7 +101,7 @@ impl RequestBody {
     /// - Uploading text files
     /// - Raw text data transmission
     /// - Log messages or debug information
-    pub fn new_text(text: TextData) -> Self {
+    pub(crate) fn new_text(text: TextData) -> Self {
         RequestBody {
             content_type: RequestBodyType::TEXT,
             content: RequestBodyContent::TEXT(text),
@@ -142,7 +142,7 @@ impl RequestBody {
     /// - Simple key-value data transmission
     /// - Traditional web form processing
     /// - URL parameter-style data in request body
-    pub fn new_form(form_data: FormData) -> Self {
+    pub(crate) fn new_form(form_data: FormData) -> Self {
         RequestBody {
             content_type: RequestBodyType::FORM,
             content: RequestBodyContent::FORM(form_data),
@@ -213,7 +213,7 @@ impl RequestBody {
     /// - Complex nested data
     /// - Modern web application communication
     /// - Microservice communication
-    pub fn new_json<T: Into<serde_json::Value>>(json: T) -> Self {
+    pub(crate) fn new_json<T: Into<serde_json::Value>>(json: T) -> Self {
         RequestBody {
             content_type: RequestBodyType::JSON,
             content: RequestBodyContent::JSON(json.into()),
