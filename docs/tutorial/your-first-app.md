@@ -17,7 +17,11 @@ To create a new Ripress project, run the following command in your terminal:
 ```bash
 cargo new my-ripress-app
 cd my-ripress-app
-cargo add ripress tokio serde serde_json --features macros,rt-multi-thread
+# Add dependencies with correct features per crate
+cargo add ripress
+cargo add tokio --features macros,rt-multi-thread
+cargo add serde --features derive
+cargo add serde_json
 ```
 
 ## Step 2: Basic "Hello World"

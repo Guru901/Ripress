@@ -334,9 +334,6 @@ mod tests {
         let mut params = RouteParams::new();
         params.insert("id", "123");
         params.insert("user_id", "456");
-
-        // This would be used in a real handler like:
-        // let (id, user_id) = extract_params!(params, { id: i32, user_id: i32 })?;
     }
 
     #[test]
