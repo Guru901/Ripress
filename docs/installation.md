@@ -39,7 +39,7 @@ Alternatively, you can manually add them to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ripress = "0.6"
+ripress = "1.0.1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 

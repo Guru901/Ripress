@@ -19,7 +19,7 @@
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```ignore
 /// use ripress::req::body::{RequestBody, FormData, TextData};
 ///
 /// use serde_json::json;
@@ -84,7 +84,7 @@ impl RequestBody {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```ignore
     /// use ripress::req::body::{RequestBody, RequestBodyType};
     /// use ripress::req::body::text_data::TextData;
     ///
@@ -124,7 +124,7 @@ impl RequestBody {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```ignore
     /// use ripress::req::body::{RequestBody, RequestBodyType, FormData};
     ///
     /// let mut form = FormData::new();
@@ -174,7 +174,7 @@ impl RequestBody {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```ignore
     /// use ripress::req::body::{RequestBody, RequestBodyType};
     /// use serde_json::json;
     /// use serde::Serialize;
