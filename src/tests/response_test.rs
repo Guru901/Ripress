@@ -25,9 +25,9 @@ mod tests {
         let mut req = HttpRequest::new();
         req.set_query("q", "Ripress");
 
-        assert_eq!(req.query_params.get("q"), Some("Ripress"));
+        assert_eq!(req.query.get("q"), Some("Ripress"));
 
-        assert_eq!(req.query_params.get("nonexistent"), None);
+        assert_eq!(req.query.get("nonexistent"), None);
     }
 
     #[test]

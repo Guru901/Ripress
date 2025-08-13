@@ -1,7 +1,7 @@
 #![warn(missing_docs)]
 
 use crate::{
-    helpers::get_all_query_params,
+    helpers::get_all_query,
     req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
     types::HttpMethods,
 };
@@ -86,7 +86,7 @@ pub struct HttpRequest {
     pub params: RouteParams,
 
     /// Query parameters from the request URL.
-    pub query_params: QueryParams,
+    pub query: QueryParams,
 
     /// The full URL of the incoming request.
     pub origin_url: Url,
@@ -142,7 +142,7 @@ impl HttpRequest {
         HttpRequest {
             origin_url: Url::new(""),
             params: RouteParams::new(),
-            query_params: QueryParams::new(),
+            query: QueryParams::new(),
             method: HttpMethods::GET,
             ip: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             path: String::new(),
@@ -446,7 +446,7 @@ impl HttpRequest {
             .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
             .collect::<HashMap<String, String>>();
 
-        let query_params = QueryParams::from_map(queries);
+        let query = QueryParams::from_map(queries);
 
         let method = HttpMethods::from(req.method());
 
@@ -589,7 +589,7 @@ impl HttpRequest {
 
         Ok(HttpRequest {
             params,
-            query_params,
+            query: query,
             origin_url,
             method,
             ip,
@@ -614,9 +614,9 @@ impl HttpRequest {
         };
 
         let mut uri_builder = path.to_string();
-        if !self.query_params.is_empty() {
+        if !self.query.is_empty() {
             uri_builder.push('?');
-            uri_builder.push_str(&get_all_query_params(&self.query_params));
+            uri_builder.push_str(&get_all_query(&self.query));
         }
 
         let uri: hyper::Uri = uri_builder
@@ -686,7 +686,7 @@ impl HttpRequest {
 #[cfg(test)]
 impl HttpRequest {
     pub(crate) fn set_query(&mut self, key: &str, value: &str) {
-        self.query_params.insert(key.to_string(), value.to_string());
+        self.query.insert(key.to_string(), value.to_string());
     }
 
     pub(crate) fn set_header(&mut self, key: &str, value: &str) {

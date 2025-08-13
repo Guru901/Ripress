@@ -19,7 +19,7 @@ A comprehensive URL query string parameter parsing and management system for Rus
 ## Basic Usage
 
 ```rust
-use ripress::req::query_params::{QueryParamError, QueryParams};
+use ripress::req::query::{QueryParamError, QueryParams};
 
 // Parse from query string
 let query = QueryParams::from_query_string("page=2&limit=10&tags=rust&tags=web&active=true");
@@ -425,7 +425,7 @@ let sort_field = query.sort().unwrap_or("created_at");
 Gets the sort direction from 'order', 'dir', or 'direction' parameters.
 
 ```rust
-use ripress::req::query_params::SortDirection;
+use ripress::req::query::SortDirection;
 
 let direction = query.sort_direction(); // SortDirection::Asc or SortDirection::Desc
 match direction {
@@ -522,7 +522,7 @@ Multiple values found when single value expected (currently not used but availab
 ### Pagination Handler
 
 ```rust
-use ripress::req::query_params::{QueryParamError, QueryParams};
+use ripress::req::query::{QueryParamError, QueryParams};
 
 fn handle_pagination(query: QueryParams) -> Result<PaginationInfo, ApiError> {
     let page = query.page().max(1); // Ensure minimum page 1
@@ -701,7 +701,7 @@ fn validate_api_query(query: QueryParams) -> Result<ApiQuery, Vec<QueryParamErro
 
 ```rust
 use std::collections::HashMap;
-use ripress::req::query_params::QueryParams;
+use ripress::req::query::QueryParams;
 
 // Before: using HashMap directly
 fn old_handler(params: HashMap<String, String>) -> Result<Response, Error> {

@@ -97,7 +97,7 @@ async fn main() {
 }
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match req.query_params.get("q") {
+    match req.query.get("q") {
         Some(query) => res.ok().text(format!("Search query: {}", query)),
         None => res.bad_request().text("Query parameter 'q' is missing"),
     }

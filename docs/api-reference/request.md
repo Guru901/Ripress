@@ -308,7 +308,7 @@ async fn main() {
 }
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match req.query_params.get("q") {
+    match req.query.get("q") {
         Some(value) => println!("Query: {}", value),
         None => println!("Query Param not found"),
     }
@@ -320,7 +320,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Example:
 
 - URL: `GET /search?q=Ripress`
-- `query_params.get("q")` returns `Some("Ripress")`
+- `query.get("q")` returns `Some("Ripress")`
 
 Returns `Option<&str>`
 
