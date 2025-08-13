@@ -6,7 +6,7 @@ use crate::{
 use hyper::{Body, Request};
 use url::form_urlencoded::Serializer;
 
-pub async fn exec_middleware(
+pub(crate) async fn exec_middleware(
     mut req: Request<Body>,
     middleware: Middleware,
 ) -> Result<Request<Body>, ApiError> {
