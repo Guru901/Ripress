@@ -80,7 +80,7 @@ All data extraction methods return `Result` types, making error handling explici
 
 ```rust
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    match req.query_params.get("page") {
+    match req.query.get("page") {
         Some(page_str) => match page_str.parse::<u32>() {
             Ok(page) => res.ok().text(format!("Page: {}", page)),
             Err(_) => res.bad_request().text("Invalid page number")

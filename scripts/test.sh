@@ -139,7 +139,7 @@ async fn header_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 async fn query_and_param_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let param = req.params.get("param").unwrap();
-    let query = req.query_params.get("query").unwrap();
+    let query = req.query.get("query").unwrap();
 
     res.ok().json(json!({
         "param": param,
@@ -195,9 +195,9 @@ async fn form_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 async fn multi_query_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let name = req.query_params.get("name").unwrap();
-    let age = req.query_params.get("age").unwrap();
-    let city = req.query_params.get("city").unwrap();
+    let name = req.query.get("name").unwrap();
+    let age = req.query.get("age").unwrap();
+    let city = req.query.get("city").unwrap();
 
     res.ok().json(json!({
         "name": name,
@@ -380,7 +380,6 @@ async fn stream_json(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
     res.write(stream)
 }
-
 
 ' > main.rs
 
