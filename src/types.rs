@@ -9,22 +9,22 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
-pub enum ResponseContentBody {
+pub(crate) enum ResponseContentBody {
     TEXT(String),
     HTML(String),
     JSON(serde_json::Value),
 }
 
 impl ResponseContentBody {
-    pub fn new_text<T: Into<String>>(text: T) -> Self {
+    pub(crate) fn new_text<T: Into<String>>(text: T) -> Self {
         ResponseContentBody::TEXT(text.into())
     }
 
-    pub fn new_json<T: Serialize>(json: T) -> Self {
+    pub(crate) fn new_json<T: Serialize>(json: T) -> Self {
         let value = serde_json::to_value(json).expect("Failed to serialize to JSON");
         ResponseContentBody::JSON(value)
     }
-    pub fn new_html<T: Into<String>>(html: T) -> Self {
+    pub(crate) fn new_html<T: Into<String>>(html: T) -> Self {
         ResponseContentBody::HTML(html.into())
     }
 }
@@ -35,9 +35,9 @@ pub enum ResponseContentType {
     HTML,
 }
 
-pub type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
+pub(crate) type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 
-pub type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
+pub(crate) type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub enum HttpMethods {
@@ -80,7 +80,7 @@ impl Display for HttpMethods {
     }
 }
 
-pub type Routes = HashMap<String, HashMap<HttpMethods, Handler>>;
+pub(crate) type Routes = HashMap<String, HashMap<HttpMethods, Handler>>;
 
 #[derive(Debug, PartialEq)]
 pub enum HttpRequestError {
@@ -104,7 +104,7 @@ impl std::fmt::Display for HttpRequestError {
 }
 
 #[derive(Debug)]
-pub enum HttpResponseError {
+pub(crate) enum HttpResponseError {
     MissingHeader(String),
 }
 
@@ -115,60 +115,10 @@ impl std::fmt::Display for HttpResponseError {
         }
     }
 }
-pub type FutMiddleware =
+pub(crate) type FutMiddleware =
     Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
-pub type HandlerMiddleware =
+pub(crate) type HandlerMiddleware =
     Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>;
-
-pub trait MiddlewareTrait: Send + Sync + 'static {
-    fn handle(
-        &self,
-        req: &HttpRequest,
-        res: HttpResponse,
-        next: Next,
-    ) -> Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
-
-    // Add this method to allow cloning of Box<dyn Middleware>
-    fn clone_box(&self) -> Box<dyn MiddlewareTrait>;
-}
-
-// Implement Clone for Box<dyn Middleware>
-impl Clone for Box<dyn MiddlewareTrait> {
-    fn clone(&self) -> Self {
-        self.clone_box()
-    }
-}
-
-pub struct Next {
-    pub middleware: Vec<Box<dyn MiddlewareTrait>>,
-    pub handler: HandlerMiddleware,
-}
-
-impl Next {
-    pub fn new() -> Self {
-        Next {
-            middleware: Vec::new(),
-            handler: Arc::new(|_, _| Box::pin(async { (HttpRequest::new(), None) })),
-        }
-    }
-    pub async fn run(
-        self,
-        req: HttpRequest,
-        res: HttpResponse,
-    ) -> (HttpRequest, Option<HttpResponse>) {
-        if let Some((current, rest)) = self.middleware.split_first() {
-            // Call the next middleware
-            let next = Next {
-                middleware: rest.to_vec(),
-                handler: self.handler.clone(),
-            };
-            current.handle(&req, res, next).await
-        } else {
-            // No more middleware, call the handler
-            (self.handler)(req, res).await
-        }
-    }
-}
 
 pub trait RouterFns {
     fn routes(&mut self) -> &mut Routes;
