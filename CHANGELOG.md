@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0] - 2025-07-26
+## [1.0.1] - 2025-07-26
 
 This release finalizes the API for the 1.x series. Several request/response
 methods have been made type-safe, and some method names have been changed or
@@ -40,6 +40,8 @@ removed for consistency.
 
 - Middleware API stabilized for 1.x.
 - Documentation updated with new types and examples.
+
+## [1.0.1] - Yanked
 
 ## [0.6.1] - 2025-07-26
 
