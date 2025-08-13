@@ -35,9 +35,9 @@ pub mod body;
 /// And it's methods.
 pub mod route_params;
 
-mod data;
+mod request_data;
 
-use data::RequestData;
+use request_data::RequestData;
 
 use origin_url::Url;
 use query_params::QueryParams;
