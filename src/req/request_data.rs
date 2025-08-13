@@ -14,7 +14,7 @@ use std::{
 /// # Examples
 ///
 /// ```rust
-/// use your_crate::ByteKey;
+/// use ripress::req::request_data::ByteKey;
 ///
 /// // Create from string
 /// let key1 = ByteKey::new("hello");
@@ -41,7 +41,7 @@ impl ByteKey {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::data::ByteKey;
+    /// use ripress::req::request_data::ByteKey;
     ///
     /// let key1 = ByteKey::new("string");
     /// let key2 = ByteKey::new(b"bytes");
@@ -57,7 +57,7 @@ impl ByteKey {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::data::ByteKey;
+    /// use ripress::req::request_data::ByteKey;
     ///
     /// let key = ByteKey::new("hello");
     /// assert_eq!(key.as_bytes(), b"hello");
@@ -74,7 +74,7 @@ impl ByteKey {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::data::ByteKey;
+    /// use ripress::req::request_data::ByteKey;
     ///
     /// let key = ByteKey::new("hello");
     /// assert_eq!(key.as_str().unwrap(), "hello");
@@ -137,7 +137,7 @@ impl Display for ByteKey {
 /// # Examples
 ///
 /// ```rust
-/// use ripress:req::body::RequestData;
+/// use ripress::req::request_data::RequestData;
 ///
 /// let mut data = RequestData::new();
 ///
@@ -189,7 +189,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let data = RequestData::new();
     /// assert!(data.is_empty());
@@ -209,7 +209,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let data = RequestData::with_capacity(10);
     /// assert!(data.is_empty());
@@ -228,7 +228,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// data.insert("key1", "string value");
@@ -251,7 +251,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// let key = b"my_key".to_vec();
@@ -271,7 +271,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// data.insert("name", "John");
@@ -294,7 +294,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// data.insert("temp", "temporary");
@@ -314,7 +314,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// data.insert("key", "value");
@@ -333,7 +333,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// assert_eq!(data.len(), 0);
@@ -352,7 +352,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// assert!(data.is_empty());
@@ -372,7 +372,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// data.insert("key", "value");
@@ -393,7 +393,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// data.insert("key1", "value1");
@@ -413,7 +413,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// data.insert("key1", "value1");
@@ -433,7 +433,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// data.insert("key1", "value1");
@@ -457,7 +457,7 @@ impl RequestData {
     ///
     /// ```rust
     /// use std::collections::HashMap;
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut map = HashMap::new();
     /// map.insert("key1", "value1");
@@ -487,7 +487,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
     /// data.insert("small", "data");
@@ -513,7 +513,7 @@ impl RequestData {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::body::RequestData;
+    /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::with_capacity(1000);
     /// data.insert("key", "value");

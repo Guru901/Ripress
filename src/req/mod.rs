@@ -35,7 +35,9 @@ pub mod body;
 /// And it's methods.
 pub mod route_params;
 
-mod request_data;
+/// A struct that represents the request data of the request.
+/// And it's methods.
+pub mod request_data;
 
 use request_data::RequestData;
 
