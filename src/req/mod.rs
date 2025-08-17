@@ -605,7 +605,7 @@ impl HttpRequest {
                     Ok(bytes) => RequestBody::new_binary(bytes),
                     Err(err) => {
                         eprintln!("Error while parsing binary body: {}", err);
-                        RequestBody::new_binary(Bytes::new())
+                        return Err(err);
                     }
                 }
             }
