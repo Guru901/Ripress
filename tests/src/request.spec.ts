@@ -79,6 +79,9 @@ test.describe("Request Tests", () => {
   test("Set and get text body", async ({ request }) => {
     const textResponse = await request.post("/text-test", {
       data: "test",
+      headers: {
+        "Content-Type": "text/plain",
+      },
     });
 
     expect(textResponse.status()).toBe(200);

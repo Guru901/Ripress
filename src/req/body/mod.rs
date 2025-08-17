@@ -63,6 +63,8 @@ pub mod form_data;
 /// with validation and encoding support.
 pub mod text_data;
 
+use std::fmt::Display;
+
 // Re-export commonly used types for convenience
 pub use form_data::FormData;
 pub use text_data::{TextData, TextDataError};
@@ -105,6 +107,13 @@ impl RequestBody {
         RequestBody {
             content_type: RequestBodyType::TEXT,
             content: RequestBodyContent::TEXT(text),
+        }
+    }
+
+    pub(crate) fn new_binary(bytes: Vec<u8>) -> Self {
+        RequestBody {
+            content_type: RequestBodyType::BINARY,
+            content: RequestBodyContent::BINARY(bytes),
         }
     }
 
@@ -295,6 +304,16 @@ pub enum RequestBodyType {
     /// - OAuth token requests
     FORM,
 
+    /// Binary data content type (`application/octet-stream`).
+    ///
+    /// Used for binary data, such as files or images, that are transmitted as
+    /// raw bytes without any specific structure or encoding.
+    ///
+    /// # Common Use Cases
+    /// -  File uploads
+    /// -  Image transmission
+    BINARY,
+
     /// Empty content type (no body).
     ///
     /// Represents the absence of a request body, typically used for HTTP methods
@@ -361,6 +380,7 @@ impl ToString for RequestBodyType {
             RequestBodyType::JSON => "application/json".to_string(),
             RequestBodyType::TEXT => "text/plain".to_string(),
             RequestBodyType::FORM => "application/x-www-form-urlencoded".to_string(),
+            RequestBodyType::BINARY => "application/octet-stream".to_string(),
             RequestBodyType::EMPTY => "".to_string(),
         }
     }
@@ -403,6 +423,9 @@ impl ToString for RequestBodyType {
 /// let text_data = TextData::new(String::from("Hello"));
 /// let text_content = RequestBodyContent::TEXT(text_data);
 ///
+/// let bytes = vec![1, 2, 3, 4, 5];
+/// let binary_content = RequestBodyContent::BINARY(bytes);
+///
 /// let empty_content = RequestBodyContent::EMPTY;
 ///
 /// // Pattern matching for processing
@@ -415,6 +438,9 @@ impl ToString for RequestBodyType {
 ///     }
 ///     RequestBodyContent::TEXT(text) => {
 ///         println!("Text content: {:?}", text.as_str());
+///     }
+///     RequestBodyContent::BINARY(bytes) => {
+///         println!("Binary content: {:?}", bytes);
 ///     }
 ///     RequestBodyContent::EMPTY => {
 ///         println!("No body content");
@@ -474,6 +500,14 @@ pub enum RequestBodyContent {
     /// - Contact forms
     /// - Simple key-value parameter sets
     FORM(FormData),
+
+    ///  Binary content data.
+    ///
+    ///  Contains a `Vec<u8>` that holds binary data.
+    ///
+    /// # Examples
+    /// - File uploads
+    BINARY(Vec<u8>),
 
     /// No content (empty body).
     ///

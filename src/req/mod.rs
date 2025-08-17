@@ -6,6 +6,7 @@ use crate::{
     types::HttpMethods,
 };
 use cookie::Cookie;
+use futures::StreamExt;
 use hyper::{Body, Request, body::to_bytes, header::HOST};
 use mime::Mime;
 use routerify::ext::RequestExt;
@@ -272,6 +273,23 @@ impl HttpRequest {
         self.body.content_type == content_type
     }
 
+    pub fn bytes(&self) -> Result<&Vec<u8>, String> {
+        let body = &self.body;
+
+        if body.content_type == RequestBodyType::BINARY {
+            if let RequestBodyContent::BINARY(ref bytes) = body.content {
+                Ok(bytes)
+            } else {
+                Err(String::from("Invalid JSON content"))
+            }
+        } else {
+            Err(format!(
+                "Wrong body type, expected binary and found {}",
+                body.content_type.to_string(),
+            ))
+        }
+    }
+
     /// Deserializes the request body as JSON into the specified type.
     ///
     /// ## Type Parameters
@@ -396,7 +414,7 @@ impl HttpRequest {
                 (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
                     RequestBodyType::JSON
                 }
-                _ => RequestBodyType::TEXT,
+                _ => RequestBodyType::BINARY,
             },
             Err(_) => RequestBodyType::TEXT, // Fallback for invalid MIME types
         }
@@ -579,6 +597,17 @@ impl HttpRequest {
                     }
                 }
             }
+            RequestBodyType::BINARY => {
+                let body_bytes = to_bytes(req.body_mut()).await;
+
+                match body_bytes {
+                    Ok(bytes) => RequestBody::new_binary(bytes.to_vec()),
+                    Err(err) => {
+                        eprintln!("Error while parsing binary body: {}", err);
+                        RequestBody::new_binary(vec![])
+                    }
+                }
+            }
             RequestBodyType::EMPTY => RequestBody {
                 content: RequestBodyContent::EMPTY,
                 content_type: RequestBodyType::EMPTY,
@@ -677,6 +706,13 @@ impl HttpRequest {
                     "application/x-www-form-urlencoded".parse()?,
                 );
                 Body::from(form.to_string().clone())
+            }
+            RequestBodyContent::BINARY(bytes) => {
+                builder.headers_mut().unwrap().insert(
+                    hyper::header::CONTENT_TYPE,
+                    "application/octet-stream".parse()?,
+                );
+                Body::from(bytes.clone())
             }
             RequestBodyContent::EMPTY => Body::empty(),
         };

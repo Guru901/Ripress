@@ -249,13 +249,13 @@ test.describe("Response Tests", () => {
   //     expect(body).toContain("chunk2");
   // });
   //
-  // test("Binary response", async ({request}) => {
-  //     const response = await request.get("/binary-test");
-  //
-  //     expect(response.status()).toBe(200);
-  //     expect(response.headers()["content-type"]).toBe("application/octet-stream");
-  //
-  //     const buffer = await response.body();
-  //     expect(buffer).toBeInstanceOf(Buffer);
-  // });
+  test("Binary response", async ({ request }) => {
+    const response = await request.get("/binary-test");
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("application/octet-stream");
+
+    const buffer = await response.body();
+    expect(buffer).toBeInstanceOf(Buffer);
+  });
 });
