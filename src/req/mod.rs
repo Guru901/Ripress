@@ -596,15 +596,12 @@ impl HttpRequest {
             }
             RequestBodyType::TEXT => {
                 let body_bytes = to_bytes(req.body_mut()).await;
-
-                let body_string = match body_bytes {
-                    Ok(bytes) => TextData::from_bytes(bytes.as_ref().to_vec()),
+                match body_bytes {
+                    Ok(bytes) => match TextData::from_bytes(bytes.as_ref().to_vec()) {
+                        Ok(text) => RequestBody::new_text(text),
+                        Err(_) => RequestBody::new_binary(bytes),
+                    },
                     Err(err) => return Err(err),
-                };
-
-                match body_string {
-                    Ok(text) => RequestBody::new_text(text),
-                    Err(_) => RequestBody::new_text(TextData::new(String::new())),
                 }
             }
             RequestBodyType::BINARY => {
