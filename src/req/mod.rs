@@ -414,25 +414,6 @@ impl HttpRequest {
         self.params.insert(key.to_string(), value.to_string());
     }
 
-    pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
-        match content_type.parse::<Mime>() {
-            Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
-                (mime::APPLICATION, mime::JSON) => RequestBodyType::JSON,
-                (mime::APPLICATION, subtype) if subtype == "x-www-form-urlencoded" => {
-                    RequestBodyType::FORM
-                }
-                (mime::MULTIPART, mime::FORM_DATA) => RequestBodyType::FORM,
-                (mime::TEXT, _) => RequestBodyType::TEXT,
-                // Handle JSON variants
-                (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
-                    RequestBodyType::JSON
-                }
-                _ => RequestBodyType::BINARY,
-            },
-            Err(_) => RequestBodyType::BINARY, // Fallback for invalid MIME types
-        }
-    }
-
     fn get_cookies(req: &Request<Body>) -> Vec<Cookie<'_>> {
         let mut cookies = Vec::new();
 
@@ -536,7 +517,7 @@ impl HttpRequest {
             .headers()
             .get("Content-Type")
             .and_then(|val| val.to_str().ok())
-            .map(Self::determine_content_type)
+            .map(determine_content_type)
             .unwrap_or(RequestBodyType::EMPTY);
 
         let protocol = req
@@ -787,5 +768,29 @@ impl HttpRequest {
 
     pub(crate) fn set_origin_url(&mut self, origin_url: Url) {
         self.origin_url = origin_url;
+    }
+}
+
+pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
+    match content_type.parse::<Mime>() {
+        Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
+            (mime::APPLICATION, mime::JSON) => RequestBodyType::JSON,
+            (mime::APPLICATION, subtype) if subtype == "x-www-form-urlencoded" => {
+                RequestBodyType::FORM
+            }
+            (mime::MULTIPART, mime::FORM_DATA) => RequestBodyType::FORM,
+            (mime::TEXT, _) => RequestBodyType::TEXT,
+            // Handle JSON variants
+            (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
+                RequestBodyType::JSON
+            }
+            (mime::APPLICATION, subtype)
+                if subtype == "xml" || subtype.as_str().ends_with("+xml") =>
+            {
+                RequestBodyType::TEXT
+            }
+            _ => RequestBodyType::BINARY,
+        },
+        Err(_) => RequestBodyType::BINARY, // Fallback for invalid MIME types
     }
 }

@@ -3,22 +3,13 @@ mod tests {
     use crate::context::HttpRequest;
     use crate::req::body::RequestBodyType;
     use crate::req::body::TextData;
+    use crate::req::determine_content_type;
     use crate::req::origin_url::Url;
     use crate::res::response_headers::ResponseHeaders;
     use crate::res::response_status::StatusCode;
     use crate::types::HttpMethods;
     use crate::types::HttpRequestError;
     use serde_json::json;
-
-    fn determine_content_type(content_type: &str) -> RequestBodyType {
-        if content_type == "application/json" {
-            return RequestBodyType::JSON;
-        } else if content_type == "application/x-www-form-urlencoded" {
-            return RequestBodyType::FORM;
-        } else {
-            RequestBodyType::TEXT
-        }
-    }
 
     #[test]
     fn test_get_query() {
@@ -222,7 +213,7 @@ mod tests {
         assert_eq!(content_type, RequestBodyType::JSON);
 
         let content_type = determine_content_type("");
-        assert_eq!(content_type, RequestBodyType::TEXT);
+        assert_eq!(content_type, RequestBodyType::BINARY);
 
         let content_type = determine_content_type("application/x-www-form-urlencoded");
         assert_eq!(content_type, RequestBodyType::FORM);
