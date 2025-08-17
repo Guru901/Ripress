@@ -1,6 +1,7 @@
 use crate::app::box_future;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
+use bytes::Bytes;
 use hyper::Method;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -13,7 +14,7 @@ pub(crate) enum ResponseContentBody {
     TEXT(String),
     HTML(String),
     JSON(serde_json::Value),
-    BINARY(Vec<u8>),
+    BINARY(Bytes),
 }
 
 impl ResponseContentBody {
@@ -29,7 +30,7 @@ impl ResponseContentBody {
         ResponseContentBody::HTML(html.into())
     }
 
-    pub(crate) fn new_binary(bytes: Vec<u8>) -> Self {
+    pub(crate) fn new_binary(bytes: Bytes) -> Self {
         ResponseContentBody::BINARY(bytes)
     }
 }

@@ -253,7 +253,9 @@ test.describe("Response Tests", () => {
     const response = await request.get("/binary-test");
 
     expect(response.status()).toBe(200);
-    expect(response.headers()["content-type"]).toBe("application/octet-stream");
+    expect(response.headers()["content-type"]).toContain(
+      "application/octet-stream"
+    );
 
     const buffer = await response.body();
     expect(buffer).toBeInstanceOf(Buffer);

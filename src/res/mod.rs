@@ -424,8 +424,8 @@ impl HttpResponse {
         return self;
     }
 
-    pub fn bytes(mut self, bytes: Vec<u8>) -> Self {
-        self.body = ResponseContentBody::new_binary(bytes);
+    pub fn bytes<T: Into<Bytes>>(mut self, bytes: T) -> Self {
+        self.body = ResponseContentBody::new_binary(bytes.into());
         self.content_type = ResponseContentType::BINARY;
         return self;
     }

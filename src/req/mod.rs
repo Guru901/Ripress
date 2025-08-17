@@ -5,6 +5,7 @@ use crate::{
     req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
     types::HttpMethods,
 };
+use bytes::Bytes;
 use cookie::Cookie;
 use futures::StreamExt;
 use hyper::{Body, Request, body::to_bytes, header::HOST};
@@ -273,14 +274,14 @@ impl HttpRequest {
         self.body.content_type == content_type
     }
 
-    pub fn bytes(&self) -> Result<&Vec<u8>, String> {
+    pub fn bytes(&self) -> Result<&[u8], String> {
         let body = &self.body;
 
         if body.content_type == RequestBodyType::BINARY {
             if let RequestBodyContent::BINARY(ref bytes) = body.content {
                 Ok(bytes)
             } else {
-                Err(String::from("Invalid JSON content"))
+                Err(String::from("Invalid Binary Content"))
             }
         } else {
             Err(format!(
@@ -601,10 +602,10 @@ impl HttpRequest {
                 let body_bytes = to_bytes(req.body_mut()).await;
 
                 match body_bytes {
-                    Ok(bytes) => RequestBody::new_binary(bytes.to_vec()),
+                    Ok(bytes) => RequestBody::new_binary(bytes),
                     Err(err) => {
                         eprintln!("Error while parsing binary body: {}", err);
-                        RequestBody::new_binary(vec![])
+                        RequestBody::new_binary(Bytes::new())
                     }
                 }
             }

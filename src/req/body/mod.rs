@@ -63,8 +63,7 @@ pub mod form_data;
 /// with validation and encoding support.
 pub mod text_data;
 
-use std::fmt::Display;
-
+use bytes::Bytes;
 // Re-export commonly used types for convenience
 pub use form_data::FormData;
 pub use text_data::{TextData, TextDataError};
@@ -110,7 +109,7 @@ impl RequestBody {
         }
     }
 
-    pub(crate) fn new_binary(bytes: Vec<u8>) -> Self {
+    pub(crate) fn new_binary(bytes: Bytes) -> Self {
         RequestBody {
             content_type: RequestBodyType::BINARY,
             content: RequestBodyContent::BINARY(bytes),
@@ -412,6 +411,7 @@ impl ToString for RequestBodyType {
 /// ```rust
 /// use ripress::req::body::{RequestBodyContent, FormData, TextData};
 /// use serde_json::json;
+/// use bytes::Bytes;
 ///
 /// // The enum variants hold the actual data
 /// let json_content = RequestBodyContent::JSON(json!({"key": "value"}));
@@ -423,7 +423,7 @@ impl ToString for RequestBodyType {
 /// let text_data = TextData::new(String::from("Hello"));
 /// let text_content = RequestBodyContent::TEXT(text_data);
 ///
-/// let bytes = vec![1, 2, 3, 4, 5];
+/// let bytes = Bytes::new();
 /// let binary_content = RequestBodyContent::BINARY(bytes);
 ///
 /// let empty_content = RequestBodyContent::EMPTY;
@@ -503,11 +503,11 @@ pub enum RequestBodyContent {
 
     ///  Binary content data.
     ///
-    ///  Contains a `Vec<u8>` that holds binary data.
+    ///  Contains a `byte::Bytes` that holds binary data.
     ///
     /// # Examples
     /// - File uploads
-    BINARY(Vec<u8>),
+    BINARY(Bytes),
 
     /// No content (empty body).
     ///
