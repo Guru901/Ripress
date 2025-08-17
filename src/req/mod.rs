@@ -515,7 +515,7 @@ impl HttpRequest {
 
         let content_type = req
             .headers()
-            .get("Content-Type")
+            .get(hyper::header::CONTENT_TYPE)
             .and_then(|val| val.to_str().ok())
             .map(determine_content_type)
             .unwrap_or(RequestBodyType::EMPTY);
