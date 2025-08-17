@@ -12,3 +12,9 @@ pub mod cors;
 /// It can be used to log details such as the request method, path and response
 /// time for debugging and monitoring purposes.
 pub mod logger;
+
+/// File uploader middleware
+///
+/// This module provides middleware for uploading files to a server.
+/// It can be used to upload files to a server and handle file uploads.
+pub mod file_upload;
