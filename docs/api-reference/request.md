@@ -491,10 +491,13 @@ async fn main() {
 }
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let bytes = req.bytes().unwrap();
-    println!("Bytes: {:?}", bytes);
-
-    res.ok()
+    match req.bytes() {
+        Ok(bytes) => {
+            println!("Bytes: {:?}", bytes);
+            res.ok()
+        }
+        Err(e) => res.bad_request().text(format!("Invalid binary body: {}", e)),
+    }
 }
 ```
 
