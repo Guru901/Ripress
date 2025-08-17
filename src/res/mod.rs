@@ -424,6 +424,12 @@ impl HttpResponse {
         return self;
     }
 
+    pub fn bytes<T: Into<Bytes>>(mut self, bytes: T) -> Self {
+        self.body = ResponseContentBody::new_binary(bytes.into());
+        self.content_type = ResponseContentType::BINARY;
+        return self;
+    }
+
     /// Sets a header in the response.
     ///
     /// # Example
@@ -676,6 +682,10 @@ impl HttpResponse {
                     .status(self.status_code.as_u16())
                     .header("Content-Type", "text/html")
                     .body(Body::from(html)),
+                ResponseContentBody::BINARY(bytes) => Response::builder()
+                    .status(self.status_code.as_u16())
+                    .header("Content-Type", "application/octet-stream")
+                    .body(Body::from(bytes)),
             }
             .unwrap();
 

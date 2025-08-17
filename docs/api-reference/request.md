@@ -470,6 +470,39 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 Returns `Result<J, String>` where `J` is your deserialized type.
 
+## Binary Body
+
+```rust
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await;
+}
+
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.bytes() {
+        Ok(bytes) => {
+            println!("Bytes: {:?}", bytes);
+            res.ok()
+        }
+        Err(e) => res.bad_request().text(format!("Invalid binary body: {}", e)),
+    }
+}
+```
+
+Returns `Result<&[u8], String>`.
+
 ### Text Body
 
 ```rust

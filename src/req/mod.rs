@@ -120,7 +120,7 @@ pub struct HttpRequest {
     // The Data set by middleware in the request to be used in the route handler
     data: RequestData,
 
-    /// The request body, which may contain JSON, text, or form data.
+    /// The request body, which may contain JSON, text, or form data or binary data.
     body: RequestBody,
 }
 
@@ -169,8 +169,7 @@ impl HttpRequest {
     ///
     /// ## Returns
     ///
-    /// Returns `Ok(&str)` with the cookie value if found, or
-    /// `Err(HttpRequestError::MissingCookie)` if not found.
+    /// Returns `Some(&String)` with the cookie value if found, or `None` if not found.
     ///
     /// ## Example
     /// ```rust
@@ -270,6 +269,38 @@ impl HttpRequest {
 
     pub fn is(&self, content_type: RequestBodyType) -> bool {
         self.body.content_type == content_type
+    }
+
+    /// Returns a read-only view of the raw request body when it is binary.
+    ///
+    /// Returns:
+    /// - `Ok(&[u8])` when `content_type` is `RequestBodyType::BINARY`.
+    /// - `Err("Invalid Binary Content")` if the internal variant does not match the declared type.
+    /// - `Err(...)` describing the actual content type if it is not binary.
+    ///
+    /// ## Example
+    /// ```no_run
+    /// let req = ripress::context::HttpRequest::new();
+    /// if let Ok(bytes) = req.bytes() {
+    ///     // process bytes...
+    /// }
+    /// ```
+
+    pub fn bytes(&self) -> Result<&[u8], String> {
+        let body = &self.body;
+
+        if body.content_type == RequestBodyType::BINARY {
+            if let RequestBodyContent::BINARY(ref bytes) = body.content {
+                Ok(bytes.as_ref())
+            } else {
+                Err(String::from("Invalid Binary Content"))
+            }
+        } else {
+            Err(format!(
+                "Wrong body type, expected binary and found {}",
+                body.content_type.to_string(),
+            ))
+        }
     }
 
     /// Deserializes the request body as JSON into the specified type.
@@ -383,25 +414,6 @@ impl HttpRequest {
         self.params.insert(key.to_string(), value.to_string());
     }
 
-    pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
-        match content_type.parse::<Mime>() {
-            Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
-                (mime::APPLICATION, mime::JSON) => RequestBodyType::JSON,
-                (mime::APPLICATION, subtype) if subtype == "x-www-form-urlencoded" => {
-                    RequestBodyType::FORM
-                }
-                (mime::MULTIPART, mime::FORM_DATA) => RequestBodyType::FORM,
-                (mime::TEXT, _) => RequestBodyType::TEXT,
-                // Handle JSON variants
-                (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
-                    RequestBodyType::JSON
-                }
-                _ => RequestBodyType::TEXT,
-            },
-            Err(_) => RequestBodyType::TEXT, // Fallback for invalid MIME types
-        }
-    }
-
     fn get_cookies(req: &Request<Body>) -> Vec<Cookie<'_>> {
         let mut cookies = Vec::new();
 
@@ -503,9 +515,9 @@ impl HttpRequest {
 
         let content_type = req
             .headers()
-            .get("Content-Type")
+            .get(hyper::header::CONTENT_TYPE)
             .and_then(|val| val.to_str().ok())
-            .map(Self::determine_content_type)
+            .map(determine_content_type)
             .unwrap_or(RequestBodyType::EMPTY);
 
         let protocol = req
@@ -565,18 +577,20 @@ impl HttpRequest {
             }
             RequestBodyType::TEXT => {
                 let body_bytes = to_bytes(req.body_mut()).await;
-
-                let body_string = match body_bytes {
-                    Ok(bytes) => TextData::from_bytes(bytes.as_ref().to_vec()),
+                match body_bytes {
+                    Ok(bytes) => match TextData::from_bytes(bytes.as_ref().to_vec()) {
+                        Ok(text) => RequestBody::new_text(text),
+                        Err(_) => RequestBody::new_binary(bytes),
+                    },
                     Err(err) => return Err(err),
-                };
+                }
+            }
+            RequestBodyType::BINARY => {
+                let body_bytes = to_bytes(req.body_mut()).await;
 
-                match body_string {
-                    Ok(text) => RequestBody::new_text(text),
-                    Err(err) => {
-                        eprintln!("Error while parsing text body: {}", err);
-                        RequestBody::new_text(TextData::new(String::new()))
-                    }
+                match body_bytes {
+                    Ok(bytes) => RequestBody::new_binary(bytes),
+                    Err(err) => return Err(err),
                 }
             }
             RequestBodyType::EMPTY => RequestBody {
@@ -678,6 +692,13 @@ impl HttpRequest {
                 );
                 Body::from(form.to_string().clone())
             }
+            RequestBodyContent::BINARY(bytes) => {
+                builder.headers_mut().unwrap().insert(
+                    hyper::header::CONTENT_TYPE,
+                    "application/octet-stream".parse()?,
+                );
+                Body::from(bytes.clone())
+            }
             RequestBodyContent::EMPTY => Body::empty(),
         };
 
@@ -747,5 +768,29 @@ impl HttpRequest {
 
     pub(crate) fn set_origin_url(&mut self, origin_url: Url) {
         self.origin_url = origin_url;
+    }
+}
+
+pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
+    match content_type.parse::<Mime>() {
+        Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
+            (mime::APPLICATION, mime::JSON) => RequestBodyType::JSON,
+            (mime::APPLICATION, subtype) if subtype == "x-www-form-urlencoded" => {
+                RequestBodyType::FORM
+            }
+            (mime::MULTIPART, mime::FORM_DATA) => RequestBodyType::FORM,
+            (mime::TEXT, _) => RequestBodyType::TEXT,
+            // Handle JSON variants
+            (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
+                RequestBodyType::JSON
+            }
+            (mime::APPLICATION, subtype)
+                if subtype == "xml" || subtype.as_str().ends_with("+xml") =>
+            {
+                RequestBodyType::TEXT
+            }
+            _ => RequestBodyType::BINARY,
+        },
+        Err(_) => RequestBodyType::BINARY, // Fallback for invalid MIME types
     }
 }

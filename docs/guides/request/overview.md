@@ -46,6 +46,7 @@ Ripress makes it easy to extract data from different parts of the request:
 ### Request Body
 
 - **JSON** - Automatic deserialization to your Rust structs
+- **BINARY** - Access raw bytes from the request body
 - **Form Data** - Parse URL-encoded form submissions
 - **Plain Text** - Raw text content from the request body
 

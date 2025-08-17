@@ -108,6 +108,7 @@ async fn main() {
     app.get("/get-cookie-test", get_cookie_test);
     app.get("/multiple-cookies-test", get_multi_cookie_test);
     app.get("/cookie-options-test", get_cookie_with_options_test);
+    app.get("/binary-test", binary_test);
 
     // streaming tests
     app.get("/stream-text", stream_text);
@@ -291,6 +292,11 @@ async fn secure_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 async fn get_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
         .set_cookie("test-cookie", "value", CookieOptions::default())
+}
+
+async fn binary_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let bytes = vec![1, 2, 3, 4, 5];
+    res.bytes(bytes)
 }
 
 async fn get_cookie_with_options_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
