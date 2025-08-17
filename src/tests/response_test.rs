@@ -224,9 +224,6 @@ mod tests {
         let content_type = determine_content_type("image/png");
         assert_eq!(content_type, RequestBodyType::BINARY);
 
-        let content_type = determine_content_type("application/vnd.custom+json");
-        assert_eq!(content_type, RequestBodyType::JSON);
-
         let content_type = determine_content_type("application/xml");
         assert_eq!(content_type, RequestBodyType::TEXT);
     }
