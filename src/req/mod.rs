@@ -5,9 +5,7 @@ use crate::{
     req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
     types::HttpMethods,
 };
-use bytes::Bytes;
 use cookie::Cookie;
-use futures::StreamExt;
 use hyper::{Body, Request, body::to_bytes, header::HOST};
 use mime::Mime;
 use routerify::ext::RequestExt;
@@ -122,7 +120,7 @@ pub struct HttpRequest {
     // The Data set by middleware in the request to be used in the route handler
     data: RequestData,
 
-    /// The request body, which may contain JSON, text, or form data.
+    /// The request body, which may contain JSON, text, or form data or binary data.
     body: RequestBody,
 }
 
@@ -171,8 +169,7 @@ impl HttpRequest {
     ///
     /// ## Returns
     ///
-    /// Returns `Ok(&str)` with the cookie value if found, or
-    /// `Err(HttpRequestError::MissingCookie)` if not found.
+    /// Returns `Some(&String)` with the cookie value if found, or `None` if not found.
     ///
     /// ## Example
     /// ```rust
@@ -273,6 +270,21 @@ impl HttpRequest {
     pub fn is(&self, content_type: RequestBodyType) -> bool {
         self.body.content_type == content_type
     }
+
+    /// Returns a read-only view of the raw request body when it is binary.
+    ///
+    /// Returns:
+    /// - `Ok(&[u8])` when `content_type` is `RequestBodyType::BINARY`.
+    /// - `Err("Invalid Binary Content")` if the internal variant does not match the declared type.
+    /// - `Err(...)` describing the actual content type if it is not binary.
+    ///
+    /// ## Example
+    /// ```no_run
+    /// let req = ripress::context::HttpRequest::new();
+    /// if let Ok(bytes) = req.bytes() {
+    ///     // process bytes...
+    /// }
+    /// ```
 
     pub fn bytes(&self) -> Result<&[u8], String> {
         let body = &self.body;
@@ -417,7 +429,7 @@ impl HttpRequest {
                 }
                 _ => RequestBodyType::BINARY,
             },
-            Err(_) => RequestBodyType::TEXT, // Fallback for invalid MIME types
+            Err(_) => RequestBodyType::BINARY, // Fallback for invalid MIME types
         }
     }
 
@@ -592,10 +604,7 @@ impl HttpRequest {
 
                 match body_string {
                     Ok(text) => RequestBody::new_text(text),
-                    Err(err) => {
-                        eprintln!("Error while parsing text body: {}", err);
-                        RequestBody::new_text(TextData::new(String::new()))
-                    }
+                    Err(_) => RequestBody::new_text(TextData::new(String::new())),
                 }
             }
             RequestBodyType::BINARY => {
@@ -603,10 +612,7 @@ impl HttpRequest {
 
                 match body_bytes {
                     Ok(bytes) => RequestBody::new_binary(bytes),
-                    Err(err) => {
-                        eprintln!("Error while parsing binary body: {}", err);
-                        return Err(err);
-                    }
+                    Err(err) => return Err(err),
                 }
             }
             RequestBodyType::EMPTY => RequestBody {
