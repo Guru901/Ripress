@@ -291,7 +291,7 @@ impl HttpRequest {
 
         if body.content_type == RequestBodyType::BINARY {
             if let RequestBodyContent::BINARY(ref bytes) = body.content {
-                Ok(bytes)
+                Ok(bytes.as_ref())
             } else {
                 Err(String::from("Invalid Binary Content"))
             }
