@@ -251,13 +251,14 @@ use ripress::{
 async fn main() {
     let mut app = App::new();
 
-    app.get("/", handler);
+    app.post("/", handler);
 
     app.listen(3000, || {}).await;
 }
+
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.bytes() {
-        Ok(bytes) => res.ok().text(format!("Received bytes: {:?}", bytes)),
+        Ok(bytes) => res.ok().bytes(bytes),
         Err(e) => res.bad_request().text(format!("Invalid binary body: {}", e)),
     }
 }
