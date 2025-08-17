@@ -238,6 +238,31 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
+## Handling BINARY Body
+
+```rust
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || {}).await;
+}
+async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    match req.bytes() {
+        Ok(bytes) => res.ok().text(format!("Received bytes: {:?}", bytes)),
+        Err(e) => res.bad_request().text(format!("Invalid binary body: {}", e)),
+    }
+}
+```
+
 ## Handling Form Data
 
 ```rust
