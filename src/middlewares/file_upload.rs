@@ -117,148 +117,154 @@ pub fn file_upload(
     move |mut req, _res| {
         let upload_path = upload_path.clone();
         Box::pin(async move {
-            // Try to upload file if binary content is available
-            match req.bytes() {
-                Ok(bytes) => {
-                    let bytes_vec = bytes.to_vec();
-                    // Detect multipart/form-data and try to extract fields + ALL file parts
-                    let (fields, file_parts) = match req.headers.content_type() {
-                        Some(ct) if ct.contains("multipart/form-data") => {
-                            // Extract boundary parameter
-                            let boundary = extract_boundary(ct);
-                            if let Some(boundary) = boundary {
-                                parse_multipart_form(&bytes_vec, &boundary)
-                            } else {
-                                (Vec::new(), Vec::new())
-                            }
-                        }
-                        _ => (Vec::new(), Vec::new()),
-                    };
-
-                    // Insert any text fields into form_data()
-                    for (k, v) in fields {
-                        req.insert_form_field(&k, &v);
-                    }
-
-                    // Determine what files to process
-                    let files_to_process = if !file_parts.is_empty() {
-                        file_parts
+            // Read the raw body to determine Content-Type and extract fields/files
+            let bytes_vec = match req.bytes() {
+                Ok(bytes) => bytes.to_vec(),
+                Err(_) => {
+                    // If bytes() fails, try to get the body content in other ways
+                    // For multipart forms, we need to check the content type first
+                    let content_type = req.headers.content_type().unwrap_or_default();
+                    if content_type.to_lowercase().contains("multipart/form-data") {
+                        // For multipart forms, we need the raw body
+                        // Since we can't access it directly, we'll return early
+                        // This is a limitation of the current architecture
+                        eprintln!(
+                            "File upload middleware: multipart/form-data detected but raw body not accessible"
+                        );
+                        return (req, None);
                     } else {
-                        // Single binary upload (backwards compatibility) - use "file" as default field name
-                        vec![(bytes_vec, Some("file".to_string()))]
-                    };
-
-                    // Ensure the upload directory exists
-                    if let Err(e) = create_dir_all(&upload_path).await {
-                        eprintln!("Failed to create upload directory '{}': {}", upload_path, e);
-                        // Continue without file upload - don't short-circuit the request
+                        // Not a multipart form, continue without file upload
                         return (req, None);
                     }
-
-                    let mut uploaded_files = Vec::new();
-                    let mut first_file_info: Option<(String, String)> = None;
-
-                    // Process all files
-                    for (file_bytes, field_name_opt) in files_to_process {
-                        let (file_bytes, original_filename, field_name) = match field_name_opt {
-                            Some(field) => {
-                                // If field_name_opt is Some, try to split into original_filename and field_name
-                                // If the tuple is (Vec<u8>, Some("filename")), treat as (file_bytes, None, Some("filename"))
-                                (file_bytes, None, Some(field))
-                            }
-                            None => (file_bytes, None, None),
-                        };
-                        let extension = infer::get(&file_bytes)
-                            .map(|info| info.extension())
-                            .unwrap_or("bin");
-
-                        let id = Uuid::new_v4();
-                        let filename = format!("{}.{}", id, extension);
-                        let filename_with_path = format!("{}/{}.{}", upload_path, id, extension);
-
-                        match File::create(&filename_with_path).await {
-                            Ok(mut file) => {
-                                if let Err(e) = file.write_all(&file_bytes).await {
-                                    eprintln!(
-                                        "Failed to write file '{}': {}",
-                                        filename_with_path, e
-                                    );
-                                    continue; // Skip this file but continue with others
-                                }
-
-                                // Store file info
-                                let file_info = FileInfo {
-                                    filename: filename.clone(),
-                                    path: filename_with_path.clone(),
-                                    original_filename: original_filename.clone(),
-                                    field_name: field_name.clone(),
-                                };
-                                uploaded_files.push(file_info);
-
-                                // SIMPLIFIED: Only map the form field name to the UUID filename
-                                if let Some(ref field_name) = field_name {
-                                    req.insert_form_field(field_name, &filename);
-                                }
-
-                                // Keep track of first file for backwards compatibility
-                                if first_file_info.is_none() {
-                                    first_file_info = Some((filename, filename_with_path));
-                                }
-                            }
-                            Err(e) => {
-                                eprintln!("Failed to create file '{}': {}", filename_with_path, e);
-                                continue; // Skip this file but continue with others
-                            }
-                        }
-                    }
-
-                    // Set minimal request data for uploaded files
-                    if !uploaded_files.is_empty() {
-                        // Set count in data (not form fields)
-                        req.set_data("uploaded_file_count", &uploaded_files.len().to_string());
-
-                        // Create JSON representation of all files in data (not form fields)
-                        let files_json = format!(
-                            "[{}]",
-                            uploaded_files
-                                .iter()
-                                .map(|f| format!(
-                                    r#"{{"filename":"{}","path":"{}","original_filename":{}}}"#,
-                                    f.filename,
-                                    f.path,
-                                    f.original_filename
-                                        .as_ref()
-                                        .map(|s| format!(r#""{}""#, s))
-                                        .unwrap_or_else(|| "null".to_string())
-                                ))
-                                .collect::<Vec<_>>()
-                                .join(",")
-                        );
-                        req.set_data("uploaded_files", &files_json);
-
-                        // Backwards compatibility: set data for first file (not form fields)
-                        if let Some((first_filename, first_path)) = first_file_info {
-                            req.set_data("uploaded_file", &first_filename);
-                            req.set_data("uploaded_file_path", &first_path);
-                        }
-
-                        // Set original filename for first file if available (in data, not form fields)
-                        if let Some(orig) = &uploaded_files[0].original_filename {
-                            req.set_data("original_filename", orig);
-                        }
-                    }
-
-                    (req, None)
                 }
-                Err(error_msg) => {
-                    // Log the error for debugging but don't fail the request
-                    eprintln!("File upload middleware: {}", error_msg);
+            };
 
-                    // For non-binary requests, just continue without file upload
-                    // This allows the request to proceed normally
-                    (req, None)
+            // Determine Content-Type and extract boundary (case-insensitive)
+            let content_type = req.headers.content_type().unwrap_or_default();
+            let boundary = if content_type.to_lowercase().contains("multipart/form-data") {
+                extract_boundary(&content_type)
+            } else {
+                None
+            };
+
+            // Parse multipart/form-data
+            let (fields, file_parts) = if let Some(boundary) = boundary {
+                parse_multipart_form(&bytes_vec, &boundary)
+            } else {
+                (Vec::new(), Vec::new())
+            };
+
+            // Insert any text fields into form_data()
+            for (k, v) in fields {
+                req.insert_form_field(&k, &v);
+            }
+
+            // Determine what files to process
+            let files_to_process = if !file_parts.is_empty() {
+                file_parts
+            } else {
+                // Single binary upload (backwards compatibility) - use "file" as default field name
+                vec![(bytes_vec, Some("file".to_string()))]
+            };
+
+            // Ensure the upload directory exists
+            if let Err(e) = create_dir_all(&upload_path).await {
+                eprintln!("Failed to create upload directory '{}': {}", upload_path, e);
+                // Continue without file upload - don't short-circuit the request
+                return (req, None);
+            }
+
+            let mut uploaded_files = Vec::new();
+            let mut first_file_info: Option<(String, String)> = None;
+
+            // Process all files
+            for (file_bytes, field_name_opt) in files_to_process {
+                let (file_bytes, original_filename, field_name) = match field_name_opt {
+                    Some(field) => {
+                        // If field_name_opt is Some, try to split into original_filename and field_name
+                        // If the tuple is (Vec<u8>, Some("filename")), treat as (file_bytes, None, Some("filename"))
+                        (file_bytes, None, Some(field))
+                    }
+                    None => (file_bytes, None, None),
+                };
+                let extension = infer::get(&file_bytes)
+                    .map(|info| info.extension())
+                    .unwrap_or("bin");
+
+                let id = Uuid::new_v4();
+                let filename = format!("{}.{}", id, extension);
+                let filename_with_path = format!("{}/{}.{}", upload_path, id, extension);
+
+                match File::create(&filename_with_path).await {
+                    Ok(mut file) => {
+                        if let Err(e) = file.write_all(&file_bytes).await {
+                            eprintln!("Failed to write file '{}': {}", filename_with_path, e);
+                            continue; // Skip this file but continue with others
+                        }
+
+                        // Store file info
+                        let file_info = FileInfo {
+                            filename: filename.clone(),
+                            path: filename_with_path.clone(),
+                            original_filename: original_filename.clone(),
+                            field_name: field_name.clone(),
+                        };
+                        uploaded_files.push(file_info);
+
+                        // SIMPLIFIED: Only map the form field name to the UUID filename
+                        if let Some(ref field_name) = field_name {
+                            req.insert_form_field(field_name, &filename);
+                        }
+
+                        // Keep track of first file for backwards compatibility
+                        if first_file_info.is_none() {
+                            first_file_info = Some((filename, filename_with_path));
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to create file '{}': {}", filename_with_path, e);
+                        continue; // Skip this file but continue with others
+                    }
                 }
             }
+
+            // Set minimal request data for uploaded files
+            if !uploaded_files.is_empty() {
+                // Set count in data (not form fields)
+                req.set_data("uploaded_file_count", &uploaded_files.len().to_string());
+
+                // Create JSON representation of all files in data (not form fields)
+                let files_json = format!(
+                    "[{}]",
+                    uploaded_files
+                        .iter()
+                        .map(|f| format!(
+                            r#"{{"filename":"{}","path":"{}","original_filename":{}}}"#,
+                            f.filename,
+                            f.path,
+                            f.original_filename
+                                .as_ref()
+                                .map(|s| format!(r#""{}""#, s))
+                                .unwrap_or_else(|| "null".to_string())
+                        ))
+                        .collect::<Vec<_>>()
+                        .join(",")
+                );
+                req.set_data("uploaded_files", &files_json);
+
+                // Backwards compatibility: set data for first file (not form fields)
+                if let Some((first_filename, first_path)) = first_file_info {
+                    req.set_data("uploaded_file", &first_filename);
+                    req.set_data("uploaded_file_path", &first_path);
+                }
+
+                // Set original filename for first file if available (in data, not form fields)
+                if let Some(orig) = &uploaded_files[0].original_filename {
+                    req.set_data("original_filename", orig);
+                }
+            }
+
+            (req, None)
         })
     }
 }
