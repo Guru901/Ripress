@@ -40,5 +40,5 @@ pub mod logger;
 /// ## Limitations
 ///
 /// * Saves only the first file from `multipart/form-data` requests
-/// * Does not parse non-file fields from multipart bodies
+/// * Parses text fields from multipart bodies and merges them into `req.form_data()`
 pub mod file_upload;
