@@ -153,12 +153,6 @@ When files are successfully uploaded, the middleware adds these fields to the re
 
 For multipart forms, text fields are automatically extracted and available via `req.form_data()`. File field names are mapped to their generated UUID filenames:
 
-```rust
-// If you uploaded a file with field name "profile_picture"
-if let Some(filename) = req.form_data().get("profile_picture") {
-    // filename will be the UUID-based filename (e.g., "550e8400-e29b-41d4-a716-446655440000.jpg")
-}
-```
 
 #### Configuration Options
 
