@@ -52,8 +52,8 @@ This document enumerates all features implemented in the codebase, organized by 
     - Ensures upload directory exists; generates UUID-based filename; detects extension via `infer`.
     - Saves file asynchronously with `tokio::fs`.
     - Injects request data keys: `uploaded_file`, `uploaded_file_path`, and optional `original_filename`.
+    - Parses non-file (text) fields from `multipart/form-data` and merges them into `req.form_data()` using `HttpRequest::insert_form_field`.
     - Logs errors to stderr and continues without short-circuiting on failures.
-
 ## Static File Serving
 
 - `App::static_files(mount_path, fs_root)` enables a static file server.
