@@ -1,6 +1,12 @@
 # Changelog
 
-## [1.0.1] - 2025-07-26
+## [1.1.0] - 2025-08-19
+
+Added file upload middleware
+Added support for `multipart/form-data` requests
+Added support for binary data
+
+## [1.0.1] - 2025-08-14
 
 This release finalizes the API for the 1.x series. Several request/response
 methods have been made type-safe, and some method names have been changed or
