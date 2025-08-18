@@ -21,11 +21,8 @@ pub fn file_upload(
                         return (req, None);
                     }
 
-                    let extension = infer::get(&bytes)
-                        .and_then(|info| {
-                            let ext = info.extension();
-                            Some(ext)
-                        })
+                    let extension = infer::get(bytes)
+                        .map(|info| info.extension())
                         .unwrap_or("bin");
 
                     let id = Uuid::new_v4();
@@ -35,7 +32,7 @@ pub fn file_upload(
 
                     match File::create(&filename_with_path).await {
                         Ok(mut file) => {
-                            if let Err(e) = file.write_all(&bytes).await {
+                            if let Err(e) = file.write_all(bytes).await {
                                 eprintln!("Failed to write file '{}': {}", filename_with_path, e);
                                 // Continue without file upload - don't short-circuit the request
                                 return (req, None);
