@@ -218,24 +218,19 @@ pub fn file_upload(
                         req.set_data("uploaded_file_count", &uploaded_files.len().to_string());
 
                         // Create JSON representation of all files in data (not form fields)
-                        let files_json = format!(
-                            "[{}]",
-                            uploaded_files
-                                .iter()
-                                .map(|f| format!(
-                                    r#"{{"filename":"{}","path":"{}","original_filename":{}}}"#,
-                                    f.filename,
-                                    f.path,
-                                    f.original_filename
-                                        .as_ref()
-                                        .map(|s| format!(r#""{}""#, s))
-                                        .unwrap_or_else(|| "null".to_string())
-                                ))
-                                .collect::<Vec<_>>()
-                                .join(",")
-                        );
+                        let files_val = uploaded_files
+                            .iter()
+                            .map(|f| {
+                                serde_json::json!({
+                                    "filename": f.filename,
+                                    "path": f.path,
+                                    "original_filename": f.original_filename,
+                                })
+                            })
+                            .collect::<Vec<_>>();
+                        let files_json = serde_json::to_string(&files_val)
+                            .unwrap_or_else(|_| "[]".to_string());
                         req.set_data("uploaded_files", &files_json);
-
                         // Backwards compatibility: set data for first file (not form fields)
                         if let Some((first_filename, first_path)) = first_file_info {
                             req.set_data("uploaded_file", &first_filename);
