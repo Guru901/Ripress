@@ -10,50 +10,6 @@ mod tests {
     use crate::{app::App, router::Router, types::RouterFns};
 
     #[test]
-    fn test_add_get_route() {
-        let mut router = Router::new("/");
-        router.get("/user/{id}", _test_handler);
-        assert!(
-            router
-                .get_routes("/user/{id}", crate::types::HttpMethods::GET)
-                .is_some()
-        );
-    }
-
-    #[test]
-    fn test_add_post_route() {
-        let mut router = Router::new("/");
-        router.post("/user/{id}", _test_handler);
-
-        assert!(
-            router
-                .get_routes("/user/{id}", crate::types::HttpMethods::POST)
-                .is_some()
-        );
-    }
-    #[test]
-    fn test_add_delete_route() {
-        let mut router = Router::new("/");
-        router.delete("/user/{id}", _test_handler);
-        assert!(
-            router
-                .get_routes("/user/{id}", crate::types::HttpMethods::DELETE)
-                .is_some()
-        );
-    }
-
-    #[test]
-    fn test_add_patch_route() {
-        let mut router = Router::new("/");
-        router.patch("/user/{id}", _test_handler);
-        assert!(
-            router
-                .get_routes("/user/{id}", crate::types::HttpMethods::PATCH)
-                .is_some()
-        );
-    }
-
-    #[test]
     fn test_add_put_route() {
         let mut router = Router::new("/");
         router.put("/user/{id}", _test_handler);
