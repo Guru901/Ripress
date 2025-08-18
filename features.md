@@ -100,10 +100,9 @@ This document enumerates all features implemented in the codebase, organized by 
   - Accessors:
     - `is(RequestBodyType)`
     - `bytes() -> Result<&[u8], String>` when `BINARY`
-    - `json<T: DeserializeOwned + Serialize>() -> Result<T, String>`
+    - `json<T: DeserializeOwned>() -> Result<T, String>`
     - `text() -> Result<&str, String>`
     - `form_data() -> Result<&FormData, String>`
-
 - **Conversion to/from Hyper**
   - `from_hyper_request(&mut Request<Body>) -> Result<HttpRequest, hyper::Error>` reads headers, params, cookies, body, method, query, and constructs a typed `HttpRequest`.
   - `to_hyper_request() -> Result<Request<Body>, Box<dyn Error>>` writes headers, cookies, query, and encodes the current typed body (JSON/text/form/binary) and request data into extensions.
