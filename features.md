@@ -267,12 +267,12 @@ This section lists public methods and functions intended for application develop
 - `set_data(key, value)`
 - `get_all_data() -> &RequestData`
 - `get_data(key) -> Option<String>`
+- `insert_form_field(key: &str, value: &str)`
 - `is(RequestBodyType) -> bool`
 - `bytes() -> Result<&[u8], String>`
 - `json<T: DeserializeOwned + Serialize>() -> Result<T, String>`
 - `text() -> Result<&str, String>`
 - `form_data() -> Result<&FormData, String>`
-
 ### req::request_headers::RequestHeaders
 
 - `RequestHeaders::new()`
