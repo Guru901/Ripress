@@ -35,14 +35,14 @@ app.use_middleware("/", cors(None));
 use ripress::middlewares::cors::CorsConfig;
 
 let config = CorsConfig {
-    allowed_origins: vec!["http://localhost:3000".to_string()],
-    allowed_methods: vec!["GET".to_string(), "POST".to_string()],
-    allowed_headers: vec!["Content-Type".to_string()],
+    allowed_origin: "*",
+    allowed_methods: "GET, POST, PUT, DELETE, OPTIONS",
+    allowed_headers: "Content-Type, Authorization",
+    allow_credentials: false,
     ..Default::default()
 };
 
 app.use_middleware("/", cors(Some(config)));
-```
 
 ### Logger Middleware
 
