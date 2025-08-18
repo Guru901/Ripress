@@ -394,7 +394,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 ### File Upload Middleware
 
-The file upload middleware processes binary file uploads and makes file information available via request data:
+The file upload middleware processes binary file uploads and makes comprehensive file information available via request data. It supports both raw binary uploads and `multipart/form-data` from browsers:
 
 ```rust
 use ripress::{
@@ -418,25 +418,45 @@ async fn main() {
 }
 
 async fn upload_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    // Check if file was uploaded successfully
-    if let Some(uploaded_file) = req.get_data("uploaded_file") {
-        let uploaded_file_path = req.get_data("uploaded_file_path").unwrap_or_default();
-
-        res.ok().json(serde_json::json!({
-            "success": true,
-            "filename": uploaded_file,
-            "path": uploaded_file_path,
-            "message": "File uploaded successfully"
-        }))
+    // Check if files were uploaded successfully
+    if let Some(count_str) = req.get_data("uploaded_file_count") {
+        let count: usize = count_str.parse().unwrap_or(0);
+        if count > 0 {
+            if let Some(files_json) = req.get_data("uploaded_files") {
+                res.ok().json(serde_json::json!({
+                    "success": true,
+                    "count": count,
+                    "files": serde_json::from_str::<serde_json::Value>(&files_json).unwrap(),
+                    "message": format!("Successfully uploaded {} files", count)
+                }))
+            } else {
+                res.ok().json(serde_json::json!({
+                    "success": true,
+                    "count": count,
+                    "message": format!("Successfully uploaded {} files", count)
+                }))
+            }
+        } else {
+            res.ok().json(serde_json::json!({
+                "success": false,
+                "message": "No files were uploaded"
+            }))
+        }
     } else {
-        // No file was uploaded, but request continues normally
         res.ok().json(serde_json::json!({
             "success": false,
-            "message": "No file uploaded or upload failed"
+            "message": "No files were uploaded"
         }))
     }
 }
-````
+```
+
+The middleware provides comprehensive file information:
+
+- **`uploaded_file_count`** - Total number of files uploaded
+- **`uploaded_files`** - JSON array with file details (filename, path, original name)
+- **Form field mapping** - File field names are mapped to generated UUID filenames
+- **Text field extraction** - Non-file form fields are available via `req.form_data()`
 
 ### Custom Middleware with Data
 

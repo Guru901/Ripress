@@ -672,7 +672,7 @@ app.use_middleware("/", |req, res| async {
 
 ### File Upload Middleware
 
-The built-in file upload middleware processes binary file uploads and saves them to a configurable directory. It automatically detects file types and generates unique filenames.
+The built-in file upload middleware processes binary file uploads and saves them to a configurable directory. It automatically detects file types, generates unique filenames, and supports both raw binary uploads and `multipart/form-data` from browsers.
 
 #### Basic Usage
 
@@ -690,31 +690,45 @@ app.use_middleware("/upload", file_upload(Some("custom_uploads")));
 
 The file upload middleware:
 
-1. **Processes binary requests** - Only works with `RequestBodyType::BINARY`
-2. **Detects file extensions** - Uses the `infer` crate for automatic type detection
-3. **Generates unique filenames** - Creates UUID-based names to prevent conflicts
-4. **Saves files** - Writes uploaded content to the specified directory
-5. **Sets request data** - Adds `uploaded_file` and `uploaded_file_path` to the request
+1. **Processes binary requests** - Works with `RequestBodyType::BINARY` content
+2. **Supports multipart forms** - Extracts ALL file parts and text fields from `multipart/form-data`
+3. **Detects file extensions** - Uses the `infer` crate for automatic type detection
+4. **Generates unique filenames** - Creates UUID-based names to prevent conflicts
+5. **Saves files** - Writes uploaded content to the specified directory
+6. **Sets comprehensive request data** - Adds file information and form field mappings
 
 #### Route Handler Example
 
 ```rust
 app.post("/upload", |req, res| async move {
-    // Check if file was uploaded successfully
-    if let Some(uploaded_file) = req.get_data("uploaded_file") {
-        let uploaded_file_path = req.get_data("uploaded_file_path").unwrap_or_default();
-
-        res.ok().json(json!({
-            "success": true,
-            "filename": uploaded_file,
-            "path": uploaded_file_path,
-            "message": "File uploaded successfully"
-        }))
+    // Check if files were uploaded successfully
+    if let Some(count_str) = req.get_data("uploaded_file_count") {
+        let count: usize = count_str.parse().unwrap_or(0);
+        if count > 0 {
+            if let Some(files_json) = req.get_data("uploaded_files") {
+                res.ok().json(json!({
+                    "success": true,
+                    "count": count,
+                    "files": serde_json::from_str::<serde_json::Value>(&files_json).unwrap(),
+                    "message": format!("Successfully uploaded {} files", count)
+                }))
+            } else {
+                res.ok().json(json!({
+                    "success": true,
+                    "count": count,
+                    "message": format!("Successfully uploaded {} files", count)
+                }))
+            }
+        } else {
+            res.ok().json(json!({
+                "success": false,
+                "message": "No files were uploaded"
+            }))
+        }
     } else {
-        // No file was uploaded, but request continues normally
         res.ok().json(json!({
             "success": false,
-            "message": "No file uploaded or upload failed"
+            "message": "No files were uploaded"
         }))
     }
 });
@@ -722,10 +736,33 @@ app.post("/upload", |req, res| async move {
 
 #### Middleware Behavior
 
-- **Binary requests**: Files are processed and saved
+- **Binary requests**: Files are processed and saved with unique names
+- **Multipart forms**: ALL file parts are extracted and saved, text fields are available via `req.form_data()`
 - **Non-binary requests**: Middleware logs the content type mismatch but continues processing
 - **Upload failures**: Errors are logged but don't block the request
-- **File data**: Available via `req.get_data("uploaded_file")` and `req.get_data("uploaded_file_path")`
+- **Form field mapping**: Form field names are mapped to generated UUID filenames
+
+#### Request Data Available
+
+When files are successfully uploaded, the middleware adds these fields to the request:
+
+- `uploaded_file_count` - Number of files successfully uploaded
+- `uploaded_files` - JSON array of uploaded file info (filenames, paths, original names)
+- For backwards compatibility (first file only):
+  - `uploaded_file` - The generated filename of the first file
+  - `uploaded_file_path` - The full path where the first file was saved
+  - `original_filename` - Original filename if available
+
+#### Form Field Access
+
+For multipart forms, text fields are automatically extracted and available via `req.form_data()`. File field names are mapped to their generated UUID filenames:
+
+```rust
+// If you uploaded a file with field name "profile_picture"
+if let Some(filename) = req.form_data().get("profile_picture") {
+    // filename will be the UUID-based filename (e.g., "550e8400-e29b-41d4-a716-446655440000.jpg")
+}
+```
 
 #### Configuration Options
 

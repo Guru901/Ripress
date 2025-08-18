@@ -479,23 +479,39 @@ app.use_middleware("/upload", file_upload(None));
 
 // Add a route to handle file uploads
 app.post("/upload", |req, res| async move {
-    if let Some(filename) = req.get_data("uploaded_file") {
-        let file_path = req.get_data("uploaded_file_path").unwrap_or_default();
-
-        res.ok().json(serde_json::json!({
-            "success": true,
-            "filename": filename,
-            "path": file_path,
-            "message": "File uploaded successfully"
-        }))
+    if let Some(count_str) = req.get_data("uploaded_file_count") {
+        let count: usize = count_str.parse().unwrap_or(0);
+        if count > 0 {
+            if let Some(files_json) = req.get_data("uploaded_files") {
+                res.ok().json(serde_json::json!({
+                    "success": true,
+                    "count": count,
+                    "files": serde_json::from_str::<serde_json::Value>(&files_json).unwrap(),
+                    "message": format!("Successfully uploaded {} files", count)
+                }))
+            } else {
+                res.ok().json(serde_json::json!({
+                    "success": true,
+                    "count": count,
+                    "message": format!("Successfully uploaded {} files", count)
+                }))
+            }
+        } else {
+            res.ok().json(serde_json::json!({
+                "success": false,
+                "message": "No files were uploaded"
+            }))
+        }
     } else {
         res.ok().json(serde_json::json!({
             "success": false,
-            "message": "No file uploaded"
+            "message": "No files were uploaded"
         }))
     }
 });
 ```
+
+The middleware supports both raw binary uploads and `multipart/form-data` from browsers, automatically extracting all file parts and text fields.
 
 ### Logging Middleware
 
