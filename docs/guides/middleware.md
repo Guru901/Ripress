@@ -58,14 +58,13 @@ app.use_middleware("/", logger(None));
 use ripress::middlewares::logger::LoggerConfig;
 
 let config = LoggerConfig {
-    log_requests: true,
-    log_responses: true,
-    log_headers: false,
+    path: true,
+    duration: true,
+    method: true,
     ..Default::default()
 };
 
 app.use_middleware("/", logger(Some(config)));
-```
 
 ### File Upload Middleware
 
