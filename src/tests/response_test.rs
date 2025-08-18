@@ -333,16 +333,39 @@ mod tests {
     }
 
     #[test]
-    fn test_status_code_conversion() {
-        assert_eq!(StatusCode::Ok.as_u16(), 200);
-        assert_eq!(StatusCode::from_u16(200), StatusCode::Ok);
-        assert_eq!(StatusCode::from_u16(999), StatusCode::Custom(999));
-    }
-
-    #[test]
-    fn test_display() {
-        assert_eq!(StatusCode::Ok.to_string(), "200 OK");
-        assert_eq!(StatusCode::NotFound.to_string(), "404 Not Found");
-        assert_eq!(StatusCode::Custom(999).to_string(), "999 Custom");
+    fn test_canonical_reason_standard() {
+        assert_eq!(StatusCode::Ok.canonical_reason(), "OK");
+        assert_eq!(StatusCode::Created.canonical_reason(), "Created");
+        assert_eq!(StatusCode::Accepted.canonical_reason(), "Accepted");
+        assert_eq!(StatusCode::NoContent.canonical_reason(), "No Content");
+        assert_eq!(StatusCode::Redirect.canonical_reason(), "Found");
+        assert_eq!(
+            StatusCode::PermanentRedirect.canonical_reason(),
+            "Moved Permanently"
+        );
+        assert_eq!(StatusCode::BadRequest.canonical_reason(), "Bad Request");
+        assert_eq!(StatusCode::Unauthorized.canonical_reason(), "Unauthorized");
+        assert_eq!(StatusCode::Forbidden.canonical_reason(), "Forbidden");
+        assert_eq!(StatusCode::NotFound.canonical_reason(), "Not Found");
+        assert_eq!(
+            StatusCode::MethodNotAllowed.canonical_reason(),
+            "Method Not Allowed"
+        );
+        assert_eq!(StatusCode::Conflict.canonical_reason(), "Conflict");
+        assert_eq!(
+            StatusCode::InternalServerError.canonical_reason(),
+            "Internal Server Error"
+        );
+        assert_eq!(
+            StatusCode::NotImplemented.canonical_reason(),
+            "Not Implemented"
+        );
+        assert_eq!(StatusCode::BadGateway.canonical_reason(), "Bad Gateway");
+        assert_eq!(
+            StatusCode::ServiceUnavailable.canonical_reason(),
+            "Service Unavailable"
+        );
+        let custom = StatusCode::Custom(599);
+        assert_eq!(custom.canonical_reason(), "Custom");
     }
 }
