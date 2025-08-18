@@ -369,7 +369,7 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 ## Checking Is Secure
 
-```rust
+````rust
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
@@ -388,5 +388,95 @@ async fn main() {
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let is_secure: bool = req.is_secure;
     res.ok().text(format!("Is HTTPS: {}", is_secure))
+}
+
+## Working with Middleware Data
+
+### File Upload Middleware
+
+The file upload middleware processes binary file uploads and makes file information available via request data:
+
+```rust
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    middlewares::file_upload::file_upload,
+    types::RouterFns,
+};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    // Add file upload middleware
+    app.use_middleware("/upload", file_upload(None));
+
+    // Handle file uploads
+    app.post("/upload", upload_handler);
+
+    app.listen(3000, || {}).await;
+}
+
+async fn upload_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    // Check if file was uploaded successfully
+    if let Some(uploaded_file) = req.get_data("uploaded_file") {
+        let uploaded_file_path = req.get_data("uploaded_file_path").unwrap_or_default();
+
+        res.ok().json(serde_json::json!({
+            "success": true,
+            "filename": uploaded_file,
+            "path": uploaded_file_path,
+            "message": "File uploaded successfully"
+        }))
+    } else {
+        // No file was uploaded, but request continues normally
+        res.ok().json(serde_json::json!({
+            "success": false,
+            "message": "No file uploaded or upload failed"
+        }))
+    }
+}
+````
+
+### Custom Middleware with Data
+
+You can also create custom middleware that sets data for route handlers:
+
+```rust
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    // Custom middleware that sets user data
+    app.use_middleware("/api/", |req, res| async move {
+        let mut req = req.clone();
+
+        // Set user information from headers or other sources
+        req.set_data("user_id", "12345");
+        req.set_data("user_role", "admin");
+
+        (req, None) // Continue processing
+    });
+
+    app.get("/api/profile", profile_handler);
+
+    app.listen(3000, || {}).await;
+}
+
+async fn profile_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let user_id = req.get_data("user_id").unwrap_or_default();
+    let user_role = req.get_data("user_role").unwrap_or_default();
+
+    res.ok().json(serde_json::json!({
+        "user_id": user_id,
+        "user_role": user_role,
+        "message": "Profile data retrieved from middleware"
+    }))
 }
 ```

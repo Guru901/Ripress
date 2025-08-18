@@ -670,6 +670,76 @@ app.use_middleware("/", |req, res| async {
 });
 ```
 
+### File Upload Middleware
+
+The built-in file upload middleware processes binary file uploads and saves them to a configurable directory. It automatically detects file types and generates unique filenames.
+
+#### Basic Usage
+
+```rust
+use ripress::middlewares::file_upload::file_upload;
+
+// Use default upload directory ("uploads")
+app.use_middleware("/upload", file_upload(None));
+
+// Or specify a custom upload directory
+app.use_middleware("/upload", file_upload(Some("custom_uploads")));
+```
+
+#### How It Works
+
+The file upload middleware:
+
+1. **Processes binary requests** - Only works with `RequestBodyType::BINARY`
+2. **Detects file extensions** - Uses the `infer` crate for automatic type detection
+3. **Generates unique filenames** - Creates UUID-based names to prevent conflicts
+4. **Saves files** - Writes uploaded content to the specified directory
+5. **Sets request data** - Adds `uploaded_file` and `uploaded_file_path` to the request
+
+#### Route Handler Example
+
+```rust
+app.post("/upload", |req, res| async move {
+    // Check if file was uploaded successfully
+    if let Some(uploaded_file) = req.get_data("uploaded_file") {
+        let uploaded_file_path = req.get_data("uploaded_file_path").unwrap_or_default();
+
+        res.ok().json(json!({
+            "success": true,
+            "filename": uploaded_file,
+            "path": uploaded_file_path,
+            "message": "File uploaded successfully"
+        }))
+    } else {
+        // No file was uploaded, but request continues normally
+        res.ok().json(json!({
+            "success": false,
+            "message": "No file uploaded or upload failed"
+        }))
+    }
+});
+```
+
+#### Middleware Behavior
+
+- **Binary requests**: Files are processed and saved
+- **Non-binary requests**: Middleware logs the content type mismatch but continues processing
+- **Upload failures**: Errors are logged but don't block the request
+- **File data**: Available via `req.get_data("uploaded_file")` and `req.get_data("uploaded_file_path")`
+
+#### Configuration Options
+
+```rust
+// Default behavior - saves to "uploads" directory
+app.use_middleware("/upload", file_upload(None));
+
+// Custom upload directory
+app.use_middleware("/upload", file_upload(Some("user_uploads")));
+
+// Nested directory structure
+app.use_middleware("/upload", file_upload(Some("uploads/images")));
+```
+
 ### Middleware Execution Order
 
 Middleware executes in the order it's added:

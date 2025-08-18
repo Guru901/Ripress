@@ -463,6 +463,80 @@ Now that you have a working Todo API, you can extend it with:
 7. **Deployment**: Deploy to a cloud platform like Heroku or AWS
 8. **Documentation**: Generate API documentation with OpenAPI/Swagger
 
+## Adding Middleware
+
+Let's enhance your Todo API with some useful middleware:
+
+### File Upload Middleware
+
+Add file upload capabilities to your API:
+
+```rust
+use ripress::middlewares::file_upload::file_upload;
+
+// Add file upload middleware before your routes
+app.use_middleware("/upload", file_upload(None));
+
+// Add a route to handle file uploads
+app.post("/upload", |req, res| async move {
+    if let Some(filename) = req.get_data("uploaded_file") {
+        let file_path = req.get_data("uploaded_file_path").unwrap_or_default();
+
+        res.ok().json(serde_json::json!({
+            "success": true,
+            "filename": filename,
+            "path": file_path,
+            "message": "File uploaded successfully"
+        }))
+    } else {
+        res.ok().json(serde_json::json!({
+            "success": false,
+            "message": "No file uploaded"
+        }))
+    }
+});
+```
+
+### Logging Middleware
+
+Add request logging to track API usage:
+
+```rust
+use chrono::Utc;
+
+app.use_middleware("/", |req, res| async move {
+    let timestamp = Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
+    println!(
+        "[{}] {} {} - {}",
+        timestamp,
+        req.method,
+        req.path,
+        req.headers.get("User-Agent").unwrap_or("Unknown")
+    );
+
+    (req, None)
+});
+```
+
+### CORS Middleware
+
+Enable cross-origin requests:
+
+```rust
+use ripress::middlewares::cors::cors;
+
+app.use_middleware("/", cors(None));
+```
+
+Now you can test file uploads:
+
+```bash
+# Upload a file (replace 'file.txt' with an actual file)
+curl -X POST http://localhost:3000/upload \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary @file.txt
+```
+
 Congratulations! You've built your first REST API with Ripress. The framework's simple closure-based routing makes it easy to build fast, reliable web services in Rust.
 
 [Completed code](./your_first_app.rs)
