@@ -82,7 +82,7 @@ use route_params::RouteParams;
 /// ```
 ///
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HttpRequest {
     /// Dynamic route parameters extracted from the URL.
     pub params: RouteParams,
@@ -509,8 +509,8 @@ impl HttpRequest {
 
         let mut data = RequestData::new();
 
-        if let Some(ext_data) = req.extensions().get::<HashMap<String, String>>() {
-            data = RequestData::from_map(ext_data.clone());
+        if let Some(ext_data) = req.extensions().get::<RequestData>() {
+            data = ext_data.clone();
         }
 
         let content_type = req

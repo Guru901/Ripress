@@ -11,6 +11,7 @@ Ripress is an Express-inspired web framework for Rust, designed to provide a sim
 - Request and response objects (`HttpRequest`, `HttpResponse`)
 - Built-in JSON, text, and form parsing
 - Middleware support
+- **Built-in file upload middleware** with automatic type detection
 - Route parameters and query parsing
 - Type-safe handler signatures
 - Easy error handling
