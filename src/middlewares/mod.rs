@@ -39,7 +39,6 @@ pub mod logger;
 ///
 /// ## Limitations
 ///
-/// * Only supports `RequestBodyType::BINARY` content
-/// * Does not handle multipart/form-data (browser uploads)
-/// * For full browser upload support, consider implementing multipart parsing
+/// * Saves only the first file from `multipart/form-data` requests
+/// * Does not parse non-file fields from multipart bodies
 pub mod file_upload;

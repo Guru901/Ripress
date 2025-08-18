@@ -410,6 +410,24 @@ impl HttpRequest {
         }
     }
 
+    /// Inserts a key-value pair into the request's form data.
+    ///
+    /// If the current body is not `FORM`, this will initialize an empty `FormData`
+    /// and set the body's content type to `FORM` before inserting the field.
+    /// This is useful for middlewares that wish to expose computed values through
+    /// the `form_data()` API, such as attaching file upload metadata.
+    pub fn insert_form_field(&mut self, key: &str, value: &str) {
+        // Ensure body is of FORM type and contains a FormData map
+        if self.body.content_type != RequestBodyType::FORM {
+            self.body.content_type = RequestBodyType::FORM;
+            self.body.content = RequestBodyContent::FORM(FormData::new());
+        }
+
+        if let RequestBodyContent::FORM(ref mut form_data) = self.body.content {
+            form_data.insert(key.to_string(), value.to_string());
+        }
+    }
+
     pub(crate) fn set_param(&mut self, key: &str, value: &str) {
         self.params.insert(key.to_string(), value.to_string());
     }
@@ -529,32 +547,35 @@ impl HttpRequest {
 
         let request_body = match content_type {
             RequestBodyType::FORM => {
+                // Read the full body bytes first, then branch depending on content subtype
                 let body_bytes = to_bytes(req.body_mut()).await;
 
-                let body_string = match body_bytes {
-                    Ok(bytes) => std::str::from_utf8(&bytes).unwrap_or("").to_string(),
-                    Err(err) => return Err(err),
-                };
+                match body_bytes {
+                    Ok(bytes) => {
+                        // Only attempt to parse application/x-www-form-urlencoded here.
+                        let is_multipart = req
+                            .headers()
+                            .get(hyper::header::CONTENT_TYPE)
+                            .and_then(|v| v.to_str().ok())
+                            .map(|ct| ct.contains("multipart/form-data"))
+                            .unwrap_or(false);
 
-                // Only attempt to parse application/x-www-form-urlencoded here.
-                let is_multipart = req
-                    .headers()
-                    .get(hyper::header::CONTENT_TYPE)
-                    .and_then(|v| v.to_str().ok())
-                    .map(|ct| ct.contains("multipart/form-data"))
-                    .unwrap_or(false);
-
-                if is_multipart {
-                    // TODO: implement multipart parsing; for now, keep empty to avoid mis-parsing.
-                    RequestBody::new_form(FormData::new())
-                } else {
-                    match FormData::from_query_string(&body_string) {
-                        Ok(fd) => RequestBody::new_form(fd),
-                        Err(_e) => {
-                            // Prefer logging via `log`/`tracing` instead of printing.
-                            RequestBody::new_form(FormData::new())
+                        if is_multipart {
+                            // Preserve raw multipart bytes so downstream middleware (e.g. file uploads)
+                            // can parse parts properly. Treat as binary content.
+                            RequestBody::new_binary(bytes)
+                        } else {
+                            let body_string = std::str::from_utf8(&bytes).unwrap_or("").to_string();
+                            match FormData::from_query_string(&body_string) {
+                                Ok(fd) => RequestBody::new_form(fd),
+                                Err(_e) => {
+                                    // Prefer logging via `log`/`tracing` instead of printing.
+                                    RequestBody::new_form(FormData::new())
+                                }
+                            }
                         }
                     }
+                    Err(err) => return Err(err),
                 }
             }
             RequestBodyType::JSON => {
