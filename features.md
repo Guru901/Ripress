@@ -414,7 +414,7 @@ This section lists public methods and functions intended for application develop
 - `into_string(self) -> Result<String, TextDataError>`
 - `into_string_lossy(self) -> String`
 - `as_bytes() -> &[u8]`
-- `into_bytes(self) -> Vec<u8]`
+  - `into_bytes(self) -> Vec<u8>`
 - `len_bytes() -> usize`
 - `len_chars() -> Result<usize, TextDataError>`
 - `is_empty() -> bool`
