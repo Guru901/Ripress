@@ -32,16 +32,27 @@ pub fn file_upload(
 
                 match File::create(&filename_with_path).await {
                     Ok(mut file) => {
-                        if let Err(e) = file.write_all(&bytes).await {
-                            eprintln!("Failed to write file '{}': {}", filename_with_path, e);
+                        if let Err(e) = file.write_all(bytes).await {
+                            eprintln!(
+                                "Failed to write file '{}': {}",
+                                filename_with_path.display(),
+                                e
+                            );
+                            // TODO: set an explicit error status (e.g., 500) on `res` before returning.
                             return (req, Some(res));
                         }
                         req.set_data("uploaded_file", filename.as_str());
-                        req.set_data("uploaded_file_path", filename_with_path.as_str());
+                        let file_path_str = filename_with_path.to_string_lossy().into_owned();
+                        req.set_data("uploaded_file_path", file_path_str);
                         (req, None)
                     }
                     Err(e) => {
-                        eprintln!("Failed to create file '{}': {}", filename_with_path, e);
+                        eprintln!(
+                            "Failed to create file '{}': {}",
+                            filename_with_path.display(),
+                            e
+                        );
+                        // TODO: set an explicit error status (e.g., 500) on `res` before returning.
                         (req, Some(res))
                     }
                 }
