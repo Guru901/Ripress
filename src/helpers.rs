@@ -59,9 +59,13 @@ pub(crate) fn extract_boundary(content_type: &str) -> Option<String> {
     if let Ok(m) = content_type.parse::<mime::Mime>() {
         if m.type_() == mime::MULTIPART {
             if let Some(b) = m.get_param("boundary") {
-                return Some(b.as_str().to_string());
+                let s = b.as_str();
+                if !s.is_empty() {
+                    return Some(s.to_string());
+                }
             }
         }
+    }
     }
     // Fallback: best-effort manual parse for non-standard content types
     for part in content_type.split(';').map(|s| s.trim()) {
