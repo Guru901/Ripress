@@ -1,4 +1,4 @@
-# Response Object (HttpResponse)
+# Ripress HttpResponse API Reference
 
 ## Overview
 
@@ -21,7 +21,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || println!("Server runing on port 3000"))
+    app.listen(3000, || println!("Server running on port 3000"))
         .await
 }
 
@@ -32,7 +32,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 ### HTML Responses
 
-Send html responses using the `.html()` method.
+Send HTML responses using the `.html()` method.
 
 ```rust
 use ripress::app::App;
@@ -45,7 +45,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || println!("Server runing on port 3000"))
+    app.listen(3000, || println!("Server running on port 3000"))
         .await
 }
 
@@ -76,7 +76,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || println!("Server runing on port 3000"))
+    app.listen(3000, || println!("Server running on port 3000"))
         .await
 }
 
@@ -107,7 +107,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || println!("Server runing on port 3000"))
+    app.listen(3000, || println!("Server running on port 3000"))
         .await
 }
 
@@ -146,8 +146,6 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
-For more details on status codes, see the [Status Codes](#status-codes) section.
-
 ## Headers
 
 ### Setting Headers
@@ -165,7 +163,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || println!("Server runing on port 3000"))
+    app.listen(3000, || println!("Server running on port 3000"))
         .await
 }
 
@@ -191,7 +189,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || println!("Server runing on port 3000"))
+    app.listen(3000, || println!("Server running on port 3000"))
         .await
 }
 
@@ -263,7 +261,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || println!("Server runing on port 3000"))
+    app.listen(3000, || println!("Server running on port 3000"))
         .await
 }
 
@@ -301,7 +299,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || println!("Server runing on port 3000"))
+    app.listen(3000, || println!("Server running on port 3000"))
         .await
 }
 
@@ -326,7 +324,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || println!("Server runing on port 3000"))
+    app.listen(3000, || println!("Server running on port 3000"))
         .await
 }
 
@@ -339,3 +337,31 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
         }))
 }
 ```
+
+## Quick Reference
+
+### Response Types
+
+- `.text(content)` - Plain text response
+- `.html(content)` - HTML response
+- `.json(data)` - JSON response
+- `.write(stream)` - Streaming response
+
+### Status Code Methods
+
+- `.ok()` - 200 OK
+- `.status(code)` - Custom status code
+- `.bad_request()` - 400 Bad Request
+- `.not_found()` - 404 Not Found (implied from example)
+
+### Headers
+
+- `.set_header(name, value)` - Set custom header
+- `.get_header(name)` - Get header value (returns `Option<&str>`)
+
+### Cookies
+
+- `.set_cookie(name, value, options)` - Set cookie with options
+- `.clear_cookie(name)` - Remove cookie
+
+All methods support fluent chaining for building complex responses.

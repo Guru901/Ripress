@@ -39,7 +39,7 @@ Alternatively, you can manually add them to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ripress = "1.0.1"
+ripress = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
@@ -54,20 +54,23 @@ cargo add serde_json
 
 # For environment variables
 cargo add dotenv
+
+# For UUID support (often useful for IDs)
+cargo add uuid --features v4
 ```
 
 ## Verify Installation
 
-Create a simple "Hello World" server to verify everything is working:
+Create a simple "Hello World" server to verify everything is working.
 
-Replace the contents of `src/main.rs` with:
-
-Note: The example below uses the `serde_json::json!` macro. Ensure these are installed first:
+First, add the JSON dependencies:
 
 ```bash
 cargo add serde --features derive
 cargo add serde_json
 ```
+
+Replace the contents of `src/main.rs` with:
 
 ```rust
 use ripress::{
@@ -81,16 +84,27 @@ async fn main() {
     let mut app = App::new();
 
     app.get("/", hello_world);
+    app.get("/health", health_check);
 
     app.listen(3000, || {
         println!("🚀 Server running on http://localhost:3000");
+        println!("📖 Try: curl http://localhost:3000");
     })
     .await;
 }
 
 async fn hello_world(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.status(200)
-        .json(json!({"message": "Hello, Ripress!"}))
+        .json(json!({
+            "message": "Hello, Ripress! 🦀",
+            "version": "1.x",
+            "framework": "ripress"
+        }))
+}
+
+async fn health_check(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.status(200)
+        .json(json!({"status": "ok", "timestamp": chrono::Utc::now()}))
 }
 ```
 
@@ -104,18 +118,34 @@ You should see:
 
 ```
 🚀 Server running on http://localhost:3000
+📖 Try: curl http://localhost:3000
 ```
 
-Visit `http://localhost:3000` in your browser or use curl:
+Test your endpoints:
 
 ```bash
+# Main endpoint
 curl http://localhost:3000
+
+# Health check
+curl http://localhost:3000/health
 ```
 
-You should get:
+Expected responses:
 
 ```json
-{ "message": "Hello, Ripress!" }
+// GET /
+{
+  "message": "Hello, Ripress! 🦀",
+  "version": "1.0.1",
+  "framework": "ripress"
+}
+
+// GET /health
+{
+  "status": "ok",
+  "timestamp": "2025-08-14T10:30:00Z"
+}
 ```
 
 ## Common Installation Issues
@@ -131,8 +161,15 @@ If you encounter compilation errors, make sure:
    ```
 
 2. Your dependencies are compatible:
+
    ```bash
    cargo update
+   ```
+
+3. Clear your cache if needed:
+   ```bash
+   cargo clean
+   cargo build
    ```
 
 ### Port Already in Use
@@ -146,24 +183,59 @@ app.listen(8080, || {
 .await;
 ```
 
-## Next Steps
+### Missing Features
 
-Now that you have Ripress installed, you can:
+If you get errors about missing features, ensure you have the correct Tokio features:
 
-- Follow the [Getting Started Guide](getting-started.md) for a comprehensive tutorial
-- Check out the [Examples](./example/basic-routing.md) for common use cases
-- Explore the [API Reference](api-reference/) for detailed documentation
+```toml
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "net"] }
+```
 
 ## Development Setup
 
-For development, you might want to install additional tools:
+For development, install additional tools to improve your workflow:
 
 ```bash
 # For automatic reloading during development
 cargo install cargo-watch
 
+# For better error messages
+cargo install cargo-expand
+
 # Run your server with auto-reload
 cargo watch -x run
 ```
 
-This will automatically restart your server when you make changes to your code.
+### Development Configuration
+
+Create a `.cargo/config.toml` for faster builds:
+
+```toml
+[build]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"] # Faster linking (if you have lld installed)
+```
+
+## Next Steps
+
+Now that you have Ripress installed, you can:
+
+- 📚 Follow the [Getting Started Guide](./getting-started) for a comprehensive tutorial
+- 💡 Check out the [Examples](./examples) for common use cases
+- 📖 Explore the [API Reference](./api-references) for detailed documentation
+- 🎯 Try the [Tutorials](./tutorials) for step-by-step projects
+
+## Performance Tips
+
+For production deployments:
+
+```bash
+# Build with optimizations
+cargo build --release
+
+# Run the optimized binary
+./target/release/my-ripress-app
+```
+
+---
+
+✅ **Installation Complete!** You're now ready to build fast, reliable web applications with Ripress 1.x!

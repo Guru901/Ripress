@@ -46,8 +46,8 @@ Ripress makes it easy to extract data from different parts of the request:
 ### Request Body
 
 - **JSON** - Automatic deserialization to your Rust structs
-- **BINARY** - Access raw bytes from the request body
 - **Form Data** - Parse URL-encoded form submissions
+- **BINARY** - Access raw bytes from the request body
 - **Plain Text** - Raw text content from the request body
 
 ## Key Features
@@ -166,7 +166,6 @@ Now that you understand the basics of request handling, explore these specific t
 - **[Query Parameters](query-params.md)** - Parse and validate query strings
 - **[Request Headers](request-headers.md)** - Work with HTTP headers and metadata
 - **[Request Body](request-body.md)** - Handle JSON, forms, and file uploads
-- **[Cookies](cookies.md)** - Manage client-side data storage
-- **[Middleware](../middleware.md)** - Process requests before they reach handlers
+- **[Request Data](request-data.md)** - Handle JSON, forms, and file uploads
 
 The `HttpRequest` object is designed to make request handling in Ripress both powerful and ergonomic, letting you focus on your application logic rather than HTTP parsing details.

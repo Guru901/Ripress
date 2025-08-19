@@ -1,4 +1,4 @@
-# App Object (App) - Detailed Documentation
+# App
 
 ## Overview
 
@@ -51,7 +51,7 @@ The App internally maintains:
 All route handlers in Ripress must follow this exact signature:
 
 ```rust
-use ripress::context::{HttpRequest, HttpResponse},
+use ripress::context::{HttpRequest, HttpResponse};
 
 async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     // Handler logic here
@@ -86,8 +86,7 @@ async fn main() {
     app.listen(3000, || {}).await;
 }
 
-async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    // Handler logic here
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().text("Response content")
 }
 ```
@@ -97,7 +96,10 @@ async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 You can also use closures as handlers:
 
 ```rust
-use ripress::{app::App, types::RouterFns};
+use ripress::{
+    app::App
+    types::RouterFns,
+};
 
 #[tokio::main]
 async fn main() {
@@ -124,12 +126,13 @@ use ripress::{
     context::{HttpRequest, HttpResponse},
     types::RouterFns,
 };
+use serde_json::json;
 
-async fn get_users(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn get_users(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     // Fetch users from database
     let users = vec!["Alice", "Bob", "Charlie"];
 
-    res.ok().json(serde_json::json!({
+    res.ok().json(json!({
         "users": users,
         "count": users.len()
     }))
@@ -155,7 +158,6 @@ Used for creating new resources or submitting data.
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
-    types::RouterFns,
 };
 use serde_json::{Value, json};
 
@@ -202,7 +204,6 @@ Used for updating existing resources (full replacement).
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
-    types::RouterFns,
 };
 use serde_json::{Value, json};
 
@@ -242,7 +243,6 @@ Used for partial updates to existing resources.
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
-    types::RouterFns,
 };
 use serde_json::json;
 
@@ -275,7 +275,6 @@ Used for removing resources.
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
-    types::RouterFns,
 };
 use serde_json::json;
 
@@ -308,7 +307,6 @@ Used for CORS preflight requests and discovering allowed methods.
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
-    types::RouterFns,
 };
 
 #[tokio::main]
@@ -322,7 +320,7 @@ async fn main() {
     .await;
 }
 
-async fn options_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn options_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
         .set_header("Allow", "GET, POST, PUT, DELETE, OPTIONS")
         .set_header(
@@ -418,6 +416,8 @@ async fn get_user_post(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 Always validate and sanitize route parameters:
 
 ```rust
+use serde_json::json;
+
 async fn get_user_safe(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.params.get("id") {
         Some(id) => {
@@ -494,7 +494,6 @@ async fn search_users(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
-    types::RouterFns,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -515,7 +514,7 @@ async fn main() {
     app.listen(3000, || {
         println!("Server running on http://localhost:3000");
     })
-    .await
+    .await;
 }
 
 async fn create_user_typed(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -528,7 +527,7 @@ async fn create_user_typed(req: HttpRequest, res: HttpResponse) -> HttpResponse 
             }))
         }
         Err(e) => res.bad_request().json(json!({
-            "error": e
+            "error": format!("Invalid JSON: {}", e)
         })),
     }
 }
@@ -540,7 +539,6 @@ async fn create_user_typed(req: HttpRequest, res: HttpResponse) -> HttpResponse 
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
-    types::RouterFns,
 };
 use serde_json::json;
 
@@ -553,12 +551,11 @@ async fn main() {
     app.listen(3000, || {
         println!("Server running on http://localhost:3000");
     })
-    .await
+    .await;
 }
 
 async fn handle_form(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let form_data = req.form_data();
-    match form_data {
+    match req.form_data() {
         Ok(form_data) => {
             if let Some(name) = form_data.get("name") {
                 res.ok().text(format!("Hello, {}!", name))
@@ -567,7 +564,7 @@ async fn handle_form(req: HttpRequest, res: HttpResponse) -> HttpResponse {
             }
         }
         Err(e) => res.bad_request().json(json!({
-            "error": e
+            "error": format!("Form parsing error: {}", e)
         })),
     }
 }
@@ -614,6 +611,8 @@ app.use_middleware("/api/", |req, res| async {
 ### Authentication Middleware
 
 ```rust
+use serde_json::json;
+
 app.use_middleware("/protected/", |req, res| async {
     match req.headers.get("Authorization") {
         Some(auth_header) if auth_header.starts_with("Bearer ") => {
@@ -648,7 +647,15 @@ fn validate_token(token: &str) -> bool {
 ### CORS Middleware
 
 ```rust
-app.use_middleware("/", cors(Some(CorsConfig  {..Default::default() })));
+// Note: Replace with actual CORS implementation based on Ripress 1.x API
+app.use_middleware("/", |req, res| async {
+    let res = res
+        .set_header("Access-Control-Allow-Origin", "*")
+        .set_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        .set_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    (req, None)
+});
 ```
 
 ### Request Logging Middleware
@@ -666,6 +673,30 @@ app.use_middleware("/", |req, res| async {
         req.headers.get("User-Agent").unwrap_or("Unknown")
     );
 
+    (req, None)
+});
+```
+
+### Middleware Execution Order
+
+Middleware executes in the order it's added:
+
+```rust
+// This runs first
+app.use_middleware("/", |req, res| async {
+    println!("First middleware");
+    (req, None)
+});
+
+// This runs second
+app.use_middleware("/api/", |req, res| async {
+    println!("API middleware");
+    (req, None)
+});
+
+// This runs third (only for /api/ routes)
+app.use_middleware("/api/users/", |req, res| async {
+    println!("Users API middleware");
     (req, None)
 });
 ```
@@ -731,73 +762,6 @@ app.post("/upload", |req, res| async move {
             "message": "No files were uploaded"
         }))
     }
-});
-```
-
-#### Middleware Behavior
-
-- **Binary requests**: Files are processed and saved with unique names
-- **Multipart forms**: ALL file parts are extracted and saved, text fields are available via `req.form_data()`
-- **Non-binary requests**: Middleware logs the content type mismatch but continues processing
-- **Upload failures**: Errors are logged but don't block the request
-- **Form field mapping**: Form field names are mapped to generated UUID filenames
-
-#### Request Data Available
-
-When files are successfully uploaded, the middleware adds these fields to the request:
-
-- `uploaded_file_count` - Number of files successfully uploaded
-- `uploaded_files` - JSON array of uploaded file info (filenames, paths, original names)
-- For backwards compatibility (first file only):
-  - `uploaded_file` - The generated filename of the first file
-  - `uploaded_file_path` - The full path where the first file was saved
-  - `original_filename` - Original filename if available
-
-#### Form Field Access
-
-For multipart forms, text fields are automatically extracted and available via `req.form_data()`. File field names are mapped to their generated UUID filenames:
-
-```rust
-// If you uploaded a file with field name "profile_picture"
-if let Some(filename) = req.form_data().get("profile_picture") {
-    // filename will be the UUID-based filename (e.g., "550e8400-e29b-41d4-a716-446655440000.jpg")
-}
-```
-
-#### Configuration Options
-
-```rust
-// Default behavior - saves to "uploads" directory
-app.use_middleware("/upload", file_upload(None));
-
-// Custom upload directory
-app.use_middleware("/upload", file_upload(Some("user_uploads")));
-
-// Nested directory structure
-app.use_middleware("/upload", file_upload(Some("uploads/images")));
-```
-
-### Middleware Execution Order
-
-Middleware executes in the order it's added:
-
-```rust
-// This runs first
-app.use_middleware("/", |req, res| async {
-    println!("First middleware");
-    (req, None)
-});
-
-// This runs second
-app.use_middleware("/api/", |req, res| async {
-    println!("API middleware");
-    (req, None)
-});
-
-// This runs third (only for /api/ routes)
-app.use_middleware("/api/users/", |req, res| async {
-    println!("Users API middleware");
-    (req, None)
 });
 ```
 
@@ -880,7 +844,7 @@ Ripress provides automatic error handling for:
 use ripress::context::{HttpRequest, HttpResponse};
 use serde_json::json;
 
-async fn error_prone_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn error_prone_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match risky_operation() {
         Ok(data) => res.ok().json(data),
         Err(e) => {
@@ -1012,6 +976,7 @@ async fn main() {
 use ripress::{
     app::App,
     context::{HttpRequest, HttpResponse},
+    types::RouterFns,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -1027,7 +992,7 @@ struct User {
 
 type UserStore = Arc<Mutex<HashMap<u32, User>>>;
 
-async fn get_users(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+async fn get_users(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     // In a real app, you'd access the store from app state
     res.ok().json(json!({
         "users": [],
@@ -1036,15 +1001,18 @@ async fn get_users(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 async fn create_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    if let Some(user_data) = req.json::<User>() {
-        res.created().json(json!({
-            "message": "User created",
-            "user": user_data
-        }))
-    } else {
-        res.bad_request().json(json!({
-            "error": "Invalid user data"
-        }))
+    match req.json::<User>() {
+        Ok(user_data) => {
+            res.created().json(json!({
+                "message": "User created",
+                "user": user_data
+            }))
+        }
+        Err(e) => {
+            res.bad_request().json(json!({
+                "error": format!("Invalid user data: {}", e)
+            }))
+        }
     }
 }
 
@@ -1063,14 +1031,17 @@ async fn get_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 async fn update_user(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let user_id = req.params.get("id").unwrap_or("0");
 
-    if let Some(_user_data) = req.json::<User>() {
-        res.ok().json(json!({
-            "message": format!("User {} updated", user_id)
-        }))
-    } else {
-        res.bad_request().json(json!({
-            "error": "Invalid user data"
-        }))
+    match req.json::<User>() {
+        Ok(_user_data) => {
+            res.ok().json(json!({
+                "message": format!("User {} updated", user_id)
+            }))
+        }
+        Err(e) => {
+            res.bad_request().json(json!({
+                "error": format!("Invalid user data: {}", e)
+            }))
+        }
     }
 }
 

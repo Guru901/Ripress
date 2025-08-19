@@ -1,6 +1,8 @@
-# Response Examples
+# Ripress HttpResponse API Reference
 
-The `HttpResponse` object in Ripress provides various methods for handling responses, including sending text, JSON, status codes, and cookies. This document demonstrates different response-handling scenarios.
+## Overview
+
+The `HttpResponse` object in Ripress provides various methods for handling responses, including sending text, JSON, status codes, and cookies. This document demonstrates different response-handling scenarios with practical examples.
 
 ## Basic Responses
 
@@ -21,7 +23,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || {}).await;
+    app.listen(3000, || println!("Server running on port 3000")).await;
 }
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -29,9 +31,9 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
-### Sending an HTML Responses
+### Sending an HTML Response
 
-Send html responses using the `.html()` method.
+Send HTML responses using the `.html()` method.
 
 ```rust
 use ripress::{
@@ -46,7 +48,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || {}).await;
+    app.listen(3000, || println!("Server running on port 3000")).await;
 }
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -78,7 +80,7 @@ async fn main() {
 
     app.get("/", handler);
 
-    app.listen(3000, || {}).await;
+    app.listen(3000, || println!("Server running on port 3000")).await;
 }
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -126,7 +128,9 @@ use ripress::context::{HttpRequest, HttpResponse};
 
 // 200 OK
 async fn ok_response(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok()
+    res.ok().json(serde_json::json!({
+        "message": "Request successful"
+    }))
 }
 ```
 
@@ -137,22 +141,30 @@ use ripress::context::{HttpRequest, HttpResponse};
 
 // 400 Bad Request
 async fn bad_request(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.bad_request()
+    res.bad_request().json(serde_json::json!({
+        "error": "Invalid input provided"
+    }))
 }
 
 // 404 Not Found
 async fn not_found(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.not_found()
+    res.not_found().json(serde_json::json!({
+        "error": "Resource not found"
+    }))
 }
 
 // 401 Unauthorized
 async fn unauthorized(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.unauthorized()
+    res.status(401).json(serde_json::json!({
+        "error": "Authentication required"
+    }))
 }
 
 // 500 Internal Server Error
 async fn internal_error(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.internal_server_error()
+    res.status(500).json(serde_json::json!({
+        "error": "Internal server error"
+    }))
 }
 ```
 
@@ -171,7 +183,7 @@ async fn main() {
     app.get("/", handler);
     app.get("/check-headers", check_headers);
 
-    app.listen(3000, || {}).await;
+    app.listen(3000, || println!("Server running on port 3000")).await;
 }
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -200,10 +212,10 @@ use ripress::{app::App, types::RouterFns};
 async fn main() {
     let mut app = App::new();
 
-    app.get("/", set_session);
+    app.get("/login", set_session);
     app.get("/logout", logout);
 
-    app.listen(3000, || {}).await;
+    app.listen(3000, || println!("Server running on port 3000")).await;
 }
 
 async fn set_session(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -239,9 +251,9 @@ use ripress::{app::App, types::RouterFns};
 async fn main() {
     let mut app = App::new();
 
-    app.get("/login", login);
+    app.post("/login", login);
 
-    app.listen(3000, || {}).await;
+    app.listen(3000, || println!("Server running on port 3000")).await;
 }
 
 async fn login(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -263,16 +275,15 @@ async fn login(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 ```rust
 use ripress::context::{HttpRequest, HttpResponse};
-use ripress::res::CookieOptions;
 use ripress::{app::App, types::RouterFns};
 
 #[tokio::main]
 async fn main() {
     let mut app = App::new();
 
-    app.get("/", handler);
+    app.post("/validate", handler);
 
-    app.listen(3000, || {}).await;
+    app.listen(3000, || println!("Server running on port 3000")).await;
 }
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -308,9 +319,9 @@ use ripress::{app::App, types::RouterFns};
 async fn main() {
     let mut app = App::new();
 
-    app.get("/", handler);
+    app.get("/stream", handler);
 
-    app.listen(3000, || {}).await;
+    app.listen(3000, || println!("Server running on port 3000")).await;
 }
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -327,7 +338,6 @@ Here's an example of streaming real-time updates with delays:
 
 ```rust
 use std::time::Duration;
-
 use bytes::Bytes;
 use futures::stream;
 use ripress::context::{HttpRequest, HttpResponse};
@@ -338,9 +348,9 @@ use tokio::time;
 async fn main() {
     let mut app = App::new();
 
-    app.get("/", handler);
+    app.get("/updates", handler);
 
-    app.listen(3000, || {}).await;
+    app.listen(3000, || println!("Server running on port 3000")).await;
 }
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -349,7 +359,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
             // Simulate some processing time
             time::sleep(Duration::from_millis(100)).await;
 
-            let data = format!("Update {}\n", state,);
+            let data = format!("Update {}\n", state);
 
             Some((Ok::<Bytes, std::io::Error>(Bytes::from(data)), state + 1))
         } else {
@@ -377,9 +387,9 @@ use tokio::io::{AsyncReadExt, BufReader};
 async fn main() {
     let mut app = App::new();
 
-    app.get("/", handler);
+    app.get("/download", handler);
 
-    app.listen(3000, || {}).await;
+    app.listen(3000, || println!("Server running on port 3000")).await;
 }
 
 async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -387,7 +397,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
         Ok(f) => f,
         Err(e) => {
             return res
-                .internal_server_error()
+                .status(500)
                 .text(format!("Failed to open file: {}", e));
         }
     };
@@ -409,4 +419,69 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
-These examples demonstrate different use cases for streaming responses, from simple number sequences to real-time updates and file streaming.
+The `.write()` method:
+
+- Accepts any `Stream` that implements `Stream<Item = Result<Bytes, E>>`
+- Automatically sets the content type to `text/event-stream`
+- Maintains a keep-alive connection
+- Streams the data chunks to the client
+
+## Method Chaining
+
+All response methods support chaining for a fluent API:
+
+```rust
+use ripress::app::App;
+use ripress::context::{HttpRequest, HttpResponse};
+use ripress::res::CookieOptions;
+use ripress::types::RouterFns;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000"))
+        .await
+}
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.set_header("X-Custom", "value")
+        .set_cookie("session", "abc123", CookieOptions::default())
+        .ok()
+        .json(serde_json::json!({
+            "status": "success"
+        }))
+}
+```
+
+## Quick Reference
+
+### Response Types
+
+- `.text(content)` - Plain text response
+- `.html(content)` - HTML response
+- `.json(data)` - JSON response
+- `.write(stream)` - Streaming response
+
+### Status Code Methods
+
+- `.ok()` - 200 OK
+- `.status(code)` - Custom status code
+- `.bad_request()` - 400 Bad Request
+- `.not_found()` - 404 Not Found
+
+### Headers and Cookies
+
+- `.set_header(name, value)` - Set custom header
+- `.set_cookie(name, value, options)` - Set cookie with options
+- `.clear_cookie(name)` - Remove cookie
+
+### Streaming
+
+- `.write(stream)` - Stream data to client
+- Supports any `Stream<Item = Result<Bytes, E>>`
+- Automatically sets appropriate headers
+
+All methods support fluent chaining for building complex responses.

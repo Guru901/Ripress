@@ -1,12 +1,37 @@
 # Ripress
 
-### An express-inspired Rust-based web framework
+### An Express.js-inspired web framework for Rust
 
 Please star the repo if you like it, so that I know someone is using it.
+
+## What is Ripress?
+
+Ripress is an Express.js-inspired web framework for Rust that combines the familiar developer experience of Express with the performance and safety of Rust. Built on top of [Hyper](https://hyper.rs) and [Tokio](https://tokio.rs), Ripress provides a simple and intuitive API for building fast, reliable web applications.
+
+## Why Choose Ripress?
+
+**🚀 Performance First**
+
+- Just 3% slower than Actix-Web (one of the fastest Rust web frameworks)
+- Nearly 10x faster than Express.js
+
+**💡 Developer Experience**
+
+- Express.js-familiar API that Rust developers will love
+- In many cases, even simpler than Express.js
+- Comprehensive error handling and type safety
+
+**⚡ Modern Foundation**
+
+- Async/await support with Tokio
+- HTTP/2 support via Hyper
+
+![Performance Benchmark](https://ripress.vercel.app/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fbench.0a851a86.png&w=3840&q=75)
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Features](#features)
 - [Goals](#goals)
 - [Installation](#installation)
 - [Examples](#basic-example)
@@ -17,7 +42,7 @@ Please star the repo if you like it, so that I know someone is using it.
 
 ## Overview
 
-Ripress is a web framework inspired by Express.js.
+Ripress is a web framework inspired by Express.js, designed to bring the familiar and intuitive Express.js developer experience to the Rust ecosystem while maintaining Rust's performance and safety guarantees.
 
 ## Features
 
@@ -74,7 +99,6 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ```
 
 View more basic examples in [Examples](./docs/example/) dir.
-
 View full blown code examples [here](https://github.com/Guru901/ripress-examples).
 
 ## Middleware Example
@@ -102,12 +126,22 @@ async fn main() {
 
 Learn more about middleware in the [Middleware Guide](./docs/guides/middleware.md).
 
+## Get Started
+
+Ready to build something amazing? Jump into our [Installation Guide](./installation) or explore the framework on [GitHub](https://github.com/guru901/ripress).
+
+You can also check out the complete API documentation on [Docs.rs](https://docs.rs/ripress/latest/ripress/).
+
 ## Documentation
 
-[Getting Started Guide](./docs/getting-started.md)  
-[Middleware Guide](./docs/guides/middleware.md)  
-[API Reference](./docs/api-reference/)
+- [Getting Started Guide](./docs/getting-started.md)
+- [Middleware Guide](./docs/guides/middleware.md)
+- [API Reference](./docs/api-reference/)
 
 ## Changelog
 
 [View Changelog](./CHANGELOG.md)
+
+---
+
+_Ripress v1.0.1 - Production Ready_ ✨
