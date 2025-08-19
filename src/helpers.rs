@@ -55,14 +55,22 @@ pub(crate) fn get_all_query(queries: &QueryParams) -> String {
 // Helper functions that need to be added to the file:
 
 pub(crate) fn extract_boundary(content_type: &str) -> Option<String> {
-    // Example: "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW"
-    // or boundary="..."
-    for part in content_type.split(';').map(|s| s.trim()) {
-        if let Some(rest) = part.strip_prefix("boundary=") {
-            let mut b = rest.trim();
-            if b.starts_with('"') && b.ends_with('"') && b.len() >= 2 {
-                b = &b[1..b.len() - 1];
+    // Prefer robust parsing via the `mime` crate; handles quoting and spacing.
+    if let Ok(m) = content_type.parse::<mime::Mime>() {
+        if m.type_() == mime::MULTIPART {
+            if let Some(b) = m.get_param("boundary") {
+                return Some(b.as_str().to_string());
             }
+        }
+    }
+    // Fallback: best-effort manual parse for non-standard content types
+    for part in content_type.split(';').map(|s| s.trim()) {
+        let (k, v) = match part.split_once('=') {
+            Some((k, v)) => (k.trim(), v.trim()),
+            None => continue,
+        };
+        if k.eq_ignore_ascii_case("boundary") {
+            let b = v.trim_matches('"');
             if !b.is_empty() {
                 return Some(b.to_string());
             }
