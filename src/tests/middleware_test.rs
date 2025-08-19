@@ -517,7 +517,7 @@ mod tests {
         // to continue to the next handler. We need a different approach to test this.
         // Consider modifying the test helper to return the modified response object
         // or test with OPTIONS which returns Some(response).
-        let (req, maybe_res) = run_cors_middleware(HttpMethods::OPTIONS, None);
+        let (_, maybe_res) = run_cors_middleware(HttpMethods::OPTIONS, None);
         assert!(maybe_res.is_some());
         let res = maybe_res.unwrap();
 
@@ -534,7 +534,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn test_cors_headers_custom_config_with_credentials() {
         let config = CorsConfig {
             allowed_origin: "https://example.com",
@@ -543,7 +542,7 @@ mod tests {
             allow_credentials: true,
         };
         // Test with OPTIONS to get the response with headers
-        let (req, maybe_res) = run_cors_middleware(HttpMethods::OPTIONS, Some(config.clone()));
+        let (_, maybe_res) = run_cors_middleware(HttpMethods::OPTIONS, Some(config.clone()));
         assert!(maybe_res.is_some());
         let res = maybe_res.unwrap();
 
@@ -567,7 +566,7 @@ mod tests {
 
     #[test]
     fn test_cors_options_preflight_returns_response() {
-        let (req, maybe_res) = run_cors_middleware(HttpMethods::OPTIONS, None);
+        let (_, maybe_res) = run_cors_middleware(HttpMethods::OPTIONS, None);
         assert!(maybe_res.is_some());
         let res = maybe_res.unwrap();
         assert_eq!(res.status_code.as_u16(), 200);
@@ -590,7 +589,7 @@ mod tests {
             allowed_headers: "X-Token",
             allow_credentials: true,
         };
-        let (req, maybe_res) = run_cors_middleware(HttpMethods::OPTIONS, Some(config.clone()));
+        let (_, maybe_res) = run_cors_middleware(HttpMethods::OPTIONS, Some(config.clone()));
         assert!(maybe_res.is_some());
         let res = maybe_res.unwrap();
         assert_eq!(res.status_code.as_u16(), 200);

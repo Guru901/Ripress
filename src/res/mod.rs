@@ -424,6 +424,33 @@ impl HttpResponse {
         return self;
     }
 
+    /// Sets the response body to binary data.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - Any type that can be converted into `Bytes`
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::context::HttpResponse;
+    /// use bytes::Bytes;
+    ///
+    /// let data = vec![1, 2, 3, 4, 5];
+    ///
+    /// let res = HttpResponse::new()
+    ///     .ok()
+    ///     .bytes(data);
+    ///
+    /// // Using with Bytes directly
+    /// let res = HttpResponse::new()
+    ///     .ok()
+    ///     .bytes(Bytes::from_static(b"hello world"));
+    /// ```
+
     pub fn bytes<T: Into<Bytes>>(mut self, bytes: T) -> Self {
         self.body = ResponseContentBody::new_binary(bytes.into());
         self.content_type = ResponseContentType::BINARY;

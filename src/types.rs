@@ -111,14 +111,16 @@ impl std::fmt::Display for HttpRequestError {
 }
 
 #[derive(Debug)]
-pub(crate) enum HttpResponseError {
+pub(crate) enum _HttpResponseError {
     MissingHeader(String),
 }
 
-impl std::fmt::Display for HttpResponseError {
+impl std::fmt::Display for _HttpResponseError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            HttpResponseError::MissingHeader(header) => write!(f, "Header {} doesnt exist", header),
+            _HttpResponseError::MissingHeader(header) => {
+                write!(f, "Header {} doesnt exist", header)
+            }
         }
     }
 }
