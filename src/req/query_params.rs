@@ -8,7 +8,7 @@ use std::str::FromStr;
 pub struct QueryParams {
     /// Internal storage: parameter name -> list of values
     /// Supports multiple values for the same parameter (e.g., multiple tags)
-    params: HashMap<String, Vec<String>>,
+    pub(crate) inner: HashMap<String, Vec<String>>,
 }
 
 /// Error type for query parameter parsing and retrieval failures.
@@ -189,7 +189,7 @@ impl QueryParams {
     /// Create a new empty QueryParams
     pub fn new() -> Self {
         Self {
-            params: HashMap::new(),
+            inner: HashMap::new(),
         }
     }
 
@@ -199,7 +199,7 @@ impl QueryParams {
         for (key, value) in map {
             params.insert(key, vec![value]);
         }
-        Self { params }
+        Self { inner: params }
     }
 
     /// Parse query parameters from a query string
@@ -208,7 +208,7 @@ impl QueryParams {
         let mut params = HashMap::new();
 
         if query_string.is_empty() {
-            return Self { params };
+            return Self { inner: params };
         }
 
         for pair in query_string.split('&') {
@@ -233,7 +233,7 @@ impl QueryParams {
             }
         }
 
-        Self { params }
+        Self { inner: params }
     }
 
     /// Insert a single parameter value (replaces existing)
@@ -242,7 +242,10 @@ impl QueryParams {
         K: Into<String>,
         V: Into<String>,
     {
-        self.params.insert(key.into(), vec![value.into()]);
+        self.inner
+            .entry(key.into())
+            .or_insert_with(Vec::new)
+            .push(value.into());
     }
 
     /// Append a parameter value (supports multiple values)
@@ -251,20 +254,17 @@ impl QueryParams {
         K: Into<String>,
         V: Into<String>,
     {
-        self.params
-            .entry(key.into())
-            .or_default()
-            .push(value.into());
+        self.inner.entry(key.into()).or_default().push(value.into());
     }
 
     /// Get the first value for a parameter (most common case)
     pub fn get(&self, name: &str) -> Option<&str> {
-        self.params.get(name)?.first().map(|s| s.as_str())
+        self.inner.get(name)?.first().map(|s| s.as_str())
     }
 
     /// Get all values for a parameter
     pub fn get_all(&self, name: &str) -> Option<&Vec<String>> {
-        self.params.get(name)
+        self.inner.get(name)
     }
 
     /// Get the first value and parse it to a specific type
@@ -358,7 +358,7 @@ impl QueryParams {
 
     /// Check if a parameter exists (even with empty value)
     pub fn contains(&self, name: &str) -> bool {
-        self.params.contains_key(name)
+        self.inner.contains_key(name)
     }
 
     /// Check if a parameter has a non-empty value
@@ -368,34 +368,34 @@ impl QueryParams {
 
     /// Get all parameter names
     pub fn names(&self) -> impl Iterator<Item = &String> {
-        self.params.keys()
+        self.inner.keys()
     }
 
     /// Get the number of unique parameters
     pub fn len(&self) -> usize {
-        self.params.len()
+        self.inner.len()
     }
 
     /// Check if there are no parameters
     pub fn is_empty(&self) -> bool {
-        self.params.is_empty()
+        self.inner.is_empty()
     }
 
     /// Iterate over all parameters as (name, first_value) pairs
     pub fn iter(&self) -> impl Iterator<Item = (&String, &str)> {
-        self.params
+        self.inner
             .iter()
             .filter_map(|(k, v)| v.first().map(|first_val| (k, first_val.as_str())))
     }
 
     /// Iterate over all parameters including multiple values
     pub fn iter_all(&self) -> impl Iterator<Item = (&String, &Vec<String>)> {
-        self.params.iter()
+        self.inner.iter()
     }
 
     /// Convert to single-value HashMap (takes first value for each param)
     pub fn into_map(self) -> HashMap<String, String> {
-        self.params
+        self.inner
             .into_iter()
             .filter_map(|(k, mut v)| v.pop().map(|val| (k, val)))
             .collect()
@@ -403,7 +403,7 @@ impl QueryParams {
 
     /// Remove a parameter completely
     pub fn remove(&mut self, name: &str) -> Option<Vec<String>> {
-        self.params.remove(name)
+        self.inner.remove(name)
     }
 
     // Common query parameter patterns
@@ -454,7 +454,7 @@ impl QueryParams {
     pub fn filters(&self) -> HashMap<String, Vec<String>> {
         let mut filters = HashMap::new();
 
-        for (key, values) in &self.params {
+        for (key, values) in &self.inner {
             if let Some(filter_key) = key
                 .strip_prefix("filter[")
                 .and_then(|k| k.strip_suffix("]"))
@@ -500,7 +500,7 @@ impl Default for QueryParams {
 impl fmt::Display for QueryParams {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let param_strings: Vec<String> = self
-            .params
+            .inner
             .iter()
             .flat_map(|(name, values)| {
                 values.iter().map(move |value| {
