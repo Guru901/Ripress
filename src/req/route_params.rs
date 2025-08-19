@@ -121,11 +121,11 @@ use serde::Serialize;
 ///     if errors.is_empty() { Ok(()) } else { Err(errors) }
 /// });
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RouteParams {
     /// Internal storage mapping parameter names to their string values.
     /// All values are stored as strings and parsed on demand.
-    params: HashMap<String, String>,
+    pub(crate) params: HashMap<String, String>,
 }
 
 /// Errors that can occur when retrieving or parsing route parameters.

@@ -117,8 +117,8 @@ pub struct HttpRequest {
     /// The request's cookies
     cookies: HashMap<String, String>,
 
-    // The Data set by middleware in the request to be used in the route handler
-    data: RequestData,
+    /// The Data set by middleware in the request to be used in the route handler
+    pub data: RequestData,
 
     /// The request body, which may contain JSON, text, or form data or binary data.
     body: RequestBody,

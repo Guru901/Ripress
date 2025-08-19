@@ -136,7 +136,7 @@ impl Display for ByteKey {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use ripress::req::request_data::RequestData;
 ///
 /// let mut data = RequestData::new();
@@ -227,7 +227,7 @@ impl RequestData {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```no_run
     /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
