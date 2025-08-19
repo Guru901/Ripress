@@ -76,7 +76,7 @@ pub struct Middleware {
 /// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests. It follows an Express-like pattern for route handling.
 pub struct App {
     routes: Routes,
-    middlewares: Vec<Middleware>,
+    pub(crate) middlewares: Vec<Middleware>,
     pub(crate) static_files: HashMap<&'static str, &'static str>,
 }
 
@@ -188,26 +188,6 @@ impl App {
 
     pub async fn listen<F: FnOnce()>(&self, port: u16, cb: F) {
         let mut router = Router::<Body, ApiError>::builder();
-
-        async fn error_handler(err: routerify::RouteError) -> Response<Body> {
-            let api_err = err.downcast::<ApiError>().unwrap_or_else(|_| {
-                return Box::new(ApiError::Generic(
-                    HttpResponse::new()
-                        .internal_server_error()
-                        .text("Unhandled error"),
-                ));
-            });
-
-            match api_err.as_ref() {
-                ApiError::Generic(res) => {
-                    // <HttpResponse as Clone>::clone(res).to_responder().unwrap()
-                    <HttpResponse as Clone>::clone(res)
-                        .to_responder()
-                        .map_err(ApiError::from)
-                        .unwrap()
-                }
-            }
-        }
 
         for middleware in self.middlewares.iter() {
             let middleware = middleware.clone();
@@ -461,7 +441,7 @@ impl App {
                 }
             }
         }
-        router = router.err_handler(error_handler);
+        router = router.err_handler(Self::error_handler);
 
         let router = router.build().unwrap();
 
@@ -478,7 +458,24 @@ impl App {
         }
     }
 
-    async fn serve_static_with_headers(
+    pub(crate) async fn error_handler(err: routerify::RouteError) -> Response<Body> {
+        let api_err = err.downcast::<ApiError>().unwrap_or_else(|_| {
+            return Box::new(ApiError::Generic(
+                HttpResponse::new()
+                    .internal_server_error()
+                    .text("Unhandled error"),
+            ));
+        });
+
+        match api_err.as_ref() {
+            ApiError::Generic(res) => <HttpResponse as Clone>::clone(res)
+                .to_responder()
+                .map_err(ApiError::from)
+                .unwrap(),
+        }
+    }
+
+    pub(crate) async fn serve_static_with_headers(
         req: Request<Body>,
         mount_root: String,
         fs_root: String,
@@ -550,5 +547,12 @@ impl App {
             }
             Err(e) => Err(e),
         }
+    }
+
+    pub(crate) fn build_router(&self) -> routerify::Router<Body, ApiError> {
+        routerify::Router::builder()
+            .err_handler(Self::error_handler)
+            .build()
+            .unwrap()
     }
 }

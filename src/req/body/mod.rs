@@ -9,6 +9,7 @@
 /// - **JSON**: Structured data serialized as JSON with `application/json` content type
 /// - **Form Data**: Key-value pairs for form submissions with `application/x-www-form-urlencoded` content type
 /// - **Text**: Plain text content with `text/plain` content type
+/// - **Binary**: Raw binary data with `application/octet-stream` content type
 /// - **Empty**: No body content with empty content type
 ///
 /// # Design Philosophy
@@ -39,6 +40,11 @@
 /// // Text body
 /// let text_data = TextData::new(String::from("Hello, world!"));
 /// let text_body = RequestBody::new_text(text_data);
+///
+/// // Binary body
+/// use bytes::Bytes;
+/// let binary_data = Bytes::from_static(b"\xDE\xAD\xBE\xEF");
+/// let binary_body = RequestBody::new_binary(binary_data);
 ///
 /// // Usage in HTTP client
 /// // client.post("https://api.example.com/users").body(json_body).send().await?;
@@ -109,6 +115,40 @@ impl RequestBody {
         }
     }
 
+    /// Creates a new request body with binary content.
+    ///
+    /// This constructor creates a request body containing raw binary data with the
+    /// appropriate `application/octet-stream` content type. This is suitable for
+    /// file uploads, image transmission, or any use case where the payload is not
+    /// text or structured data.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The binary data to include in the request body, as a [`bytes::Bytes`] object
+    ///
+    /// # Returns
+    ///
+    /// A new `RequestBody` instance with `BINARY` content type
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use ripress::req::body::{RequestBody, RequestBodyType};
+    /// use bytes::Bytes;
+    ///
+    /// let file_bytes = Bytes::from_static(b"\xDE\xAD\xBE\xEF");
+    /// let body = RequestBody::new_binary(file_bytes.clone());
+    ///
+    /// assert_eq!(body.content_type, RequestBodyType::BINARY);
+    /// // body.content will be RequestBodyContent::BINARY(file_bytes)
+    /// ```
+    ///
+    /// # Use Cases
+    ///
+    /// - File uploads (images, documents, etc.)
+    /// - Sending binary blobs or streams
+    /// - Transmitting non-textual data (e.g., protocol buffers, compressed files)
+    /// - Any HTTP request requiring `application/octet-stream` content type
     pub(crate) fn new_binary(bytes: Bytes) -> Self {
         RequestBody {
             content_type: RequestBodyType::BINARY,
@@ -241,6 +281,7 @@ impl RequestBody {
 /// - `JSON` → `application/json`
 /// - `TEXT` → `text/plain`
 /// - `FORM` → `application/x-www-form-urlencoded`
+/// - `BINARY` → `application/octet-stream`
 /// - `EMPTY` → "" (empty string)
 ///
 /// # Examples
@@ -251,12 +292,14 @@ impl RequestBody {
 /// let json_type = RequestBodyType::JSON;
 /// let form_type = RequestBodyType::FORM;
 /// let text_type = RequestBodyType::TEXT;
+/// let binary_type = RequestBodyType::BINARY;
 /// let empty_type = RequestBodyType::EMPTY;
 ///
 /// // Convert to MIME type strings
 /// assert_eq!(json_type.to_string(), "application/json");
 /// assert_eq!(form_type.to_string(), "application/x-www-form-urlencoded");
 /// assert_eq!(text_type.to_string(), "text/plain");
+/// assert_eq!(binary_type.to_string(), "application/octet-stream");
 /// assert_eq!(empty_type.to_string(), "");
 ///
 /// // Types are copyable and comparable

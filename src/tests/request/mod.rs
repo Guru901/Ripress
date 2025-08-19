@@ -7,6 +7,7 @@ pub mod route_params;
 #[cfg(test)]
 mod tests {
     use crate::{
+        req::origin_url::Url,
         res::{CookieOptions, HttpResponse},
         types::{HttpResponseError, ResponseContentBody, ResponseContentType},
     };
@@ -259,5 +260,49 @@ mod tests {
     fn test_response_error() {
         let err_1 = HttpResponseError::MissingHeader("id".to_string());
         assert_eq!(err_1.to_string(), "Header id doesnt exist");
+    }
+
+    #[test]
+    fn test_new_and_as_str() {
+        let url = Url::new("https://example.com/path");
+        assert_eq!(url.as_str(), "https://example.com/path");
+    }
+
+    #[test]
+    fn test_value() {
+        let url = Url::new("https://example.com/abc");
+        assert_eq!(url.value(), &"https://example.com/abc".to_string());
+    }
+
+    #[test]
+    fn test_display_trait() {
+        let url = Url::new("https://display.com");
+        let s = format!("{}", url);
+        assert_eq!(s, "https://display.com");
+    }
+
+    #[test]
+    fn test_debug_trait() {
+        let url = Url::new("https://debug.com");
+        let s = format!("{:?}", url);
+        assert!(s.contains("Url"));
+        assert!(s.contains("https://debug.com"));
+    }
+
+    #[test]
+    fn test_clone_and_eq() {
+        let url1 = Url::new("https://clone.com");
+        let url2 = url1.clone();
+        assert_eq!(url1, url2);
+    }
+
+    #[test]
+    fn test_serde_serialize_deserialize() {
+        let url = Url::new("https://serde.com");
+        let serialized = serde_json::to_string(&url).unwrap();
+        assert!(serialized.contains("serde.com"));
+
+        let deserialized: Url = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(url, deserialized);
     }
 }
