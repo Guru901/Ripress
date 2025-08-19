@@ -136,7 +136,7 @@ impl Display for ByteKey {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use ripress::req::request_data::RequestData;
 ///
 /// let mut data = RequestData::new();
@@ -227,7 +227,7 @@ impl RequestData {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```no_run
     /// use ripress::req::request_data::RequestData;
     ///
     /// let mut data = RequestData::new();
@@ -236,7 +236,7 @@ impl RequestData {
     /// data.insert("key3", vec![1, 2, 3, 4]);
     /// ```
 
-    pub(crate) fn insert(&mut self, key: impl AsRef<[u8]>, value: impl AsRef<[u8]>) {
+    pub fn insert(&mut self, key: impl AsRef<[u8]>, value: impl AsRef<[u8]>) {
         let key = ByteKey::new(key);
         let value = value.as_ref().to_vec();
         self.inner.insert(key, value);
@@ -280,7 +280,7 @@ impl RequestData {
     /// assert_eq!(data.get("missing"), None);
     /// ```
 
-    pub(crate) fn get(&self, key: impl AsRef<[u8]>) -> Option<String> {
+    pub fn get(&self, key: impl AsRef<[u8]>) -> Option<String> {
         let key = ByteKey::new(key);
         self.inner
             .get(&key)

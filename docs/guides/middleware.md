@@ -1,405 +1,178 @@
-# Middleware Guide
+# File Upload Middleware Documentation Corrections
 
-## Overview
+## Issues Found
 
-Middleware in Ripress are functions that execute before route handlers, allowing you to modify requests, add functionality, or short-circuit processing. They follow the same pattern as Express.js middleware and are executed in the order they're added.
+### 1. **Multipart Form Field Handling**
 
-## Middleware Function Signature
+**Documentation says:**
 
-All middleware functions must follow this signature:
+> For multipart forms, text fields are automatically extracted and available via `req.form_data()`. File field names are mapped to their generated UUID filenames.
+
+**Code actually does:**
 
 ```rust
-|req: HttpRequest, res: HttpResponse| -> impl Future<Output = (HttpRequest, Option<HttpResponse>)>
+// Insert any text fields into form_data()
+for (k, v) in fields {
+    req.insert_form_field(&k, &v);
+}
+
+// SIMPLIFIED: Only map the form field name to the UUID filename
+if let Some(ref field_name) = field_name {
+    req.insert_form_field(field_name, &filename);
+}
 ```
 
-**Return Values:**
+**Issue:** The code maps file field names to UUID filenames in form_data, but the documentation doesn't clearly explain this behavior.
 
-- `(request, None)`: Continue to next middleware/handler
-- `(request, Some(response))`: Short-circuit and return response immediately
+### 2. **File Parts Data Structure**
 
-## Built-in Middleware
+**Documentation implies:**
 
-Ripress comes with several built-in middleware functions that you can use out of the box.
+> file_parts is Vec<(bytes, field_name)>
 
-### CORS Middleware
-
-The CORS middleware adds Cross-Origin Resource Sharing headers to your responses.
-
-````rust
-use ripress::middlewares::cors::cors;
-
-// Basic CORS with default settings
-app.use_middleware("/", cors(None));
-
-// Custom CORS configuration
-use ripress::middlewares::cors::CorsConfig;
-
-let config = CorsConfig {
-    allowed_origin: "*",
-    allowed_methods: "GET, POST, PUT, DELETE, OPTIONS",
-    allowed_headers: "Content-Type, Authorization",
-    allow_credentials: false,
-    ..Default::default()
-};
-
-app.use_middleware("/", cors(Some(config)));
-
-### Logger Middleware
-
-The logger middleware provides request logging functionality.
+**Code actually uses:**
 
 ```rust
-use ripress::middlewares::logger::logger;
+// Returns (fields, file_parts) where file_parts is Vec<(bytes, field_name)>
+fn parse_multipart_form(
+    body: &[u8],
+    boundary: &str,
+) -> (Vec<(String, String)>, Vec<(Vec<u8>, Option<String>)>) {
+```
 
-// Basic logging
-app.use_middleware("/", logger(None));
-
-// Custom logging configuration
-use ripress::middlewares::logger::LoggerConfig;
-
-let config = LoggerConfig {
-    path: true,
-    duration: true,
-    method: true,
-    ..Default::default()
-};
-
-app.use_middleware("/", logger(Some(config)));
-
-### File Upload Middleware
-
-The file upload middleware processes binary file uploads and saves them to a configurable directory. It supports both raw binary uploads and browser uploads via `multipart/form-data`.
-
-#### Basic Usage
+But then in processing:
 
 ```rust
-use ripress::middlewares::file_upload::file_upload;
+let files_to_process = if !file_parts.is_empty() {
+    file_parts
+} else {
+    // Single binary upload (backwards compatibility) - use "file" as default field name
+    vec![(bytes_vec, Some("file".to_string()))]
+};
+```
 
-// Use default upload directory ("uploads")
-app.use_middleware("/upload", file_upload(None));
+**Issue:** The tuple structure is inconsistent between multipart parsing and single file handling.
 
-// Specify a custom upload directory
-app.use_middleware("/upload", file_upload(Some("custom_uploads")));
-````
+### 3. **Original Filename Handling**
 
-#### How It Works
+**Code shows:**
+
+```rust
+let (file_bytes, original_filename, field_name) = match field_name_opt {
+    Some(field) => {
+        // If field_name_opt is Some, try to split into original_filename and field_name
+        // If the tuple is (Vec<u8>, Some("filename")), treat as (file_bytes, None, Some("filename"))
+        (file_bytes, None, Some(field))
+    }
+    None => (file_bytes, None, None),
+};
+```
+
+**Issue:** The comment suggests splitting into original_filename and field_name, but the code always sets original_filename to None for this path. The original filename is only captured during multipart parsing but gets lost in the tuple transformation.
+
+### 4. **FileInfo Usage**
+
+**Code defines:**
+
+```rust
+#[derive(Debug)]
+struct FileInfo {
+    filename: String,
+    path: String,
+    original_filename: Option<String>,
+    field_name: Option<String>,
+}
+```
+
+But when creating FileInfo:
+
+```rust
+let file_info = FileInfo {
+    filename: filename.clone(),
+    path: filename_with_path.clone(),
+    original_filename: original_filename.clone(), // This is always None from the tuple destructuring above
+    field_name: field_name.clone(),
+};
+```
+
+**Issue:** The original_filename is not properly passed through from the multipart parsing.
+
+## Corrected Documentation
+
+### How File Upload Actually Works
 
 The file upload middleware:
 
-1. **Processes binary requests** - Works with `RequestBodyType::BINARY` content
+1. **Processes binary requests** - Works with any request body content
 2. **Supports multipart forms** - Extracts ALL file parts and text fields from `multipart/form-data`
 3. **Detects file extensions** - Uses the `infer` crate for automatic type detection
 4. **Generates unique filenames** - Creates UUID-based names to prevent conflicts
 5. **Saves files** - Writes uploaded content to the specified directory
-6. **Sets comprehensive request data** - Adds file information and form field mappings
+6. **Maps form fields** - File input field names are mapped to generated UUID filenames in form data
+7. **Sets request data** - Adds comprehensive file information for route handlers
 
-#### Route Handler Example
+### Form Field Behavior
 
-```rust
-app.post("/upload", |req, res| async move {
-    // Check if files were uploaded successfully
-    if let Some(count_str) = req.get_data("uploaded_file_count") {
-        let count: usize = count_str.parse().unwrap_or(0);
-        if count > 0 {
-            if let Some(files_json) = req.get_data("uploaded_files") {
-                res.ok().json(serde_json::json!({
-                    "success": true,
-                    "count": count,
-                    "files": serde_json::from_str::<serde_json::Value>(&files_json).unwrap(),
-                    "message": format!("Successfully uploaded {} files", count)
-                }))
-            } else {
-                res.ok().json(serde_json::json!({
-                    "success": true,
-                    "count": count,
-                    "message": format!("Successfully uploaded {} files", count)
-                }))
-            }
-        } else {
-            res.ok().json(serde_json::json!({
-                "success": false,
-                "message": "No files were uploaded"
-            }))
-        }
-    } else {
-        res.ok().json(serde_json::json!({
-            "success": false,
-            "message": "No files were uploaded"
-        }))
-    }
-});
-```
+For multipart forms:
 
-#### Middleware Behavior
+- **Text fields**: Available via `req.form_data()` with original names and values
+- **File fields**: Field names are mapped to generated UUID filenames in `req.form_data()`
+- **Example**: If you have `<input name="profile_pic" type="file">`, then `req.form_data().get("profile_pic")` returns the UUID filename like `"a1b2c3d4-e5f6-7890-abcd-ef1234567890.jpg"`
 
-- **Binary requests**: Files are processed and saved with unique names
-- **Multipart forms**: ALL file parts are extracted and saved, text fields are available via `req.form_data()`
-- **Non-binary requests**: Middleware logs the content type mismatch but continues processing
-- **Upload failures**: Errors are logged but don't block the request
-- **Form field mapping**: Form field names are mapped to generated UUID filenames
+### Request Data Available
 
-#### Request Data Available
+When files are successfully uploaded:
 
-When files are successfully uploaded, the middleware adds these fields to the request:
+**In req.get_data():**
 
 - `uploaded_file_count` - Number of files successfully uploaded
-- `uploaded_files` - JSON array of uploaded file info (filenames, paths, original names)
-- For backwards compatibility (first file only):
-  - `uploaded_file` - The generated filename of the first file
-  - `uploaded_file_path` - The full path where the first file was saved
-  - `original_filename` - Original filename if available
+- `uploaded_files` - JSON array of file info
+- `uploaded_file` - First file's UUID filename (backwards compatibility)
+- `uploaded_file_path` - First file's full path (backwards compatibility)
+- `original_filename` - First file's original name if available from multipart
 
-#### Form Field Access
+**In req.form_data():**
 
-For multipart forms, text fields are automatically extracted and available via `req.form_data()`. File field names are mapped to their generated UUID filenames:
+- Text field names → their values
+- File field names → their generated UUID filenames
 
+### Limitations
 
-#### Configuration Options
+1. **Original filenames**: Currently not properly preserved due to tuple handling bug
+2. **Single binary uploads**: Always use "file" as the field name
+3. **Field mapping**: Only maps the field name to UUID filename, original filename info is lost in form_data
 
-```rust
-// Default behavior - saves to "uploads" directory
-app.use_middleware("/upload", file_upload(None));
+## Recommended Code Fixes
 
-// Custom upload directory
-app.use_middleware("/upload", file_upload(Some("user_uploads")));
-
-// Nested directory structure
-app.use_middleware("/upload", file_upload(Some("uploads/images")));
-```
-
-## Custom Middleware
-
-You can create your own middleware functions for specific needs.
-
-### Authentication Middleware
+To fix the original filename issue:
 
 ```rust
-app.use_middleware("/protected/", |req, res| async move {
-    match req.headers.get("Authorization") {
-        Some(auth_header) if auth_header.starts_with("Bearer ") => {
-            let token = &auth_header[7..]; // Remove "Bearer " prefix
+// Change the file_parts tuple to include original filename
+type FilePart = (Vec<u8>, Option<String>, Option<String>); // (bytes, field_name, original_filename)
 
-            if validate_token(token) {
-                // Add user data to request
-                let mut req = req.clone();
-                req.set_data("user_id", "12345");
-                req.set_data("user_role", "admin");
+// Update the multipart parser return type
+fn parse_multipart_form(
+    body: &[u8],
+    boundary: &str,
+) -> (Vec<(String, String)>, Vec<FilePart>) {
+    // ... existing code ...
 
-                (req, None) // Valid token, continue
-            } else {
-                (
-                    req,
-                    Some(res.unauthorized().json(serde_json::json!({
-                        "error": "Invalid token"
-                    }))),
-                )
-            }
-        }
-        _ => (
-            req,
-            Some(res.unauthorized().json(serde_json::json!({
-                "error": "Authentication required"
-            }))),
-        ),
+    if is_file_part {
+        let file_bytes = trim_trailing_crlf(&body[content_start..content_end]).to_vec();
+        file_parts.push((file_bytes, field_name, original_filename));
     }
-});
-
-fn validate_token(token: &str) -> bool {
-    // Implement your token validation logic
-    token == "valid-secret-token"
-}
-```
-
-### Request Logging Middleware
-
-```rust
-use chrono::Utc;
-
-app.use_middleware("/", |req, res| async move {
-    let timestamp = Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
-    println!(
-        "[{}] {} {} - {}",
-        timestamp,
-        req.method,
-        req.path,
-        req.headers.get("User-Agent").unwrap_or("Unknown")
-    );
-
-    (req, None)
-});
-```
-
-### Rate Limiting Middleware
-
-```rust
-use std::collections::HashMap;
-use std::sync::Mutex;
-use std::time::{Duration, Instant};
-
-lazy_static! {
-    static ref REQUEST_COUNTS: Mutex<HashMap<String, (u32, Instant)>> = Mutex::new(HashMap::new());
+    // ... rest of function
 }
 
-app.use_middleware("/api/", |req, res| async move {
-    let client_ip = req.headers.get("X-Forwarded-For")
-        .or_else(|| req.headers.get("X-Real-IP"))
-        .unwrap_or("unknown")
-        .to_string();
-
-    let mut counts = REQUEST_COUNTS.lock().unwrap();
-    let now = Instant::now();
-
-    if let Some((count, last_request)) = counts.get_mut(&client_ip) {
-        if now.duration_since(*last_request) < Duration::from_secs(60) {
-            *count += 1;
-            if *count > 100 { // 100 requests per minute
-                return (
-                    req,
-                    Some(res.too_many_requests().json(serde_json::json!({
-                        "error": "Rate limit exceeded"
-                    }))),
-                );
-            }
-        } else {
-            *count = 1;
-        }
-        *last_request = now;
-    } else {
-        counts.insert(client_ip.clone(), (1, now));
-    }
-
-    (req, None)
-});
-```
-
-## Middleware Execution Order
-
-Middleware executes in the order it's added to the application:
-
-```rust
-// This runs first
-app.use_middleware("/", |req, res| async move {
-    println!("First middleware");
-    (req, None)
-});
-
-// This runs second
-app.use_middleware("/api/", |req, res| async move {
-    println!("API middleware");
-    (req, None)
-});
-
-// This runs third (only for /api/ routes)
-app.use_middleware("/api/users/", |req, res| async move {
-    println!("Users API middleware");
-    (req, None)
-});
-```
-
-## Middleware Best Practices
-
-### 1. Order Matters
-
-Place general middleware (like CORS, logging) before specific middleware (like authentication, rate limiting).
-
-### 2. Error Handling
-
-Always handle potential errors in your middleware and return appropriate HTTP status codes.
-
-### 3. Performance
-
-Keep middleware lightweight and avoid blocking operations. Use async/await for I/O operations.
-
-### 4. Data Sharing
-
-Use `req.set_data()` to share information between middleware and route handlers.
-
-### 5. Short-circuiting
-
-Use `(req, Some(response))` to stop processing when necessary (e.g., authentication failures).
-
-## Complete Example
-
-Here's a complete example showing multiple middleware working together:
-
-```rust
-use ripress::{
-    app::App,
-    context::{HttpRequest, HttpResponse},
-    middlewares::{cors::cors, logger::logger, file_upload::file_upload},
-    types::RouterFns,
-};
-
-#[tokio::main]
-async fn main() {
-    let mut app = App::new();
-
-    // Global middleware (runs for all routes)
-    app.use_middleware("/", cors(None));
-    app.use_middleware("/", logger(None));
-
-    // API-specific middleware
-    app.use_middleware("/api/", |req, res| async move {
-        // Add API version to request
-        let mut req = req.clone();
-        req.set_data("api_version", "v1");
-        (req, None)
-    });
-
-    // File upload middleware
-    app.use_middleware("/upload", file_upload(None));
-
-    // Routes
-    app.get("/api/status", |req, res| async move {
-        let version = req.get_data("api_version").unwrap_or_default();
-        res.ok().json(serde_json::json!({
-            "status": "ok",
-            "version": version
-        }))
-    });
-
-    app.post("/upload", |req, res| async move {
-        if let Some(count_str) = req.get_data("uploaded_file_count") {
-            let count: usize = count_str.parse().unwrap_or(0);
-            if count > 0 {
-                if let Some(files_json) = req.get_data("uploaded_files") {
-                    res.ok().json(serde_json::json!({
-                        "success": true,
-                        "count": count,
-                        "files": serde_json::from_str::<serde_json::Value>(&files_json).unwrap(),
-                        "message": format!("Successfully uploaded {} files", count)
-                    }))
-                } else {
-                    res.ok().json(serde_json::json!({
-                        "success": true,
-                        "count": count,
-                        "message": format!("Successfully uploaded {} files", count)
-                    }))
-                }
-            } else {
-                res.ok().json(serde_json::json!({
-                    "success": false,
-                    "message": "No files were uploaded"
-                }))
-            }
-        } else {
-            res.ok().json(serde_json::json!({
-                "success": false,
-                "message": "No files were uploaded"
-            }))
-        }
-    });
-
-    app.listen(3000, || {
-        println!("Server running on port 3000");
-    }).await;
+// Update the processing loop
+for (file_bytes, field_name, original_filename) in files_to_process {
+    // Now original_filename is properly available
+    let file_info = FileInfo {
+        filename: filename.clone(),
+        path: filename_with_path.clone(),
+        original_filename: original_filename.clone(),
+        field_name: field_name.clone(),
+    };
+    // ... rest of processing
 }
 ```
-
-This setup provides:
-
-- CORS support for all routes
-- Request/response logging
-- API version tracking for API routes
-- File upload handling for upload routes
-- Clean separation of concerns
