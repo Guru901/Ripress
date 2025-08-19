@@ -513,36 +513,27 @@ mod tests {
 
     #[test]
     fn test_cors_headers_default_config() {
-        let (req, maybe_res) = run_cors_middleware(HttpMethods::GET, None);
-        assert!(maybe_res.is_none());
-        // The response is not returned, but we can check that the headers would be set
-        let mut req = HttpRequest::new();
-        req.method = HttpMethods::GET;
-        let res = HttpResponse::new();
-        let mw = cors(None);
-        let (_req, _maybe_res) = futures::executor::block_on(mw(req.clone(), res.clone()));
-        let mut res = res;
-        res = res
-            .set_header("Access-Control-Allow-Origin", "*")
-            .set_header(
-                "Access-Control-Allow-Methods",
-                "GET, POST, PUT, DELETE, OPTIONS, HEAD",
-            )
-            .set_header(
-                "Access-Control-Allow-Headers",
-                "Content-Type, Authorization",
-            );
-        assert_eq!(res.headers.get("Access-Control-Allow-Origin"), Some("*"));
-        assert_eq!(
-            res.headers.get("Access-Control-Allow-Methods"),
-            Some("GET, POST, PUT, DELETE, OPTIONS, HEAD")
-        );
-        assert_eq!(
-            res.headers.get("Access-Control-Allow-Headers"),
-            Some("Content-Type, Authorization")
-        );
-        assert_eq!(res.headers.get("Access-Control-Allow-Credentials"), None);
-    }
+#[test]
+fn test_cors_headers_default_config() {
+    // For non-OPTIONS requests, the middleware adds headers but returns None
+    // to continue to the next handler. We need a different approach to test this.
+    // Consider modifying the test helper to return the modified response object
+    // or test with OPTIONS which returns Some(response).
+    let (req, maybe_res) = run_cors_middleware(HttpMethods::OPTIONS, None);
+    assert!(maybe_res.is_some());
+    let res = maybe_res.unwrap();
+    
+    assert_eq!(res.headers.get("Access-Control-Allow-Origin"), Some("*"));
+    assert_eq!(
+        res.headers.get("Access-Control-Allow-Methods"),
+        Some("GET, POST, PUT, DELETE, OPTIONS, HEAD")
+    );
+    assert_eq!(
+        res.headers.get("Access-Control-Allow-Headers"),
+        Some("Content-Type, Authorization")
+    );
+    assert_eq!(res.headers.get("Access-Control-Allow-Credentials"), None);
+}
 
     #[test]
 #[test]
