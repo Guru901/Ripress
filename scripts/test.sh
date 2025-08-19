@@ -109,6 +109,9 @@ async fn main() {
     app.get("/multiple-cookies-test", get_multi_cookie_test);
     app.get("/cookie-options-test", get_cookie_with_options_test);
     app.get("/binary-test", binary_test);
+    app.get("/cors-test", cors_test);
+    app.get("/multiple-headers-test", multiple_headers_test);
+    app.delete("/no-content-test", no_content_test);
 
     // streaming tests
     app.get("/stream-text", stream_text);
@@ -385,6 +388,21 @@ async fn stream_json(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     });
 
     res.write(stream)
+}
+
+async fn cors_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+}
+
+async fn multiple_headers_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+        .set_header("x-header-1", "value1")
+        .set_header("x-header-2", "value2")
+        .set_header("x-header-3", "value3")
+}
+
+async fn no_content_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.no_content()
 }
 
 ' > main.rs
