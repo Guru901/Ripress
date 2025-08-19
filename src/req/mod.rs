@@ -1,7 +1,7 @@
 #![warn(missing_docs)]
 
 use crate::{
-    helpers::get_all_query,
+    helpers::{extract_boundary, get_all_query, parse_multipart_form},
     req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
     types::HttpMethods,
 };
@@ -552,28 +552,65 @@ impl HttpRequest {
 
                 match body_bytes {
                     Ok(bytes) => {
-                        // Only attempt to parse application/x-www-form-urlencoded here.
-                        let is_multipart = req
-                            .headers()
-                            .get(hyper::header::CONTENT_TYPE)
-                            .and_then(|v| v.to_str().ok())
-                            .map(|ct| ct.contains("multipart/form-data"))
-                            .unwrap_or(false);
-
-                        if is_multipart {
-                            // Preserve raw multipart bytes so downstream middleware (e.g. file uploads)
-                            // can parse parts properly. Treat as binary content.
-                            RequestBody::new_binary(bytes)
-                        } else {
-                            let body_string = std::str::from_utf8(&bytes).unwrap_or("").to_string();
-                            match FormData::from_query_string(&body_string) {
-                                Ok(fd) => RequestBody::new_form(fd),
-                                Err(_e) => {
-                                    // Prefer logging via `log`/`tracing` instead of printing.
-                                    RequestBody::new_form(FormData::new())
-                                }
+                        let body_string = std::str::from_utf8(&bytes).unwrap_or("").to_string();
+                        match FormData::from_query_string(&body_string) {
+                            Ok(fd) => RequestBody::new_form(fd),
+                            Err(_e) => {
+                                // Prefer logging via `log`/`tracing` instead of printing.
+                                RequestBody::new_form(FormData::new())
                             }
                         }
+                    }
+                    Err(err) => return Err(err),
+                }
+            }
+            RequestBodyType::MultipartForm => {
+                let body_bytes = to_bytes(req.body_mut()).await;
+
+                match body_bytes {
+                    Ok(bytes) => {
+                        // Get content type header to extract boundary
+                        let content_type_header = req
+                            .headers()
+                            .get(hyper::header::CONTENT_TYPE)
+                            .and_then(|val| val.to_str().ok())
+                            .unwrap_or_default();
+
+                        let boundary = if content_type_header
+                            .to_lowercase()
+                            .contains("multipart/form-data")
+                        {
+                            extract_boundary(&content_type_header)
+                        } else {
+                            None
+                        };
+
+                        // Parse multipart/form-data using the same logic as the middleware
+                        let (fields, _file_parts) = if let Some(boundary) = boundary {
+                            parse_multipart_form(&bytes, &boundary)
+                        } else {
+                            // If not multipart, try to parse as form data using the same method
+                            let body_string = std::str::from_utf8(&bytes).unwrap_or("").to_string();
+                            match FormData::from_query_string(&body_string) {
+                                Ok(fd) => {
+                                    // Convert FormData to fields vector for consistency
+                                    let form_fields = fd
+                                        .iter()
+                                        .map(|(k, v)| (k.to_string(), v.to_string()))
+                                        .collect::<Vec<(String, String)>>();
+                                    (form_fields, Vec::new())
+                                }
+                                Err(_e) => (Vec::new(), Vec::new()),
+                            }
+                        };
+
+                        // Convert fields back to FormData
+                        let mut form_data = FormData::new();
+                        for (key, value) in fields {
+                            form_data.insert(key, value);
+                        }
+
+                        RequestBody::new_form(form_data)
                     }
                     Err(err) => return Err(err),
                 }
@@ -804,7 +841,11 @@ pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
             (mime::APPLICATION, subtype) if subtype == "x-www-form-urlencoded" => {
                 RequestBodyType::FORM
             }
-            (mime::MULTIPART, mime::FORM_DATA) => RequestBodyType::FORM,
+            (mime::APPLICATION, subtype) if subtype == "form-data" => RequestBodyType::FORM,
+            (mime::APPLICATION, subtype) if subtype == "x-multipart-formdata" => {
+                RequestBodyType::MultipartForm
+            }
+            (mime::MULTIPART, subtype) if subtype == "form-data" => RequestBodyType::MultipartForm,
             (mime::TEXT, _) => RequestBodyType::TEXT,
             // Handle JSON variants
             (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {

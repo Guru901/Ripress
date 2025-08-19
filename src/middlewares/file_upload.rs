@@ -1,3 +1,5 @@
+use crate::helpers::{extract_boundary, parse_multipart_form};
+use crate::req::body::FormData;
 use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
 use tokio::fs::{File, create_dir_all};
 use tokio::io::AsyncWriteExt;
@@ -117,24 +119,30 @@ pub fn file_upload(
     move |mut req, _res| {
         let upload_path = upload_path.clone();
         Box::pin(async move {
-            // Read the raw body to determine Content-Type and extract fields/files
+            // First try to read the raw body
             let bytes_vec = match req.bytes() {
                 Ok(bytes) => bytes.to_vec(),
                 Err(_) => {
-                    // If bytes() fails, try to get the body content in other ways
-                    // For multipart forms, we need to check the content type first
-                    let content_type = req.headers.content_type().unwrap_or_default();
-                    if content_type.to_lowercase().contains("multipart/form-data") {
-                        // For multipart forms, we need the raw body
-                        // Since we can't access it directly, we'll return early
-                        // This is a limitation of the current architecture
-                        eprintln!(
-                            "File upload middleware: multipart/form-data detected but raw body not accessible"
-                        );
-                        return (req, None);
-                    } else {
-                        // Not a multipart form, continue without file upload
-                        return (req, None);
+                    // If bytes() fails, try to get form_data and convert to bytes
+                    eprintln!("File upload middleware: req.bytes() failed, trying form_data()");
+
+                    match req.form_data() {
+                        Ok(form_data) => {
+                            // Convert HashMap<String, String> to bytes
+                            // This creates a simple key=value&key=value format
+                            let form_string = form_data_to_string(form_data);
+                            if form_string.is_empty() {
+                                eprintln!("File upload middleware: No form data available");
+                                return (req, None);
+                            }
+                            form_string.into_bytes()
+                        }
+                        Err(_) => {
+                            eprintln!(
+                                "File upload middleware: Both bytes() and form_data() failed"
+                            );
+                            return (req, None);
+                        }
                     }
                 }
             };
@@ -277,160 +285,21 @@ struct FileInfo {
     _field_name: Option<String>,
 }
 
-fn extract_boundary(content_type: &str) -> Option<String> {
-    // Example: "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW"
-    // or boundary="..."
-    for part in content_type.split(';').map(|s| s.trim()) {
-        if let Some(rest) = part.strip_prefix("boundary=") {
-            let mut b = rest.trim();
-            if b.starts_with('"') && b.ends_with('"') && b.len() >= 2 {
-                b = &b[1..b.len() - 1];
-            }
-            if !b.is_empty() {
-                return Some(b.to_string());
-            }
-        }
-    }
-    None
-}
-
-fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    if needle.is_empty() {
-        return Some(0);
-    }
-    haystack
-        .windows(needle.len())
-        .position(|window| window == needle)
-}
-
-// Updated multipart parser that extracts text fields and ALL file parts
-// Returns (fields, file_parts) where file_parts is Vec<(bytes, field_name)>
-fn parse_multipart_form(
-    body: &[u8],
-    boundary: &str,
-) -> (Vec<(String, String)>, Vec<(Vec<u8>, Option<String>)>) {
-    let boundary_start = format!("--{}", boundary);
-    let boundary_start_bytes = boundary_start.as_bytes();
-    let boundary_next = format!("\r\n--{}", boundary);
-    let boundary_next_bytes = boundary_next.as_bytes();
-    let boundary_close = format!("--{}--", boundary);
-    let boundary_close_bytes = boundary_close.as_bytes();
-
-    // Find the first boundary
-    let mut pos = match find_subsequence(body, boundary_start_bytes) {
-        Some(p) => p + boundary_start_bytes.len(),
-        None => return (Vec::new(), Vec::new()),
-    };
-
-    // Skip optional CRLF after the first boundary
-    if body.get(pos..pos + 2) == Some(b"\r\n") {
-        pos += 2;
+/// Converts HashMap<String, String> form data to a string representation
+fn form_data_to_string(form_data: &FormData) -> String {
+    if form_data.is_empty() {
+        return String::new();
     }
 
-    let mut fields: Vec<(String, String)> = Vec::new();
-    let mut file_parts: Vec<(Vec<u8>, Option<String>)> = Vec::new();
-
-    loop {
-        // Find end of headers (CRLFCRLF)
-        let header_end_rel = match find_subsequence(&body[pos..], b"\r\n\r\n") {
-            Some(i) => i,
-            None => return (fields, file_parts),
-        };
-        let headers_bytes = &body[pos..pos + header_end_rel];
-        let headers_str = String::from_utf8_lossy(headers_bytes);
-        let content_start = pos + header_end_rel + 4;
-
-        // Locate the next boundary (start of next part or closing)
-        let next_boundary_rel = match find_subsequence(&body[content_start..], boundary_next_bytes)
-        {
-            Some(i) => i,
-            None => {
-                // Try close boundary without preceding CRLF (edge case)
-                match find_subsequence(&body[content_start..], boundary_close_bytes) {
-                    Some(i2) => i2,
-                    None => return (fields, file_parts),
-                }
-            }
-        };
-        let content_end = content_start + next_boundary_rel;
-
-        // Parse Content-Disposition to determine field name and if this is a file part
-        let mut is_file_part = false;
-        let mut field_name: Option<String> = None;
-        for line in headers_str.lines() {
-            let l = line.trim();
-            if l.to_ascii_lowercase().starts_with("content-disposition:") {
-                // Extract name
-                if let Some(idx) = l.find("name=") {
-                    let rest = &l[idx + 5..];
-                    let name_val = extract_quoted_or_token(rest);
-                    if !name_val.is_empty() {
-                        field_name = Some(name_val.to_string());
-                    }
-                }
-                // Extract filename if present
-                if let Some(idx) = l.find("filename=") {
-                    let rest = &l[idx + 9..];
-                    let val = extract_quoted_or_token(rest);
-                    if !val.is_empty() {
-                        is_file_part = true;
-                    }
-                }
-            }
-        }
-
-        if is_file_part {
-            // Collect ALL file parts, not just the first one
-            let file_bytes = trim_trailing_crlf(&body[content_start..content_end]).to_vec();
-            // Pass the field_name instead of original_filename for the mapping
-            file_parts.push((file_bytes, field_name));
-        } else if let Some(name) = field_name {
-            let value_bytes = trim_trailing_crlf(&body[content_start..content_end]);
-            let value = String::from_utf8_lossy(value_bytes).to_string();
-            fields.push((name, value));
-        }
-
-        // Move to the next part
-        pos = content_end;
-        // Step to the boundary marker and beyond
-        if body.get(pos..pos + boundary_next_bytes.len()) == Some(boundary_next_bytes) {
-            pos += boundary_next_bytes.len();
-        } else if body.get(pos..pos + boundary_close_bytes.len()) == Some(boundary_close_bytes) {
-            // End reached
-            return (fields, file_parts);
-        } else {
-            // Try to realign to the next boundary start
-            match find_subsequence(&body[pos..], boundary_next_bytes) {
-                Some(rel) => pos += rel + boundary_next_bytes.len(),
-                None => return (fields, file_parts),
-            }
-        }
-
-        // Skip CRLF after boundary if present
-        if body.get(pos..pos + 2) == Some(b"\r\n") {
-            pos += 2;
-        }
-    }
-}
-
-fn trim_trailing_crlf(slice: &[u8]) -> &[u8] {
-    if slice.ends_with(b"\r\n") {
-        &slice[..slice.len() - 2]
-    } else {
-        slice
-    }
-}
-
-fn extract_quoted_or_token(input: &str) -> &str {
-    let val = input.trim();
-    if let Some(start) = val.find('"') {
-        let val2 = &val[start + 1..];
-        if let Some(end) = val2.find('"') {
-            &val2[..end]
-        } else {
-            val
-        }
-    } else {
-        val.split(';').next().unwrap_or(val).trim()
-    }
+    form_data
+        .iter()
+        .map(|(key, value)| {
+            format!(
+                "{}={}",
+                urlencoding::encode(key),
+                urlencoding::encode(value)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("&")
 }
