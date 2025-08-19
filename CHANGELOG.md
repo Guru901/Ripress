@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.1] - 2025-08-20
+
+Fixed multipart formdata parsing with no files
+Added more tests
+
 ## [1.1.0] - 2025-08-19
 
 Added file upload middleware
