@@ -145,20 +145,23 @@ pub(crate) fn parse_multipart_form(
         for line in headers_str.lines() {
             let l = line.trim();
             if l.to_ascii_lowercase().starts_with("content-disposition:") {
-                // Extract name
-                if let Some(idx) = l.find("name=") {
-                    let rest = &l[idx + 5..];
-                    let name_val = extract_quoted_or_token(rest);
-                    if !name_val.is_empty() {
-                        field_name = Some(name_val.to_string());
-                    }
-                }
-                // Extract filename if present
-                if let Some(idx) = l.find("filename=") {
-                    let rest = &l[idx + 9..];
-                    let val = extract_quoted_or_token(rest);
-                    if !val.is_empty() {
-                        is_file_part = true;
+                let after_colon = l.splitn(2, ':').nth(1).unwrap_or("").trim();
+                for param in after_colon.split(';') {
+                    let param = param.trim();
+                    let (k, v) = match param.split_once('=') {
+                        Some((k, v)) => (k.trim(), v.trim()),
+                        None => continue,
+                    };
+                    let key = k.to_ascii_lowercase();
+                    let val = extract_quoted_or_token(v);
+                    match key.as_str() {
+                        "name" if !val.is_empty() => {
+                            field_name = Some(val.to_string());
+                        }
+                        "filename" | "filename*" if !val.is_empty() => {
+                            is_file_part = true;
+                        }
+                        _ => {}
                     }
                 }
             }
