@@ -545,43 +545,36 @@ mod tests {
     }
 
     #[test]
-    fn test_cors_headers_custom_config_with_credentials() {
-        let config = CorsConfig {
-            allowed_origin: "https://example.com",
-            allowed_methods: "GET, POST",
-            allowed_headers: "X-Custom-Header",
-            allow_credentials: true,
-        };
-        let (req, maybe_res) = run_cors_middleware(HttpMethods::POST, Some(config.clone()));
-        assert!(maybe_res.is_none());
-        let mut req = HttpRequest::new();
-        req.method = HttpMethods::POST;
-        let res = HttpResponse::new();
-        let mw = cors(Some(config.clone()));
-        let (_req, _maybe_res) = futures::executor::block_on(mw(req.clone(), res.clone()));
-        let mut res = res;
-        res = res
-            .set_header("Access-Control-Allow-Origin", config.allowed_origin)
-            .set_header("Access-Control-Allow-Methods", config.allowed_methods)
-            .set_header("Access-Control-Allow-Headers", config.allowed_headers)
-            .set_header("Access-Control-Allow-Credentials", "true");
-        assert_eq!(
-            res.headers.get("Access-Control-Allow-Origin"),
-            Some("https://example.com")
-        );
-        assert_eq!(
-            res.headers.get("Access-Control-Allow-Methods"),
-            Some("GET, POST")
-        );
-        assert_eq!(
-            res.headers.get("Access-Control-Allow-Headers"),
-            Some("X-Custom-Header")
-        );
-        assert_eq!(
-            res.headers.get("Access-Control-Allow-Credentials"),
-            Some("true")
-        );
-    }
+#[test]
+fn test_cors_headers_custom_config_with_credentials() {
+    let config = CorsConfig {
+        allowed_origin: "https://example.com",
+        allowed_methods: "GET, POST",
+        allowed_headers: "X-Custom-Header",
+        allow_credentials: true,
+    };
+    // Test with OPTIONS to get the response with headers
+    let (req, maybe_res) = run_cors_middleware(HttpMethods::OPTIONS, Some(config.clone()));
+    assert!(maybe_res.is_some());
+    let res = maybe_res.unwrap();
+
+    assert_eq!(
+        res.headers.get("Access-Control-Allow-Origin"),
+        Some("https://example.com")
+    );
+    assert_eq!(
+        res.headers.get("Access-Control-Allow-Methods"),
+        Some("GET, POST")
+    );
+    assert_eq!(
+        res.headers.get("Access-Control-Allow-Headers"),
+        Some("X-Custom-Header")
+    );
+    assert_eq!(
+        res.headers.get("Access-Control-Allow-Credentials"),
+        Some("true")
+    );
+}
 
     #[test]
     fn test_cors_options_preflight_returns_response() {
