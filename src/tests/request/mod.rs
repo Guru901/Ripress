@@ -9,7 +9,7 @@ mod tests {
     use crate::{
         req::origin_url::Url,
         res::{CookieOptions, HttpResponse},
-        types::{HttpResponseError, ResponseContentBody, ResponseContentType},
+        types::{_HttpResponseError, ResponseContentBody, ResponseContentType},
     };
     use serde_json::json;
 
@@ -258,7 +258,7 @@ mod tests {
 
     #[test]
     fn test_response_error() {
-        let err_1 = HttpResponseError::MissingHeader("id".to_string());
+        let err_1 = _HttpResponseError::MissingHeader("id".to_string());
         assert_eq!(err_1.to_string(), "Header id doesnt exist");
     }
 

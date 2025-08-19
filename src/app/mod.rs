@@ -549,7 +549,7 @@ impl App {
         }
     }
 
-    pub(crate) fn build_router(&self) -> routerify::Router<Body, ApiError> {
+    pub(crate) fn _build_router(&self) -> routerify::Router<Body, ApiError> {
         routerify::Router::builder()
             .err_handler(Self::error_handler)
             .build()

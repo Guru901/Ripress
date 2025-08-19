@@ -207,7 +207,7 @@ pub fn file_upload(
                             filename: filename.clone(),
                             path: filename_with_path.clone(),
                             original_filename: original_filename.clone(),
-                            field_name: field_name.clone(),
+                            _field_name: field_name.clone(),
                         };
                         uploaded_files.push(file_info);
 
@@ -274,7 +274,7 @@ struct FileInfo {
     filename: String,
     path: String,
     original_filename: Option<String>,
-    field_name: Option<String>,
+    _field_name: Option<String>,
 }
 
 fn extract_boundary(content_type: &str) -> Option<String> {
@@ -357,7 +357,6 @@ fn parse_multipart_form(
         // Parse Content-Disposition to determine field name and if this is a file part
         let mut is_file_part = false;
         let mut field_name: Option<String> = None;
-        let mut original_filename: Option<String> = None;
         for line in headers_str.lines() {
             let l = line.trim();
             if l.to_ascii_lowercase().starts_with("content-disposition:") {
@@ -375,7 +374,6 @@ fn parse_multipart_form(
                     let val = extract_quoted_or_token(rest);
                     if !val.is_empty() {
                         is_file_part = true;
-                        original_filename = Some(val.to_string());
                     }
                 }
             }

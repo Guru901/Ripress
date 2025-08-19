@@ -12,12 +12,10 @@ mod tests {
         req::HttpRequest,
         types::{HttpMethods, RouterFns},
     };
-    use hyper::service::Service;
     use hyper::{Body, Request, Response, StatusCode, header};
     use reqwest;
     use routerify::RouteError;
     use std::io::Write;
-    use std::net::SocketAddr;
     use std::time::Duration;
     use std::{
         fs::File,
@@ -304,7 +302,7 @@ mod tests {
     }
 
     // Alternative approach: Direct testing without RouterService complexity
-    async fn call_route(router: routerify::Router<Body, ApiError>, req: Request<Body>) -> u16 {
+    async fn call_route(_router: routerify::Router<Body, ApiError>, req: Request<Body>) -> u16 {
         // For testing purposes, we can simulate the routing logic
         // This is a simplified approach that works around RouterService complexity
         let method = req.method().as_str();
@@ -327,11 +325,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_route_registration() {
         let mut app = App::new();
-        app.add_route(HttpMethods::GET, "/hello", |req, res| async {
+        app.add_route(HttpMethods::GET, "/hello", |_, _| async {
             dummy_handler_listen(200)
         });
 
-        let router = app.build_router();
+        let router = app._build_router();
 
         let req = Request::builder()
             .uri("/hello")
@@ -346,11 +344,11 @@ mod tests {
     #[tokio::test]
     async fn test_post_route_registration() {
         let mut app = App::new();
-        app.add_route(HttpMethods::POST, "/submit", |req, res| async {
+        app.add_route(HttpMethods::POST, "/submit", |_, _| async {
             dummy_handler_listen(201)
         });
 
-        let router = app.build_router();
+        let router = app._build_router();
         let req = Request::builder()
             .uri("/submit")
             .method("POST")
@@ -364,11 +362,11 @@ mod tests {
     #[tokio::test]
     async fn test_put_route() {
         let mut app = App::new();
-        app.add_route(HttpMethods::PUT, "/update", |req, res| async {
+        app.add_route(HttpMethods::PUT, "/update", |_, _| async {
             dummy_handler_listen(202)
         });
 
-        let router = app.build_router();
+        let router = app._build_router();
         let req_put = Request::builder()
             .uri("/update")
             .method("PUT")
@@ -380,11 +378,11 @@ mod tests {
     #[tokio::test]
     async fn test_delete_route() {
         let mut app = App::new();
-        app.add_route(HttpMethods::DELETE, "/update", |req, res| async {
+        app.add_route(HttpMethods::DELETE, "/update", |_, _| async {
             dummy_handler_listen(204)
         });
 
-        let router = app.build_router();
+        let router = app._build_router();
         let req_delete = Request::builder()
             .uri("/update")
             .method("DELETE")
@@ -396,11 +394,11 @@ mod tests {
     #[tokio::test]
     async fn test_patch_route() {
         let mut app = App::new();
-        app.add_route(HttpMethods::PATCH, "/update", |req, res| async {
+        app.add_route(HttpMethods::PATCH, "/update", |_, _| async {
             dummy_handler_listen(200)
         });
 
-        let router = app.build_router();
+        let router = app._build_router();
         let req_patch = Request::builder()
             .uri("/update")
             .method("PATCH")
@@ -412,11 +410,11 @@ mod tests {
     #[tokio::test]
     async fn test_head_route() {
         let mut app = App::new();
-        app.add_route(HttpMethods::HEAD, "/ping", |req, res| async {
+        app.add_route(HttpMethods::HEAD, "/ping", |_, _| async {
             dummy_handler_listen(200)
         });
 
-        let router = app.build_router();
+        let router = app._build_router();
         let req_head = Request::builder()
             .uri("/ping")
             .method("HEAD")
@@ -428,11 +426,11 @@ mod tests {
     #[tokio::test]
     async fn test_options_route() {
         let mut app = App::new();
-        app.add_route(HttpMethods::OPTIONS, "/opt", |req, res| async {
+        app.add_route(HttpMethods::OPTIONS, "/opt", |_, _| async {
             dummy_handler_listen(200)
         });
 
-        let router = app.build_router();
+        let router = app._build_router();
         let req_options = Request::builder()
             .uri("/opt")
             .method("OPTIONS")
@@ -444,14 +442,11 @@ mod tests {
     #[tokio::test]
     async fn test_bad_request_on_invalid_request() {
         let mut app = App::new();
-        app.add_route(HttpMethods::GET, "/fail", |_req, res: HttpResponse| {
-            Box::pin(async move {
-                // Simulate something invalid (no response body)
-                res.status(500)
-            })
+        app.add_route(HttpMethods::GET, "/fail", |_, res: HttpResponse| {
+            Box::pin(async move { res.status(500) })
         });
 
-        let router = app.build_router();
+        let router = app._build_router();
         let req = Request::builder()
             .uri("/fail")
             .method("GET")
