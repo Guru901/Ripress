@@ -9,7 +9,7 @@ use std::fmt::Display;
 use std::pin::Pin;
 use std::sync::Arc;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ResponseContentBody {
     TEXT(String),
     HTML(String),

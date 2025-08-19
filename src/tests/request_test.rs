@@ -97,6 +97,47 @@ mod tests {
     }
 
     #[test]
+    fn test_binary_response() {
+        let bytes = vec![1, 2, 3, 4, 5];
+        let response = HttpResponse::new().bytes(bytes.clone());
+        assert_eq!(response.get_content_type(), &ResponseContentType::BINARY);
+        if let ResponseContentBody::BINARY(body) = response.get_body() {
+            assert_eq!(body, bytes);
+        } else {
+            panic!("Expected BINARY body");
+        }
+
+        // Edge case: Empty BINARY object
+        let empty_bytes = vec![];
+        let response = HttpResponse::new().bytes(empty_bytes.clone());
+        if let ResponseContentBody::BINARY(body) = response.get_body() {
+            assert_eq!(body, empty_bytes);
+        } else {
+            panic!("Expected BINARY body");
+        }
+
+        let data = vec![1, 2, 3, 4, 5];
+        let response = HttpResponse::new()
+            .set_header("X-Custom", "value")
+            .set_cookie("session", "123", CookieOptions::default())
+            .ok()
+            .bytes(data)
+            .to_responder()
+            .unwrap();
+
+        assert_eq!(response.status(), 200);
+        assert_eq!(response.headers().get("X-Custom").unwrap(), "value");
+        assert_eq!(
+            response.headers().get("Set-Cookie").unwrap(),
+            "session=123; HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0"
+        );
+        assert_eq!(
+            response.headers().get("Content-Type").unwrap(),
+            "application/octet-stream"
+        );
+    }
+
+    #[test]
     fn test_text_response() {
         let text_body = "Hello, World!";
         let response = HttpResponse::new().text(text_body);

@@ -102,7 +102,7 @@ pub enum CookieSameSiteOptions {
 }
 
 /// Options for setting cookies
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CookieOptions {
     /// Sets the HttpOnly attribute
     pub http_only: bool,
@@ -140,11 +140,11 @@ impl Default for CookieOptions {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Cookie {
     pub name: &'static str,
     pub value: &'static str,
-    options: CookieOptions,
+    pub(crate) options: CookieOptions,
 }
 
 /// Represents an HTTP response being sent to the client.
@@ -184,7 +184,7 @@ pub(crate) struct Cookie {
 
 pub struct HttpResponse {
     // Response body content
-    body: ResponseContentBody,
+    pub(crate) body: ResponseContentBody,
 
     // Content type of the response
     pub(crate) content_type: ResponseContentType,

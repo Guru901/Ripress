@@ -94,7 +94,7 @@ use std::fmt;
 /// ## Caching Headers
 /// - Cache-Control, ETag, Last-Modified
 /// - No-cache setup: [`no_cache()`](Self::no_cache)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ResponseHeaders {
     /// Store with lowercase keys for case-insensitive lookup.
     /// Values are Vec<String> to support multiple values for the same header.

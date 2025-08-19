@@ -33,8 +33,15 @@ pub(crate) async fn exec_middleware(
     }
 }
 
-fn path_matches(prefix: &str, path: &str) -> bool {
-    path == prefix || path.starts_with(&(prefix.to_string() + "/"))
+pub(crate) fn path_matches(prefix: &str, path: &str) -> bool {
+    let is_slash = prefix == "/" || prefix.ends_with('/');
+    if is_slash {
+        path == prefix
+            || path.starts_with(&(prefix.to_string()))
+            || path.starts_with(&(prefix.to_string() + "/"))
+    } else {
+        path == prefix || path.starts_with(&(prefix.to_string() + "/"))
+    }
 }
 
 pub(crate) fn get_all_query(queries: &QueryParams) -> String {

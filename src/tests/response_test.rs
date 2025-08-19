@@ -1,15 +1,106 @@
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+    use std::error::Error;
+
     use crate::context::HttpRequest;
     use crate::req::body::RequestBodyType;
     use crate::req::body::TextData;
     use crate::req::determine_content_type;
     use crate::req::origin_url::Url;
+    use crate::res::Cookie;
+    use crate::res::CookieOptions;
+    use crate::res::HttpResponse;
+    use crate::res::ResponseError;
     use crate::res::response_headers::ResponseHeaders;
     use crate::res::response_status::StatusCode;
     use crate::types::HttpMethods;
     use crate::types::HttpRequestError;
+    use futures::stream;
+    use hyper::Method;
     use serde_json::json;
+
+    #[test]
+    fn test_httpmethods_display() {
+        assert_eq!(HttpMethods::GET.to_string(), "GET");
+        assert_eq!(HttpMethods::POST.to_string(), "POST");
+        assert_eq!(HttpMethods::PUT.to_string(), "PUT");
+        assert_eq!(HttpMethods::DELETE.to_string(), "DELETE");
+        assert_eq!(HttpMethods::PATCH.to_string(), "PATCH");
+        assert_eq!(HttpMethods::OPTIONS.to_string(), "OPTIONS");
+        assert_eq!(HttpMethods::HEAD.to_string(), "HEAD");
+    }
+
+    #[test]
+    fn test_httpmethods_from() {
+        let method = HttpMethods::from(&Method::GET);
+        assert_eq!(method, HttpMethods::GET);
+
+        let method = HttpMethods::from(&Method::POST);
+        assert_eq!(method, HttpMethods::POST);
+
+        let method = HttpMethods::from(&Method::PUT);
+        assert_eq!(method, HttpMethods::PUT);
+
+        let method = HttpMethods::from(&Method::DELETE);
+        assert_eq!(method, HttpMethods::DELETE);
+
+        let method = HttpMethods::from(&Method::PATCH);
+        assert_eq!(method, HttpMethods::PATCH);
+
+        let method = HttpMethods::from(&Method::OPTIONS);
+        assert_eq!(method, HttpMethods::OPTIONS);
+
+        let method = HttpMethods::from(&Method::HEAD);
+        assert_eq!(method, HttpMethods::HEAD);
+
+        let method = HttpMethods::from(&Method::CONNECT);
+        assert_eq!(method, HttpMethods::GET);
+
+        let method = HttpMethods::from(&Method::TRACE);
+        assert_eq!(method, HttpMethods::GET);
+    }
+
+    #[test]
+    fn test_status_code_helpers() {
+        let response = HttpResponse::new().accepted();
+        assert_eq!(response.status_code.as_u16(), 202);
+        assert_eq!(response.status_code.canonical_reason(), "Accepted");
+
+        let response = HttpResponse::new().no_content();
+        assert_eq!(response.status_code.as_u16(), 204);
+        assert_eq!(response.status_code.canonical_reason(), "No Content");
+
+        let response = HttpResponse::new().forbidden();
+        assert_eq!(response.status_code.as_u16(), 403);
+        assert_eq!(response.status_code.canonical_reason(), "Forbidden");
+
+        let response = HttpResponse::new().method_not_allowed();
+        assert_eq!(response.status_code.as_u16(), 405);
+        assert_eq!(
+            response.status_code.canonical_reason(),
+            "Method Not Allowed"
+        );
+
+        let response = HttpResponse::new().conflict();
+        assert_eq!(response.status_code.as_u16(), 409);
+        assert_eq!(response.status_code.canonical_reason(), "Conflict");
+
+        let response = HttpResponse::new().not_implemented();
+        assert_eq!(response.status_code.as_u16(), 501);
+        assert_eq!(response.status_code.canonical_reason(), "Not Implemented");
+
+        let response = HttpResponse::new().bad_gateway();
+        assert_eq!(response.status_code.as_u16(), 502);
+        assert_eq!(response.status_code.canonical_reason(), "Bad Gateway");
+
+        let response = HttpResponse::new().service_unavailable();
+        assert_eq!(response.status_code.as_u16(), 503);
+        assert_eq!(
+            response.status_code.canonical_reason(),
+            "Service Unavailable"
+        );
+    }
 
     #[test]
     fn test_get_query() {
@@ -234,11 +325,13 @@ mod tests {
         let err_2 = HttpRequestError::MissingQuery("id".to_string());
         let err_3 = HttpRequestError::MissingCookie("id".to_string());
         let err_4 = HttpRequestError::MissingHeader("id".to_string());
+        let err_5 = HttpRequestError::InvalidJson("id".to_string());
 
         assert_eq!(err_1.to_string(), "Param id doesn't exist");
         assert_eq!(err_2.to_string(), "Query id doesn't exist");
         assert_eq!(err_3.to_string(), "Cookie id doesn't exist");
         assert_eq!(err_4.to_string(), "Header id doesn't exist");
+        assert_eq!(err_5.to_string(), "JSON is invalid: id");
     }
 
     #[test]
@@ -367,5 +460,228 @@ mod tests {
         );
         let custom = StatusCode::Custom(599);
         assert_eq!(custom.canonical_reason(), "Custom");
+    }
+
+    #[test]
+    fn response_header_from() {
+        let mut hash_map = HashMap::new();
+        hash_map.insert("Content-Type", "application/json");
+        let headers = ResponseHeaders::from(hash_map);
+        assert_eq!(headers.get("content-type"), Some("application/json"));
+    }
+
+    #[test]
+    fn response_header_index() {
+        let mut hash_map = HashMap::new();
+        hash_map.insert("Content-Type", "application/json");
+        let headers = ResponseHeaders::from(hash_map);
+
+        assert_eq!(&headers["content-type"], "application/json");
+    }
+
+    #[should_panic]
+    #[test]
+    fn response_header_index_should_panic() {
+        let hash_map = HashMap::new();
+        let headers = ResponseHeaders::from(hash_map);
+
+        assert_eq!(&headers["content-type"], "application/json");
+    }
+
+    #[test]
+    fn test_response_header_display() {
+        let mut headers = ResponseHeaders::new();
+        headers.insert("Content-Type", "application/json");
+
+        assert_eq!(headers.to_string(), "content-type: application/json\n");
+    }
+    #[test]
+    fn test_standard_status_codes_fmt() {
+        let cases = vec![
+            (StatusCode::Ok, "200 OK"),
+            (StatusCode::Created, "201 Created"),
+            (StatusCode::Accepted, "202 Accepted"),
+            (StatusCode::NoContent, "204 No Content"),
+            (StatusCode::Redirect, "302 Found"),
+            (StatusCode::PermanentRedirect, "301 Moved Permanently"),
+            (StatusCode::BadRequest, "400 Bad Request"),
+            (StatusCode::Unauthorized, "401 Unauthorized"),
+            (StatusCode::Forbidden, "403 Forbidden"),
+            (StatusCode::NotFound, "404 Not Found"),
+            (StatusCode::MethodNotAllowed, "405 Method Not Allowed"),
+            (StatusCode::Conflict, "409 Conflict"),
+            (StatusCode::InternalServerError, "500 Internal Server Error"),
+            (StatusCode::NotImplemented, "501 Not Implemented"),
+            (StatusCode::BadGateway, "502 Bad Gateway"),
+            (StatusCode::ServiceUnavailable, "503 Service Unavailable"),
+        ];
+
+        for (status, expected) in cases {
+            assert_eq!(format!("{}", status), expected);
+        }
+    }
+
+    #[test]
+    fn test_custom_status_code_fmt() {
+        let custom = StatusCode::Custom(499);
+        assert_eq!(format!("{}", custom), "499 Custom");
+
+        let another_custom = StatusCode::Custom(600);
+        assert_eq!(format!("{}", another_custom), "600 Custom");
+    }
+    #[test]
+    fn test_standard_status_codes_from_u16() {
+        let cases = vec![
+            (200, StatusCode::Ok),
+            (201, StatusCode::Created),
+            (202, StatusCode::Accepted),
+            (204, StatusCode::NoContent),
+            (302, StatusCode::Redirect),
+            (301, StatusCode::PermanentRedirect),
+            (400, StatusCode::BadRequest),
+            (401, StatusCode::Unauthorized),
+            (403, StatusCode::Forbidden),
+            (404, StatusCode::NotFound),
+            (405, StatusCode::MethodNotAllowed),
+            (409, StatusCode::Conflict),
+            (500, StatusCode::InternalServerError),
+            (501, StatusCode::NotImplemented),
+            (502, StatusCode::BadGateway),
+            (503, StatusCode::ServiceUnavailable),
+        ];
+
+        for (code, expected) in cases {
+            assert_eq!(StatusCode::from_u16(code), expected, "failed for {}", code);
+        }
+    }
+
+    #[test]
+    fn test_custom_status_codes_from_u16() {
+        let custom_codes = [199, 299, 450, 600, 999];
+
+        for &code in &custom_codes {
+            match StatusCode::from_u16(code) {
+                StatusCode::Custom(inner) => assert_eq!(inner, code),
+                other => panic!("expected Custom({}), got {:?}", code, other),
+            }
+        }
+    }
+    #[test]
+    fn test_from_io_error() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
+        let resp_err: ResponseError = io_err.into();
+
+        match resp_err {
+            ResponseError::IoError(e) => {
+                assert_eq!(e.kind(), std::io::ErrorKind::NotFound);
+                assert_eq!(e.to_string(), "file not found");
+            }
+            _ => panic!("Expected ResponseError::IoError"),
+        }
+    }
+
+    #[test]
+    fn test_display_io_error() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "no permission");
+        let resp_err: ResponseError = io_err.into();
+
+        let output = format!("{}", resp_err);
+        assert_eq!(output, "IO error: no permission");
+    }
+
+    #[test]
+    fn test_display_other_error() {
+        let resp_err = ResponseError::_Other("something went wrong");
+
+        let output = format!("{}", resp_err);
+        assert_eq!(output, "Error: something went wrong");
+    }
+
+    #[test]
+    fn test_error_trait_description() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::Other, "low-level failure");
+        let resp_err: ResponseError = io_err.into();
+
+        // std::error::Error gives us a source() method
+        assert!(resp_err.source().is_none(), "Expected no source error");
+    }
+
+    fn sample_response() -> HttpResponse {
+        let mut headers = ResponseHeaders::new();
+        headers.insert("Content-Type", "application/json");
+
+        let cookies = Cookie {
+            name: "session",
+            value: "abcd1234",
+            options: CookieOptions::default(),
+        };
+
+        HttpResponse {
+            status_code: StatusCode::Ok,
+            body: crate::types::ResponseContentBody::new_binary(bytes::Bytes::from_static(
+                b"hello world",
+            )),
+            content_type: crate::types::ResponseContentType::BINARY,
+            cookies: vec![cookies],
+            headers,
+            remove_cookies: vec!["old_cookie".into()],
+            is_stream: false,
+            stream: Box::pin(stream::empty::<Result<bytes::Bytes, ResponseError>>()),
+        }
+    }
+
+    #[test]
+    fn test_debug_formatting() {
+        let resp = sample_response();
+        let debug_str = format!("{:?}", resp);
+
+        println!("{:?}", debug_str);
+
+        // Stream should be displayed as "<stream>"
+        assert!(debug_str.contains("HttpResponse"));
+        assert!(debug_str.contains("status_code: Ok"));
+        assert!(debug_str.contains("body: BINARY(b\"hello world\")"));
+        assert!(debug_str.contains("content_type: BINARY"));
+        assert!(debug_str.contains("cookies"));
+        assert!(debug_str.contains("headers"));
+        assert!(debug_str.contains("remove_cookies"));
+        assert!(debug_str.contains("is_stream: false"));
+        assert!(debug_str.contains("stream: \"<stream>\""));
+    }
+
+    #[test]
+    fn test_clone_response() {
+        let resp = sample_response();
+        let cloned = resp.clone();
+
+        assert_eq!(resp.status_code, cloned.status_code);
+        assert_eq!(resp.body, cloned.body);
+        assert_eq!(resp.content_type, cloned.content_type);
+        assert_eq!(resp.cookies, cloned.cookies);
+        assert_eq!(resp.headers, cloned.headers);
+        assert_eq!(resp.remove_cookies, cloned.remove_cookies);
+        assert_eq!(resp.is_stream, cloned.is_stream);
+
+        // Ensure cloned stream is not the same allocation as original
+        // (both are empty, but new clone should have a fresh Box::pin(stream::empty()))
+        let orig_debug = format!("{:?}", resp);
+        let cloned_debug = format!("{:?}", cloned);
+        assert_eq!(orig_debug, cloned_debug);
+    }
+
+    #[test]
+    fn test_redirect_sets_status_and_location() {
+        let res = sample_response().redirect("/home");
+
+        assert_eq!(res.status_code, StatusCode::Redirect);
+        assert_eq!(res.headers.get("Location"), Some("/home"));
+    }
+
+    #[test]
+    fn test_permanent_redirect_sets_status_and_location() {
+        let res = sample_response().permanent_redirect("https://example.com");
+
+        assert_eq!(res.status_code, StatusCode::PermanentRedirect);
+        assert_eq!(res.headers.get("Location"), Some("https://example.com"));
     }
 }
