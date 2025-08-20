@@ -44,21 +44,7 @@ where
 ///
 /// The `path` field specifies the route prefix or pattern for which this middleware
 /// should be applied. Middlewares are matched in the order they are added to the app.
-///
-/// # Example
-///
-/// ```rust
-/// use ripress::app::Middleware;
-/// use std::sync::Arc;
-///
-/// let mw = Middleware {
-///     func: Arc::new(|req, res| Box::pin(async move {
-///         // Your middleware logic here
-///         (req, None)
-///     })),
-///     path: "/api".to_string(),
-/// };
-/// ```
+
 #[derive(Clone)]
 pub struct Middleware {
     /// The middleware function.

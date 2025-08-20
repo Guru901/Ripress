@@ -49,19 +49,20 @@ impl Default for LoggerConfig {
 /// ## Examples
 ///
 /// ```
-/// use ripress::{app::App, middlewares::logger::logger};
+/// use ripress::app::App;
 /// let mut app = App::new();
-/// app.use_middleware("", logger(None));
+/// app.use_logger(None);
 ///
 ///```
 ///```
-/// use ripress::{app::App, middlewares::logger::{logger, LoggerConfig}};
+/// use ripress::{app::App, middlewares::logger::LoggerConfig};
 /// let mut app = App::new();
-/// app.use_middleware("", logger(Some(LoggerConfig {
+/// app.use_logger(Some(LoggerConfig {
 ///     duration: true,
 ///     method: true,
 ///     path: true,
-/// })));
+///     ..Default::default()
+/// }));
 /// ```
 pub(crate) fn logger(
     config: Option<LoggerConfig>,

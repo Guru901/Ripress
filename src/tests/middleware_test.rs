@@ -6,7 +6,7 @@ mod tests {
         middlewares::{
             cors::{CorsConfig, cors},
             file_upload::file_upload,
-            logger,
+            logger::{LoggerConfig, logger},
         },
         types::HttpMethods,
     };
