@@ -132,9 +132,10 @@ pub fn file_upload(
             let bytes_vec = if is_multipart {
                 match req.bytes() {
                     Ok(bytes) => bytes.to_vec(),
-                    Err(_) => {
+                    Err(e) => {
                         eprintln!(
-                            "File upload middleware: multipart/form-data detected but req.bytes() failed"
+                            "File upload middleware: multipart/form-data detected but req.bytes() failed error: {}",
+                            e
                         );
                         return (req, None);
                     }
@@ -197,7 +198,6 @@ pub fn file_upload(
             }
 
             let mut uploaded_files = Vec::new();
-            let mut first_file_info: Option<(String, String)> = None;
 
             // Process all files
             for (file_bytes, field_name_opt) in files_to_process {
@@ -205,9 +205,9 @@ pub fn file_upload(
                     Some(field) => {
                         // If field_name_opt is Some, try to split into original_filename and field_name
                         // If the tuple is (Vec<u8>, Some("filename")), treat as (file_bytes, None, Some("filename"))
-                        (file_bytes, None, Some(field))
+                        (file_bytes, None::<String>, Some(field))
                     }
-                    None => (file_bytes, None, None),
+                    None => (file_bytes, None::<String>, None),
                 };
                 let extension = infer::get(&file_bytes)
                     .map(|info| info.extension())
@@ -224,24 +224,12 @@ pub fn file_upload(
                             continue; // Skip this file but continue with others
                         }
 
-                        // Store file info
-                        let file_info = FileInfo {
-                            filename: filename.clone(),
-                            path: filename_with_path.clone(),
-                            original_filename: original_filename.clone(),
-                            _field_name: field_name.clone(),
-                        };
-                        uploaded_files.push(file_info);
+                        // Track uploaded files for logging
+                        uploaded_files.push(filename.clone());
 
-                        // CRITICAL FIX: Map the form field name to the UUID filename
-                        // This preserves the original field names (like "image", "asd") in the form data
-                        if let Some(ref field_name) = field_name {
-                            req.insert_form_field(field_name, &filename);
-                        }
-
-                        // Keep track of first file for backwards compatibility
-                        if first_file_info.is_none() {
-                            first_file_info = Some((filename, filename_with_path));
+                        // Add the generated filename to the form field
+                        if let Some(field_name) = field_name {
+                            req.insert_form_field(&field_name, &filename);
                         }
                     }
                     Err(e) => {
@@ -251,53 +239,9 @@ pub fn file_upload(
                 }
             }
 
-            // Set minimal request data for uploaded files
-            if !uploaded_files.is_empty() {
-                // Set count in data (not form fields)
-                req.set_data("uploaded_file_count", &uploaded_files.len().to_string());
-
-                // Create JSON representation of all files in data (not form fields)
-                let files_json = format!(
-                    "[{}]",
-                    uploaded_files
-                        .iter()
-                        .map(|f| format!(
-                            r#"{{"filename":"{}","path":"{}","original_filename":{}}}"#,
-                            f.filename,
-                            f.path,
-                            f.original_filename
-                                .as_ref()
-                                .map(|s| format!(r#""{}""#, s))
-                                .unwrap_or_else(|| "null".to_string())
-                        ))
-                        .collect::<Vec<_>>()
-                        .join(",")
-                );
-                req.set_data("uploaded_files", &files_json);
-
-                // Backwards compatibility: set data for first file (not form fields)
-                if let Some((first_filename, first_path)) = first_file_info {
-                    req.set_data("uploaded_file", &first_filename);
-                    req.set_data("uploaded_file_path", &first_path);
-                }
-
-                // Set original filename for first file if available (in data, not form fields)
-                if let Some(orig) = &uploaded_files[0].original_filename {
-                    req.set_data("original_filename", orig);
-                }
-            }
-
             (req, None)
         })
     }
-}
-
-#[derive(Debug)]
-struct FileInfo {
-    filename: String,
-    path: String,
-    original_filename: Option<String>,
-    _field_name: Option<String>,
 }
 
 /// Converts HashMap<String, String> form data to a string representation

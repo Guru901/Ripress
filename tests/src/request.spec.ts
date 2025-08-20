@@ -377,30 +377,30 @@ test.describe("Request Tests", () => {
     expect(body.description).toBe("A test user with multiple fields");
   });
 
-  // test("Multipart form data with file upload", async ({ request }) => {
-  //   // Create a test file buffer
-  //   const testFileContent = Buffer.from(
-  //     "This is a test file content for upload"
-  //   );
+  test("Multipart form data with file upload", async ({ request }) => {
+    // Create a test file buffer
+    const testFileContent = Buffer.from(
+      "This is a test file content for upload"
+    );
 
-  //   const response = await request.post("/multipart-file-test", {
-  //     multipart: {
-  //       name: "Test User",
-  //       file: {
-  //         name: "test.txt",
-  //         mimeType: "text/plain",
-  //         buffer: testFileContent,
-  //       },
-  //     },
-  //   });
+    const response = await request.post("/multipart-file-test", {
+      multipart: {
+        name: "Test User",
+        file: {
+          name: "test.txt",
+          mimeType: "text/plain",
+          buffer: testFileContent,
+        },
+      },
+    });
 
-  //   expect(response.status()).toBe(200);
-  //   const body = await response.json();
-  //   expect(body.name).toBe("Test User");
-  //   expect(body.fileName).toBe("test.txt");
-  //   expect(body.fileSize).toBe(testFileContent.length);
-  //   expect(body.mimeType).toBe("text/plain");
-  // });
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.name).toBe("Test User");
+    expect(body.fileName).toBe("test.txt");
+    expect(body.fileSize).toBe(testFileContent.length);
+    expect(body.mimeType).toBe("text/plain");
+  });
 
   // test("Multipart form data with multiple files", async ({ request }) => {
   //   const file1 = Buffer.from("Content of first file");
