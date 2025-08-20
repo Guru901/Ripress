@@ -504,7 +504,7 @@ impl ToString for RequestBodyType {
 /// let text_content = RequestBodyContent::TEXT(text_data);
 ///
 /// let bytes = Bytes::new();
-/// let binary_content = RequestBodyContent::BINARY(bytes);
+/// let binary_content = RequestBodyContent::BINARY(bytes.clone());
 ///
 /// // Binary content with associated form fields (for multipart forms with files)
 /// let mut form_with_fields = FormData::new();

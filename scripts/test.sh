@@ -127,7 +127,7 @@ async fn main() {
 
     // Static Files test
 
-    app.static_files("/static", "./public");
+    app.static_files("/static", "../public");
 
     app.listen(8080, || println!("Server is running on port 8080"))
         .await;
