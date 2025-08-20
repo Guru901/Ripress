@@ -721,7 +721,9 @@ impl HttpRequest {
         let mut headers = RequestHeaders::new();
 
         req_info.headers().iter().for_each(|(key, value)| {
-            headers.insert(key.as_str(), value.to_str().unwrap());
+            if let Ok(v) = value.to_str() {
+                headers.insert(key.as_str(), v);
+            }
         });
 
         let method = HttpMethods::from(req_info.method());
@@ -795,7 +797,10 @@ impl HttpRequest {
         let xhr = xhr_header == "XMLHttpRequest";
 
         Ok(Self {
-            body: RequestBody::new_text(TextData::new("text")),
+            body: RequestBody {
+                content: RequestBodyContent::EMPTY,
+                content_type: RequestBodyType::EMPTY,
+            },
             cookies: cookies_map,
             headers,
             is_secure,

@@ -654,7 +654,7 @@ impl HttpResponse {
         self
     }
 
-    pub(crate) fn from_hyper_response(&self, res: Response<Body>) -> Self {
+    pub(crate) fn from_hyper_response(&self, res: &Response<Body>) -> Self {
         let body = ResponseContentBody::new_text("text");
         let is_stream = (res.headers().get("Content-Type").unwrap() == "application/octet-stream"
             || res.headers().get("Content-Type").unwrap() == "text/event-stream")

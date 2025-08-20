@@ -47,14 +47,12 @@ pub(crate) async fn exec_logger(
         HttpRequest::new()
     });
 
-    let our_res = HttpResponse::new().from_hyper_response(res);
+    let our_res = HttpResponse::new().from_hyper_response(&res);
 
-    let (_, maybe_res) = mw_func(our_req, our_res.clone()).await;
+    let (_, maybe_res) = mw_func(our_req, our_res).await;
 
     match maybe_res {
-        None => {
-            return our_res.to_responder().map_err(ApiError::from);
-        }
+        None => Ok(res),
         Some(res) => {
             return Err(ApiError::Generic(res));
         }
