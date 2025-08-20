@@ -203,6 +203,10 @@ mod tests {
 
         let content_type = determine_content_type("application/xml");
         assert_eq!(content_type, RequestBodyType::TEXT);
+
+        // Test multipart form detection
+        let content_type = determine_content_type("multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW");
+        assert_eq!(content_type, RequestBodyType::MultipartForm);
     }
 
     #[test]

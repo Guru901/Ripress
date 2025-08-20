@@ -119,45 +119,55 @@ pub fn file_upload(
     move |mut req, _res| {
         let upload_path = upload_path.clone();
         Box::pin(async move {
-            // First try to read the raw body
-            let bytes_vec = match req.bytes() {
-                Ok(bytes) => bytes.to_vec(),
-                Err(_) => {
-                    // If bytes() fails, try to get form_data and convert to bytes
-                    eprintln!("File upload middleware: req.bytes() failed, trying form_data()");
-
-                    match req.form_data() {
-                        Ok(form_data) => {
-                            // Convert HashMap<String, String> to bytes
-                            // This creates a simple key=value&key=value format
-                            let form_string = form_data_to_string(form_data);
-                            if form_string.is_empty() {
-                                eprintln!("File upload middleware: No form data available");
-                                return (req, None);
-                            }
-                            form_string.into_bytes()
-                        }
-                        Err(_) => {
-                            eprintln!(
-                                "File upload middleware: Both bytes() and form_data() failed"
-                            );
-                            return (req, None);
-                        }
-                    }
-                }
-            };
-
-            // Determine Content-Type and extract boundary (case-insensitive)
+            // Determine Content-Type and extract boundary (case-insensitive) first
             let content_type = req.headers.content_type().unwrap_or_default();
-            let boundary = if content_type.to_lowercase().contains("multipart/form-data") {
+            let is_multipart = content_type.to_lowercase().contains("multipart/form-data");
+            let boundary = if is_multipart {
                 extract_boundary(&content_type)
             } else {
                 None
             };
 
-            // Parse multipart/form-data
-            let (fields, file_parts) = if let Some(boundary) = boundary {
-                parse_multipart_form(&bytes_vec, &boundary)
+            // For multipart forms, we need the raw body bytes
+            let bytes_vec = if is_multipart {
+                match req.bytes() {
+                    Ok(bytes) => bytes.to_vec(),
+                    Err(_) => {
+                        eprintln!(
+                            "File upload middleware: multipart/form-data detected but req.bytes() failed"
+                        );
+                        return (req, None);
+                    }
+                }
+            } else {
+                // For non-multipart requests (including binary uploads), try to get bytes
+                match req.bytes() {
+                    Ok(bytes) => bytes.to_vec(),
+                    Err(_) => {
+                        // If bytes() fails, try to get form data as fallback
+                        match req.form_data() {
+                            Ok(form_data) => {
+                                let form_string = form_data_to_string(form_data);
+                                if form_string.is_empty() {
+                                    eprintln!("File upload middleware: No form data available");
+                                    return (req, None);
+                                }
+                                form_string.into_bytes()
+                            }
+                            Err(_) => {
+                                eprintln!(
+                                    "File upload middleware: Both bytes() and form_data() failed"
+                                );
+                                return (req, None);
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Parse multipart/form-data if applicable
+            let (fields, file_parts) = if let Some(ref boundary_str) = boundary {
+                parse_multipart_form(&bytes_vec, boundary_str)
             } else {
                 (Vec::new(), Vec::new())
             };
@@ -170,6 +180,10 @@ pub fn file_upload(
             // Determine what files to process
             let files_to_process = if !file_parts.is_empty() {
                 file_parts
+            } else if boundary.is_some() {
+                // This was a multipart request but had no file parts
+                // Don't create a fallback "file" field
+                Vec::new()
             } else {
                 // Single binary upload (backwards compatibility) - use "file" as default field name
                 vec![(bytes_vec, Some("file".to_string()))]
