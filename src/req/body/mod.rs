@@ -346,6 +346,17 @@ pub enum RequestBodyType {
     /// - OAuth token requests
     FORM,
 
+    /// Multipart form data content type (`multipart/form-data`).
+    ///
+    /// Used for submitting forms that include file uploads or complex data structures,
+    /// where each part of the form can have its own content type and disposition.
+    ///
+    /// # Common Use Cases
+    /// - File uploads via HTML forms
+    /// - Forms with mixed text and binary fields
+    /// - APIs that accept multiple files or attachments in a single request
+    MultipartForm,
+
     /// Binary data content type (`application/octet-stream`).
     ///
     /// Used for binary data, such as files or images, that are transmitted as
@@ -423,6 +434,7 @@ impl ToString for RequestBodyType {
             RequestBodyType::TEXT => "text/plain".to_string(),
             RequestBodyType::FORM => "application/x-www-form-urlencoded".to_string(),
             RequestBodyType::BINARY => "application/octet-stream".to_string(),
+            RequestBodyType::MultipartForm => "multipart/form-data".to_string(),
             RequestBodyType::EMPTY => "".to_string(),
         }
     }
