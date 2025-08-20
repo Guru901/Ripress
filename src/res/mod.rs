@@ -654,54 +654,54 @@ impl HttpResponse {
         self
     }
 
-    pub(crate) fn from_hyper_response(&self, res: &Response<Body>) -> Self {
-        let body = ResponseContentBody::new_text("text");
-        let is_stream = (res.headers().get("Content-Type").unwrap() == "application/octet-stream"
-            || res.headers().get("Content-Type").unwrap() == "text/event-stream")
-            && res.headers().get("Connection").unwrap() == "keep-alive";
-        let content_type = res
+    pub(crate) fn from_hyper_response(res: &Response<Body>) -> Self {
+        // Body is not accessible here; keep a neutral placeholder to avoid wrong sizes.
+        let body = ResponseContentBody::new_binary(Bytes::new());
+
+        let content_type_hdr = res
             .headers()
-            .get("content-type")
-            .unwrap()
-            .to_str()
+            .get(hyper::header::CONTENT_TYPE)
+            .and_then(|h| h.to_str().ok());
+
+        let content_type = content_type_hdr
             .map(determine_content_type_response)
             .unwrap_or(ResponseContentType::BINARY);
+
+        // Heuristic for SSE streams: text/event-stream + keep-alive
+        let is_event_stream = content_type_hdr
+            .map(|ct| ct.eq_ignore_ascii_case("text/event-stream"))
+            .unwrap_or(false);
+        let is_keep_alive = res
+            .headers()
+            .get(hyper::header::CONNECTION)
+            .and_then(|h| h.to_str().ok())
+            .map(|v| v.eq_ignore_ascii_case("keep-alive"))
+            .unwrap_or(false);
+        let is_stream = is_event_stream && is_keep_alive;
+
         let status_code = StatusCode::from_u16(res.status().as_u16());
         let mut headers = ResponseHeaders::new();
 
         for (key, value) in res.headers().iter() {
-            headers.insert(key.as_str(), value.to_str().unwrap());
+            if let Ok(v) = value.to_str() {
+                headers.insert(key.as_str(), v);
+            }
+        }
+        for value in res.headers().get_all(SET_COOKIE).iter() {
+            if let Ok(v) = value.to_str() {
+                headers.insert("Set-Cookie", v);
+            }
         }
 
-        res.headers().get(SET_COOKIE).iter().for_each(|cookie| {
-            let cookie = cookie.to_str().unwrap();
-            let cookie = cookie.split(';').next().unwrap();
-            let cookie = cookie.split('=').next().unwrap();
-            headers.insert("Set-Cookie", cookie);
-        });
-
-        if is_stream {
-            HttpResponse {
-                body: body,
-                content_type: content_type,
-                status_code: status_code,
-                headers: headers,
-                cookies: Vec::new(),
-                remove_cookies: Vec::new(),
-                is_stream: is_stream,
-                stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
-            }
-        } else {
-            HttpResponse {
-                body: body,
-                content_type: content_type,
-                status_code: status_code,
-                headers: headers,
-                cookies: Vec::new(),
-                remove_cookies: Vec::new(),
-                is_stream: is_stream,
-                stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
-            }
+        HttpResponse {
+            body,
+            content_type,
+            status_code,
+            headers,
+            cookies: Vec::new(),
+            remove_cookies: Vec::new(),
+            is_stream,
+            stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
         }
     }
 
