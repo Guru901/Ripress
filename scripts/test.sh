@@ -44,6 +44,7 @@ use futures::stream;
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
 use ripress::middlewares::cors::cors;
+use ripress::middlewares::file_upload::file_upload;
 use ripress::res::{CookieOptions, CookieSameSiteOptions};
 use ripress::types::RouterFns;
 use serde::{Deserialize, Serialize};
@@ -56,6 +57,7 @@ async fn main() {
     let mut app = App::new();
 
     app.use_middleware("/", cors(None));
+    app.use_middleware("/multipart-file-test", file_upload(None));
 
     // request tests
     app.get("/cookie-test", cookie_handler);
@@ -94,6 +96,7 @@ async fn main() {
     app.get("/special-query-test", special_query_test);
     app.post("/large-body-test", large_body_test);
     app.post("/multipart-text-test", multipart_text_test);
+    app.post("/multipart-file-test", multipart_file_test);
 
     app.use_middleware("/auth", |req, res| {
         let has_token = req.get_cookie("token").is_some();
@@ -379,6 +382,13 @@ async fn multipart_text_test(req: HttpRequest, res: HttpResponse) -> HttpRespons
         "age": age,
         "description": description
     }))
+}
+
+async fn multipart_file_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let data = req.get_all_data();
+    println!("{data:#?}");
+
+    res.ok()
 }
 
 // ---------------------------------------------------------------------------------------------- //
