@@ -506,6 +506,11 @@ impl ToString for RequestBodyType {
 /// let bytes = Bytes::new();
 /// let binary_content = RequestBodyContent::BINARY(bytes);
 ///
+/// // Binary content with associated form fields (for multipart forms with files)
+/// let mut form_with_fields = FormData::new();
+/// form_with_fields.insert("name", "John");
+/// let binary_with_fields = RequestBodyContent::BinaryWithFields(bytes, form_with_fields);
+///
 /// let empty_content = RequestBodyContent::EMPTY;
 ///
 /// // Pattern matching for processing
@@ -521,6 +526,9 @@ impl ToString for RequestBodyType {
 ///     }
 ///     RequestBodyContent::BINARY(bytes) => {
 ///         println!("Binary content: {:?}", bytes);
+///     }
+///     RequestBodyContent::BinaryWithFields(bytes, form_data) => {
+///         println!("Binary content with {} form fields", form_data.len());
 ///     }
 ///     RequestBodyContent::EMPTY => {
 ///         println!("No body content");
