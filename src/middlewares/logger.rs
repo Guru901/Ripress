@@ -63,7 +63,7 @@ impl Default for LoggerConfig {
 ///     path: true,
 /// })));
 /// ```
-pub fn logger(
+pub(crate) fn logger(
     config: Option<LoggerConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
     move |req, res| {
@@ -99,39 +99,39 @@ pub fn logger(
             let duration = start_time.elapsed();
 
             if config.path {
-                tracing::info!("path: {}, ", path);
+                println!("path: {}, ", path);
             }
 
             if config.status {
-                tracing::info!("status: {}, ", status);
+                println!("status: {}, ", status);
             }
 
             if config.user_agent {
-                tracing::info!("user_agent: {}, ", user_agent);
+                println!("user_agent: {}, ", user_agent);
             }
 
             if config.ip {
-                tracing::info!("ip: {}, ", ip);
+                println!("ip: {}, ", ip);
             }
 
             for (key, value) in headers {
-                tracing::info!("{}: {}, ", key, value);
+                println!("{}: {}, ", key, value);
             }
 
             if config.query_params {
-                tracing::info!("query_params: {:?}, ", query_params);
+                println!("query_params: {:?}, ", query_params);
             }
 
             if config.body_size {
-                tracing::info!("body_size: {}, ", body_size);
+                println!("body_size: {}, ", body_size);
             }
 
             if config.duration {
-                tracing::info!("Time taken: {}ms, ", duration.as_millis());
+                println!("Time taken: {}ms, ", duration.as_millis());
             }
 
             if config.method {
-                tracing::info!("method: {}", method);
+                println!("method: {}", method);
             }
 
             println!();

@@ -3,12 +3,12 @@
 use crate::{
     helpers::{extract_boundary, get_all_query, parse_multipart_form},
     req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
-    types::HttpMethods,
+    types::{HttpMethods, ResponseContentType},
 };
 use cookie::Cookie;
 use hyper::{Body, Request, body::to_bytes, header::HOST};
 use mime::Mime;
-use routerify::ext::RequestExt;
+use routerify::{RequestInfo, ext::RequestExt};
 use serde_json::Value;
 use std::{
     collections::HashMap,
@@ -441,7 +441,23 @@ impl HttpRequest {
         self.params.insert(key.to_string(), value.to_string());
     }
 
-    fn get_cookies(req: &Request<Body>) -> Vec<Cookie<'_>> {
+    fn get_cookies_from_req(req: &Request<Body>) -> Vec<Cookie<'_>> {
+        let mut cookies = Vec::new();
+
+        if let Some(header_value) = req.headers().get("cookie") {
+            if let Ok(header_str) = header_value.to_str() {
+                for cookie_str in header_str.split(';') {
+                    if let Ok(cookie) = Cookie::parse(cookie_str.trim()) {
+                        cookies.push(cookie);
+                    }
+                }
+            }
+        }
+
+        cookies
+    }
+
+    fn get_cookies_from_req_info(req: &RequestInfo) -> Vec<Cookie<'_>> {
         let mut cookies = Vec::new();
 
         if let Some(header_value) = req.headers().get("cookie") {
@@ -506,7 +522,7 @@ impl HttpRequest {
         let path = req.uri().path().to_string();
 
         let mut cookies_map = HashMap::new();
-        let cookies = Self::get_cookies(&req);
+        let cookies = Self::get_cookies_from_req(&req);
 
         cookies.iter().for_each(|cookie| {
             let (name, value) = (cookie.name(), cookie.value());
@@ -544,7 +560,7 @@ impl HttpRequest {
             .headers()
             .get(hyper::header::CONTENT_TYPE)
             .and_then(|val| val.to_str().ok())
-            .map(determine_content_type)
+            .map(determine_content_type_request)
             .unwrap_or(RequestBodyType::EMPTY);
 
         let protocol = req
@@ -696,6 +712,102 @@ impl HttpRequest {
             cookies: cookies_map,
             xhr,
             is_secure,
+        })
+    }
+
+    pub(crate) async fn from_request_info(
+        req_info: RequestInfo,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut headers = RequestHeaders::new();
+
+        req_info.headers().iter().for_each(|(key, value)| {
+            headers.insert(key.as_str(), value.to_str().unwrap());
+        });
+
+        let method = HttpMethods::from(req_info.method());
+        let origin_url = match req_info.uri().authority() {
+            Some(authority) => {
+                let scheme = req_info.uri().scheme_str().unwrap_or("http");
+                Url::new(format!("{}://{}", scheme, authority))
+            }
+            None => {
+                let uri_string = req_info
+                    .headers()
+                    .get(HOST)
+                    .and_then(|host| host.to_str().ok())
+                    .map(|host| {
+                        // Determine scheme (you might want to check for TLS context)
+                        let scheme = "http"; // or "https" if using TLS
+                        format!("{}://{}", scheme, host)
+                    })
+                    .unwrap_or(String::new());
+
+                Url::new(uri_string)
+            }
+        };
+
+        let query_string = req_info.uri().query().unwrap_or("");
+
+        let queries = url::form_urlencoded::parse(query_string.as_bytes())
+            .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
+            .collect::<HashMap<String, String>>();
+
+        let query = QueryParams::from_map(queries);
+        let mut params = RouteParams::new();
+
+        if let Some(param_routerify) = req_info.data::<routerify::RouteParams>() {
+            println!("Params: {:?}", param_routerify);
+            param_routerify.iter().for_each(|(key, value)| {
+                params.insert(key.to_string(), value.to_string());
+            });
+        }
+
+        let mut cookies_map = HashMap::new();
+        let cookies = Self::get_cookies_from_req_info(&req_info);
+
+        cookies.iter().for_each(|cookie| {
+            let (name, value) = (cookie.name(), cookie.value());
+            cookies_map.insert(name.to_string(), value.to_string());
+        });
+
+        let ip = req_info
+            .headers()
+            .get("X-Forwarded-For")
+            .and_then(|val| val.to_str().ok())
+            .map(|s| s.split(',').next().unwrap_or("").trim().to_string())
+            .unwrap_or(String::new());
+
+        let ip = match ip.parse::<IpAddr>() {
+            Ok(ip) => ip,
+            Err(_) => IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+        };
+
+        let protocol = req_info
+            .headers()
+            .get("x-forwarded-proto")
+            .and_then(|val| val.to_str().ok())
+            .unwrap_or("http")
+            .to_string();
+
+        let is_secure = protocol == String::from("https");
+
+        let xhr_header = headers.get("X-Requested-With").unwrap_or("");
+        let xhr = xhr_header == "XMLHttpRequest";
+
+        Ok(Self {
+            body: RequestBody::new_text(TextData::new("text")),
+            cookies: cookies_map,
+            headers,
+            is_secure,
+            method,
+            origin_url,
+            params,
+            path: req_info.uri().path().to_string(),
+            query,
+            xhr,
+            data: RequestData::new(),
+            ip,
+            protocol,
         })
     }
 
@@ -864,7 +976,7 @@ impl HttpRequest {
     }
 }
 
-pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
+pub(crate) fn determine_content_type_request(content_type: &str) -> RequestBodyType {
     match content_type.parse::<Mime>() {
         Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
             (mime::APPLICATION, mime::JSON) => RequestBodyType::JSON,
@@ -886,5 +998,24 @@ pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
             _ => RequestBodyType::BINARY,
         },
         Err(_) => RequestBodyType::BINARY, // Fallback for invalid MIME types
+    }
+}
+
+pub(crate) fn determine_content_type_response(content_type: &str) -> ResponseContentType {
+    match content_type.parse::<Mime>() {
+        Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
+            (mime::APPLICATION, mime::JSON) => ResponseContentType::JSON,
+            (mime::TEXT, _) => ResponseContentType::TEXT,
+            (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
+                ResponseContentType::JSON
+            }
+            (mime::APPLICATION, subtype)
+                if subtype == "xml" || subtype.as_str().ends_with("+xml") =>
+            {
+                ResponseContentType::TEXT
+            }
+            _ => ResponseContentType::BINARY,
+        },
+        Err(_) => ResponseContentType::BINARY, // Fallback for invalid MIME types
     }
 }

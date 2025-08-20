@@ -4,7 +4,6 @@ mod tests {
     use crate::{
         context::{HttpRequest, HttpResponse},
         middlewares::{
-            LoggerConfig,
             cors::{CorsConfig, cors},
             file_upload::file_upload,
             logger,
@@ -195,7 +194,7 @@ mod tests {
 
         // Simulate the request building process that happens in from_hyper_request
         // First, determine the content type
-        let content_type = crate::req::determine_content_type(&format!(
+        let content_type = crate::req::determine_content_type_request(&format!(
             "multipart/form-data; boundary={}",
             boundary
         ));
@@ -277,7 +276,7 @@ mod tests {
         // Simulate the request building process step by step
 
         // Step 1: Determine content type
-        let content_type = crate::req::determine_content_type(&format!(
+        let content_type = crate::req::determine_content_type_request(&format!(
             "multipart/form-data; boundary={}",
             boundary
         ));

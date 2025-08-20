@@ -1,7 +1,8 @@
 #![warn(missing_docs)]
 
 use crate::app::api_error::ApiError;
-use crate::helpers::exec_middleware;
+use crate::helpers::{exec_logger, exec_middleware};
+use crate::middlewares::logger::{LoggerConfig, logger};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::types::{Fut, FutMiddleware, HandlerMiddleware, HttpMethods, RouterFns, Routes};
@@ -71,6 +72,8 @@ pub struct Middleware {
     ///
     /// If the incoming request path starts with this string, the middleware will be invoked.
     pub path: String,
+
+    pub(crate) name: String,
 }
 
 /// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests. It follows an Express-like pattern for route handling.
@@ -132,6 +135,16 @@ impl App {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(middleware),
             path: path,
+            name: "custom".to_string(),
+        });
+        self
+    }
+
+    pub fn use_logger(&mut self, config: Option<LoggerConfig>) -> &mut Self {
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(logger(config)),
+            path: "/".to_string(),
+            name: "logger".to_string(),
         });
         self
     }
@@ -191,9 +204,17 @@ impl App {
 
         for middleware in self.middlewares.iter() {
             let middleware = middleware.clone();
-            router = router.middleware(routerify::Middleware::pre(move |req| {
-                exec_middleware(req, middleware.clone())
-            }));
+
+            if middleware.name == "logger" {
+                router =
+                    router.middleware(routerify::Middleware::post_with_info(move |res, info| {
+                        exec_logger(res, middleware.clone(), info)
+                    }));
+            } else {
+                router = router.middleware(routerify::Middleware::pre(move |req| {
+                    exec_middleware(req, middleware.clone())
+                }));
+            }
         }
 
         if let (Some(mount_path), Some(serve_from)) = (

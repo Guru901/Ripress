@@ -1,5 +1,7 @@
 #![warn(missing_docs)]
 
+use crate::req::body::RequestBodyType;
+use crate::req::determine_content_type_response;
 use crate::res::response_status::StatusCode;
 use crate::types::{ResponseContentBody, ResponseContentType};
 use bytes::Bytes;
@@ -650,6 +652,57 @@ impl HttpResponse {
         self.headers.insert("cache-control", "no-cache");
         self.stream = Box::pin(stream.map(|result| result.map_err(Into::into)));
         self
+    }
+
+    pub(crate) fn from_hyper_response(&self, res: Response<Body>) -> Self {
+        let body = ResponseContentBody::new_text("text");
+        let is_stream = (res.headers().get("Content-Type").unwrap() == "application/octet-stream"
+            || res.headers().get("Content-Type").unwrap() == "text/event-stream")
+            && res.headers().get("Connection").unwrap() == "keep-alive";
+        let content_type = res
+            .headers()
+            .get("content-type")
+            .unwrap()
+            .to_str()
+            .map(determine_content_type_response)
+            .unwrap_or(ResponseContentType::BINARY);
+        let status_code = StatusCode::from_u16(res.status().as_u16());
+        let mut headers = ResponseHeaders::new();
+
+        for (key, value) in res.headers().iter() {
+            headers.insert(key.as_str(), value.to_str().unwrap());
+        }
+
+        res.headers().get(SET_COOKIE).iter().for_each(|cookie| {
+            let cookie = cookie.to_str().unwrap();
+            let cookie = cookie.split(';').next().unwrap();
+            let cookie = cookie.split('=').next().unwrap();
+            headers.insert("Set-Cookie", cookie);
+        });
+
+        if is_stream {
+            HttpResponse {
+                body: body,
+                content_type: content_type,
+                status_code: status_code,
+                headers: headers,
+                cookies: Vec::new(),
+                remove_cookies: Vec::new(),
+                is_stream: is_stream,
+                stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
+            }
+        } else {
+            HttpResponse {
+                body: body,
+                content_type: content_type,
+                status_code: status_code,
+                headers: headers,
+                cookies: Vec::new(),
+                remove_cookies: Vec::new(),
+                is_stream: is_stream,
+                stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
+            }
+        }
     }
 
     pub(crate) fn to_responder(self) -> Result<Response<Body>, Infallible> {

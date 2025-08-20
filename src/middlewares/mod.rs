@@ -5,7 +5,6 @@
 /// which origins are allowed to access your resources, set allowed methods, headers,
 /// and handle preflight requests automatically.
 pub mod cors;
-pub use cors::{CorsConfig, cors};
 
 /// Logger middleware
 ///
@@ -13,7 +12,6 @@ pub use cors::{CorsConfig, cors};
 /// It can be used to log details such as the request method, path and response
 /// time for debugging and monitoring purposes.
 pub mod logger;
-pub use logger::{LoggerConfig, logger};
 
 /// File uploader middleware
 ///
@@ -65,4 +63,3 @@ pub use logger::{LoggerConfig, logger};
 /// * The middleware automatically handles directory creation
 /// * Upload failures are logged to stderr for debugging
 pub mod file_upload;
-pub use file_upload::file_upload;

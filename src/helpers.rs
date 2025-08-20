@@ -1,9 +1,11 @@
 use crate::{
     app::{Middleware, api_error::ApiError},
+    middlewares::logger::logger,
     req::{HttpRequest, query_params::QueryParams},
     res::HttpResponse,
 };
-use hyper::{Body, Request};
+use hyper::{Body, Request, Response};
+use routerify::RequestInfo;
 use url::form_urlencoded::Serializer;
 
 pub(crate) async fn exec_middleware(
@@ -30,6 +32,28 @@ pub(crate) async fn exec_middleware(
         }
     } else {
         our_req.to_hyper_request().map_err(ApiError::from)
+    }
+}
+
+pub(crate) async fn exec_logger(
+    res: Response<Body>,
+    middleware: Middleware,
+    info: RequestInfo,
+) -> Result<Response<Body>, ApiError> {
+    let mw_func = middleware.func;
+
+    let our_req = HttpRequest::from_request_info(info).await.unwrap();
+    let our_res = HttpResponse::new().from_hyper_response(res);
+
+    let (req, maybe_res) = mw_func(our_req, our_res.clone()).await;
+
+    match maybe_res {
+        None => {
+            return our_res.to_responder().map_err(ApiError::from);
+        }
+        Some(res) => {
+            return Err(ApiError::Generic(res));
+        }
     }
 }
 
