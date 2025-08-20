@@ -715,7 +715,7 @@ impl HttpRequest {
         })
     }
 
-    pub(crate) async fn from_request_info(
+    pub(crate) fn from_request_info(
         req_info: RequestInfo,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let mut headers = RequestHeaders::new();

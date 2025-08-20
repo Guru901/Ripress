@@ -192,13 +192,14 @@ impl App {
             let middleware = middleware.clone();
 
             if middleware.name == "logger" {
-                router =
-                    router.middleware(routerify::Middleware::post_with_info(move |res, info| {
-                        exec_logger(res, middleware.clone(), info)
-                    }));
+                router = router.middleware(routerify::Middleware::post_with_info({
+                    let middleware = middleware.clone();
+                    move |res, info| exec_logger(res, middleware.clone(), info)
+                }));
             } else {
-                router = router.middleware(routerify::Middleware::pre(move |req| {
-                    exec_middleware(req, middleware.clone())
+                router = router.middleware(routerify::Middleware::pre({
+                    let middleware = middleware.clone();
+                    move |req| exec_middleware(req, middleware.clone())
                 }));
             }
         }
