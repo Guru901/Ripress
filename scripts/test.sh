@@ -333,14 +333,12 @@ async fn no_content_type_test(req: HttpRequest, res: HttpResponse) -> HttpRespon
 
 async fn content_type_mismatch_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     if let Ok(data) = req.json::<NoContentTypeData>() {
-        println!("{data:?}");
         let test = data.test;
         res.ok().json(json!({
             "data": test
         }))
     } else {
         let data = req.text().unwrap();
-        println!("{data:?}");
         res.ok().text(data)
     }
 }
@@ -386,8 +384,6 @@ async fn multipart_text_test(req: HttpRequest, res: HttpResponse) -> HttpRespons
 
 async fn multipart_file_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let data = req.get_all_data();
-    println!("{data:#?}");
-
     res.ok()
 }
 

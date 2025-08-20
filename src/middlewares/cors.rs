@@ -66,19 +66,27 @@ pub fn cors(
             // Always add CORS headers
             let origin = req.headers.get("Origin");
             let allowed_methods = req.headers.get("Access-Control-Request-Method");
+            let requested_headers = req.headers.get("Access-Control-Request-Headers");
 
             if let (Some(origin), Some(allowed_methods)) = (origin, allowed_methods) {
                 res = res
                     .set_header("Access-Control-Allow-Origin", origin)
-                    .set_header("Access-Control-Allow-Methods", allowed_methods);
+                    .set_header("Access-Control-Allow-Methods", allowed_methods)
+                    .set_header(
+                        "Access-Control-Allow-Headers",
+                        requested_headers.unwrap_or(config.allowed_headers),
+                    )
+                    .set_header(
+                        "Vary",
+                        "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+                    );
             } else {
                 res = res
                     .set_header("Access-Control-Allow-Origin", config.allowed_origin)
                     .set_header("Access-Control-Allow-Methods", config.allowed_methods)
+                    .set_header("Access-Control-Allow-Headers", config.allowed_headers)
             }
-
-            res = res.set_header("Access-Control-Allow-Headers", config.allowed_headers);
-
+            // Note: when not reflecting, Vary is not strictly required; keep defaults minimal.
             if config.allow_credentials {
                 res = res.set_header("Access-Control-Allow-Credentials", "true");
             }
