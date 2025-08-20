@@ -1,10 +1,9 @@
 use crate::{
     app::{Middleware, api_error::ApiError},
-    middlewares::logger::logger,
     req::{HttpRequest, query_params::QueryParams},
     res::HttpResponse,
 };
-use hyper::{Body, Request, Response, server::conn::Http};
+use hyper::{Body, Request, Response};
 use routerify::RequestInfo;
 use url::form_urlencoded::Serializer;
 

@@ -126,6 +126,31 @@ impl App {
         self
     }
 
+    /// Adds a logger middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `Option<LoggerConfig>` - The configuration for the logger.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::app::App;
+    /// use ripress::middlewares::logger::LoggerConfig;
+    ///
+    /// let mut app = App::new();
+    ///
+    /// app.use_logger(None);
+    ///
+    /// app.use_logger(Some(LoggerConfig {
+    ///     duration: true,
+    ///     method: true,
+    ///     path: true,
+    ///     ..Default::default()
+    /// }));
+    ///
+    /// ```
+
     pub fn use_logger(&mut self, config: Option<LoggerConfig>) -> &mut Self {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(logger(config)),

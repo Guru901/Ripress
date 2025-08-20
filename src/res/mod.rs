@@ -1,6 +1,5 @@
 #![warn(missing_docs)]
 
-use crate::req::body::RequestBodyType;
 use crate::req::determine_content_type_response;
 use crate::res::response_status::StatusCode;
 use crate::types::{ResponseContentBody, ResponseContentType};
