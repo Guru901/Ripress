@@ -793,9 +793,8 @@ impl HttpRequest {
 
         let is_secure = protocol == String::from("https");
 
-        let xhr_header = headers.get("X-Requested-With").unwrap_or("");
+        let xhr_header = headers.get("x-requested-with").unwrap_or("");
         let xhr = xhr_header == "XMLHttpRequest";
-
         Ok(Self {
             body: RequestBody {
                 content: RequestBodyContent::EMPTY,
