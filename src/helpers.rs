@@ -55,17 +55,23 @@ pub(crate) fn get_all_query(queries: &QueryParams) -> String {
 // Helper functions that need to be added to the file:
 
 pub(crate) fn extract_boundary(content_type: &str) -> Option<String> {
+    eprintln!("extract_boundary: Input content_type: '{}'", content_type);
+
     // Prefer robust parsing via the `mime` crate; handles quoting and spacing.
     if let Ok(m) = content_type.parse::<mime::Mime>() {
         if m.type_() == mime::MULTIPART {
             if let Some(b) = m.get_param("boundary") {
                 let s = b.as_str();
                 if !s.is_empty() {
+                    eprintln!("extract_boundary: MIME parsing found boundary: '{}'", s);
                     return Some(s.to_string());
                 }
             }
         }
     }
+
+    eprintln!("extract_boundary: MIME parsing failed, trying manual parse");
+
     // Fallback: best-effort manual parse for non-standard content types
     for part in content_type.split(';').map(|s| s.trim()) {
         let (k, v) = match part.split_once('=') {
@@ -75,10 +81,13 @@ pub(crate) fn extract_boundary(content_type: &str) -> Option<String> {
         if k.eq_ignore_ascii_case("boundary") {
             let b = v.trim_matches('"');
             if !b.is_empty() {
+                eprintln!("extract_boundary: Manual parsing found boundary: '{}'", b);
                 return Some(b.to_string());
             }
         }
     }
+
+    eprintln!("extract_boundary: No boundary found");
     None
 }
 
@@ -97,6 +106,17 @@ pub(crate) fn parse_multipart_form(
     body: &[u8],
     boundary: &str,
 ) -> (Vec<(String, String)>, Vec<(Vec<u8>, Option<String>)>) {
+    println!(
+        "parse_multipart_form: FUNCTION CALLED with {} bytes, boundary: '{}'",
+        body.len(),
+        boundary
+    );
+    eprintln!(
+        "parse_multipart_form: Starting with {} bytes, boundary: '{}'",
+        body.len(),
+        boundary
+    );
+
     let boundary_start = format!("--{}", boundary);
     let boundary_start_bytes = boundary_start.as_bytes();
     let boundary_next = format!("\r\n--{}", boundary);
@@ -104,15 +124,53 @@ pub(crate) fn parse_multipart_form(
     let boundary_close = format!("--{}--", boundary);
     let boundary_close_bytes = boundary_close.as_bytes();
 
+    eprintln!(
+        "parse_multipart_form: Boundary patterns - start: '{}', next: '{}', close: '{}'",
+        String::from_utf8_lossy(boundary_start_bytes),
+        String::from_utf8_lossy(boundary_next_bytes),
+        String::from_utf8_lossy(boundary_close_bytes)
+    );
+
+    // Debug: Show the first 100 bytes of the body to see the actual boundary format
+    let preview_len = std::cmp::min(100, body.len());
+    eprintln!(
+        "parse_multipart_form: First {} bytes: '{}'",
+        preview_len,
+        String::from_utf8_lossy(&body[..preview_len])
+    );
+
     // Find the first boundary
     let mut pos = match find_subsequence(body, boundary_start_bytes) {
-        Some(p) => p + boundary_start_bytes.len(),
-        None => return (Vec::new(), Vec::new()),
+        Some(p) => {
+            eprintln!(
+                "parse_multipart_form: Found starting boundary at position {}",
+                p
+            );
+            p + boundary_start_bytes.len()
+        }
+        None => {
+            eprintln!("parse_multipart_form: No starting boundary found");
+            eprintln!(
+                "parse_multipart_form: Searched for: '{}'",
+                String::from_utf8_lossy(boundary_start_bytes)
+            );
+            eprintln!(
+                "parse_multipart_form: First 200 bytes of body: '{}'",
+                String::from_utf8_lossy(&body[..std::cmp::min(200, body.len())])
+            );
+            return (Vec::new(), Vec::new());
+        }
     };
+
+    eprintln!(
+        "parse_multipart_form: Found starting boundary at position {}",
+        pos
+    );
 
     // Skip optional CRLF after the first boundary
     if body.get(pos..pos + 2) == Some(b"\r\n") {
         pos += 2;
+        eprintln!("parse_multipart_form: Skipped CRLF, new pos: {}", pos);
     }
 
     let mut fields: Vec<(String, String)> = Vec::new();
@@ -128,6 +186,11 @@ pub(crate) fn parse_multipart_form(
         let headers_str = String::from_utf8_lossy(headers_bytes);
         let content_start = pos + header_end_rel + 4;
 
+        eprintln!(
+            "parse_multipart_form: Part at pos {}, headers: '{}', content starts at {}",
+            pos, headers_str, content_start
+        );
+
         // Locate the next boundary (start of next part or closing)
         let next_boundary_rel = match find_subsequence(&body[content_start..], boundary_next_bytes)
         {
@@ -141,6 +204,12 @@ pub(crate) fn parse_multipart_form(
             }
         };
         let content_end = content_start + next_boundary_rel;
+
+        eprintln!(
+            "parse_multipart_form: Content ends at {}, content length: {}",
+            content_end,
+            content_end - content_start
+        );
 
         // Parse Content-Disposition to determine field name and if this is a file part
         let mut is_file_part = false;
@@ -170,14 +239,25 @@ pub(crate) fn parse_multipart_form(
             }
         }
 
+        eprintln!(
+            "parse_multipart_form: Part type: {}, field_name: {:?}",
+            if is_file_part { "FILE" } else { "TEXT" },
+            field_name
+        );
+
         if is_file_part {
             // Collect ALL file parts, not just the first one
             let file_bytes = trim_trailing_crlf(&body[content_start..content_end]).to_vec();
+            eprintln!(
+                "parse_multipart_form: File part with {} bytes",
+                file_bytes.len()
+            );
             // Pass the field_name instead of original_filename for the mapping
             file_parts.push((file_bytes, field_name));
         } else if let Some(name) = field_name {
             let value_bytes = trim_trailing_crlf(&body[content_start..content_end]);
             let value = String::from_utf8_lossy(value_bytes).to_string();
+            eprintln!("parse_multipart_form: Text field '{}' = '{}'", name, value);
             fields.push((name, value));
         }
 

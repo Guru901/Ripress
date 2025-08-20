@@ -586,7 +586,7 @@ impl HttpRequest {
                         };
 
                         // Parse multipart/form-data using the same logic as the middleware
-                        let (fields, _file_parts) = if let Some(boundary) = boundary {
+                        let (fields, file_parts) = if let Some(boundary) = boundary {
                             parse_multipart_form(&bytes, &boundary)
                         } else {
                             // If not multipart, try to parse as form data using the same method
@@ -610,7 +610,16 @@ impl HttpRequest {
                             form_data.insert(key, value);
                         }
 
-                        RequestBody::new_form(form_data)
+                        // CRITICAL FIX: For multipart requests, we need to preserve the raw bytes
+                        // so the middleware can process the files. We'll set the body as BINARY
+                        // and let the middleware handle the multipart parsing.
+                        if !file_parts.is_empty() {
+                            // If there are files, set as binary so middleware can process
+                            RequestBody::new_binary(bytes)
+                        } else {
+                            // If no files, just use the form data
+                            RequestBody::new_form(form_data)
+                        }
                     }
                     Err(err) => return Err(err),
                 }
