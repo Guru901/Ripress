@@ -47,7 +47,7 @@ pub(crate) async fn exec_logger(
         HttpRequest::new()
     });
 
-    let our_res = HttpResponse::new().from_hyper_response(&res);
+    let our_res = HttpResponse::from_hyper_response(&res);
 
     let (_, maybe_res) = mw_func(our_req, our_res).await;
 
