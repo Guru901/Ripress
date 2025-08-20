@@ -18,6 +18,17 @@ pub(crate) enum ResponseContentBody {
 }
 
 impl ResponseContentBody {
+    pub fn len(&self) -> usize {
+        match self {
+            ResponseContentBody::TEXT(text) => text.len(),
+            ResponseContentBody::HTML(html) => html.len(),
+            ResponseContentBody::JSON(json) => json.to_string().len(),
+            ResponseContentBody::BINARY(bytes) => bytes.len(),
+        }
+    }
+}
+
+impl ResponseContentBody {
     pub(crate) fn new_text<T: Into<String>>(text: T) -> Self {
         ResponseContentBody::TEXT(text.into())
     }

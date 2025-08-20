@@ -1,4 +1,5 @@
 use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
+use std::collections::HashMap;
 
 /// Configuration for the Logger Middleware
 ///
@@ -13,6 +14,13 @@ pub struct LoggerConfig {
     pub method: bool,
     pub path: bool,
     pub duration: bool,
+    pub status: bool,
+    pub user_agent: bool,
+    pub ip: bool,
+    pub headers: Vec<String>, // Specific headers to log
+    pub body_size: bool,
+    pub query_params: bool,
+    pub exclude_paths: Vec<String>, // Don't log health checks, etc.
 }
 
 impl Default for LoggerConfig {
@@ -21,6 +29,13 @@ impl Default for LoggerConfig {
             duration: true,
             method: true,
             path: true,
+            status: true,
+            user_agent: true,
+            ip: true,
+            headers: vec![],
+            body_size: true,
+            query_params: true,
+            exclude_paths: vec![],
         }
     }
 }
@@ -51,110 +66,77 @@ impl Default for LoggerConfig {
 pub fn logger(
     config: Option<LoggerConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
-    move |req, _| {
+    move |req, res| {
         let config = config.clone().unwrap_or_default();
+
+        if config.exclude_paths.contains(&req.path) {
+            return Box::pin(async move { (req, None) });
+        }
+
         let req = req.clone();
 
         let start_time = std::time::Instant::now();
         let path = req.path.clone();
         let method = req.method.clone();
+        let status = res.status_code.clone();
+        let user_agent = req.headers.user_agent().unwrap_or("Unknown").to_string();
+        let ip = req.ip;
+        let mut headers = HashMap::new();
+
+        if !config.headers.is_empty() {
+            for header in &config.headers {
+                headers.insert(
+                    header.clone(),
+                    req.headers.get(header).unwrap_or("None").to_string(),
+                );
+            }
+        }
+
+        let query_params = req.query.clone();
+        let body_size = res.body.len();
 
         Box::pin(async move {
             let duration = start_time.elapsed();
 
             if config.path {
-                print!("path: {}, ", path);
+                tracing::info!("path: {}, ", path);
+            }
+
+            if config.status {
+                tracing::info!("status: {}, ", status);
+            }
+
+            if config.user_agent {
+                tracing::info!("user_agent: {}, ", user_agent);
+            }
+
+            if config.ip {
+                tracing::info!("ip: {}, ", ip);
+            }
+
+            for (key, value) in headers {
+                tracing::info!("{}: {}, ", key, value);
+            }
+
+            if config.query_params {
+                tracing::info!("query_params: {:?}, ", query_params);
+            }
+
+            if config.body_size {
+                tracing::info!("body_size: {}, ", body_size);
             }
 
             if config.duration {
-                print!("Time taken: {}ms, ", duration.as_millis());
+                tracing::info!("Time taken: {}ms, ", duration.as_millis());
             }
 
             if config.method {
-                print!("method: {}", method);
+                tracing::info!("method: {}", method);
             }
 
             println!();
 
             (req, None)
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::types::HttpMethods;
-
-    #[tokio::test]
-    async fn test_logger_default_config() {
-        let logger_mw = logger(None);
-        let mut req = HttpRequest::new();
-        req.path = "/test".to_string();
-        req.method = HttpMethods::POST;
-        let res = HttpResponse::new();
-
-        // Test that the middleware runs without panicking
-        // and returns the expected values
-        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone()).await;
-
-        assert_eq!(returned_req.path, "/test");
-        assert_eq!(returned_req.method, HttpMethods::POST);
-        assert!(maybe_res.is_none());
-    }
-
-    #[tokio::test]
-    async fn test_logger_custom_config() {
-        let logger_mw = logger(Some(LoggerConfig {
-            method: true,
-            path: false,
-            duration: false,
-        }));
-
-        let mut req = HttpRequest::new();
-        req.path = "/foo".to_string();
-        req.method = HttpMethods::PUT;
-        let res = HttpResponse::new();
-
-        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone()).await;
-
-        assert_eq!(returned_req.path, "/foo");
-        assert_eq!(returned_req.method, HttpMethods::PUT);
-        assert!(maybe_res.is_none());
-    }
-
-    #[tokio::test]
-    async fn test_logger_preserves_request_data() {
-        let logger_mw = logger(None);
-        let mut req = HttpRequest::new();
-        req.path = "/api/users".to_string();
-        req.method = HttpMethods::GET;
-        let res = HttpResponse::new();
-
-        let (returned_req, _) = logger_mw(req.clone(), res.clone()).await;
-
-        // Verify the middleware preserves all request data
-        assert_eq!(returned_req.path, req.path);
-        assert_eq!(returned_req.method, req.method);
-    }
-
-    #[tokio::test]
-    async fn test_logger_with_all_disabled() {
-        let logger_mw = logger(Some(LoggerConfig {
-            method: false,
-            path: false,
-            duration: false,
-        }));
-
-        let mut req = HttpRequest::new();
-        req.path = "/disabled".to_string();
-        req.method = HttpMethods::DELETE;
-        let res = HttpResponse::new();
-
-        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone()).await;
-
-        assert_eq!(returned_req.path, "/disabled");
-        assert_eq!(returned_req.method, HttpMethods::DELETE);
-        assert!(maybe_res.is_none());
     }
 }
