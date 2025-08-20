@@ -74,68 +74,61 @@ pub(crate) fn logger(
             return Box::pin(async move { (req, None) });
         }
 
-        let req = req.clone();
-
-        let start_time = std::time::Instant::now();
-        let path = req.path.clone();
-        let method = req.method.clone();
-        let status = res.status_code.clone();
-        let user_agent = req.headers.user_agent().unwrap_or("Unknown").to_string();
-        let ip = req.ip;
-        let mut headers = HashMap::new();
-
-        if !config.headers.is_empty() {
-            for header in &config.headers {
-                headers.insert(
-                    header.clone(),
-                    req.headers.get(header).unwrap_or("None").to_string(),
-                );
-            }
-        }
-
-        let query_params = req.query.clone();
-        let body_size = res.body.len();
-
         Box::pin(async move {
+            let start_time = std::time::Instant::now();
+            let path = req.path.clone();
+            let method = req.method.clone();
+            let status = res.status_code.clone();
+            let user_agent = req.headers.user_agent().unwrap_or("Unknown").to_string();
+            let ip = req.ip;
+            let mut headers = HashMap::new();
+
+            if !config.headers.is_empty() {
+                for header in &config.headers {
+                    headers.insert(
+                        header.clone(),
+                        req.headers.get(header).unwrap_or("None").to_string(),
+                    );
+                }
+            }
+
+            let query_params = req.query.clone();
+            let body_size = res.body.len();
+
             let duration = start_time.elapsed();
 
+            let mut msg = String::new();
+
             if config.path {
-                println!("path: {}, ", path);
+                msg.push_str(&format!("path: {}, ", path));
             }
-
             if config.status {
-                println!("status: {}, ", status);
+                msg.push_str(&format!("status: {}, ", status));
             }
-
             if config.user_agent {
-                println!("user_agent: {}, ", user_agent);
+                msg.push_str(&format!("user_agent: {}, ", user_agent));
             }
-
             if config.ip {
-                println!("ip: {}, ", ip);
+                msg.push_str(&format!("ip: {}, ", ip));
             }
-
             for (key, value) in headers {
-                println!("{}: {}, ", key, value);
+                msg.push_str(&format!("{}: {}, ", key, value));
             }
-
             if config.query_params {
-                println!("query_params: {:?}, ", query_params);
+                msg.push_str(&format!("query_params: {:?}, ", query_params));
             }
-
             if config.body_size {
-                println!("body_size: {}, ", body_size);
+                msg.push_str(&format!("body_size: {}, ", body_size));
             }
-
             if config.duration {
-                println!("Time taken: {}ms, ", duration.as_millis());
+                msg.push_str(&format!("duration_ms: {}, ", duration.as_millis()));
             }
-
             if config.method {
-                println!("method: {}", method);
+                msg.push_str(&format!("method: {}", method));
             }
+            let msg = msg.trim_end_matches([',', ' ', '\t', '\n']);
 
-            println!();
+            tracing::info!("{}", msg);
 
             (req, None)
         })
