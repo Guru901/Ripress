@@ -90,7 +90,7 @@ test.describe("Response Tests", () => {
   //     expect(response.status()).toBe(200);
   //     expect(response.headers()["vary"]).toBe("Accept-Encoding, User-Agent");
   // });
-  //
+
   // test("JSON with status", async ({request}) => {
   //     const response = await request.get("/json-status-test");
   //
@@ -100,7 +100,7 @@ test.describe("Response Tests", () => {
   //     const body = await response.json();
   //     expect(body.error).toBe("Validation failed");
   // });
-  //
+
   // test("Send file attachment", async ({request}) => {
   //     const response = await request.get("/download-test");
   //
@@ -108,7 +108,7 @@ test.describe("Response Tests", () => {
   //     expect(response.headers()["content-disposition"]).toContain('attachment; filename="test.txt"');
   //     expect(response.headers()["content-type"]).toContain("text/plain");
   // });
-  //
+
   // test("Send file inline", async ({request}) => {
   //     const response = await request.get("/inline-file-test");
   //
@@ -132,7 +132,7 @@ test.describe("Response Tests", () => {
   //     expect(expires).toBeDefined();
   //     expect(new Date(expires)).toBeInstanceOf(Date);
   // });
-  //
+
   // test("Set etag header", async ({request}) => {
   //     const response = await request.get("/etag-test");
   //
@@ -142,7 +142,7 @@ test.describe("Response Tests", () => {
   //     expect(etag).toBeDefined();
   //     expect(etag).toMatch(/".*"/);
   // });
-  //
+
   // test("Set last modified", async ({request}) => {
   //     const response = await request.get("/last-modified-test");
   //
@@ -152,7 +152,7 @@ test.describe("Response Tests", () => {
   //     expect(lastModified).toBeDefined();
   //     expect(new Date(lastModified)).toBeInstanceOf(Date);
   // });
-  //
+
   // test("JSONP response", async ({request}) => {
   //     const response = await request.get("/jsonp-test?callback=myCallback");
   //
@@ -163,7 +163,7 @@ test.describe("Response Tests", () => {
   //     expect(body).toMatch(/^myCallback\(/);
   //     expect(body).toContain('{"message":"success"}');
   // });
-  //
+
   // test("Format response based on Accept header", async ({request}) => {
   //     const jsonResponse = await request.get("/format-test", {
   //         headers: {
@@ -181,63 +181,57 @@ test.describe("Response Tests", () => {
   //     });
   //
   //     expect(htmlResponse.status()).toBe(200);
-  //     expect(htmlResponse.headers()["content-type"]).toContain("text/html");
+  //     expect(htmlResponse.headers()["contentbinary-type"]).toContain("text/html");
   // });
-  //
-  // test("No content response", async ({request}) => {
-  //     const response = await request.delete("/no-content-test");
-  //
-  //     expect(response.status()).toBe(204);
-  //
-  //     const body = await response.text();
-  //     expect(body).toBe("");
+
+  test("No content response", async ({ request }) => {
+    const response = await request.delete("/no-content-test");
+
+    expect(response.status()).toBe(204);
+
+    const body = await response.text();
+    expect(body).toBe("");
+  });
+
+  test("Set multiple headers at once", async ({ request }) => {
+    const response = await request.get("/multiple-headers-test");
+
+    expect(response.status()).toBe(200);
+
+    const headers = response.headers();
+    expect(headers["x-header-1"]).toBe("value1");
+    expect(headers["x-header-2"]).toBe("value2");
+    expect(headers["x-header-3"]).toBe("value3");
+  });
+
+  // test("Set security headers", async ({ request }) => {
+  //   const response = await request.get("/security-headers-test");
+
+  //   expect(response.status()).toBe(200);
+
+  //   const headers = response.headers();
+  //   expect(headers["x-frame-options"]).toBe("DENY");
+  //   expect(headers["x-content-type-options"]).toBe("nosniff");
+  //   expect(headers["x-xss-protection"]).toBe("1; mode=block");
   // });
-  //
-  // test("Set multiple headers at once", async ({request}) => {
-  //     const response = await request.get("/multiple-headers-test");
-  //
-  //     expect(response.status()).toBe(200);
-  //
-  //     const headers = response.headers();
-  //     expect(headers["x-header-1"]).toBe("value1");
-  //     expect(headers["x-header-2"]).toBe("value2");
-  //     expect(headers["x-header-3"]).toBe("value3");
-  // });
-  //
-  // test("Remove header", async ({request}) => {
-  //     const response = await request.get("/remove-header-test");
-  //
-  //     expect(response.status()).toBe(200);
-  //     expect(response.headers()["x-removed-header"]).toBeUndefined();
-  // });
-  //
-  // test("Set security headers", async ({request}) => {
-  //     const response = await request.get("/security-headers-test");
-  //
-  //     expect(response.status()).toBe(200);
-  //
-  //     const headers = response.headers();
-  //     expect(headers["x-frame-options"]).toBe("DENY");
-  //     expect(headers["x-content-type-options"]).toBe("nosniff");
-  //     expect(headers["x-xss-protection"]).toBe("1; mode=block");
-  // });
-  //
-  // test("CORS headers", async ({request}) => {
-  //     const response = await request.options("/cors-test", {
-  //         headers: {
-  //             "Origin": "https://example.com",
-  //             "Access-Control-Request-Method": "POST"
-  //         }
-  //     });
-  //
-  //     expect(response.status()).toBe(200);
-  //
-  //     const headers = response.headers();
-  //     expect(headers["access-control-allow-origin"]).toBe("https://example.com");
-  //     expect(headers["access-control-allow-methods"]).toContain("POST");
-  //     expect(headers["access-control-allow-headers"]).toBeDefined();
-  // });
-  //
+
+  test("CORS headers", async ({ request }) => {
+    const response = await request.fetch("/cors-test", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://example.com",
+        "Access-Control-Request-Method": "POST",
+      },
+    });
+
+    expect(response.status()).toBe(200);
+
+    const headers = response.headers();
+    expect(headers["access-control-allow-origin"]).toBe("https://example.com");
+    expect(headers["access-control-allow-methods"]).toContain("POST");
+    expect(headers["access-control-allow-headers"]).toBeDefined();
+  });
+
   // test("Streaming response", async ({request}) => {
   //     const response = await request.get("/stream-test");
   //

@@ -399,14 +399,23 @@ impl HttpRequest {
     pub fn form_data(&self) -> Result<&FormData, String> {
         let body = &self.body;
 
-        if body.content_type == RequestBodyType::FORM {
-            if let RequestBodyContent::FORM(form_data) = &body.content {
-                Ok(form_data)
-            } else {
-                Err(String::from("Invalid form content"))
+        match body.content_type {
+            RequestBodyType::FORM => {
+                if let RequestBodyContent::FORM(form_data) = &body.content {
+                    Ok(form_data)
+                } else {
+                    Err(String::from("Invalid form content"))
+                }
             }
-        } else {
-            Err(String::from("Wrong body type"))
+            RequestBodyType::BINARY => {
+                // Check if this binary content also contains form fields
+                if let RequestBodyContent::BinaryWithFields(_, form_data) = &body.content {
+                    Ok(form_data)
+                } else {
+                    Err(String::from("Binary content without form fields"))
+                }
+            }
+            _ => Err(String::from("Wrong body type")),
         }
     }
 
@@ -586,7 +595,7 @@ impl HttpRequest {
                         };
 
                         // Parse multipart/form-data using the same logic as the middleware
-                        let (fields, _file_parts) = if let Some(boundary) = boundary {
+                        let (fields, file_parts) = if let Some(boundary) = boundary {
                             parse_multipart_form(&bytes, &boundary)
                         } else {
                             // If not multipart, try to parse as form data using the same method
@@ -610,7 +619,19 @@ impl HttpRequest {
                             form_data.insert(key, value);
                         }
 
-                        RequestBody::new_form(form_data)
+                        // INTELLIGENT DECISION:
+                        // - Always extract and make text fields accessible via form_data()
+                        // - If there are file parts, also preserve raw bytes as BINARY for middleware processing
+                        // - If no file parts, just use FORM content
+                        if !file_parts.is_empty() {
+                            // Has files: preserve raw bytes for middleware AND make text fields accessible
+                            // We'll set the body as BINARY but also insert the text fields into form_data
+                            // This way both the middleware can process files AND form fields are accessible
+                            RequestBody::new_binary_with_form_fields(bytes, form_data)
+                        } else {
+                            // No files: just use form data
+                            RequestBody::new_form(form_data)
+                        }
                     }
                     Err(err) => return Err(err),
                 }
@@ -757,6 +778,15 @@ impl HttpRequest {
                 );
                 Body::from(bytes.clone())
             }
+            RequestBodyContent::BinaryWithFields(bytes, _form_data) => {
+                // For multipart forms with files, we send the binary data
+                // but the form fields are accessible via form_data()
+                builder
+                    .headers_mut()
+                    .unwrap()
+                    .insert(hyper::header::CONTENT_TYPE, "multipart/form-data".parse()?);
+                Body::from(bytes.clone())
+            }
             RequestBodyContent::EMPTY => Body::empty(),
         };
 
@@ -841,10 +871,7 @@ pub(crate) fn determine_content_type(content_type: &str) -> RequestBodyType {
             (mime::APPLICATION, subtype) if subtype == "x-www-form-urlencoded" => {
                 RequestBodyType::FORM
             }
-            (mime::APPLICATION, subtype) if subtype == "form-data" => RequestBodyType::FORM,
-            (mime::APPLICATION, subtype) if subtype == "x-multipart-formdata" => {
-                RequestBodyType::MultipartForm
-            }
+            // Remove the incorrect line that was matching application/form-data as multipart
             (mime::MULTIPART, subtype) if subtype == "form-data" => RequestBodyType::MultipartForm,
             (mime::TEXT, _) => RequestBodyType::TEXT,
             // Handle JSON variants

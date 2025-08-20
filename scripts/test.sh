@@ -44,7 +44,7 @@ use futures::stream;
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
 use ripress::middlewares::cors::cors;
-use ripress::middlewares::logger::logger;
+use ripress::middlewares::file_upload::file_upload;
 use ripress::res::{CookieOptions, CookieSameSiteOptions};
 use ripress::types::RouterFns;
 use serde::{Deserialize, Serialize};
@@ -56,8 +56,8 @@ use tokio::time;
 async fn main() {
     let mut app = App::new();
 
-    app.use_middleware("/", logger(None));
     app.use_middleware("/", cors(None));
+    app.use_middleware("/multipart-file-test", file_upload(None));
 
     // request tests
     app.get("/cookie-test", cookie_handler);
@@ -89,6 +89,14 @@ async fn main() {
     app.get("/custom-status-test", custom_status_test);
     app.get("/redirect-test", redirect_test);
     app.get("/permanent-redirect-test", permanent_redirect_test);
+    app.post("/json-error-test", json_error_test);
+    app.get("/long-header-test", extremely_long_header_test);
+    app.post("/no-content-type-test", no_content_type_test);
+    app.post("/content-type-mismatch-test", content_type_mismatch_test);
+    app.get("/special-query-test", special_query_test);
+    app.post("/large-body-test", large_body_test);
+    app.post("/multipart-text-test", multipart_text_test);
+    app.post("/multipart-file-test", multipart_file_test);
 
     app.use_middleware("/auth", |req, res| {
         let has_token = req.get_cookie("token").is_some();
@@ -109,6 +117,9 @@ async fn main() {
     app.get("/multiple-cookies-test", get_multi_cookie_test);
     app.get("/cookie-options-test", get_cookie_with_options_test);
     app.get("/binary-test", binary_test);
+    app.get("/cors-test", cors_test);
+    app.get("/multiple-headers-test", multiple_headers_test);
+    app.delete("/no-content-test", no_content_test);
 
     // streaming tests
     app.get("/stream-text", stream_text);
@@ -245,7 +256,6 @@ async fn multi_header_handler(req: HttpRequest, res: HttpResponse) -> HttpRespon
 
 async fn method_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let method = req.method;
-    println!("{}", method);
     res.ok().json(json!(method.to_string()))
 }
 
@@ -287,7 +297,103 @@ async fn secure_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok().json(json!(secure))
 }
 
-// response test handler
+async fn json_error_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let json = req.json::<JsonBody>();
+
+    match json {
+        Ok(body) => res.ok().json(json!({
+            "name": body.name,
+            "age": body.age
+        })),
+        Err(_) => res.status(400).json(json!({
+            "error": "Validation failed"
+        })),
+    }
+}
+
+async fn extremely_long_header_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let header = req.headers.get("X-Long-Header").unwrap();
+    res.ok().json(json!({
+        "header": header
+    }))
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct NoContentTypeData {
+    test: String,
+}
+
+async fn no_content_type_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let data = req.json::<NoContentTypeData>();
+    match data {
+        Ok(data) => res.ok(),
+        Err(_) => res.status(400),
+    }
+}
+
+async fn content_type_mismatch_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    if let Ok(data) = req.json::<NoContentTypeData>() {
+        println!("{data:?}");
+        let test = data.test;
+        res.ok().json(json!({
+            "data": test
+        }))
+    } else {
+        let data = req.text().unwrap();
+        println!("{data:?}");
+        res.ok().text(data)
+    }
+}
+
+async fn special_query_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let name = req.query.get("name").unwrap();
+    let symbols = req.query.get("symbols").unwrap();
+    let unicode = req.query.get("unicode").unwrap();
+
+    res.ok().json(json!({
+        "name": name,
+        "symbols": symbols,
+        "unicode": unicode
+    }))
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct LargeBodyData {
+    data: String,
+    numbers: Vec<i32>,
+}
+
+async fn large_body_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let data = req.json::<LargeBodyData>().unwrap();
+
+    res.ok().json(json!(data))
+}
+
+async fn multipart_text_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let body = req.form_data().unwrap();
+    let name = body.get("name").unwrap();
+    let email = body.get("email").unwrap();
+    let age = body.get("age").unwrap();
+    let description = body.get("description").unwrap();
+
+    res.ok().json(json!({
+        "name": name,
+        "email": email,
+        "age": age,
+        "description": description
+    }))
+}
+
+async fn multipart_file_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let data = req.get_all_data();
+    println!("{data:#?}");
+
+    res.ok()
+}
+
+// ---------------------------------------------------------------------------------------------- //
+// ----------------------------------response tests---------------------------------------------- //
+// ---------------------------------------------------------------------------------------------- //
 
 async fn get_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
@@ -385,6 +491,21 @@ async fn stream_json(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     });
 
     res.write(stream)
+}
+
+async fn cors_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+}
+
+async fn multiple_headers_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok()
+        .set_header("x-header-1", "value1")
+        .set_header("x-header-2", "value2")
+        .set_header("x-header-3", "value3")
+}
+
+async fn no_content_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.no_content()
 }
 
 ' > main.rs

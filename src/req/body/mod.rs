@@ -117,14 +117,13 @@ impl RequestBody {
 
     /// Creates a new request body with binary content.
     ///
-    /// This constructor creates a request body containing raw binary data with the
-    /// appropriate `application/octet-stream` content type. This is suitable for
-    /// file uploads, image transmission, or any use case where the payload is not
-    /// text or structured data.
+    /// This constructor creates a request body containing binary data with the
+    /// appropriate `application/octet-stream` content type. This is used for
+    /// transmitting raw bytes without any specific structure or encoding.
     ///
     /// # Arguments
     ///
-    /// * `bytes` - The binary data to include in the request body, as a [`bytes::Bytes`] object
+    /// * `bytes` - The binary data to include in the request body
     ///
     /// # Returns
     ///
@@ -134,25 +133,51 @@ impl RequestBody {
     ///
     /// ```ignore
     /// use ripress::req::body::{RequestBody, RequestBodyType};
-    /// use bytes::Bytes;
     ///
-    /// let file_bytes = Bytes::from_static(b"\xDE\xAD\xBE\xEF");
-    /// let body = RequestBody::new_binary(file_bytes.clone());
-    ///
-    /// assert_eq!(body.content_type, RequestBodyType::BINARY);
-    /// // body.content will be RequestBodyContent::BINARY(file_bytes)
+    /// let bytes = Bytes::new();
+    /// let binary_content = RequestBody::new_binary(bytes);
+    /// assert_eq!(binary_content.content_type, RequestBodyType::BINARY);
     /// ```
     ///
     /// # Use Cases
     ///
     /// - File uploads (images, documents, etc.)
-    /// - Sending binary blobs or streams
+    /// - Raw binary data transmission
+    /// - Protocol buffer or other binary format data
     /// - Transmitting non-textual data (e.g., protocol buffers, compressed files)
     /// - Any HTTP request requiring `application/octet-stream` content type
     pub(crate) fn new_binary(bytes: Bytes) -> Self {
         RequestBody {
             content_type: RequestBodyType::BINARY,
             content: RequestBodyContent::BINARY(bytes),
+        }
+    }
+
+    /// Creates a new request body with binary content that also contains form fields.
+    ///
+    /// This constructor creates a request body containing binary data (typically multipart form data)
+    /// while also preserving the form fields for direct access. This is useful when processing
+    /// multipart forms with files where you want both the raw bytes for middleware processing
+    /// and the text fields accessible via form_data().
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The binary data to include in the request body
+    /// * `form_data` - The form fields extracted from the multipart data
+    ///
+    /// # Returns
+    ///
+    /// A new `RequestBody` instance with `BINARY` content type but form fields accessible
+    ///
+    /// # Use Cases
+    ///
+    /// - Multipart forms with files that need middleware processing
+    /// - Preserving both binary data and form fields simultaneously
+    /// - Ensuring form fields are accessible even when body is binary
+    pub(crate) fn new_binary_with_form_fields(bytes: Bytes, form_data: FormData) -> Self {
+        RequestBody {
+            content_type: RequestBodyType::BINARY,
+            content: RequestBodyContent::BinaryWithFields(bytes, form_data),
         }
     }
 
@@ -479,7 +504,12 @@ impl ToString for RequestBodyType {
 /// let text_content = RequestBodyContent::TEXT(text_data);
 ///
 /// let bytes = Bytes::new();
-/// let binary_content = RequestBodyContent::BINARY(bytes);
+/// let binary_content = RequestBodyContent::BINARY(bytes.clone());
+///
+/// // Binary content with associated form fields (for multipart forms with files)
+/// let mut form_with_fields = FormData::new();
+/// form_with_fields.insert("name", "John");
+/// let binary_with_fields = RequestBodyContent::BinaryWithFields(bytes, form_with_fields);
 ///
 /// let empty_content = RequestBodyContent::EMPTY;
 ///
@@ -496,6 +526,9 @@ impl ToString for RequestBodyType {
 ///     }
 ///     RequestBodyContent::BINARY(bytes) => {
 ///         println!("Binary content: {:?}", bytes);
+///     }
+///     RequestBodyContent::BinaryWithFields(bytes, form_data) => {
+///         println!("Binary content with {} form fields", form_data.len());
 ///     }
 ///     RequestBodyContent::EMPTY => {
 ///         println!("No body content");
@@ -563,6 +596,17 @@ pub enum RequestBodyContent {
     /// # Examples
     /// - File uploads
     BINARY(Bytes),
+
+    /// Binary content data with associated form fields.
+    ///
+    /// Contains both binary data (typically multipart form data) and the extracted
+    /// form fields. This allows the system to process binary data while keeping
+    /// text fields accessible via form_data().
+    ///
+    /// # Examples
+    /// - Multipart forms with files
+    /// - Binary uploads with metadata
+    BinaryWithFields(Bytes, FormData),
 
     /// No content (empty body).
     ///

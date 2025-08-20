@@ -66,6 +66,7 @@ pub(crate) fn extract_boundary(content_type: &str) -> Option<String> {
             }
         }
     }
+
     // Fallback: best-effort manual parse for non-standard content types
     for part in content_type.split(';').map(|s| s.trim()) {
         let (k, v) = match part.split_once('=') {
@@ -79,6 +80,7 @@ pub(crate) fn extract_boundary(content_type: &str) -> Option<String> {
             }
         }
     }
+
     None
 }
 

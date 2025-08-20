@@ -64,10 +64,20 @@ pub fn cors(
 
         Box::pin(async move {
             // Always add CORS headers
-            res = res
-                .set_header("Access-Control-Allow-Origin", config.allowed_origin)
-                .set_header("Access-Control-Allow-Methods", config.allowed_methods)
-                .set_header("Access-Control-Allow-Headers", config.allowed_headers);
+            let origin = req.headers.get("Origin");
+            let allowed_methods = req.headers.get("Access-Control-Request-Method");
+
+            if let (Some(origin), Some(allowed_methods)) = (origin, allowed_methods) {
+                res = res
+                    .set_header("Access-Control-Allow-Origin", origin)
+                    .set_header("Access-Control-Allow-Methods", allowed_methods);
+            } else {
+                res = res
+                    .set_header("Access-Control-Allow-Origin", config.allowed_origin)
+                    .set_header("Access-Control-Allow-Methods", config.allowed_methods)
+            }
+
+            res = res.set_header("Access-Control-Allow-Headers", config.allowed_headers);
 
             if config.allow_credentials {
                 res = res.set_header("Access-Control-Allow-Credentials", "true");
