@@ -147,47 +147,23 @@ pub fn file_upload(
                 }
             };
 
-            eprintln!("File upload middleware: Got {} bytes", bytes_vec.len());
-
             // Determine Content-Type and extract boundary (case-insensitive)
             let content_type = req.headers.content_type().unwrap_or_default();
-            eprintln!("File upload middleware: Content-Type: {}", content_type);
-            eprintln!("File upload middleware: All headers: {:?}", req.headers);
-
             let boundary = if content_type.to_lowercase().contains("multipart/form-data") {
-                eprintln!(
-                    "File upload middleware: Content-Type contains 'multipart/form-data', extracting boundary"
-                );
                 extract_boundary(&content_type)
             } else {
-                eprintln!(
-                    "File upload middleware: Content-Type does NOT contain 'multipart/form-data'"
-                );
                 None
             };
-            eprintln!("File upload middleware: Boundary: {:?}", boundary);
 
             // Parse multipart/form-data
             let (fields, file_parts) = if let Some(boundary) = boundary {
-                eprintln!(
-                    "File upload middleware: Calling parse_multipart_form with boundary: '{}'",
-                    boundary
-                );
                 parse_multipart_form(&bytes_vec, &boundary)
             } else {
-                eprintln!("File upload middleware: No boundary, returning empty results");
                 (Vec::new(), Vec::new())
             };
 
-            eprintln!(
-                "File upload middleware: Parsed {} text fields and {} file parts",
-                fields.len(),
-                file_parts.len()
-            );
-
             // Insert any text fields into form_data()
             for (k, v) in fields {
-                eprintln!("File upload middleware: Text field: {} = {}", k, v);
                 req.insert_form_field(&k, &v);
             }
 
@@ -196,9 +172,6 @@ pub fn file_upload(
                 file_parts
             } else {
                 // Single binary upload (backwards compatibility) - use "file" as default field name
-                eprintln!(
-                    "File upload middleware: No file parts found, treating as single binary upload"
-                );
                 vec![(bytes_vec, Some("file".to_string()))]
             };
 
@@ -214,12 +187,6 @@ pub fn file_upload(
 
             // Process all files
             for (file_bytes, field_name_opt) in files_to_process {
-                eprintln!(
-                    "File upload middleware: Processing file with {} bytes, field_name: {:?}",
-                    file_bytes.len(),
-                    field_name_opt
-                );
-
                 let (file_bytes, original_filename, field_name) = match field_name_opt {
                     Some(field) => {
                         // If field_name_opt is Some, try to split into original_filename and field_name
@@ -232,16 +199,9 @@ pub fn file_upload(
                     .map(|info| info.extension())
                     .unwrap_or("bin");
 
-                eprintln!("File upload middleware: Detected extension: {}", extension);
-
                 let id = Uuid::new_v4();
                 let filename = format!("{}.{}", id, extension);
                 let filename_with_path = format!("{}/{}.{}", upload_path, id, extension);
-
-                eprintln!(
-                    "File upload middleware: Saving file as: {}",
-                    filename_with_path
-                );
 
                 match File::create(&filename_with_path).await {
                     Ok(mut file) => {
@@ -262,10 +222,6 @@ pub fn file_upload(
                         // CRITICAL FIX: Map the form field name to the UUID filename
                         // This preserves the original field names (like "image", "asd") in the form data
                         if let Some(ref field_name) = field_name {
-                            eprintln!(
-                                "File upload middleware: Mapping form field '{}' to filename '{}'",
-                                field_name, filename
-                            );
                             req.insert_form_field(field_name, &filename);
                         }
 
