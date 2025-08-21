@@ -70,9 +70,10 @@ impl Default for LoggerConfig {
 /// ```
 pub(crate) fn logger(
     config: Option<LoggerConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
+    let cfg = std::sync::Arc::new(config.unwrap_or_default());
     move |req, res| {
-        let config = config.clone().unwrap_or_default();
+        let config = std::sync::Arc::clone(&cfg);
 
         // Treat entries as prefixes; excludes "/health" will also exclude "/health/live".
         if config
