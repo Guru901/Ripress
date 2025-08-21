@@ -146,20 +146,21 @@ The `CorsConfig` struct allows you to customize CORS behavior:
 ### Usage
 
 ```rust
-use ripress::{app::App, middlewares::cors::cors};
+use ripress::app::App;
+use ripress::middlewares::cors::CorsConfig;
 
 // Use default CORS settings
 let mut app = App::new();
-app.use_middleware("", cors(None));
+app.use_cors(None);
 
 // Use custom CORS settings
 use ripress::middlewares::cors::{cors, CorsConfig};
-app.use_middleware("", cors(Some(CorsConfig {
+app.Some(CorsConfig {
     allowed_origin: "https://example.com",
     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS, HEAD",
     allowed_headers: "Content-Type, Authorization",
     allow_credentials: true,
-})));
+});
 ```
 
 ### How It Works
@@ -173,7 +174,7 @@ The CORS middleware:
 
 ### Default Configuration
 
-When using `cors(None)`, the middleware applies these defaults:
+When using `app.use_cors(None)`, the middleware applies these defaults:
 
 - **Origin**: `*` (allow all origins)
 - **Methods**: `GET, POST, PUT, DELETE, OPTIONS, HEAD`
@@ -225,19 +226,19 @@ The `LoggerConfig` struct controls what information gets logged:
 ### Usage
 
 ```rust
-use ripress::{app::App, middlewares::logger::logger};
+use ripress::{app::App, middlewares::logger::LogerConfig};
 
 // Use default logging (logs method, path, and duration)
 let mut app = App::new();
-app.use_middleware("", logger(None));
+app.use_logger(None);
 
 // Use custom logging configuration
-use ripress::middlewares::logger::{logger, LoggerConfig};
-app.use_middleware("", logger(Some(LoggerConfig {
+app.use_logger(Some(LoggerConfig {
     duration: true,
     method: true,
     path: false, // Don't log the path
-})));
+    ..Default::default()
+}));
 ```
 
 ### How It Works
@@ -266,7 +267,7 @@ The order and presence of fields depends on your configuration:
 
 ### Default Configuration
 
-When using `logger(None)`, all logging options are enabled:
+When using `app.use_logger(None)`, all logging options are enabled:
 
 - **Method**: true
 - **Path**: true
@@ -287,26 +288,12 @@ Different configuration examples:
 
 ```rust
 // Log everything (default)
-app.use_middleware("", logger(None));
+app.use_logger(None);
 
 // Only log duration and method
-app.use_middleware("", logger(Some(LoggerConfig {
-    duration: true,
+app.use_logger(Some(LoggerConfig {
     method: true,
     path: false,
-})));
-
-// Only log the request path
-app.use_middleware("", logger(Some(LoggerConfig {
-    duration: false,
-    method: false,
-    path: true,
-})));
-
-// Disable all logging (not very useful)
-app.use_middleware("", logger(Some(LoggerConfig {
-    duration: false,
-    method: false,
-    path: false,
-})));
+    ..Default::default()
+}));
 ```

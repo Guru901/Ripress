@@ -45,29 +45,6 @@ impl Default for LoggerConfig {
     }
 }
 
-/// Builtin Logger Middleware
-///
-/// ## Arguments
-///
-/// * `config` - Configuration for the middleware
-///
-/// ## Examples
-///
-/// ```
-/// use ripress::app::App;
-/// let mut app = App::new();
-/// app.use_logger(None);
-///
-///```
-///```
-/// use ripress::{app::App, middlewares::logger::LoggerConfig};
-/// let mut app = App::new();
-/// app.use_logger(Some(LoggerConfig {
-///     method: true,
-///     path: true,
-///     ..Default::default()
-/// }));
-/// ```
 pub(crate) fn logger(
     config: Option<LoggerConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {

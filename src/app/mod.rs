@@ -2,7 +2,9 @@
 
 use crate::app::api_error::ApiError;
 use crate::helpers::{exec_logger, exec_middleware};
+use crate::middlewares::cors::{CorsConfig, cors};
 use crate::middlewares::logger::{LoggerConfig, logger};
+use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::types::{Fut, FutMiddleware, HandlerMiddleware, HttpMethods, RouterFns, Routes};
@@ -155,6 +157,71 @@ impl App {
             func: Self::middleware_from_closure(logger(config)),
             path: "/".to_string(),
             name: "logger".to_string(),
+        });
+        self
+    }
+
+    /// Adds a cors middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `Option<CorsConfig>` - The configuration for the cors middleware.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::app::App;
+    /// use ripress::middlewares::cors::CorsConfig;
+    ///
+    /// let mut app = App::new();
+    ///
+    /// app.use_cors(None);
+    ///
+    /// app.use_cors(Some(CorsConfig {
+    ///     allowed_origin: "https://example.com",
+    ///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS, HEAD",
+    ///     ..Default::default()
+    /// }));
+    ///
+    /// ```
+
+    pub fn use_cors(&mut self, config: Option<CorsConfig>) -> &mut Self {
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(cors(config)),
+            path: "/".to_string(),
+            name: "cors".to_string(),
+        });
+        self
+    }
+
+    /// Adds a rate limiter middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `Option<RateLimiterConfig>` - The configuration for the rate limiter middleware.
+    ///
+    /// ## Example
+    ///
+    /// ```no_run
+    /// use ripress::app::App;
+    /// use ripress::middlewares::rate_limiter::RateLimiterConfig;
+    ///
+    /// let mut app = App::new();
+    ///
+    /// app.use_rate_limiter(None);
+    ///
+    /// app.use_rate_limiter(Some(RateLimiterConfig {
+    ///     max_requests: 10,
+    ///     ..Default::default()
+    /// }));
+    ///
+    /// ```
+
+    pub fn use_rate_limiter(&mut self, config: Option<RateLimiterConfig>) -> &mut Self {
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(rate_limiter(config)),
+            path: "/".to_string(),
+            name: "rate_limiter".to_string(),
         });
         self
     }
