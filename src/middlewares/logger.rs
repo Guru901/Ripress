@@ -129,7 +129,11 @@ pub(crate) fn logger(
                 msg.push_str(&format!("method: {}, \n", method));
             }
             if config.body_size {
-                msg.push_str(&format!("body_size: {}\n", res.body.len()));
+                if res.is_stream {
+                    msg.push_str("body_size: stream\n");
+                } else {
+                    msg.push_str(&format!("body_size: {}\n", res.body.len()));
+                }
             }
 
             let msg = msg.trim_end_matches([',', ' ', '\t', '\n']);
