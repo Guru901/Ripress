@@ -93,10 +93,13 @@ pub(crate) fn logger(
 
             if !config.headers.is_empty() {
                 for header in &config.headers {
-                    headers.insert(
-                        header.clone(),
-                        req.headers.get(header).unwrap_or("None").to_string(),
-                    );
+                    let key = header.to_ascii_lowercase();
+                    let value = req
+                        .headers
+                        .get(&key)
+                        .map(|v| v.to_string())
+                        .unwrap_or_else(|| "<missing>".to_string());
+                    headers.insert(key, value);
                 }
             }
 
