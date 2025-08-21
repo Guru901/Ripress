@@ -202,17 +202,16 @@ impl App {
     ///
     /// ## Example
     ///
-    /// ```
+    /// ```no_run
     /// use ripress::app::App;
     /// use ripress::middlewares::rate_limiter::RateLimiterConfig;
     ///
     /// let mut app = App::new();
     ///
-    /// app.use_cors(None);
+    /// app.use_rate_limiter(None);
     ///
-    /// app.use_cors(Some(RateLimiterConfig {
+    /// app.use_rate_limiter(Some(RateLimiterConfig {
     ///     max_requests: 10,
-    ///     window_ms: 10_000,
     ///     ..Default::default()
     /// }));
     ///

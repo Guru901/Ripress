@@ -43,7 +43,6 @@ use bytes::Bytes;
 use futures::stream;
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
-use ripress::middlewares::cors::cors;
 use ripress::middlewares::file_upload::file_upload;
 use ripress::res::{CookieOptions, CookieSameSiteOptions};
 use ripress::types::RouterFns;
@@ -56,7 +55,7 @@ use tokio::time;
 async fn main() {
     let mut app = App::new();
 
-    app.use_middleware("/", cors(None));
+    app.use_cors(None);
     app.use_middleware("/multipart-file-test", file_upload(None));
 
     // request tests

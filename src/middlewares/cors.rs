@@ -31,30 +31,6 @@ impl Default for CorsConfig {
     }
 }
 
-/// Builtin Cors Middleware
-///
-/// ## Arguments
-///
-/// * `config` - Configuration for the middleware
-///
-/// ## Examples
-///
-/// ```
-/// use ripress::{app::App, middlewares::cors::cors};
-/// let mut app = App::new();
-/// app.use_middleware("", cors(None));
-/// ```
-///
-/// ```
-/// use ripress::{app::App, middlewares::cors::{cors, CorsConfig}};
-/// let mut app = App::new();
-/// app.use_middleware("", cors(Some(CorsConfig {
-///     allowed_origin: "https://example.com",
-///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS, HEAD",
-///     allowed_headers: "Content-Type, Authorization",
-///     allow_credentials: true,
-/// })));
-/// ```
 pub(crate) fn cors(
     config: Option<CorsConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
