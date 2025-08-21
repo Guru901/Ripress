@@ -6,11 +6,32 @@ use std::{collections::HashMap, time::Instant};
 use tokio::sync::Mutex;
 use tokio::time::interval;
 
+/// Configuration for the rate limiter middleware.
+///
+/// This struct allows you to customize the behavior of the rate limiter,
+/// including the time window, maximum allowed requests, proxy support,
+/// and the message returned when the limit is exceeded.
+///
+/// # Fields
+///
+/// - `window_ms`: The duration of the rate limiting window (e.g., 10 seconds, 1 minute).
+///   All requests from a client within this window are counted towards the limit.
+/// - `proxy`: If `true`, the middleware will attempt to extract the real client IP
+///   from the `X-Forwarded-For` header (useful when behind a proxy or load balancer).
+///   If `false`, the direct remote address is used.
+/// - `max_requests`: The maximum number of requests allowed per client within the window.
+///   When this limit is exceeded, further requests are rejected until the window resets.
+/// - `message`: The response body sent to clients who exceed the rate limit.
+///   Defaults to "Too many requests".
 #[derive(Clone)]
 pub struct RateLimiterConfig {
+    /// The duration of the rate limiting window.
     pub window_ms: Duration,
+    /// Whether to use proxy headers (e.g., X-Forwarded-For) for client IP detection.
     pub proxy: bool,
+    /// Maximum number of requests allowed per client per window.
     pub max_requests: usize,
+    /// Message returned in the response body when the rate limit is exceeded.
     pub message: String,
 }
 
