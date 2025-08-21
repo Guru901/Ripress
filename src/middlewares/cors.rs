@@ -55,7 +55,7 @@ impl Default for CorsConfig {
 ///     allow_credentials: true,
 /// })));
 /// ```
-pub fn cors(
+pub(crate) fn cors(
     config: Option<CorsConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
     move |req, mut res| {
