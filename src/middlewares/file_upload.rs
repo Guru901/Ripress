@@ -20,53 +20,77 @@ use uuid::Uuid;
 /// * **Unique filename generation** with UUIDs to prevent conflicts
 /// * **Graceful error handling** - continues request processing even if upload fails
 /// * **Configurable upload directory** with fallback to "uploads"
+/// * **File size limits** - configurable maximum file size per file
+/// * **File count limits** - configurable maximum number of files per request
+/// * **File type filtering** - optional whitelist of allowed file extensions
 /// * **Non-blocking operation** - doesn't short-circuit requests on upload failures
 /// * **Supports multipart/form-data** - extracts ALL file parts and saves them
 /// * **Multiple file support** - handles multiple files in a single request
+/// * **Form field preservation** - text fields from multipart forms are preserved
 ///
-/// ## Arguments
+/// ## Configuration
 ///
-/// * `upload_dir` - Optional directory path for file uploads (defaults to "uploads")
+/// The middleware accepts an optional `FileUploadConfiguration` struct with the following options:
+///
+/// * `upload_dir` - Directory path for file uploads (default: "uploads")
+/// * `max_file_size` - Maximum size per file in bytes (default: 10 MB)
+/// * `max_files` - Maximum number of files per request (default: 100)
+/// * `allowed_file_types` - Vector of allowed file extensions (default: empty = all types allowed)
 ///
 /// ## Behavior
 ///
 /// The middleware processes requests as follows:
 ///
-/// 1. **Binary Content Detection**: Processes requests with `RequestBodyType::BINARY`
-/// 2. **Directory Creation**: Automatically creates the upload directory if it doesn't exist
-/// 3. **File Processing**: Saves all file content with unique filenames and detected extensions
-/// 4. **Data Injection**: Sets uploaded file information in request data
-/// 5. **Error Handling**: Logs errors but continues request processing without short-circuiting
+/// 1. **Content-Type Detection**: Identifies multipart/form-data vs binary content
+/// 2. **Body Extraction**: Retrieves raw bytes from request body with fallback to form data
+/// 3. **Multipart Parsing**: If multipart, extracts both file and text fields
+/// 4. **Validation**: Checks file count, size, and type limits
+/// 5. **Directory Creation**: Automatically creates the upload directory if it doesn't exist
+/// 6. **File Processing**: Saves all valid files with unique filenames and detected extensions
+/// 7. **Form Field Injection**: Adds text fields to request form data and file field names
+/// 8. **Error Handling**: Logs errors but continues request processing without short-circuiting
 ///
-/// ## Request Data Added
+/// ## Form Data Integration
 ///
-/// When files are successfully uploaded, the middleware adds these fields to the request:
+/// The middleware integrates with the request's form data system:
 ///
-/// * `uploaded_files` - JSON array of uploaded file info (filenames, paths, original names)
-/// * `uploaded_file_count` - Number of files successfully uploaded
-/// * For backwards compatibility (first file only):
-///   * `uploaded_file` - The generated filename of the first file
-///   * `uploaded_file_path` - The full path where the first file was saved
+/// * **Text fields** from multipart forms are added to the request's form data
+/// * **File field names** are populated with the generated filenames for uploaded files
+/// * **Single binary uploads** use "file" as the default field name
 ///
 /// ## Examples
 ///
-/// Basic usage with default upload directory:
+/// Basic usage with default configuration:
 ///
 /// ```rust
 /// use ripress::{app::App, middlewares::file_upload::{FileUploadConfiguration, file_upload}};
+///
 /// let mut app = App::new();
 /// app.use_middleware("/upload", file_upload(Some(FileUploadConfiguration::default())));
 /// ```
 ///
-/// Custom upload directory:
+/// Custom configuration with size and type limits:
 ///
 /// ```rust
 /// use ripress::{app::App, middlewares::file_upload::{file_upload, FileUploadConfiguration}};
+///
 /// let mut app = App::new();
-/// app.use_middleware("/upload", file_upload(Some(FileUploadConfiguration {
-///     upload_dir: "custom_uploads".to_string(),
-///     ..Default::default()
-/// })));
+/// let config = FileUploadConfiguration {
+///     upload_dir: "user_uploads".to_string(),
+///     max_file_size: 1024 * 1024 * 5, // 5 MB
+///     max_files: 10,
+///     allowed_file_types: vec!["jpg".to_string(), "png".to_string(), "pdf".to_string()],
+/// };
+/// app.use_middleware("/upload", file_upload(Some(config)));
+/// ```
+///
+/// Using default configuration (no argument needed):
+///
+/// ```rust
+/// use ripress::{app::App, middlewares::file_upload::file_upload};
+///
+/// let mut app = App::new();
+/// app.use_middleware("/upload", file_upload(None));
 /// ```
 ///
 /// Route handler that processes uploaded files:
@@ -75,52 +99,126 @@ use uuid::Uuid;
 /// use ripress::context::{HttpRequest, HttpResponse};
 ///
 /// async fn upload_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-///     if let Some(count_str) = req.get_data("uploaded_file_count") {
-///         let count: usize = count_str.parse().unwrap_or(0);
-///         if count > 0 {
-///             if let Some(files_json) = req.get_data("uploaded_files") {
-///                 res.ok().text(format!("Uploaded {} files: {}", count, files_json))
-///             } else {
-///                 res.ok().text(format!("Uploaded {} files", count))
-///             }
-///         } else {
-///             res.ok().text("No files were uploaded")
-///         }
+///     // Access uploaded file via form field (for single uploads)
+///     if let Some(filename) = req.get_form_field("file") {
+///         res.ok().text(format!("File uploaded as: {}", filename))
 ///     } else {
+///         res.ok().text("No file was uploaded")
+///     }
+/// }
+/// ```
+///
+/// Handling multipart form with multiple files:
+///
+/// ```rust
+/// use ripress::context::{HttpRequest, HttpResponse};
+///
+/// async fn multi_upload_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+///     let mut uploaded_files = Vec::new();
+///     
+///     // Check each possible file field
+///     for field_name in ["avatar", "document", "attachment"] {
+///         if let Some(filename) = req.get_form_field(field_name) {
+///             uploaded_files.push(format!("{}: {}", field_name, filename));
+///         }
+///     }
+///     
+///     // Access text fields from the multipart form
+///     let user_name = req.get_form_field("name").unwrap_or("Anonymous");
+///     
+///     if uploaded_files.is_empty() {
 ///         res.ok().text("No files were uploaded")
+///     } else {
+///         res.ok().text(format!(
+///             "User: {}\nUploaded files:\n{}",
+///             user_name,
+///             uploaded_files.join("\n")
+///         ))
 ///     }
 /// }
 /// ```
 ///
 /// ## Error Handling
 ///
-/// The middleware is designed to be non-blocking:
+/// The middleware is designed to be non-blocking and fault-tolerant:
 ///
-/// * **Upload failures** are logged but don't stop request processing
+/// * **Upload failures** are logged to stderr but don't stop request processing
 /// * **Directory creation failures** are logged but allow the request to continue
-/// * **Non-binary requests** are logged but processed normally
+/// * **File size exceeded** - individual files are skipped with logging
+/// * **Too many files** - entire request is logged but continues without uploads
+/// * **Disallowed file types** - individual files are skipped with logging
 /// * **File write failures** are logged but don't short-circuit the request
+/// * **Body parsing failures** - logged and request continues without uploads
+///
+/// ## Security Considerations
+///
+/// * **File type validation** - Use `allowed_file_types` to restrict uploads
+/// * **Size limits** - Configure `max_file_size` and `max_files` appropriately
+/// * **Unique filenames** - UUID-based names prevent directory traversal and conflicts
+/// * **Directory isolation** - Files are saved only within the configured upload directory
+/// * **No execution** - Middleware only handles storage, not file execution
 ///
 /// ## Dependencies
 ///
 /// This middleware requires the following crates:
-/// * `tokio` - For async file operations
+/// * `tokio` - For async file operations and directory creation
 /// * `uuid` - For generating unique filenames
 /// * `infer` - For detecting file types and extensions
+/// * `urlencoding` - For encoding form data (internal use)
 ///
-/// ## Notes
+/// ## Logging
 ///
-/// * Works with `RequestBodyType::BINARY` content
-/// * For `multipart/form-data`, ALL file parts are extracted and saved
-/// * Files are saved with UUID-based names to prevent conflicts
-/// * The middleware automatically handles directory creation
-/// * Upload failures are logged to stderr for debugging
+/// The middleware logs various events to stderr for debugging:
+/// * Directory creation failures
+/// * File size limit exceeded
+/// * File count limit exceeded  
+/// * Disallowed file type attempts
+/// * File creation and write failures
+/// * Body parsing failures
+///
+/// ## Performance Notes
+///
+/// * Files are processed sequentially, not in parallel
+/// * Large files are loaded entirely into memory before writing
+/// * Directory creation is checked on every request (consider pre-creating directories)
+/// * File type detection requires reading file headers
+///
+/// ## Compatibility
+///
+/// * Works with both single binary uploads and multipart/form-data
+/// * Backwards compatible with existing form field access patterns
+/// * Graceful degradation when uploads fail
+/// * Case-insensitive Content-Type header detection
 
+/// Configuration struct for the file upload middleware
+///
+/// This struct defines all configurable aspects of the file upload behavior,
+/// including storage location, size limits, and file type restrictions.
 #[derive(Clone)]
 pub struct FileUploadConfiguration {
+    /// Directory path where uploaded files will be stored
+    ///
+    /// The directory will be created automatically if it doesn't exist.
+    /// Relative paths are resolved from the current working directory.
     pub upload_dir: String,
+
+    /// Maximum size allowed for individual files in bytes
+    ///
+    /// Files exceeding this limit will be skipped and logged.
+    /// Default is 10 MB (1024 * 1024 * 10).
     pub max_file_size: u64,
+
+    /// Maximum number of files allowed per request
+    ///
+    /// Requests with more files will be logged and no files will be uploaded.
+    /// Default is 100.
     pub max_files: u64,
+
+    /// List of allowed file extensions (without dots)
+    ///
+    /// If empty, all file types are allowed. Extensions are detected automatically
+    /// using the `infer` crate based on file headers, not filenames.
+    /// Example: vec!["jpg".to_string(), "png".to_string(), "pdf".to_string()]
     pub allowed_file_types: Vec<String>,
 }
 
@@ -135,6 +233,29 @@ impl Default for FileUploadConfiguration {
     }
 }
 
+/// Creates a file upload middleware function
+///
+/// Returns a middleware function that can be used with `app.use_middleware()` to handle
+/// file uploads on specified routes. The middleware processes multipart/form-data and
+/// binary uploads, saving files to the configured directory with unique UUID-based names.
+///
+/// ## Parameters
+///
+/// * `config` - Optional configuration. If `None`, uses default settings.
+///
+/// ## Returns
+///
+/// A middleware function compatible with the ripress framework that:
+/// * Processes file uploads from request bodies
+/// * Saves files with unique filenames and detected extensions  
+/// * Adds form fields for uploaded filenames
+/// * Preserves text fields from multipart forms
+/// * Handles errors gracefully without blocking requests
+///
+/// ## Thread Safety
+///
+/// The returned middleware is `Send + Sync + Clone` and can be safely used
+/// across multiple threads and cloned for multiple routes.
 pub fn file_upload(
     config: Option<FileUploadConfiguration>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
@@ -215,7 +336,11 @@ pub fn file_upload(
             };
 
             if files_to_process.len() > config.max_files as usize {
-                eprintln!("File upload middleware: Too many files");
+                eprintln!(
+                    "File upload middleware: Too many files ({} > {})",
+                    files_to_process.len(),
+                    config.max_files
+                );
                 return (req, None);
             }
 
@@ -231,7 +356,11 @@ pub fn file_upload(
             // Process all files
             for (file_bytes, field_name_opt) in files_to_process {
                 if file_bytes.len() > config.max_file_size as usize {
-                    eprintln!("File upload middleware: File too large");
+                    eprintln!(
+                        "File upload middleware: File too large ({} bytes > {} bytes)",
+                        file_bytes.len(),
+                        config.max_file_size
+                    );
                     continue;
                 }
 
@@ -250,7 +379,10 @@ pub fn file_upload(
                 if !config.allowed_file_types.is_empty()
                     && !config.allowed_file_types.iter().any(|ext| ext == extension)
                 {
-                    eprintln!("File upload middleware: File type not allowed");
+                    eprintln!(
+                        "File upload middleware: File type '{}' not allowed (allowed types: {:?})",
+                        extension, config.allowed_file_types
+                    );
                     continue;
                 }
 
@@ -286,6 +418,18 @@ pub fn file_upload(
 }
 
 /// Converts HashMap<String, String> form data to a string representation
+///
+/// This is an internal helper function used as a fallback when binary data
+/// extraction fails. It URL-encodes form key-value pairs into a query string format.
+///
+/// ## Parameters
+///
+/// * `form_data` - Reference to the form data HashMap
+///
+/// ## Returns
+///
+/// A URL-encoded string representation of the form data, or an empty string
+/// if the form data is empty.
 fn form_data_to_string(form_data: &FormData) -> String {
     if form_data.is_empty() {
         return String::new();
