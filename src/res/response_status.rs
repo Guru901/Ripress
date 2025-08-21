@@ -1,3 +1,4 @@
+#[warn(missing_docs)]
 use std::fmt::Display;
 
 /// Represents the status code of an HTTP response.

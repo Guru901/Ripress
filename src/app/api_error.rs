@@ -1,3 +1,4 @@
+#[warn(missing_docs)]
 use crate::res::HttpResponse;
 use std::convert::Infallible;
 

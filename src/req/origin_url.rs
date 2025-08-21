@@ -1,3 +1,4 @@
+#[warn(missing_docs)]
 use std::fmt::Display;
 
 /// A struct that represents the origin url of the request.

@@ -1,3 +1,4 @@
+#[warn(missing_docs)]
 use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
 use std::sync::Arc;
 use std::time::Duration;
@@ -128,6 +129,3 @@ pub(crate) fn rate_limiter(
         })
     }
 }
-
-#[cfg(test)]
-mod tests {}

@@ -1,3 +1,4 @@
+#[warn(missing_docs)]
 use crate::app::box_future;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;

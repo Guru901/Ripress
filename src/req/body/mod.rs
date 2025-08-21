@@ -1,3 +1,5 @@
+#[warn(missing_docs)]
+
 /// A structured representation of HTTP request body data.
 ///
 /// `RequestBody` provides a type-safe wrapper around different types of request body content,

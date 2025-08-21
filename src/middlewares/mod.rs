@@ -1,3 +1,5 @@
+#[warn(missing_docs)]
+
 /// # Middlewares
 
 /// This module provides Cross-Origin Resource Sharing (CORS) middleware for handling

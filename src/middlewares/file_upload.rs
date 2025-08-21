@@ -1,3 +1,4 @@
+#[warn(missing_docs)]
 use crate::helpers::{extract_boundary, parse_multipart_form};
 use crate::req::body::FormData;
 use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};

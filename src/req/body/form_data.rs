@@ -1,3 +1,4 @@
+#[warn(missing_docs)]
 use std::{collections::HashMap, fmt::Display};
 use urlencoding::decode;
 
