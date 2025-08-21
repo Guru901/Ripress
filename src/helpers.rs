@@ -41,10 +41,7 @@ pub(crate) async fn exec_logger(
 ) -> Result<Response<Body>, ApiError> {
     let mw_func = middleware.func;
 
-    let our_req = HttpRequest::from_request_info(info).unwrap_or({
-        println!("Failed to create request from request info");
-        HttpRequest::new()
-    });
+    let our_req = HttpRequest::from_request_info(info);
 
     let our_res = HttpResponse::from_hyper_response(&res);
 

@@ -715,9 +715,7 @@ impl HttpRequest {
         })
     }
 
-    pub(crate) fn from_request_info(
-        req_info: RequestInfo,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    pub(crate) fn from_request_info(req_info: RequestInfo) -> Self {
         let mut headers = RequestHeaders::new();
 
         req_info.headers().iter().for_each(|(key, value)| {
@@ -795,7 +793,14 @@ impl HttpRequest {
 
         let xhr_header = headers.get("x-requested-with").unwrap_or("");
         let xhr = xhr_header == "XMLHttpRequest";
-        Ok(Self {
+
+        // Try to get RequestData from the request info
+        let mut data = RequestData::new();
+        if let Some(ext_data) = req_info.data::<RequestData>() {
+            data = ext_data.clone();
+        }
+
+        Self {
             body: RequestBody {
                 content: RequestBodyContent::EMPTY,
                 content_type: RequestBodyType::EMPTY,
@@ -809,10 +814,10 @@ impl HttpRequest {
             path: req_info.uri().path().to_string(),
             query,
             xhr,
-            data: RequestData::new(),
+            data,
             ip,
             protocol,
-        })
+        }
     }
 
     pub(crate) fn to_hyper_request(&self) -> Result<Request<Body>, Box<dyn std::error::Error>> {

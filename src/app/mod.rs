@@ -143,7 +143,6 @@ impl App {
     /// app.use_logger(None);
     ///
     /// app.use_logger(Some(LoggerConfig {
-    ///     duration: true,
     ///     method: true,
     ///     path: true,
     ///     ..Default::default()

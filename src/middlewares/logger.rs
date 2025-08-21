@@ -13,7 +13,6 @@ use std::collections::HashMap;
 pub struct LoggerConfig {
     pub method: bool,
     pub path: bool,
-    pub duration: bool,
     pub status: bool,
     pub user_agent: bool,
     pub ip: bool,
@@ -26,7 +25,6 @@ pub struct LoggerConfig {
 impl Default for LoggerConfig {
     fn default() -> Self {
         LoggerConfig {
-            duration: true,
             method: true,
             path: true,
             status: true,
@@ -58,7 +56,6 @@ impl Default for LoggerConfig {
 /// use ripress::{app::App, middlewares::logger::LoggerConfig};
 /// let mut app = App::new();
 /// app.use_logger(Some(LoggerConfig {
-///     duration: true,
 ///     method: true,
 ///     path: true,
 ///     ..Default::default()
@@ -75,12 +72,11 @@ pub(crate) fn logger(
         }
 
         Box::pin(async move {
-            let start_time = std::time::Instant::now();
             let path = req.path.clone();
             let method = req.method.clone();
-            let status = res.status_code.clone();
             let user_agent = req.headers.user_agent().unwrap_or("Unknown").to_string();
             let ip = req.ip;
+            let status_code = res.status_code;
             let mut headers = HashMap::new();
 
             if !config.headers.is_empty() {
@@ -93,42 +89,37 @@ pub(crate) fn logger(
             }
 
             let query_params = req.query.clone();
-            let body_size = res.body.len();
-
-            let duration = start_time.elapsed();
 
             let mut msg = String::new();
 
             if config.path {
-                msg.push_str(&format!("path: {}, ", path));
-            }
-            if config.status {
-                msg.push_str(&format!("status: {}, ", status));
+                msg.push_str(&format!("path: {}, \n", path));
             }
             if config.user_agent {
-                msg.push_str(&format!("user_agent: {}, ", user_agent));
+                msg.push_str(&format!("user_agent: {}, \n", user_agent));
             }
             if config.ip {
-                msg.push_str(&format!("ip: {}, ", ip));
+                msg.push_str(&format!("ip: {}, \n", ip));
             }
             for (key, value) in headers {
-                msg.push_str(&format!("{}: {}, ", key, value));
+                msg.push_str(&format!("{}: {}, \n", key, value));
+            }
+            if config.status {
+                msg.push_str(&format!("status_code: {}\n", status_code));
             }
             if config.query_params {
-                msg.push_str(&format!("query_params: {:?}, ", query_params));
-            }
-            if config.body_size {
-                msg.push_str(&format!("body_size: {}, ", body_size));
-            }
-            if config.duration {
-                msg.push_str(&format!("duration_ms: {}, ", duration.as_millis()));
+                msg.push_str(&format!("query_params: {:?}, \n", query_params));
             }
             if config.method {
-                msg.push_str(&format!("method: {}", method));
+                msg.push_str(&format!("method: {}, \n", method));
             }
+            if config.body_size {
+                msg.push_str(&format!("body_size: {}\n", res.body.len()));
+            }
+
             let msg = msg.trim_end_matches([',', ' ', '\t', '\n']);
 
-            tracing::info!("{}", msg);
+            println!("{}", msg);
 
             (req, None)
         })

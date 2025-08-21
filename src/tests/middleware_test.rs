@@ -466,7 +466,6 @@ mod tests {
         let logger_mw = logger(Some(LoggerConfig {
             method: true,
             path: false,
-            duration: false,
             ..Default::default()
         }));
 
@@ -502,7 +501,6 @@ mod tests {
         let logger_mw = logger(Some(LoggerConfig {
             method: false,
             path: false,
-            duration: false,
             ..Default::default()
         }));
 
