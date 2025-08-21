@@ -67,9 +67,9 @@ impl RequestBodyContent {
                 serde_json::to_vec(json).map(|v| v.len()).unwrap_or(0)
             }
             RequestBodyContent::BINARY(bytes) => bytes.len(),
-            RequestBodyContent::BinaryWithFields(bytes, form_data) => bytes.len() + form_data.len(),
+            RequestBodyContent::BinaryWithFields(bytes, _form_data) => bytes.len(),
             RequestBodyContent::EMPTY => 0,
-            RequestBodyContent::FORM(form_data) => form_data.len(),
+            RequestBodyContent::FORM(form_data) => form_data.byte_len(),
         }
     }
 }
