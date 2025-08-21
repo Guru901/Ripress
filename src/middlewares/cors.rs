@@ -77,16 +77,16 @@ use crate::{
 /// Basic CORS with default settings (allows all origins):
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::cors::{cors, CorsConfig}};
+/// use ripress::{app::App, middlewares::cors::CorsConfig};
 ///
 /// let mut app = App::new();
-/// app.use_middleware("/api", cors(Some(CorsConfig::default())));
+/// app.use_cors(Some(CorsConfig::default()));
 /// ```
 ///
 /// Restrictive CORS for production API:
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::cors::{cors, CorsConfig}};
+/// use ripress::{app::App, middlewares::cors::CorsConfig};
 ///
 /// let mut app = App::new();
 /// let config = CorsConfig {
@@ -95,13 +95,13 @@ use crate::{
 ///     allowed_headers: "Content-Type, Authorization, X-API-Key",
 ///     allow_credentials: true,
 /// };
-/// app.use_middleware("/api", cors(Some(config)));
+/// app.use_cors(Some(config));
 /// ```
 ///
 /// Development-friendly CORS (allows localhost variations):
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::cors::{cors, CorsConfig}};
+/// use ripress::{app::App, middlewares::cors::CorsConfig};
 ///
 /// let mut app = App::new();
 /// let config = CorsConfig {
@@ -110,13 +110,13 @@ use crate::{
 ///     allowed_headers: "Content-Type, Authorization, X-Requested-With, Accept, Origin",
 ///     allow_credentials: false, // Must be false when origin is "*"
 /// };
-/// app.use_middleware("/", cors(Some(config)));
+/// app.use_cors(Some(config));
 /// ```
 ///
 /// Multiple origin support pattern (requires custom logic):
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::cors::{cors, CorsConfig}};
+/// use ripress::{app::App, middlewares::cors::CorsConfig};
 ///
 /// // Note: For true multiple origin support, you may need custom middleware
 /// // This example shows single origin configuration
@@ -127,22 +127,24 @@ use crate::{
 ///     allowed_headers: "Content-Type, Authorization",
 ///     allow_credentials: true,
 /// };
-/// app.use_middleware("/api", cors(Some(config)));
+/// app.use_cors(Some(config));
 /// ```
 ///
 /// Using default configuration:
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::cors::cors};
+/// use ripress::app::App;
 ///
 /// let mut app = App::new();
-/// app.use_middleware("/", cors(None)); // Uses CorsConfig::default()
+/// app.use_cors(None); // Uses CorsConfig::default()
 /// ```
 ///
 /// ## Common Use Cases
 ///
 /// ### Single Page Applications (SPAs)
 /// ```rust
+/// use ripress::middlewares::cors::CorsConfig;
+///
 /// let config = CorsConfig {
 ///     allowed_origin: "https://myapp.com",
 ///     allowed_methods: "GET, POST, PUT, DELETE, PATCH",
@@ -152,7 +154,9 @@ use crate::{
 /// ```
 ///
 /// ### Public APIs
-/// ```rust  
+/// ```rust
+/// use ripress::middlewares::cors::CorsConfig;
+///
 /// let config = CorsConfig {
 ///     allowed_origin: "*",
 ///     allowed_methods: "GET, POST",
@@ -163,6 +167,8 @@ use crate::{
 ///
 /// ### Development/Testing
 /// ```rust
+/// use ripress::middlewares::cors::CorsConfig;
+///
 /// let config = CorsConfig {
 ///     allowed_origin: "*",
 ///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH",

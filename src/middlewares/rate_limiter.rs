@@ -80,17 +80,17 @@ use tokio::time::interval;
 ///
 /// Basic rate limiting with default settings:
 ///
-/// ```rust
-/// use ripress::{app::App, middlewares::rate_limiter::{rate_limiter, RateLimiterConfig}};
+/// ```no_run
+/// use ripress::{app::App, middlewares::rate_limiter::RateLimiterConfig};
 ///
 /// let mut app = App::new();
-/// app.use_middleware("/api", rate_limiter(Some(RateLimiterConfig::default())));
+/// app.use_rate_limiter(Some(RateLimiterConfig::default()));
 /// ```
 ///
 /// API rate limiting for production (100 requests per minute):
 ///
-/// ```rust
-/// use ripress::{app::App, middlewares::rate_limiter::{rate_limiter, RateLimiterConfig}};
+/// ```no_run
+/// use ripress::{app::App, middlewares::rate_limiter::RateLimiterConfig};
 /// use std::time::Duration;
 ///
 /// let mut app = App::new();
@@ -100,13 +100,13 @@ use tokio::time::interval;
 ///     proxy: true, // Behind load balancer
 ///     message: "Rate limit exceeded. Please try again later.".to_string(),
 /// };
-/// app.use_middleware("/api", rate_limiter(Some(config)));
+/// app.use_rate_limiter(Some(config));
 /// ```
 ///
 /// Strict rate limiting for sensitive endpoints:
 ///
-/// ```rust
-/// use ripress::{app::App, middlewares::rate_limiter::{rate_limiter, RateLimiterConfig}};
+/// ```no_run
+/// use ripress::{app::App, middlewares::rate_limiter::RateLimiterConfig};
 /// use std::time::Duration;
 ///
 /// let mut app = App::new();
@@ -116,13 +116,13 @@ use tokio::time::interval;
 ///     proxy: false,
 ///     message: "Too many attempts. Please wait before trying again.".to_string(),
 /// };
-/// app.use_middleware("/auth/login", rate_limiter(Some(config)));
+/// app.use_rate_limiter(Some(config));
 /// ```
 ///
 /// Development-friendly configuration:
 ///
-/// ```rust
-/// use ripress::{app::App, middlewares::rate_limiter::{rate_limiter, RateLimiterConfig}};
+/// ```no_run
+/// use ripress::{app::App, middlewares::rate_limiter::RateLimiterConfig};
 /// use std::time::Duration;
 ///
 /// let mut app = App::new();
@@ -132,13 +132,13 @@ use tokio::time::interval;
 ///     proxy: false,
 ///     message: "Development rate limit exceeded".to_string(),
 /// };
-/// app.use_middleware("/", rate_limiter(Some(config)));
+/// app.use_rate_limiter(Some(config));
 /// ```
 ///
 /// Multiple rate limiters for different endpoints:
 ///
-/// ```rust
-/// use ripress::{app::App, middlewares::rate_limiter::{rate_limiter, RateLimiterConfig}};
+/// ```no_run
+/// use ripress::{app::App, middlewares::rate_limiter::RateLimiterConfig};
 /// use std::time::Duration;
 ///
 /// let mut app = App::new();
@@ -150,7 +150,7 @@ use tokio::time::interval;
 ///     proxy: true,
 ///     message: "Too many read requests".to_string(),
 /// };
-/// app.use_middleware("/api/read", rate_limiter(Some(read_config)));
+/// app.use_rate_limiter(Some(read_config));
 ///
 /// // Stricter limits for write operations
 /// let write_config = RateLimiterConfig {
@@ -159,16 +159,16 @@ use tokio::time::interval;
 ///     proxy: true,
 ///     message: "Too many write requests".to_string(),
 /// };
-/// app.use_middleware("/api/write", rate_limiter(Some(write_config)));
+/// app.use_rate_limiter(Some(write_config));
 /// ```
 ///
 /// Using default configuration:
 ///
-/// ```rust
-/// use ripress::{app::App, middlewares::rate_limiter::rate_limiter};
+/// ```no_run
+/// use ripress::app::App;
 ///
 /// let mut app = App::new();
-/// app.use_middleware("/api", rate_limiter(None)); // Uses defaults
+/// app.use_rate_limiter(None); // Uses defaults
 /// ```
 ///
 /// ## Client Integration Examples

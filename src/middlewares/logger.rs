@@ -48,7 +48,7 @@ use std::collections::HashMap;
 /// ## Log Format
 ///
 /// The middleware outputs structured logs to stdout with the following format:
-/// ```
+/// ```md
 /// path: /api/users,
 /// user_agent: Mozilla/5.0...,
 /// ip: 192.168.1.1,
@@ -64,16 +64,16 @@ use std::collections::HashMap;
 /// Basic usage with default configuration:
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::logger::{logger, LoggerConfig}};
+/// use ripress::{app::App, middlewares::logger::LoggerConfig};
 ///
 /// let mut app = App::new();
-/// app.use_middleware("/", logger(Some(LoggerConfig::default())));
+/// app.use_logger(Some(LoggerConfig::default()));
 /// ```
 ///
 /// Minimal logging configuration:
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::logger::{logger, LoggerConfig}};
+/// use ripress::{app::App, middlewares::logger::LoggerConfig};
 ///
 /// let mut app = App::new();
 /// let config = LoggerConfig {
@@ -87,13 +87,13 @@ use std::collections::HashMap;
 ///     query_params: false,
 ///     exclude_paths: vec![],
 /// };
-/// app.use_middleware("/", logger(Some(config)));
+/// app.use_logger(Some(config));
 /// ```
 ///
 /// Custom header logging with path exclusions:
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::logger::{logger, LoggerConfig}};
+/// use ripress::{app::App, middlewares::logger::LoggerConfig};
 ///
 /// let mut app = App::new();
 /// let config = LoggerConfig {
@@ -115,22 +115,22 @@ use std::collections::HashMap;
 ///         "/favicon.ico".to_string(),
 ///     ],
 /// };
-/// app.use_middleware("/", logger(Some(config)));
+/// app.use_logger(Some(config));
 /// ```
 ///
 /// Using default configuration (recommended for development):
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::logger::logger};
+/// use ripress::app::App;
 ///
 /// let mut app = App::new();
-/// app.use_middleware("/", logger(None)); // Uses LoggerConfig::default()
+/// app.use_logger(None); // Uses LoggerConfig::default()
 /// ```
 ///
 /// Production configuration with security considerations:
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::logger::{logger, LoggerConfig}};
+/// use ripress::{app::App, middlewares::logger::LoggerConfig};
 ///
 /// let mut app = App::new();
 /// let config = LoggerConfig {
@@ -152,13 +152,13 @@ use std::collections::HashMap;
 ///         "/internal".to_string(),
 ///     ],
 /// };
-/// app.use_middleware("/", logger(Some(config)));
+/// app.use_logger(Some(config));
 /// ```
 ///
 /// ## Output Examples
 ///
 /// Default configuration output:
-/// ```
+/// ```md
 /// path: /api/users/123,
 /// user_agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36,
 /// ip: 192.168.1.100,
@@ -169,7 +169,7 @@ use std::collections::HashMap;
 /// ```
 ///
 /// Custom headers output:
-/// ```
+/// ```md
 /// path: /api/upload,
 /// user_agent: PostmanRuntime/7.32.3,
 /// ip: 10.0.0.15,

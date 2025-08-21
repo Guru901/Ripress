@@ -100,7 +100,9 @@ use uuid::Uuid;
 ///
 /// async fn upload_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ///     // Access uploaded file via form field (for single uploads)
-///     if let Some(filename) = req.get_form_field("file") {
+///     let form_data = req.form_data().unwrap();
+///
+///     if let Some(filename) = form_data.get("file") {
 ///         res.ok().text(format!("File uploaded as: {}", filename))
 ///     } else {
 ///         res.ok().text("No file was uploaded")
@@ -115,16 +117,17 @@ use uuid::Uuid;
 ///
 /// async fn multi_upload_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ///     let mut uploaded_files = Vec::new();
+///     let form_data = req.form_data().unwrap();
 ///     
 ///     // Check each possible file field
 ///     for field_name in ["avatar", "document", "attachment"] {
-///         if let Some(filename) = req.get_form_field(field_name) {
+///         if let Some(filename) = form_data.get(field_name) {
 ///             uploaded_files.push(format!("{}: {}", field_name, filename));
 ///         }
 ///     }
 ///     
 ///     // Access text fields from the multipart form
-///     let user_name = req.get_form_field("name").unwrap_or("Anonymous");
+///     let user_name = form_data.get("name").unwrap_or("Anonymous");
 ///     
 ///     if uploaded_files.is_empty() {
 ///         res.ok().text("No files were uploaded")
