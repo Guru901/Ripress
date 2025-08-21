@@ -2,6 +2,7 @@
 
 use crate::app::api_error::ApiError;
 use crate::helpers::{exec_logger, exec_middleware};
+use crate::middlewares::body_limit::body_limit;
 use crate::middlewares::cors::{CorsConfig, cors};
 use crate::middlewares::logger::{LoggerConfig, logger};
 use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
@@ -190,6 +191,35 @@ impl App {
             func: Self::middleware_from_closure(cors(config)),
             path: "/".to_string(),
             name: "cors".to_string(),
+        });
+        self
+    }
+
+    /// Adds a body size limit middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `config` - An optional maximum size in bytes for the request body. If `None` is provided,
+    ///   the default limit is 1 MB (1,048,576 bytes).
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::app::App;
+    ///
+    /// let mut app = App::new();
+    ///
+    /// // Use the default 1 MB limit
+    /// app.use_body_limit(None);
+    ///
+    /// // Set a custom limit (e.g., 2 MB)
+    /// app.use_body_limit(Some(2 * 1024 * 1024));
+    /// ```
+    pub fn use_body_limit(&mut self, config: Option<usize>) -> &mut Self {
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(body_limit(config)),
+            path: "/".to_string(),
+            name: "body_limit".to_string(),
         });
         self
     }

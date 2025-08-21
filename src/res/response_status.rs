@@ -141,6 +141,13 @@ pub enum StatusCode {
     /// Often used in REST APIs when trying to create a resource that already exists.
     Conflict,
 
+    /// 413 Payload Too Large
+    ///
+    /// This response is sent when the request payload is too large for the server to handle.
+    /// The server may choose to respond with a 413 status code and include a Retry-After header
+    /// to indicate how long the user should wait before making a new request.
+    PayloadTooLarge,
+
     /// 429 Too Many Requests
     ///
     /// This response is sent when a request is rejected due to the user exceeding the rate limit.
@@ -225,6 +232,7 @@ impl Display for StatusCode {
                 StatusCode::NotFound => "Not Found",
                 StatusCode::MethodNotAllowed => "Method Not Allowed",
                 StatusCode::Conflict => "Conflict",
+                StatusCode::PayloadTooLarge => "Payload Too Large",
                 StatusCode::TooManyRequests => "Too Many Requests",
                 StatusCode::InternalServerError => "Internal Server Error",
                 StatusCode::NotImplemented => "Not Implemented",
@@ -267,6 +275,7 @@ impl StatusCode {
             StatusCode::NotFound => 404,
             StatusCode::MethodNotAllowed => 405,
             StatusCode::Conflict => 409,
+            StatusCode::PayloadTooLarge => 413,
             StatusCode::TooManyRequests => 429,
 
             StatusCode::InternalServerError => 500,
@@ -318,6 +327,7 @@ impl StatusCode {
             404 => StatusCode::NotFound,
             405 => StatusCode::MethodNotAllowed,
             409 => StatusCode::Conflict,
+            413 => StatusCode::PayloadTooLarge,
             429 => StatusCode::TooManyRequests,
 
             500 => StatusCode::InternalServerError,
@@ -439,6 +449,7 @@ impl StatusCode {
             StatusCode::NotFound => "Not Found",
             StatusCode::MethodNotAllowed => "Method Not Allowed",
             StatusCode::Conflict => "Conflict",
+            StatusCode::PayloadTooLarge => "Payload Too Large",
             StatusCode::TooManyRequests => "Too Many Requests",
             StatusCode::InternalServerError => "Internal Server Error",
             StatusCode::NotImplemented => "Not Implemented",

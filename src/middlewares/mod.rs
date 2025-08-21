@@ -113,3 +113,5 @@ pub mod file_upload;
 /// * Rate limiting is per-process; distributed deployments require shared state (e.g., Redis)
 /// * Identification is by IP by default; proxies may require custom logic
 pub mod rate_limiter;
+
+pub mod body_limit;
