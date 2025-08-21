@@ -226,19 +226,18 @@ The `LoggerConfig` struct controls what information gets logged:
 ### Usage
 
 ```rust
-use ripress::{app::App, middlewares::logger::logger};
+use ripress::{app::App, middlewares::logger::LogerConfig};
 
 // Use default logging (logs method, path, and duration)
 let mut app = App::new();
-app.use_middleware("", logger(None));
+app.use_logger(None);
 
 // Use custom logging configuration
-use ripress::middlewares::logger::{logger, LoggerConfig};
-app.use_middleware("", logger(Some(LoggerConfig {
+app.use_logger(Some(LoggerConfig {
     duration: true,
     method: true,
     path: false, // Don't log the path
-})));
+}));
 ```
 
 ### How It Works
@@ -288,26 +287,12 @@ Different configuration examples:
 
 ```rust
 // Log everything (default)
-app.use_middleware("", logger(None));
+app.use_logger(None);
 
 // Only log duration and method
-app.use_middleware("", logger(Some(LoggerConfig {
-    duration: true,
+app.use_logger(Some(LoggerConfig {
     method: true,
     path: false,
-})));
-
-// Only log the request path
-app.use_middleware("", logger(Some(LoggerConfig {
-    duration: false,
-    method: false,
-    path: true,
-})));
-
-// Disable all logging (not very useful)
-app.use_middleware("", logger(Some(LoggerConfig {
-    duration: false,
-    method: false,
-    path: false,
-})));
+    ..Default::default()
+}));
 ```
