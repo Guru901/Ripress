@@ -22,7 +22,7 @@ use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
 /// # Example
 ///
 /// ```rust
-/// use ripress::app::app;
+/// use ripress::app::App;
 ///
 /// // Limit request bodies to 2 MB
 /// let mut app = App::new();
