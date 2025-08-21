@@ -101,9 +101,9 @@ impl TextData {
     /// assert_eq!(text.charset(), Some("utf-8"));
     /// assert!(text.is_valid_utf8());
     /// ```
-    pub fn new(text: String) -> Self {
+    pub fn new<T: Into<String>>(text: T) -> Self {
         Self {
-            inner: text.into_bytes(),
+            inner: text.into().into_bytes(),
             charset: Some("utf-8".to_string()),
         }
     }

@@ -1,7 +1,8 @@
 #![warn(missing_docs)]
 
 use crate::app::api_error::ApiError;
-use crate::helpers::exec_middleware;
+use crate::helpers::{exec_logger, exec_middleware};
+use crate::middlewares::logger::{LoggerConfig, logger};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::types::{Fut, FutMiddleware, HandlerMiddleware, HttpMethods, RouterFns, Routes};
@@ -43,21 +44,7 @@ where
 ///
 /// The `path` field specifies the route prefix or pattern for which this middleware
 /// should be applied. Middlewares are matched in the order they are added to the app.
-///
-/// # Example
-///
-/// ```rust
-/// use ripress::app::Middleware;
-/// use std::sync::Arc;
-///
-/// let mw = Middleware {
-///     func: Arc::new(|req, res| Box::pin(async move {
-///         // Your middleware logic here
-///         (req, None)
-///     })),
-///     path: "/api".to_string(),
-/// };
-/// ```
+
 #[derive(Clone)]
 pub struct Middleware {
     /// The middleware function.
@@ -71,6 +58,8 @@ pub struct Middleware {
     ///
     /// If the incoming request path starts with this string, the middleware will be invoked.
     pub path: String,
+
+    pub(crate) name: String,
 }
 
 /// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests. It follows an Express-like pattern for route handling.
@@ -132,6 +121,40 @@ impl App {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(middleware),
             path: path,
+            name: "custom".to_string(),
+        });
+        self
+    }
+
+    /// Adds a logger middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `Option<LoggerConfig>` - The configuration for the logger.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::app::App;
+    /// use ripress::middlewares::logger::LoggerConfig;
+    ///
+    /// let mut app = App::new();
+    ///
+    /// app.use_logger(None);
+    ///
+    /// app.use_logger(Some(LoggerConfig {
+    ///     method: true,
+    ///     path: true,
+    ///     ..Default::default()
+    /// }));
+    ///
+    /// ```
+
+    pub fn use_logger(&mut self, config: Option<LoggerConfig>) -> &mut Self {
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(logger(config)),
+            path: "/".to_string(),
+            name: "logger".to_string(),
         });
         self
     }
@@ -191,9 +214,18 @@ impl App {
 
         for middleware in self.middlewares.iter() {
             let middleware = middleware.clone();
-            router = router.middleware(routerify::Middleware::pre(move |req| {
-                exec_middleware(req, middleware.clone())
-            }));
+
+            if middleware.name == "logger" {
+                router = router.middleware(routerify::Middleware::post_with_info({
+                    let middleware = middleware.clone();
+                    move |res, info| exec_logger(res, middleware.clone(), info)
+                }));
+            } else {
+                router = router.middleware(routerify::Middleware::pre({
+                    let middleware = middleware.clone();
+                    move |req| exec_middleware(req, middleware.clone())
+                }));
+            }
         }
 
         if let (Some(mount_path), Some(serve_from)) = (

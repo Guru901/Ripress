@@ -1,5 +1,6 @@
 #![warn(missing_docs)]
 
+use crate::req::determine_content_type_response;
 use crate::res::response_status::StatusCode;
 use crate::types::{ResponseContentBody, ResponseContentType};
 use bytes::Bytes;
@@ -650,6 +651,57 @@ impl HttpResponse {
         self.headers.insert("cache-control", "no-cache");
         self.stream = Box::pin(stream.map(|result| result.map_err(Into::into)));
         self
+    }
+
+    pub(crate) fn from_hyper_response(res: &Response<Body>) -> Self {
+        // Body is not accessible here; keep a neutral placeholder to avoid wrong sizes.
+        let body = ResponseContentBody::new_binary(Bytes::new());
+
+        let content_type_hdr = res
+            .headers()
+            .get(hyper::header::CONTENT_TYPE)
+            .and_then(|h| h.to_str().ok());
+
+        let content_type = content_type_hdr
+            .map(determine_content_type_response)
+            .unwrap_or(ResponseContentType::BINARY);
+
+        // Heuristic for SSE streams: text/event-stream + keep-alive
+        let is_event_stream = content_type_hdr
+            .map(|ct| ct.eq_ignore_ascii_case("text/event-stream"))
+            .unwrap_or(false);
+        let is_keep_alive = res
+            .headers()
+            .get(hyper::header::CONNECTION)
+            .and_then(|h| h.to_str().ok())
+            .map(|v| v.eq_ignore_ascii_case("keep-alive"))
+            .unwrap_or(false);
+        let is_stream = is_event_stream && is_keep_alive;
+
+        let status_code = StatusCode::from_u16(res.status().as_u16());
+        let mut headers = ResponseHeaders::new();
+
+        for (key, value) in res.headers().iter() {
+            if let Ok(v) = value.to_str() {
+                headers.insert(key.as_str(), v);
+            }
+        }
+        for value in res.headers().get_all(SET_COOKIE).iter() {
+            if let Ok(v) = value.to_str() {
+                headers.insert("Set-Cookie", v);
+            }
+        }
+
+        HttpResponse {
+            body,
+            content_type,
+            status_code,
+            headers,
+            cookies: Vec::new(),
+            remove_cookies: Vec::new(),
+            is_stream,
+            stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
+        }
     }
 
     pub(crate) fn to_responder(self) -> Result<Response<Body>, Infallible> {
