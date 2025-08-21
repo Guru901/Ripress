@@ -214,7 +214,13 @@ The `LoggerConfig` struct controls what information gets logged:
 
 - `method` - Whether to log the HTTP method (default: true)
 - `path` - Whether to log the request path (default: true)
-- `duration` - Whether to log the request duration (default: true)
+- `status` - Whether to log the response status code (default: true)
+- `user_agent` - Whether to log the user agent (default: true)
+- `ip` - Whether to log the IP address (default: true)
+- `headers` - Which headers to log (default: empty)
+- `body_size` - Whether to log the body size (default: true)
+- `query_params` - Whether to log the query parameters (default: true)
+- `exclude_paths` - Paths to exclude from logging (default: empty)
 
 ### Usage
 
