@@ -103,7 +103,7 @@ pub mod file_upload;
 ///
 /// You can configure:
 /// - The maximum number of requests allowed
-/// - The duration of the time window (in seconds)
+/// - The duration of the time window (in milliseconds)
 /// - The method of identifying clients (IP, header, etc.)
 ///
 /// ## Limitations
