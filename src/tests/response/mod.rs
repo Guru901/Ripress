@@ -9,7 +9,7 @@ mod tests {
     use crate::context::HttpRequest;
     use crate::req::body::RequestBodyType;
     use crate::req::body::TextData;
-    use crate::req::determine_content_type;
+    use crate::req::determine_content_type_request;
     use crate::req::origin_url::Url;
     use crate::res::Cookie;
     use crate::res::CookieOptions;
@@ -186,26 +186,28 @@ mod tests {
 
     #[test]
     fn test_content_type() {
-        let content_type = determine_content_type("application/json");
+        let content_type = determine_content_type_request("application/json");
         assert_eq!(content_type, RequestBodyType::JSON);
 
-        let content_type = determine_content_type("");
+        let content_type = determine_content_type_request("");
         assert_eq!(content_type, RequestBodyType::BINARY);
 
-        let content_type = determine_content_type("application/x-www-form-urlencoded");
+        let content_type = determine_content_type_request("application/x-www-form-urlencoded");
         assert_eq!(content_type, RequestBodyType::FORM);
 
-        let content_type = determine_content_type("application/octet-stream");
+        let content_type = determine_content_type_request("application/octet-stream");
         assert_eq!(content_type, RequestBodyType::BINARY);
 
-        let content_type = determine_content_type("image/png");
+        let content_type = determine_content_type_request("image/png");
         assert_eq!(content_type, RequestBodyType::BINARY);
 
-        let content_type = determine_content_type("application/xml");
+        let content_type = determine_content_type_request("application/xml");
         assert_eq!(content_type, RequestBodyType::TEXT);
 
         // Test multipart form detection
-        let content_type = determine_content_type("multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW");
+        let content_type = determine_content_type_request(
+            "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW",
+        );
         assert_eq!(content_type, RequestBodyType::MultipartForm);
     }
 

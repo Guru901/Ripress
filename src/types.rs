@@ -18,6 +18,25 @@ pub(crate) enum ResponseContentBody {
 }
 
 impl ResponseContentBody {
+    /// Returns the content length in bytes for the current variant.
+    /// Note:
+    /// - TEXT/HTML: returns `String::len()` (UTF-8 byte length)
+    /// - JSON: returns the length of the compact serialized form
+    /// - BINARY: returns `Bytes::len()`
+
+    pub fn len(&self) -> usize {
+        match self {
+            ResponseContentBody::TEXT(text) => text.len(),
+            ResponseContentBody::HTML(html) => html.len(),
+            ResponseContentBody::JSON(json) => {
+                serde_json::to_vec(json).map(|v| v.len()).unwrap_or(0)
+            }
+            ResponseContentBody::BINARY(bytes) => bytes.len(),
+        }
+    }
+}
+
+impl ResponseContentBody {
     pub(crate) fn new_text<T: Into<String>>(text: T) -> Self {
         ResponseContentBody::TEXT(text.into())
     }

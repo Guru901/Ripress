@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.0] - 2025-08-21
+
+Added logger middleware configuration options
+
 ## [1.1.3] - 2025-08-20
 
 Finally fixed

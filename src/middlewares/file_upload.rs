@@ -201,7 +201,7 @@ pub fn file_upload(
 
             // Process all files
             for (file_bytes, field_name_opt) in files_to_process {
-                let (file_bytes, original_filename, field_name) = match field_name_opt {
+                let (file_bytes, _original_filename, field_name) = match field_name_opt {
                     Some(field) => {
                         // If field_name_opt is Some, try to split into original_filename and field_name
                         // If the tuple is (Vec<u8>, Some("filename")), treat as (file_bytes, None, Some("filename"))

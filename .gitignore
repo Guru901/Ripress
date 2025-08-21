@@ -2,6 +2,7 @@
 src/main.rs
 .idea
 tarpaulin-report.html
-test-results/.last-run.json
 .DS_Store
 docs/.DS_Store
+tests/test-results/
+*.last-run.json

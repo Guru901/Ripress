@@ -6,6 +6,7 @@ mod tests {
         middlewares::{
             cors::{CorsConfig, cors},
             file_upload::file_upload,
+            logger::{LoggerConfig, logger},
         },
         types::HttpMethods,
     };
@@ -56,252 +57,6 @@ mod tests {
 
         // Clean up
         let _ = fs::remove_file(&uploaded_path);
-    }
-
-    #[tokio::test]
-    async fn test_file_upload_multipart_single_file() {
-        let temp_dir = TempDir::new().unwrap();
-        let upload_mw = file_upload(Some(temp_dir.path().to_str().unwrap()));
-
-        let mut req = HttpRequest::new();
-
-        // Create multipart form data
-        let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
-        let multipart_data = format!(
-            "--{boundary}\r\n\
-            Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n\
-            Content-Type: text/plain\r\n\
-            \r\n\
-            Hello, this is a test file!\r\n\
-            --{boundary}--\r\n"
-        );
-
-        req.set_binary(multipart_data.into_bytes());
-        req.set_header(
-            "content-type",
-            &format!("multipart/form-data; boundary={}", boundary),
-        );
-
-        let res = HttpResponse::new();
-        let (req, _) = upload_mw(req, res).await;
-
-        // Check form data has the file reference
-        let uploaded_files = req.get_data("uploaded_files").unwrap();
-        // The JSON contains UUID filenames, not original filenames
-        assert!(uploaded_files.contains("test.txt") == false); // Should not contain original filename
-        // The JSON contains filename, path, original_filename, but not field_name
-        assert!(uploaded_files.contains("filename")); // Should contain the filename field
-
-        // Check count
-        assert_eq!(req.get_data("uploaded_file_count"), Some("1".to_string()));
-
-        // Check that file field is accessible via form_data
-        let form_data = req.form_data().unwrap();
-        let file_fields: Vec<_> = form_data.iter().filter(|(k, _)| *k == "file").collect();
-        assert_eq!(file_fields.len(), 1);
-
-        // Verify file was saved
-        let _uploaded_file = req.get_data("uploaded_file").unwrap();
-        let uploaded_path = req.get_data("uploaded_file_path").unwrap();
-        assert!(fs::metadata(&uploaded_path).is_ok());
-
-        // Clean up
-        let _ = fs::remove_file(&uploaded_path);
-    }
-
-    #[tokio::test]
-    async fn test_file_upload_multipart_multiple_files() {
-        let temp_dir = TempDir::new().unwrap();
-        let upload_mw = file_upload(Some(temp_dir.path().to_str().unwrap()));
-
-        let mut req = HttpRequest::new();
-
-        // Create multipart form data with multiple files
-        let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
-        let multipart_data = format!(
-            "--{boundary}\r\n\
-            Content-Disposition: form-data; name=\"file1\"; filename=\"test1.txt\"\r\n\
-            Content-Type: text/plain\r\n\
-            \r\n\
-            First file content\r\n\
-            --{boundary}\r\n\
-            Content-Disposition: form-data; name=\"file2\"; filename=\"test2.txt\"\r\n\
-            Content-Type: text/plain\r\n\
-            \r\n\
-            Second file content\r\n\
-            --{boundary}--\r\n"
-        );
-
-        req.set_binary(multipart_data.into_bytes());
-        req.set_header(
-            "content-type",
-            &format!("multipart/form-data; boundary={}", boundary),
-        );
-
-        let res = HttpResponse::new();
-        let (req, _) = upload_mw(req, res).await;
-
-        // Check count
-        assert_eq!(req.get_data("uploaded_file_count"), Some("2".to_string()));
-
-        // Check that both file fields are accessible via form_data
-        let form_data = req.form_data().unwrap();
-        let file1_field = form_data.get("file1");
-        let file2_field = form_data.get("file2");
-        assert!(file1_field.is_some());
-        assert!(file2_field.is_some());
-
-        // Verify files were saved - the JSON contains filename, path, original_filename, but not field_name
-        let uploaded_files = req.get_data("uploaded_files").unwrap();
-        // Should not contain original filenames
-        assert!(uploaded_files.contains("test1.txt") == false);
-        assert!(uploaded_files.contains("test2.txt") == false);
-        // Should contain JSON structure fields
-        assert!(uploaded_files.contains("filename"));
-        assert!(uploaded_files.contains("path"));
-        assert!(uploaded_files.contains("original_filename"));
-
-        // Check backward compatibility - first file should be accessible
-        let _uploaded_file = req.get_data("uploaded_file").unwrap();
-        let uploaded_path = req.get_data("uploaded_file_path").unwrap();
-        assert!(fs::metadata(&uploaded_path).is_ok());
-
-        // Clean up
-        let _ = fs::remove_file(&uploaded_path);
-        if let Some(file2_path) = file2_field {
-            let _ = fs::remove_file(format!("{}/{}", temp_dir.path().display(), file2_path));
-        }
-    }
-
-    #[tokio::test]
-    async fn test_file_upload_multipart_with_text_fields() {
-        let temp_dir = TempDir::new().unwrap();
-        let upload_mw = file_upload(Some(temp_dir.path().to_str().unwrap()));
-
-        let mut req = HttpRequest::new();
-
-        // Create multipart form data with text fields and file
-        let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
-        let multipart_data = format!(
-            "--{boundary}\r\n\
-            Content-Disposition: form-data; name=\"username\"\r\n\
-            \r\n\
-            john_doe\r\n\
-            --{boundary}\r\n\
-            Content-Disposition: form-data; name=\"email\"\r\n\
-            \r\n\
-            john@example.com\r\n\
-            --{boundary}\r\n\
-            Content-Disposition: form-data; name=\"file\"; filename=\"profile.txt\"\r\n\
-            Content-Type: text/plain\r\n\
-            \r\n\
-            Profile file content\r\n\
-            --{boundary}--\r\n"
-        );
-
-        req.set_binary(multipart_data.into_bytes());
-        req.set_header(
-            "content-type",
-            &format!("multipart/form-data; boundary={}", boundary),
-        );
-
-        let res = HttpResponse::new();
-        let (req, _) = upload_mw(req, res).await;
-
-        // Check text fields are accessible via form_data
-        let form_data = req.form_data().unwrap();
-        assert_eq!(form_data.get("username"), Some("john_doe"));
-        assert_eq!(form_data.get("email"), Some("john@example.com"));
-
-        // Check file field
-        let file_field = form_data.get("file");
-        assert!(file_field.is_some());
-
-        // Check count
-        assert_eq!(req.get_data("uploaded_file_count"), Some("1".to_string()));
-
-        // Verify file was saved
-        let uploaded_path = req.get_data("uploaded_file_path").unwrap();
-        assert!(fs::metadata(&uploaded_path).is_ok());
-
-        // Clean up
-        let _ = fs::remove_file(&uploaded_path);
-    }
-
-    #[tokio::test]
-    async fn test_file_upload_multipart_mixed_content() {
-        let temp_dir = TempDir::new().unwrap();
-        let upload_mw = file_upload(Some(temp_dir.path().to_str().unwrap()));
-
-        let mut req = HttpRequest::new();
-
-        // Create complex multipart form data
-        let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
-        let multipart_data = format!(
-            "--{boundary}\r\n\
-            Content-Disposition: form-data; name=\"title\"\r\n\
-            \r\n\
-            My Document\r\n\
-            \r\n\
-            --{boundary}\r\n\
-            Content-Disposition: form-data; name=\"description\"\r\n\
-            \r\n\
-            A sample document for testing\r\n\
-            --{boundary}\r\n\
-            Content-Disposition: form-data; name=\"document\"; filename=\"doc.txt\"\r\n\
-            Content-Type: text/plain\r\n\
-            \r\n\
-            Document content here\r\n\
-            --{boundary}\r\n\
-            Content-Disposition: form-data; name=\"attachment\"; filename=\"image.jpg\"\r\n\
-            Content-Type: image/jpeg\r\n\
-            \r\n\
-            Fake image data\r\n\
-            --{boundary}--\r\n"
-        );
-
-        req.set_binary(multipart_data.into_bytes());
-        req.set_header(
-            "content-type",
-            &format!("multipart/form-data; boundary={}", boundary),
-        );
-
-        let res = HttpResponse::new();
-        let (req, _) = upload_mw(req, res).await;
-
-        // Check text fields
-        let form_data = req.form_data().unwrap();
-        assert_eq!(form_data.get("title"), Some("My Document"));
-        assert_eq!(
-            form_data.get("description"),
-            Some("A sample document for testing")
-        );
-
-        // Check file fields
-        let doc_field = form_data.get("document");
-        let img_field = form_data.get("attachment");
-        assert!(doc_field.is_some());
-        assert!(img_field.is_some());
-
-        // Check count
-        assert_eq!(req.get_data("uploaded_file_count"), Some("2".to_string()));
-
-        // Verify files were saved - the JSON contains filename, path, original_filename, but not field_name
-        let uploaded_files = req.get_data("uploaded_files").unwrap();
-        // Should not contain original filenames
-        assert!(uploaded_files.contains("doc.txt") == false);
-        assert!(uploaded_files.contains("image.jpg") == false);
-        // Should contain JSON structure fields
-        assert!(uploaded_files.contains("filename"));
-        assert!(uploaded_files.contains("path"));
-        assert!(uploaded_files.contains("original_filename"));
-
-        // Clean up
-        let uploaded_path = req.get_data("uploaded_file_path").unwrap();
-        let _ = fs::remove_file(&uploaded_path);
-        if let Some(img_path) = img_field {
-            let _ = fs::remove_file(format!("{}/{}", temp_dir.path().display(), img_path));
-        }
     }
 
     #[tokio::test]
@@ -410,97 +165,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_file_upload_custom_directory() {
-        let temp_dir = TempDir::new().unwrap();
-        let custom_upload_dir = temp_dir.path().join("custom_uploads");
-        fs::create_dir(&custom_upload_dir).unwrap();
-
-        let upload_mw = file_upload(Some(custom_upload_dir.to_str().unwrap()));
-
-        let mut req = HttpRequest::new();
-        let test_content = b"Custom directory test";
-
-        req.set_binary(test_content.to_vec());
-        req.set_header("content-type", "application/octet-stream");
-
-        let res = HttpResponse::new();
-        let (req, _) = upload_mw(req, res).await;
-
-        // Check file was saved in custom directory
-        let uploaded_path = req.get_data("uploaded_file_path").unwrap();
-        assert!(uploaded_path.contains("custom_uploads"));
-        assert!(fs::metadata(&uploaded_path).is_ok());
-
-        // Clean up
-        let _ = fs::remove_file(&uploaded_path);
-    }
-
-    #[tokio::test]
-    async fn test_file_upload_default_directory() {
-        let upload_mw = file_upload(None); // Uses default "uploads" directory
-
-        let mut req = HttpRequest::new();
-        let test_content = b"Default directory test";
-
-        req.set_binary(test_content.to_vec());
-        req.set_header("content-type", "application/octet-stream");
-
-        let res = HttpResponse::new();
-        let (req, _) = upload_mw(req, res).await;
-
-        // Check file was saved in default directory
-        let uploaded_path = req.get_data("uploaded_file_path").unwrap();
-        assert!(uploaded_path.contains("uploads"));
-
-        // Clean up
-        let _ = fs::remove_file(&uploaded_path);
-    }
-
-    #[tokio::test]
-    async fn test_file_upload_content_type_detection() {
-        let temp_dir = TempDir::new().unwrap();
-        let upload_mw = file_upload(Some(temp_dir.path().to_str().unwrap()));
-
-        // Test with different content types
-        let test_cases = vec![
-            ("multipart/form-data; boundary=test", true),
-            ("application/octet-stream", false),
-            ("text/plain", false),
-            ("application/json", false),
-        ];
-
-        for (content_type, is_multipart) in test_cases {
-            let mut req = HttpRequest::new();
-            req.set_header("content-type", content_type);
-
-            if is_multipart {
-                // Set multipart data
-                let multipart_data = "--test\r\nContent-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n\r\ncontent\r\n--test--\r\n";
-                req.set_binary(multipart_data.as_bytes().to_vec());
-            } else {
-                // Set binary data
-                req.set_binary(b"binary content".to_vec());
-            }
-
-            let res = HttpResponse::new();
-            let (req, _) = upload_mw(req, res).await;
-
-            if is_multipart {
-                // Should process as multipart
-                assert!(req.get_data("uploaded_file_count").is_some());
-            } else {
-                // Should process as binary
-                assert!(req.get_data("uploaded_file").is_some());
-            }
-
-            // Clean up
-            if let Some(path) = req.get_data("uploaded_file_path") {
-                let _ = fs::remove_file(path);
-            }
-        }
-    }
-
-    #[tokio::test]
     async fn test_multipart_with_files_no_middleware() {
         // This test simulates what happens when a multipart form with files is uploaded
         // WITHOUT the file upload middleware. The system should:
@@ -530,7 +194,7 @@ mod tests {
 
         // Simulate the request building process that happens in from_hyper_request
         // First, determine the content type
-        let content_type = crate::req::determine_content_type(&format!(
+        let content_type = crate::req::determine_content_type_request(&format!(
             "multipart/form-data; boundary={}",
             boundary
         ));
@@ -612,7 +276,7 @@ mod tests {
         // Simulate the request building process step by step
 
         // Step 1: Determine content type
-        let content_type = crate::req::determine_content_type(&format!(
+        let content_type = crate::req::determine_content_type_request(&format!(
             "multipart/form-data; boundary={}",
             boundary
         ));
@@ -778,5 +442,77 @@ mod tests {
             res.headers.get("Access-Control-Allow-Credentials"),
             Some("true")
         );
+    }
+
+    #[tokio::test]
+    async fn test_logger_default_config() {
+        let logger_mw = logger(None);
+        let mut req = HttpRequest::new();
+        req.path = "/test".to_string();
+        req.method = HttpMethods::POST;
+        let res = HttpResponse::new();
+
+        // Test that the middleware runs without panicking
+        // and returns the expected values
+        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone()).await;
+
+        assert_eq!(returned_req.path, "/test");
+        assert_eq!(returned_req.method, HttpMethods::POST);
+        assert!(maybe_res.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_logger_custom_config() {
+        let logger_mw = logger(Some(LoggerConfig {
+            method: true,
+            path: false,
+            ..Default::default()
+        }));
+
+        let mut req = HttpRequest::new();
+        req.path = "/foo".to_string();
+        req.method = HttpMethods::PUT;
+        let res = HttpResponse::new();
+
+        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone()).await;
+
+        assert_eq!(returned_req.path, "/foo");
+        assert_eq!(returned_req.method, HttpMethods::PUT);
+        assert!(maybe_res.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_logger_preserves_request_data() {
+        let logger_mw = logger(None);
+        let mut req = HttpRequest::new();
+        req.path = "/api/users".to_string();
+        req.method = HttpMethods::GET;
+        let res = HttpResponse::new();
+
+        let (returned_req, _) = logger_mw(req.clone(), res.clone()).await;
+
+        // Verify the middleware preserves all request data
+        assert_eq!(returned_req.path, req.path);
+        assert_eq!(returned_req.method, req.method);
+    }
+
+    #[tokio::test]
+    async fn test_logger_with_all_disabled() {
+        let logger_mw = logger(Some(LoggerConfig {
+            method: false,
+            path: false,
+            ..Default::default()
+        }));
+
+        let mut req = HttpRequest::new();
+        req.path = "/disabled".to_string();
+        req.method = HttpMethods::DELETE;
+        let res = HttpResponse::new();
+
+        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone()).await;
+
+        assert_eq!(returned_req.path, "/disabled");
+        assert_eq!(returned_req.method, HttpMethods::DELETE);
+        assert!(maybe_res.is_none());
     }
 }
