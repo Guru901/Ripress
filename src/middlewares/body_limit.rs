@@ -22,10 +22,11 @@ use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
 /// # Example
 ///
 /// ```rust
-/// use ripress::middlewares::body_limit;
+/// use ripress::app::App;
 ///
 /// // Limit request bodies to 2 MB
-/// let limit_middleware = body_limit(Some(2 * 1024 * 1024));
+/// let mut app = App::new();
+/// app.use_body_limit(Some(2 * 1024 * 1024)); // 2 MB
 /// ```
 ///
 /// # Error Response
