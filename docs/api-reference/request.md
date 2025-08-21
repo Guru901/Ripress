@@ -708,13 +708,16 @@ The built-in file upload middleware processes binary file uploads and saves them
 #### Basic Usage
 
 ```rust
-use ripress::middlewares::file_upload::file_upload;
+use ripress::middlewares::file_upload::{file_upload, FileUploadConfiguration};
 
 // Use default upload directory ("uploads")
 app.use_middleware("/upload", file_upload(None));
 
 // Or specify a custom upload directory
-app.use_middleware("/upload", file_upload(Some("custom_uploads")));
+app.use_middleware("/upload", file_upload(Some(FileUploadConfiguration {
+    upload_dir: "user_files",
+    ..Default::default();
+})));
 ```
 
 #### How It Works

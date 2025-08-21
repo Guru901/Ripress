@@ -17,14 +17,17 @@ The file upload middleware handles file uploads by processing request bodies and
 ### Usage
 
 ```rust
-use ripress::{app::App, middlewares::file_upload::file_upload};
+use ripress::{app::App, middlewares::file_upload::{file_upload, FileUploadConfiguration}};
 
 // Use default "uploads" directory
 let mut app = App::new();
 app.use_middleware("/upload", file_upload(None));
 
 // Use custom directory
-app.use_middleware("/files", file_upload(Some("user_files")));
+app.use_middleware("/files", file_upload(Some(FileUploadConfiguration {
+    upload_dir: "user_files",
+    ..Default::default();
+})));
 ```
 
 ### How File Processing Works
