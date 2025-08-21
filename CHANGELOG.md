@@ -1,6 +1,10 @@
 # Changelog
 
-## [1.3.0] - 2025-08-21
+## [1.3.1] - 2025-08-22
+
+File upload middleware configuration now works
+
+## [1.3.0] - 2025-08-22
 
 Added Rate Limiter middleware
 Added `app.use_cors` method
