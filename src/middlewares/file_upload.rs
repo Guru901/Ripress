@@ -53,17 +53,20 @@ use uuid::Uuid;
 /// Basic usage with default upload directory:
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::file_upload::file_upload};
+/// use ripress::{app::App, middlewares::file_upload::{FileUploadConfiguration, file_upload}};
 /// let mut app = App::new();
-/// app.use_middleware("/upload", file_upload(None));
+/// app.use_middleware("/upload", file_upload(Some(FileUploadConfiguration::default())));
 /// ```
 ///
 /// Custom upload directory:
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::file_upload::file_upload};
+/// use ripress::{app::App, middlewares::file_upload::{file_upload, FileUploadConfiguration}};
 /// let mut app = App::new();
-/// app.use_middleware("/upload", file_upload(Some("custom_uploads")));
+/// app.use_middleware("/upload", file_upload(Some(FileUploadConfiguration {
+///     upload_dir: "custom_uploads".to_string(),
+///     ..Default::default()
+/// })));
 /// ```
 ///
 /// Route handler that processes uploaded files:
@@ -112,13 +115,33 @@ use uuid::Uuid;
 /// * Files are saved with UUID-based names to prevent conflicts
 /// * The middleware automatically handles directory creation
 /// * Upload failures are logged to stderr for debugging
-pub fn file_upload(
-    upload_dir: Option<&str>,
-) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
-    let upload_path = upload_dir.unwrap_or("uploads").to_string();
 
+#[derive(Clone)]
+pub struct FileUploadConfiguration {
+    pub upload_dir: String,
+    pub max_file_size: u64,
+    pub max_files: u64,
+    pub allowed_file_types: Vec<String>,
+}
+
+impl Default for FileUploadConfiguration {
+    fn default() -> Self {
+        Self {
+            upload_dir: "uploads".to_string(),
+            max_file_size: 1024 * 1024 * 10, // 10 MB
+            max_files: 100,
+            allowed_file_types: Vec::new(),
+        }
+    }
+}
+
+pub fn file_upload(
+    config: Option<FileUploadConfiguration>,
+) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+    let config = config.unwrap_or_default();
     move |mut req, _res| {
-        let upload_path = upload_path.clone();
+        let config = config.clone();
+        let upload_path = config.upload_dir.clone();
         Box::pin(async move {
             // Determine Content-Type and extract boundary (case-insensitive) first
             let content_type = req.headers.content_type().unwrap_or_default();
@@ -191,6 +214,11 @@ pub fn file_upload(
                 vec![(bytes_vec, Some("file".to_string()))]
             };
 
+            if files_to_process.len() > config.max_files as usize {
+                eprintln!("File upload middleware: Too many files");
+                return (req, None);
+            }
+
             // Ensure the upload directory exists
             if let Err(e) = create_dir_all(&upload_path).await {
                 eprintln!("Failed to create upload directory '{}': {}", upload_path, e);
@@ -202,6 +230,11 @@ pub fn file_upload(
 
             // Process all files
             for (file_bytes, field_name_opt) in files_to_process {
+                if file_bytes.len() > config.max_file_size as usize {
+                    eprintln!("File upload middleware: File too large");
+                    continue;
+                }
+
                 let (file_bytes, _original_filename, field_name) = match field_name_opt {
                     Some(field) => {
                         // If field_name_opt is Some, try to split into original_filename and field_name
@@ -213,6 +246,13 @@ pub fn file_upload(
                 let extension = infer::get(&file_bytes)
                     .map(|info| info.extension())
                     .unwrap_or("bin");
+
+                if !config.allowed_file_types.is_empty()
+                    && !config.allowed_file_types.iter().any(|ext| ext == extension)
+                {
+                    eprintln!("File upload middleware: File type not allowed");
+                    continue;
+                }
 
                 let id = Uuid::new_v4();
                 let filename = format!("{}.{}", id, extension);

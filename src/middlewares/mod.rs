@@ -35,10 +35,10 @@ pub mod logger;
 /// ## Usage
 ///
 /// ```rust
-/// use ripress::{app::App, middlewares::file_upload::file_upload};
+/// use ripress::{app::App, middlewares::file_upload::{FileUploadConfiguration, file_upload}};
 ///
 /// let mut app = App::new();
-/// app.use_middleware("/upload", file_upload(Some("uploads")));
+/// app.use_middleware("/upload", file_upload(Some(FileUploadConfiguration::default())));
 /// ```
 ///
 /// ## Request Data Added
