@@ -203,14 +203,10 @@ impl FormData {
         self.inner.len()
     }
 
-    /// Returns the approximate encoded byte size of this form, suitable for body limits.
-    /// This re-encodes the map into `application/x-www-form-urlencoded` and measures bytes.
+    /// Returns the byte size when serializing this form as `application/x-www-form-urlencoded`
+    /// (percent-encoded, spaces as `%20`). Suitable for enforcing body limits.
     pub fn byte_len(&self) -> usize {
-        // If `inner` is HashMap<String, String>, this works directly.
-        // If the type differs, adapt to iterate and collect a serializable map.
-        serde_urlencoded::to_string(&self.inner)
-            .map(|s| s.as_bytes().len())
-            .unwrap_or(0)
+        self.to_query_string().len()
     }
     /// Returns `true` if the form data contains no key-value pairs.
     ///
