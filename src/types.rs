@@ -155,10 +155,10 @@ pub(crate) type HandlerMiddleware =
 pub trait RouterFns {
     fn routes(&mut self) -> &mut Routes;
 
-    fn add_route<F, Fut>(&mut self, method: HttpMethods, path: &str, handler: F)
+    fn add_route<F, HFut>(&mut self, method: HttpMethods, path: &str, handler: F)
     where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
+        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        HFut: Future<Output = HttpResponse> + Send + 'static,
     {
         let routes = self.routes();
         let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res))) as Handler;
@@ -210,10 +210,10 @@ pub trait RouterFns {
     /// router.get("/hello", handler);
     /// ```
 
-    fn get<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn get<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
+        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        HFut: Future<Output = HttpResponse> + Send + 'static,
         Self: Sized,
     {
         self.add_route(HttpMethods::GET, path, handler);
@@ -257,7 +257,7 @@ pub trait RouterFns {
 
     fn options<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         Self: Sized,
     {
@@ -300,10 +300,10 @@ pub trait RouterFns {
     /// router.post("/hello", handler);
     /// ```
 
-    fn post<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn post<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
+        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        HFut: Future<Output = HttpResponse> + Send + 'static,
         Self: Sized,
     {
         self.add_route(HttpMethods::POST, path, handler);
@@ -345,10 +345,10 @@ pub trait RouterFns {
     /// router.put("/hello", handler);
     /// ```
 
-    fn put<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn put<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
+        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        HFut: Future<Output = HttpResponse> + Send + 'static,
         Self: Sized,
     {
         self.add_route(HttpMethods::PUT, path, handler);
@@ -390,10 +390,10 @@ pub trait RouterFns {
     /// router.delete("/hello", handler);
     /// ```
 
-    fn delete<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn delete<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
+        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        HFut: Future<Output = HttpResponse> + Send + 'static,
         Self: Sized,
     {
         self.add_route(HttpMethods::DELETE, path, handler);
@@ -435,10 +435,10 @@ pub trait RouterFns {
     /// router.head("/hello", handler);
     /// ```
 
-    fn head<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn head<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
+        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        HFut: Future<Output = HttpResponse> + Send + 'static,
         Self: Sized,
     {
         self.add_route(HttpMethods::HEAD, path, handler);
@@ -480,10 +480,10 @@ pub trait RouterFns {
     /// router.patch("/hello", handler);
     /// ```
 
-    fn patch<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn patch<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
+        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        HFut: Future<Output = HttpResponse> + Send + 'static,
         Self: Sized,
     {
         self.add_route(HttpMethods::PATCH, path, handler);
