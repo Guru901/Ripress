@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
 
+    use crate::middlewares::file_upload::FileUploadConfiguration;
     use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
     use crate::req::request_headers::RequestHeaders;
     use crate::{
@@ -24,7 +25,10 @@ mod tests {
     #[ignore = "abhi ke liye"]
     async fn test_file_upload_single_binary_file() {
         let temp_dir = TempDir::new().unwrap();
-        let upload_mw = file_upload(Some(temp_dir.path().to_str().unwrap()));
+        let upload_mw = file_upload(Some(FileUploadConfiguration {
+            upload_dir: temp_dir.path().to_string_lossy().to_string(),
+            ..Default::default()
+        }));
 
         let mut req = HttpRequest::new();
         let test_content = b"Hello, this is a test file content!";
@@ -69,7 +73,10 @@ mod tests {
     #[tokio::test]
     async fn test_file_upload_no_files() {
         let temp_dir = TempDir::new().unwrap();
-        let upload_mw = file_upload(Some(temp_dir.path().to_str().unwrap()));
+        let upload_mw = file_upload(Some(FileUploadConfiguration {
+            upload_dir: temp_dir.path().to_string_lossy().to_string(),
+            ..Default::default()
+        }));
 
         let mut req = HttpRequest::new();
 
@@ -120,7 +127,10 @@ mod tests {
     #[tokio::test]
     async fn test_file_upload_invalid_multipart() {
         let temp_dir = TempDir::new().unwrap();
-        let upload_mw = file_upload(Some(temp_dir.path().to_str().unwrap()));
+        let upload_mw = file_upload(Some(FileUploadConfiguration {
+            upload_dir: temp_dir.path().to_string_lossy().to_string(),
+            ..Default::default()
+        }));
 
         let mut req = HttpRequest::new();
 
@@ -145,7 +155,10 @@ mod tests {
     #[tokio::test]
     async fn test_file_upload_empty_multipart() {
         let temp_dir = TempDir::new().unwrap();
-        let upload_mw = file_upload(Some(temp_dir.path().to_str().unwrap()));
+        let upload_mw = file_upload(Some(FileUploadConfiguration {
+            upload_dir: temp_dir.path().to_string_lossy().to_string(),
+            ..Default::default()
+        }));
 
         let mut req = HttpRequest::new();
 
