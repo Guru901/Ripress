@@ -7,7 +7,14 @@ use std::collections::HashMap;
 ///
 /// * `method` -  Whether to log the method
 /// * `path` - Whether to log the path
-/// * `duration` - Whether to log the duration
+/// * `status` - Whether to log the status code
+/// * `user_agent` - Whether to log the user agent
+/// * `ip` - Whether to log the IP address
+/// * `headers` - Which headers to log
+/// * `body_size` - Whether to log the body size
+/// * `query_params` - Whether to log the query parameters
+/// * `exclude_paths` - Paths to exclude from logging
+/// (Duration logging is currently not supported in this middleware.)
 
 #[derive(Clone)]
 pub struct LoggerConfig {
