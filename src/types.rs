@@ -210,12 +210,14 @@ pub trait RouterFns {
     /// router.get("/hello", handler);
     /// ```
 
-    fn get<F, Fut>(&mut self, path: &str, handler: F)
+    fn get<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
+        Self: Sized,
     {
         self.add_route(HttpMethods::GET, path, handler);
+        self
     }
 
     /// Add a OPTIONS route to the application or router.
@@ -253,12 +255,14 @@ pub trait RouterFns {
     /// router.options("/hello", handler);
     /// ```
 
-    fn options<F, Fut>(&mut self, path: &str, handler: F)
+    fn options<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
+        Self: Sized,
     {
         self.add_route(HttpMethods::OPTIONS, path, handler);
+        self
     }
 
     /// Add a POST route to the application or router.
@@ -296,12 +300,14 @@ pub trait RouterFns {
     /// router.post("/hello", handler);
     /// ```
 
-    fn post<F, Fut>(&mut self, path: &str, handler: F)
+    fn post<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
+        Self: Sized,
     {
         self.add_route(HttpMethods::POST, path, handler);
+        self
     }
 
     /// Add a PUT route to the application or router.
@@ -339,12 +345,14 @@ pub trait RouterFns {
     /// router.put("/hello", handler);
     /// ```
 
-    fn put<F, Fut>(&mut self, path: &str, handler: F)
+    fn put<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
+        Self: Sized,
     {
         self.add_route(HttpMethods::PUT, path, handler);
+        self
     }
 
     /// Add a DELETE route to the application or router.
@@ -382,12 +390,14 @@ pub trait RouterFns {
     /// router.delete("/hello", handler);
     /// ```
 
-    fn delete<F, Fut>(&mut self, path: &str, handler: F)
+    fn delete<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
+        Self: Sized,
     {
         self.add_route(HttpMethods::DELETE, path, handler);
+        self
     }
 
     /// Add a HEAD route to the application or router.
@@ -425,12 +435,14 @@ pub trait RouterFns {
     /// router.head("/hello", handler);
     /// ```
 
-    fn head<F, Fut>(&mut self, path: &str, handler: F)
+    fn head<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
+        Self: Sized,
     {
         self.add_route(HttpMethods::HEAD, path, handler);
+        self
     }
 
     /// Add a PATCH route to the application or router.
@@ -468,12 +480,14 @@ pub trait RouterFns {
     /// router.patch("/hello", handler);
     /// ```
 
-    fn patch<F, Fut>(&mut self, path: &str, handler: F)
+    fn patch<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = HttpResponse> + Send + 'static,
+        Self: Sized,
     {
         self.add_route(HttpMethods::PATCH, path, handler);
+        self
     }
 
     fn get_routes(&mut self, path: &str, method: HttpMethods) -> Option<&Handler> {

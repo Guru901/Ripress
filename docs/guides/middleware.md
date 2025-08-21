@@ -237,6 +237,7 @@ app.use_logger(Some(LoggerConfig {
     duration: true,
     method: true,
     path: false, // Don't log the path
+    ..Default::default()
 }));
 ```
 
