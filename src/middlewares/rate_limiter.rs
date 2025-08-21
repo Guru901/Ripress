@@ -85,18 +85,16 @@ pub(crate) fn rate_limiter(
                             .saturating_sub(now.duration_since(client.window_started))
                             .as_secs();
 
-                        return (
-                            req,
-                            Some(
-                                HttpResponse::new()
-                                    .status(429)
-                                    .text(cfg.message)
-                                    .set_header("X-RateLimit-Limit", &cfg.max_requests.to_string())
-                                    .set_header("X-RateLimit-Remaining", "0")
-                                    .set_header("X-RateLimit-Reset", &remaining_time.to_string())
-                                    .set_header("Retry-After", &remaining_time.to_string()),
-                            ),
-                        );
+                        let limit = cfg.max_requests.to_string();
+                        let retry = remaining_time.to_string();
+                        res = res
+                            .status(429)
+                            .text(cfg.message.clone())
+                            .set_header("X-RateLimit-Limit", &limit)
+                            .set_header("X-RateLimit-Remaining", "0")
+                            .set_header("X-RateLimit-Reset", &retry)
+                            .set_header("Retry-After", &retry);
+                        return (req, Some(res));
                     } else {
                         client.requests += 1;
                     }
