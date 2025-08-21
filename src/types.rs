@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 use crate::app::box_future;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
@@ -58,7 +59,7 @@ impl ResponseContentBody {
     }
 }
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub enum ResponseContentType {
+pub(crate) enum ResponseContentType {
     TEXT,
     JSON,
     HTML,
@@ -69,14 +70,31 @@ pub(crate) type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static
 
 pub(crate) type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
 
+/// Represents the supported HTTP methods for routing and request handling.
+///
+/// # Variants
+/// - `GET`: The HTTP GET method, typically used for retrieving resources.
+/// - `POST`: The HTTP POST method, commonly used for creating resources or submitting data.
+/// - `PUT`: The HTTP PUT method, generally used for updating or replacing resources.
+/// - `HEAD`: The HTTP HEAD method, used to retrieve headers for a resource without the body.
+/// - `DELETE`: The HTTP DELETE method, used to remove resources.
+/// - `PATCH`: The HTTP PATCH method, used for making partial updates to resources.
+/// - `OPTIONS`: The HTTP OPTIONS method, used to describe the communication options for the target resource.
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub enum HttpMethods {
+    /// The HTTP GET method, typically used for retrieving resources.
     GET,
+    /// The HTTP POST method, commonly used for creating resources or submitting data.
     POST,
+    /// The HTTP PUT method, generally used for updating or replacing resources.
     PUT,
+    /// The HTTP HEAD method, used to retrieve headers for a resource without the body.
     HEAD,
+    /// The HTTP DELETE method, used to remove resources.
     DELETE,
+    /// The HTTP PATCH method, used for making partial updates to resources.
     PATCH,
+    /// The HTTP OPTIONS method, used to describe the communication options for the target resource.
     OPTIONS,
 }
 
@@ -112,12 +130,23 @@ impl Display for HttpMethods {
 
 pub(crate) type Routes = HashMap<String, HashMap<HttpMethods, Handler>>;
 
+/// Represents possible errors that can occur when handling an HTTP request.
 #[derive(Debug, PartialEq)]
 pub enum HttpRequestError {
+    /// Indicates that a required cookie is missing.
+    /// The associated `String` is the name of the missing cookie.
     MissingCookie(String),
+    /// Indicates that a required URL parameter is missing.
+    /// The associated `String` is the name of the missing parameter.
     MissingParam(String),
+    /// Indicates that a required HTTP header is missing.
+    /// The associated `String` is the name of the missing header.
     MissingHeader(String),
+    /// Indicates that a required query parameter is missing.
+    /// The associated `String` is the name of the missing query parameter.
     MissingQuery(String),
+    /// Indicates that the request body contains invalid JSON.
+    /// The associated `String` provides details about the JSON error.
     InvalidJson(String),
 }
 
@@ -152,9 +181,38 @@ pub(crate) type FutMiddleware =
 pub(crate) type HandlerMiddleware =
     Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>;
 
+/// Trait providing routing functionality for applications and routers.
+///
+/// This trait defines methods for managing and registering HTTP routes,
+/// including adding handlers for specific HTTP methods and retrieving
+/// registered route handlers. Types that implement this trait must provide
+/// access to their internal route storage.
 pub trait RouterFns {
+    /// Returns a mutable reference to the internal `Routes` map.
+    ///
+    /// Types implementing this trait should use this method to expose
+    /// their underlying route storage for manipulation and registration.
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to the internal `Routes` map.
     fn routes(&mut self) -> &mut Routes;
 
+    /// Adds a new route handler for a specific HTTP method and path.
+    ///
+    /// This method registers a handler function for the given HTTP method and path.
+    /// If a handler for the method and path already exists, it will be replaced.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `F` - The handler function type. Must accept a `HttpRequest` and `HttpResponse` and return a future.
+    /// * `HFut` - The future returned by the handler, which resolves to a `HttpResponse`.
+    ///
+    /// # Arguments
+    ///
+    /// * `method` - The HTTP method (e.g., GET, POST) for which the route is registered.
+    /// * `path` - The path string for the route (e.g., "/users").
+    /// * `handler` - The handler function to be called when the route is matched.
     fn add_route<F, HFut>(&mut self, method: HttpMethods, path: &str, handler: F)
     where
         F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
@@ -175,14 +233,18 @@ pub trait RouterFns {
         }
     }
 
-    /// Add a GET route to the application or router.
+    /// Registers a GET route handler.
     ///
-    /// ## Arguments
+    /// # Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example (App)
+    /// # Returns
+    ///
+    /// A mutable reference to `self` for chaining.
+    ///
+    /// # Example (App)
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
@@ -196,7 +258,7 @@ pub trait RouterFns {
     /// app.get("/hello", handler);
     /// ```
     ///
-    /// ## Example (Router)
+    /// # Example (Router)
     ///
     /// ```
     /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
@@ -209,7 +271,6 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.get("/hello", handler);
     /// ```
-
     fn get<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
@@ -220,14 +281,18 @@ pub trait RouterFns {
         self
     }
 
-    /// Add an OPTIONS route to the application or router.
+    /// Registers an OPTIONS route handler.
     ///
-    /// ## Arguments
+    /// # Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example (App)
+    /// # Returns
+    ///
+    /// A mutable reference to `self` for chaining.
+    ///
+    /// # Example (App)
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
@@ -241,7 +306,7 @@ pub trait RouterFns {
     /// app.options("/hello", handler);
     /// ```
     ///
-    /// ## Example (Router)
+    /// # Example (Router)
     ///
     /// ```
     /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
@@ -254,7 +319,6 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.options("/hello", handler);
     /// ```
-
     fn options<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
@@ -265,14 +329,18 @@ pub trait RouterFns {
         self
     }
 
-    /// Add a POST route to the application or router.
+    /// Registers a POST route handler.
     ///
-    /// ## Arguments
+    /// # Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example (App)
+    /// # Returns
+    ///
+    /// A mutable reference to `self` for chaining.
+    ///
+    /// # Example (App)
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
@@ -286,7 +354,7 @@ pub trait RouterFns {
     /// app.post("/hello", handler);
     /// ```
     ///
-    /// ## Example (Router)
+    /// # Example (Router)
     ///
     /// ```
     /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
@@ -299,7 +367,6 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.post("/hello", handler);
     /// ```
-
     fn post<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
@@ -310,14 +377,18 @@ pub trait RouterFns {
         self
     }
 
-    /// Add a PUT route to the application or router.
+    /// Registers a PUT route handler.
     ///
-    /// ## Arguments
+    /// # Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example (App)
+    /// # Returns
+    ///
+    /// A mutable reference to `self` for chaining.
+    ///
+    /// # Example (App)
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
@@ -331,7 +402,7 @@ pub trait RouterFns {
     /// app.put("/hello", handler);
     /// ```
     ///
-    /// ## Example (Router)
+    /// # Example (Router)
     ///
     /// ```
     /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
@@ -344,7 +415,6 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.put("/hello", handler);
     /// ```
-
     fn put<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
@@ -355,14 +425,18 @@ pub trait RouterFns {
         self
     }
 
-    /// Add a DELETE route to the application or router.
+    /// Registers a DELETE route handler.
     ///
-    /// ## Arguments
+    /// # Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example (App)
+    /// # Returns
+    ///
+    /// A mutable reference to `self` for chaining.
+    ///
+    /// # Example (App)
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
@@ -376,7 +450,7 @@ pub trait RouterFns {
     /// app.delete("/hello", handler);
     /// ```
     ///
-    /// ## Example (Router)
+    /// # Example (Router)
     ///
     /// ```
     /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
@@ -389,7 +463,6 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.delete("/hello", handler);
     /// ```
-
     fn delete<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
@@ -400,14 +473,18 @@ pub trait RouterFns {
         self
     }
 
-    /// Add a HEAD route to the application or router.
+    /// Registers a HEAD route handler.
     ///
-    /// ## Arguments
+    /// # Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example (App)
+    /// # Returns
+    ///
+    /// A mutable reference to `self` for chaining.
+    ///
+    /// # Example (App)
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
@@ -421,7 +498,7 @@ pub trait RouterFns {
     /// app.head("/hello", handler);
     /// ```
     ///
-    /// ## Example (Router)
+    /// # Example (Router)
     ///
     /// ```
     /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
@@ -434,7 +511,6 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.head("/hello", handler);
     /// ```
-
     fn head<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
@@ -445,14 +521,18 @@ pub trait RouterFns {
         self
     }
 
-    /// Add a PATCH route to the application or router.
+    /// Registers a PATCH route handler.
     ///
-    /// ## Arguments
+    /// # Arguments
     ///
     /// * `path` - The path to the route.
     /// * `handler` - The handler function for the route.
     ///
-    /// ## Example (App)
+    /// # Returns
+    ///
+    /// A mutable reference to `self` for chaining.
+    ///
+    /// # Example (App)
     ///
     /// ```
     /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
@@ -466,7 +546,7 @@ pub trait RouterFns {
     /// app.patch("/hello", handler);
     /// ```
     ///
-    /// ## Example (Router)
+    /// # Example (Router)
     ///
     /// ```
     /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
@@ -479,7 +559,6 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.patch("/hello", handler);
     /// ```
-
     fn patch<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
@@ -490,6 +569,16 @@ pub trait RouterFns {
         self
     }
 
+    /// Retrieves a reference to the handler for a given path and HTTP method, if it exists.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the route.
+    /// * `method` - The HTTP method for the route.
+    ///
+    /// # Returns
+    ///
+    /// An `Option` containing a reference to the handler if found, or `None` if not found.
     fn get_routes(&mut self, path: &str, method: HttpMethods) -> Option<&Handler> {
         let routes = self.routes();
         routes.get(path).and_then(|handlers| handlers.get(&method))

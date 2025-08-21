@@ -222,6 +222,12 @@ impl std::fmt::Debug for HttpResponse {
     }
 }
 
+impl Default for HttpResponse {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Clone for HttpResponse {
     fn clone(&self) -> Self {
         Self {
@@ -551,7 +557,6 @@ impl HttpResponse {
     /// # Example
     /// ```rust
     /// use ripress::context::HttpResponse;
-    /// use ripress::types::ResponseContentType;
     ///
     /// let res = HttpResponse::new();
     /// res.redirect("https://www.example.com");
@@ -576,7 +581,6 @@ impl HttpResponse {
     /// # Example
     /// ```rust
     /// use ripress::context::HttpResponse;
-    /// use ripress::types::ResponseContentType;
     ///
     /// let res = HttpResponse::new();
     /// res.permanent_redirect("https://www.example.com");

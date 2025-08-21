@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 /// # Middlewares
 
 /// This module provides Cross-Origin Resource Sharing (CORS) middleware for handling
@@ -64,4 +66,50 @@ pub mod logger;
 /// * Upload failures are logged to stderr for debugging
 pub mod file_upload;
 
+/// This module provides middleware for rate limiting incoming requests to your application.
+/// It helps prevent abuse and denial-of-service attacks by restricting the number of requests
+/// a client can make within a specified time window.
+///
+/// ## Features
+///
+/// * **Configurable limits** - Set maximum requests per client per time window
+/// * **IP-based or custom keying** - Limit by IP address or custom identifier
+/// * **Flexible window durations** - Choose per-second, per-minute, etc.
+/// * **Automatic response** - Returns HTTP 429 Too Many Requests when limit is exceeded
+/// * **Easy integration** - Plug into your app with a single middleware call
+///
+/// ## Usage
+///
+/// ```no_run
+/// use ripress::{app::App, middlewares::rate_limiter::RateLimiterConfig};
+///
+/// let mut app = App::new();
+/// // Allow 100 requests per minute per IP
+/// app.use_rate_limiter(Some(RateLimiterConfig {
+///     max_requests: 100,
+///     proxy: false,
+///     message: "Too many requests".to_string(),
+///     ..Default::default()
+/// }));
+/// ```
+///
+/// ## How It Works
+///
+/// The middleware tracks the number of requests from each client (by IP or custom key)
+/// within a rolling or fixed time window. If the client exceeds the allowed number of requests,
+/// further requests are rejected with a 429 status code until the window resets.
+///
+/// ## Customization
+///
+/// You can configure:
+/// - The maximum number of requests allowed
+/// - The duration of the time window (in seconds)
+/// - The method of identifying clients (IP, header, or custom logic)
+/// - Whether the server is behind a proxy (`proxy`) to adjust client IP extraction
+/// - The rejection message body for 429 responses (`message`)
+///
+/// ## Limitations
+///
+/// * Rate limiting is per-process; distributed deployments require shared state (e.g., Redis)
+/// * Identification is by IP by default; proxies may require custom logic
 pub mod rate_limiter;

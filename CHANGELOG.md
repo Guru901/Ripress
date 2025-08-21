@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0] - 2025-08-21
+
+Added Rate Limiter middleware
+Added `app.use_cors` method
+Added `app.use_logger` method
+Made app methods chainable
+
 ## [1.2.0] - 2025-08-21
 
 Added logger middleware configuration options

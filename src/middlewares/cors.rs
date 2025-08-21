@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 use crate::{
     context::HttpResponse,
     req::HttpRequest,
@@ -14,9 +15,13 @@ use crate::{
 /// * `allow_credentials` - Whether to allow credentials
 #[derive(Clone)]
 pub struct CorsConfig {
+    /// The allowed origin for the request
     pub allowed_origin: &'static str,
+    /// The allowed methods for the request
     pub allowed_methods: &'static str,
+    /// The allowed headers for the request
     pub allowed_headers: &'static str,
+    /// Whether to allow credentials
     pub allow_credentials: bool,
 }
 
