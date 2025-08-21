@@ -379,14 +379,24 @@ pub fn file_upload(
                     .map(|info| info.extension())
                     .unwrap_or("bin");
 
-                if !config.allowed_file_types.is_empty()
-                    && !config.allowed_file_types.iter().any(|ext| ext == extension)
-                {
-                    eprintln!(
-                        "File upload middleware: File type '{}' not allowed (allowed types: {:?})",
-                        extension, config.allowed_file_types
-                    );
-                    continue;
+                if !config.allowed_file_types.is_empty() {
+                    let ext_norm = extension.to_ascii_lowercase();
+                    // Accept both "jpg" and "jpeg"
+                    let ext_norm = if ext_norm == "jpg" { "jpeg".to_string() } else { ext_norm };
+                    let allowed = config
+                        .allowed_file_types
+                        .iter()
+                        .any(|e| {
+                            let e = e.to_ascii_lowercase();
+                            e == ext_norm || (e == "jpg" && ext_norm == "jpeg")
+                        });
+                    if !allowed {
+                        eprintln!(
+                            "File upload middleware: File type '{}' not allowed (allowed types: {:?})",
+                            extension, config.allowed_file_types
+                        );
+                        continue;
+                    }
                 }
 
                 let id = Uuid::new_v4();
