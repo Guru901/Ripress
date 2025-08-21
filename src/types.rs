@@ -28,7 +28,9 @@ impl ResponseContentBody {
         match self {
             ResponseContentBody::TEXT(text) => text.len(),
             ResponseContentBody::HTML(html) => html.len(),
-            ResponseContentBody::JSON(json) => serde_json::to_vec(json).unwrap().len(),
+            ResponseContentBody::JSON(json) => {
+                serde_json::to_vec(json).map(|v| v.len()).unwrap_or(0)
+            }
             ResponseContentBody::BINARY(bytes) => bytes.len(),
         }
     }
