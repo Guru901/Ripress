@@ -22,7 +22,7 @@ use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
 /// # Example
 ///
 /// ```rust
-/// use ripress::app::App;
+/// use ripress::app::app;
 ///
 /// // Limit request bodies to 2 MB
 /// let mut app = App::new();
@@ -41,10 +41,12 @@ use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
 ///   "received": 2097152
 /// }
 /// ```
+const DEFAULT_BODY_LIMIT: usize = 1024 * 1024; // 1 MB
+
 pub(crate) fn body_limit(
     config: Option<usize>,
-) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
-    let config = config.unwrap_or(1024 * 1024); // 1 MB default
+) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
+    let config = config.unwrap_or(DEFAULT_BODY_LIMIT); // 1 MB default
     move |req, res| {
         Box::pin(async move {
             let body = req.clone().body.content;

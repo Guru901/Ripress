@@ -49,6 +49,8 @@ use std::fmt::Display;
 /// - [`NotFound`](StatusCode::NotFound) (404) - Resource not found
 /// - [`MethodNotAllowed`](StatusCode::MethodNotAllowed) (405) - HTTP method not supported
 /// - [`Conflict`](StatusCode::Conflict) (409) - Request conflicts with current state
+/// - [`PayloadTooLarge`](StatusCode::PayloadTooLarge) (413) - Request payload too large
+/// - [`TooManyRequests`](StatusCode::TooManyRequests) (429) - Too many requests
 ///
 /// ## 5xx Server Error
 /// - [`InternalServerError`](StatusCode::InternalServerError) (500) - Generic server error

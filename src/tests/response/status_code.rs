@@ -116,4 +116,22 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn payload_too_large_roundtrip() {
+        assert_eq!(StatusCode::PayloadTooLarge.as_u16(), 413);
+        assert_eq!(StatusCode::from_u16(413), StatusCode::PayloadTooLarge);
+    }
+
+    #[test]
+    fn payload_too_large_texts() {
+        assert_eq!(
+            StatusCode::PayloadTooLarge.canonical_reason(),
+            "Payload Too Large"
+        );
+        assert_eq!(
+            format!("{}", StatusCode::PayloadTooLarge),
+            "413 Payload Too Large"
+        );
+    }
 }
