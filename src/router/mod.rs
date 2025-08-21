@@ -1,4 +1,4 @@
-#[warn(missing_docs)]
+ #![warn(missing_docs)]
 use crate::{
     app::App,
     types::{RouterFns, Routes},
