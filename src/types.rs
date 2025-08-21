@@ -42,9 +42,13 @@ impl ResponseContentBody {
     }
 
     pub(crate) fn new_json<T: Serialize>(json: T) -> Self {
-        let value = serde_json::to_value(json).expect("Failed to serialize to JSON");
-        ResponseContentBody::JSON(value)
+        Self::try_new_json(json).expect("Failed to serialize to JSON")
     }
+
+    pub(crate) fn try_new_json<T: Serialize>(json: T) -> Result<Self, serde_json::Error> {
+        serde_json::to_value(json).map(ResponseContentBody::JSON)
+    }
+
     pub(crate) fn new_html<T: Into<String>>(html: T) -> Self {
         ResponseContentBody::HTML(html.into())
     }
@@ -138,7 +142,7 @@ impl std::fmt::Display for _HttpResponseError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             _HttpResponseError::MissingHeader(header) => {
-                write!(f, "Header {} doesnt exist", header)
+                write!(f, "Header {} doesn't exist", header)
             }
         }
     }
@@ -157,21 +161,17 @@ pub trait RouterFns {
         Fut: Future<Output = HttpResponse> + Send + 'static,
     {
         let routes = self.routes();
-        if routes.contains_key(path) {
-            let wrapped_handler =
-                Arc::new(move |req, res| box_future(handler(req, res))) as Handler;
-
-            if let Some(route_map) = routes.get_mut(path) {
-                route_map.insert(method, wrapped_handler);
+        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res))) as Handler;
+        use std::collections::hash_map::Entry;
+        match routes.entry(path.to_string()) {
+            Entry::Occupied(mut e) => {
+                e.get_mut().insert(method, wrapped_handler);
             }
-        } else {
-            let wrapped_handler =
-                Arc::new(move |req, res| box_future(handler(req, res))) as Handler;
-            routes.insert(path.to_string(), {
+            Entry::Vacant(e) => {
                 let mut map = HashMap::new();
                 map.insert(method, wrapped_handler);
-                map
-            });
+                e.insert(map);
+            }
         }
     }
 
@@ -220,7 +220,7 @@ pub trait RouterFns {
         self
     }
 
-    /// Add a OPTIONS route to the application or router.
+    /// Add an OPTIONS route to the application or router.
     ///
     /// ## Arguments
     ///
@@ -255,10 +255,10 @@ pub trait RouterFns {
     /// router.options("/hello", handler);
     /// ```
 
-    fn options<F, Fut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn options<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HttpResponse> + Send + 'static,
+        HFut: Future<Output = HttpResponse> + Send + 'static,
         Self: Sized,
     {
         self.add_route(HttpMethods::OPTIONS, path, handler);

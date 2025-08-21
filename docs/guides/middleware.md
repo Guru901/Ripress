@@ -174,7 +174,7 @@ The CORS middleware:
 
 ### Default Configuration
 
-When using `cors(None)`, the middleware applies these defaults:
+When using `app.use_cors(None)`, the middleware applies these defaults:
 
 - **Origin**: `*` (allow all origins)
 - **Methods**: `GET, POST, PUT, DELETE, OPTIONS, HEAD`
@@ -267,7 +267,7 @@ The order and presence of fields depends on your configuration:
 
 ### Default Configuration
 
-When using `logger(None)`, all logging options are enabled:
+When using `app.use_logger(None)`, all logging options are enabled:
 
 - **Method**: true
 - **Path**: true

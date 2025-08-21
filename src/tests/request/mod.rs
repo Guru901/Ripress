@@ -259,7 +259,7 @@ mod tests {
     #[test]
     fn test_response_error() {
         let err_1 = _HttpResponseError::MissingHeader("id".to_string());
-        assert_eq!(err_1.to_string(), "Header id doesnt exist");
+        assert_eq!(err_1.to_string(), "Header id doesn't exist");
     }
 
     #[test]
