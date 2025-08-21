@@ -104,7 +104,9 @@ pub mod file_upload;
 /// You can configure:
 /// - The maximum number of requests allowed
 /// - The duration of the time window (in seconds)
-/// - The method of identifying clients (IP, header, etc.)
+/// - The method of identifying clients (IP, header, or custom logic)
+/// - Whether the server is behind a proxy (`proxy`) to adjust client IP extraction
+/// - The rejection message body for 429 responses (`message`)
 ///
 /// ## Limitations
 ///
