@@ -146,20 +146,21 @@ The `CorsConfig` struct allows you to customize CORS behavior:
 ### Usage
 
 ```rust
-use ripress::{app::App, middlewares::cors::cors};
+use ripress::app::App;
+use ripress::middlewares::cors::CorsConfig;
 
 // Use default CORS settings
 let mut app = App::new();
-app.use_middleware("", cors(None));
+app.use_cors(None);
 
 // Use custom CORS settings
 use ripress::middlewares::cors::{cors, CorsConfig};
-app.use_middleware("", cors(Some(CorsConfig {
+app.Some(CorsConfig {
     allowed_origin: "https://example.com",
     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS, HEAD",
     allowed_headers: "Content-Type, Authorization",
     allow_credentials: true,
-})));
+});
 ```
 
 ### How It Works

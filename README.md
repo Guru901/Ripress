@@ -106,7 +106,7 @@ View full blown code examples [here](https://github.com/Guru901/ripress-examples
 ```rust
 use ripress::{
     app::App,
-    middlewares::{cors::cors, file_upload::file_upload},
+    middlewares::{file_upload::file_upload},
     types::RouterFns,
 };
 
@@ -115,7 +115,7 @@ async fn main() {
     let mut app = App::new();
 
     // Add CORS and file upload middleware
-    app.use_middleware("/", cors(None));
+    app.use_cors(None);
     app.use_middleware("/upload", file_upload(None));
 
     app.listen(3000, || {
