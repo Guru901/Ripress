@@ -67,7 +67,12 @@ pub(crate) fn logger(
     move |req, res| {
         let config = config.clone().unwrap_or_default();
 
-        if config.exclude_paths.contains(&req.path) {
+        // Treat entries as prefixes; excludes "/health" will also exclude "/health/live".
+        if config
+            .exclude_paths
+            .iter()
+            .any(|prefix| req.path.starts_with(prefix))
+        {
             return Box::pin(async move { (req, None) });
         }
 
