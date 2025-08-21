@@ -19,14 +19,23 @@ use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct LoggerConfig {
+    /// Whether to log the method
     pub method: bool,
+    /// Whether to log the path
     pub path: bool,
+    /// Whether to log the status code
     pub status: bool,
+    /// Whether to log the user agent
     pub user_agent: bool,
+    /// Whether to log the IP address
     pub ip: bool,
+    /// Specific headers to log
     pub headers: Vec<String>, // Specific headers to log
+    /// Whether to log the body size
     pub body_size: bool,
+    /// Whether to log the query parameters
     pub query_params: bool,
+    /// Don't log health checks, etc.
     pub exclude_paths: Vec<String>, // Don't log health checks, etc.
 }
 
