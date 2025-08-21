@@ -63,3 +63,5 @@ pub mod logger;
 /// * The middleware automatically handles directory creation
 /// * Upload failures are logged to stderr for debugging
 pub mod file_upload;
+
+pub mod rate_limiter;
