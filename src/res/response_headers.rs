@@ -1,4 +1,4 @@
-#[warn(missing_docs)]
+#![warn(missing_docs)]
 use std::collections::HashMap;
 use std::fmt;
 

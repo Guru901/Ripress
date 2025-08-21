@@ -1,4 +1,4 @@
-#[warn(missing_docs)]
+#![warn(missing_docs)]
 
 /// The App Struct and it's methods.
 pub mod app;

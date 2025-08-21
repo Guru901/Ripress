@@ -1,4 +1,4 @@
-#[warn(missing_docs)]
+#![warn(missing_docs)]
 use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
 use std::collections::HashMap;
 

@@ -1,4 +1,4 @@
-#[warn(missing_docs)]
+#![warn(missing_docs)]
 use std::fmt::{Debug, Display, Formatter};
 use std::str::Utf8Error;
 

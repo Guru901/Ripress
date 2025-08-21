@@ -1,4 +1,4 @@
-#[warn(missing_docs)]
+#![warn(missing_docs)]
 
 /// A structured representation of HTTP request body data.
 ///

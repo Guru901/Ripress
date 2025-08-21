@@ -1,4 +1,4 @@
-#[warn(missing_docs)]
+#![warn(missing_docs)]
 use crate::{
     app::{Middleware, api_error::ApiError},
     req::{HttpRequest, query_params::QueryParams},
