@@ -80,12 +80,17 @@ pub mod file_upload;
 ///
 /// ## Usage
 ///
-/// ```rust
-/// use ripress::{app::App, middlewares::rate_limiter::rate_limiter};
+/// ```no_run
+/// use ripress::{app::App, middlewares::rate_limiter::RateLimiterConfig};
 ///
 /// let mut app = App::new();
 /// // Allow 100 requests per minute per IP
-/// app.use_middleware("/", rate_limiter(100, 60));
+/// app.use_rate_limiter(Some(RateLimiterConfig {
+///     max_requests: 100,
+///     proxy: false,
+///     message: "Too many requests".to_string(),
+///     ..Default::default()
+/// }));
 /// ```
 ///
 /// ## How It Works

@@ -557,7 +557,6 @@ impl HttpResponse {
     /// # Example
     /// ```rust
     /// use ripress::context::HttpResponse;
-    /// use ripress::types::ResponseContentType;
     ///
     /// let res = HttpResponse::new();
     /// res.redirect("https://www.example.com");
@@ -582,7 +581,6 @@ impl HttpResponse {
     /// # Example
     /// ```rust
     /// use ripress::context::HttpResponse;
-    /// use ripress::types::ResponseContentType;
     ///
     /// let res = HttpResponse::new();
     /// res.permanent_redirect("https://www.example.com");
