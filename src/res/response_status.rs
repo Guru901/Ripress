@@ -140,6 +140,13 @@ pub enum StatusCode {
     /// Often used in REST APIs when trying to create a resource that already exists.
     Conflict,
 
+    /// 429 Too Many Requests
+    ///
+    /// This response is sent when a request is rejected due to the user exceeding the rate limit.
+    /// The server may choose to respond with a 429 status code and include a Retry-After header
+    /// to indicate how long the user should wait before making a new request.
+    TooManyRequests,
+
     /// 500 Internal Server Error
     ///
     /// The server has encountered a situation it does not know how to handle.
@@ -217,6 +224,7 @@ impl Display for StatusCode {
                 StatusCode::NotFound => "Not Found",
                 StatusCode::MethodNotAllowed => "Method Not Allowed",
                 StatusCode::Conflict => "Conflict",
+                StatusCode::TooManyRequests => "Too Many Requests",
                 StatusCode::InternalServerError => "Internal Server Error",
                 StatusCode::NotImplemented => "Not Implemented",
                 StatusCode::BadGateway => "Bad Gateway",
@@ -258,6 +266,7 @@ impl StatusCode {
             StatusCode::NotFound => 404,
             StatusCode::MethodNotAllowed => 405,
             StatusCode::Conflict => 409,
+            StatusCode::TooManyRequests => 429,
 
             StatusCode::InternalServerError => 500,
             StatusCode::NotImplemented => 501,
@@ -308,6 +317,7 @@ impl StatusCode {
             404 => StatusCode::NotFound,
             405 => StatusCode::MethodNotAllowed,
             409 => StatusCode::Conflict,
+            429 => StatusCode::TooManyRequests,
 
             500 => StatusCode::InternalServerError,
             501 => StatusCode::NotImplemented,
@@ -428,6 +438,7 @@ impl StatusCode {
             StatusCode::NotFound => "Not Found",
             StatusCode::MethodNotAllowed => "Method Not Allowed",
             StatusCode::Conflict => "Conflict",
+            StatusCode::TooManyRequests => "Too Many Requests",
             StatusCode::InternalServerError => "Internal Server Error",
             StatusCode::NotImplemented => "Not Implemented",
             StatusCode::BadGateway => "Bad Gateway",

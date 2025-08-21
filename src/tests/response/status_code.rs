@@ -23,6 +23,10 @@ mod tests {
         );
         assert_eq!(StatusCode::Conflict.canonical_reason(), "Conflict");
         assert_eq!(
+            StatusCode::TooManyRequests.canonical_reason(),
+            "Too Many Requests"
+        );
+        assert_eq!(
             StatusCode::InternalServerError.canonical_reason(),
             "Internal Server Error"
         );
@@ -54,6 +58,7 @@ mod tests {
             (StatusCode::NotFound, "404 Not Found"),
             (StatusCode::MethodNotAllowed, "405 Method Not Allowed"),
             (StatusCode::Conflict, "409 Conflict"),
+            (StatusCode::TooManyRequests, "429 Too Many Requests"),
             (StatusCode::InternalServerError, "500 Internal Server Error"),
             (StatusCode::NotImplemented, "501 Not Implemented"),
             (StatusCode::BadGateway, "502 Bad Gateway"),
@@ -88,6 +93,7 @@ mod tests {
             (404, StatusCode::NotFound),
             (405, StatusCode::MethodNotAllowed),
             (409, StatusCode::Conflict),
+            (429, StatusCode::TooManyRequests),
             (500, StatusCode::InternalServerError),
             (501, StatusCode::NotImplemented),
             (502, StatusCode::BadGateway),

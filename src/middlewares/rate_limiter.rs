@@ -128,3 +128,6 @@ pub(crate) fn rate_limiter(
         })
     }
 }
+
+#[cfg(test)]
+mod tests {}

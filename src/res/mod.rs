@@ -222,6 +222,12 @@ impl std::fmt::Debug for HttpResponse {
     }
 }
 
+impl Default for HttpResponse {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Clone for HttpResponse {
     fn clone(&self) -> Self {
         Self {
