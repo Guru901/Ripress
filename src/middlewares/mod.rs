@@ -24,11 +24,10 @@
 //!
 //! ```rust
 //! use ripress::app::App;
-//! use ripress::middlewares::{cors, logger};
 //!
 //! let mut app = App::new();
 //! app.use_cors(None);
-//! app.use_logger();
+//! app.use_logger(None);
 //! ```
 //!
 //! See each middleware's documentation for configuration options and advanced usage.
@@ -47,7 +46,7 @@
 /// ## Usage
 /// ```rust
 /// use ripress::app::App;
-/// use ripress::middlewares::cors::{CorsConfig, cors};
+/// use ripress::middlewares::cors::CorsConfig;
 ///
 /// let mut app = App::new();
 /// app.use_cors(Some(CorsConfig {
@@ -72,10 +71,9 @@ pub mod cors;
 /// ## Usage
 /// ```rust
 /// use ripress::app::App;
-/// use ripress::middlewares::logger::logger;
 ///
 /// let mut app = App::new();
-/// app.use_logger();
+/// app.use_logger(None);
 /// ```
 pub mod logger;
 
