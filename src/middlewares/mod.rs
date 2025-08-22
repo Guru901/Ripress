@@ -235,3 +235,4 @@ pub mod body_limit;
 /// - Does not compress very small responses (below threshold)
 /// - Only supports gzip encoding (no brotli/deflate yet)
 pub mod compression;
+pub mod shield;

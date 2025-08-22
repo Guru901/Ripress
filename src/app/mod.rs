@@ -7,6 +7,7 @@ use crate::middlewares::compression::{CompressionConfig, compression};
 use crate::middlewares::cors::{CorsConfig, cors};
 use crate::middlewares::logger::{LoggerConfig, logger};
 use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
+use crate::middlewares::shield::{ShieldConfig, shield};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::types::{Fut, FutMiddleware, HandlerMiddleware, HttpMethods, RouterFns, Routes};
@@ -253,6 +254,15 @@ impl App {
             func: Self::middleware_from_closure(rate_limiter(config)),
             path: "/".to_string(),
             name: "rate_limiter".to_string(),
+        });
+        self
+    }
+
+    pub fn use_shield(&mut self, config: Option<ShieldConfig>) -> &mut Self {
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(shield(config)),
+            path: "/".to_string(),
+            name: "shield".to_string(),
         });
         self
     }
