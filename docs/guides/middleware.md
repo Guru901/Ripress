@@ -1,5 +1,259 @@
 # Middleware Documentation
 
+## Compression Middleware
+
+The Compression middleware automatically compresses HTTP response bodies using gzip compression when clients support it and responses meet certain criteria. This middleware reduces bandwidth usage and improves loading times for web applications by compressing text-based content.
+
+### Features
+
+- **Automatic gzip compression** - Compresses responses when clients accept gzip encoding
+- **Intelligent content detection** - Only compresses appropriate content types (text, JSON, etc.)
+- **Configurable size threshold** - Only compresses responses above a minimum size
+- **Configurable compression level** - Adjustable compression ratio vs. speed trade-offs
+- **Smart header handling** - Prevents double-encoding and sets appropriate headers
+- **Performance optimized** - Skips compression for small responses and incompressible content
+- **Standards compliant** - Follows HTTP compression standards and content negotiation
+
+### Configuration
+
+The `CompressionConfig` struct allows you to customize compression behavior:
+
+- `threshold` - Minimum response size in bytes to trigger compression (default: 1024 bytes / 1 KB)
+- `level` - Compression level from 0-9, where 9 is maximum compression (default: 6)
+
+### Usage
+
+```rust
+use ripress::{app::App, middlewares::compression::CompressionConfig};
+
+// Use default compression settings (1 KB threshold, level 6)
+let mut app = App::new();
+app.use_compression(None);
+
+// Custom compression configuration
+let config = CompressionConfig {
+    threshold: 2048,  // Only compress responses >= 2 KB
+    level: 9,         // Maximum compression
+};
+app.use_compression(Some(config));
+
+// Lightweight compression for high-traffic scenarios
+let fast_config = CompressionConfig {
+    threshold: 512,   // Compress smaller responses
+    level: 1,         // Fastest compression
+};
+app.use_compression(Some(fast_config));
+```
+
+### How It Works
+
+The Compression middleware processes responses through these steps:
+
+1. **Client capability check** - Verifies client accepts gzip via `Accept-Encoding` header
+2. **Double-encoding prevention** - Skips if `Content-Encoding` header already exists
+3. **Size threshold check** - Only compresses responses meeting minimum size requirement
+4. **Content type validation** - Compresses only appropriate content types
+5. **Compression processing** - Applies gzip compression at configured level
+6. **Header management** - Sets `Content-Encoding: gzip` and `Vary: Accept-Encoding`
+7. **Body replacement** - Replaces original body with compressed binary data
+
+### Supported Content Types
+
+The middleware automatically compresses these content types:
+
+**Text Content:**
+
+- `text/*` - All text-based content (HTML, CSS, plain text, etc.)
+
+**Structured Data:**
+
+- `application/json` - JSON API responses
+- `application/javascript` - JavaScript files
+- `application/xml` - XML documents
+- `application/xhtml+xml` - XHTML documents
+
+**Feeds and Markup:**
+
+- `application/rss+xml` - RSS feeds
+- `application/atom+xml` - Atom feeds
+- `image/svg+xml` - SVG images
+
+**Non-Compressible Content (Skipped):**
+
+- Binary formats (images, videos, archives)
+- Already compressed formats (gzip, zip, etc.)
+- Small responses below threshold
+
+### Response Headers
+
+The middleware manages these HTTP headers:
+
+**Added Headers:**
+
+- `Content-Encoding: gzip` - Indicates gzip compression was applied
+- `Vary: Accept-Encoding` - Tells caches to vary by encoding support
+
+**Removed Headers:**
+
+- `Content-Length` - Original length no longer valid after compression
+
+### Configuration Examples
+
+**Development Configuration:**
+
+```rust
+// Aggressive compression for development/testing
+let dev_config = CompressionConfig {
+    threshold: 100,   // Compress very small responses
+    level: 9,         // Maximum compression for testing
+};
+app.use_compression(Some(dev_config));
+```
+
+**Production API Configuration:**
+
+```rust
+// Balanced compression for JSON APIs
+let api_config = CompressionConfig {
+    threshold: 1024,  // Standard 1 KB threshold
+    level: 6,         // Good compression/speed balance
+};
+app.use_compression(Some(api_config));
+```
+
+**High-Traffic Configuration:**
+
+```rust
+// Fast compression for high-volume sites
+let fast_config = CompressionConfig {
+    threshold: 2048,  // Only compress larger responses
+    level: 3,         // Prioritize speed over size
+};
+app.use_compression(Some(fast_config));
+```
+
+### Performance Considerations
+
+**Compression Levels:**
+
+- **Level 1-3**: Fast compression, moderate size reduction (good for high traffic)
+- **Level 4-6**: Balanced compression/speed trade-off (recommended for most uses)
+- **Level 7-9**: Maximum compression, slower processing (good for bandwidth-limited scenarios)
+
+**Size Thresholds:**
+
+- **Very small (< 500 bytes)**: Compression overhead may exceed benefits
+- **Small (500-1024 bytes)**: Default threshold provides good balance
+- **Large (> 2048 bytes)**: Higher thresholds reduce CPU usage for mixed content
+
+**CPU vs Bandwidth Trade-offs:**
+
+- Higher compression levels use more CPU but save more bandwidth
+- Lower thresholds compress more responses but increase CPU usage
+- Consider your server's CPU capacity and network costs
+
+### Integration with Other Middleware
+
+**Middleware Order Matters:**
+
+```rust
+// Recommended order: Security → Processing → Compression → Response
+app.use_rate_limiter(None);        // 1. Rate limiting
+app.use_cors(None);                // 2. CORS headers
+app.use_body_limit(None);          // 3. Body size limits
+// ... your route handlers ...
+app.use_compression(None);         // 4. Compression (late in chain)
+```
+
+**Why Compression Should Be Last:**
+
+- Compresses the final response after all processing
+- Prevents interference with middleware that needs to read response bodies
+- Ensures all headers are set before compression headers are added
+
+### Security Considerations
+
+**BREACH Attack Mitigation:**
+
+- The middleware doesn't implement BREACH attack protections
+- Consider adding random padding for responses containing secrets
+- Use HTTPS to protect compressed responses in transit
+
+**Content Type Validation:**
+
+- Only compresses safe, text-based content types
+- Binary content is automatically excluded
+- Prevents corruption of non-text responses
+
+### Monitoring and Debugging
+
+**Compression Effectiveness:**
+
+```rust
+// Log compression ratios for monitoring
+async fn compression_stats_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    let original_size = res.body.len(); // Before compression
+    // After compression middleware runs
+    let compressed_size = /* get from headers or response */;
+    let ratio = (original_size as f32 / compressed_size as f32) * 100.0;
+    println!("Compression ratio: {:.1}%", ratio);
+    res
+}
+```
+
+**Headers for Debugging:**
+
+- Check `Content-Encoding: gzip` header in responses
+- Verify `Vary: Accept-Encoding` header for caching
+- Monitor response sizes in browser dev tools
+
+### Best Practices
+
+**Configuration Guidelines:**
+
+- Start with default settings and adjust based on monitoring
+- Use higher compression levels for static content
+- Use lower compression levels for dynamic API responses
+- Set thresholds based on your typical response sizes
+
+**Content Strategy:**
+
+- Pre-compress static assets at build time when possible
+- Use compression for API responses containing repeated data
+- Consider response caching to amortize compression costs
+- Monitor CPU usage under load
+
+**Client Considerations:**
+
+- All modern browsers support gzip compression
+- Mobile clients especially benefit from reduced response sizes
+- API clients should include `Accept-Encoding: gzip` header
+- Server logs show uncompressed sizes by default
+
+### Error Handling
+
+The compression middleware is designed to be fault-tolerant:
+
+- **Compression failures**: Falls back to uncompressed response
+- **Unsupported content**: Passes through without modification
+- **Client incompatibility**: Serves uncompressed responses
+- **Memory issues**: Gracefully degrades to original response
+
+### Limitations
+
+**Current Implementation:**
+
+- Only supports gzip compression (not brotli or other algorithms)
+- Processes entire response in memory (not suitable for very large responses)
+- No streaming compression support
+- Compression level applied globally (not per-route)
+
+**Memory Considerations:**
+
+- Each response is temporarily duplicated during compression
+- Large responses may require significant memory
+- Consider streaming for very large file downloads
+
 ## File Upload Middleware
 
 The file upload middleware handles file uploads by processing request bodies and saving them to a specified upload directory. It supports raw binary uploads and multipart form data with automatic file type detection and unique filename generation.

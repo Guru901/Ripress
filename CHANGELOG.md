@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.0] - 2025-08-22
+
+Added Compression middleware
+Added `app.use_compression` method
+
 ## [1.4.0] - 2025-08-22
 
 Added Body Size Limit middleware
