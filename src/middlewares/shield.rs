@@ -45,6 +45,7 @@ impl Default for Hsts {
 pub struct Frameguard {
     pub enabled: bool,
     pub action: String,
+    pub domain: Option<String>, // For allow-from action
 }
 
 impl Default for Frameguard {
@@ -52,6 +53,7 @@ impl Default for Frameguard {
         Self {
             enabled: true,
             action: "deny".to_string(),
+            domain: None,
         }
     }
 }
@@ -108,7 +110,7 @@ pub struct DnsPrefetchControl {
 impl Default for DnsPrefetchControl {
     fn default() -> Self {
         Self {
-            enabled: false,
+            enabled: true, // Changed from false
             allow: false,
         }
     }
@@ -144,9 +146,15 @@ pub struct PermissionsPolicy {
 
 impl Default for PermissionsPolicy {
     fn default() -> Self {
+        let mut features = HashMap::new();
+        features.insert("camera".to_string(), vec![]);
+        features.insert("microphone".to_string(), vec![]);
+        features.insert("geolocation".to_string(), vec!["self".to_string()]);
+        features.insert("payment".to_string(), vec![]);
+
         Self {
             enabled: true,
-            features: HashMap::new(),
+            features,
         }
     }
 }
@@ -155,30 +163,25 @@ impl Default for PermissionsPolicy {
 pub enum CrossOriginOpenerPolicy {
     SameOrigin,
     SameOriginAllowPopups,
-    SameOriginAllowPopupsAndRedirects,
     UnsafeNone,
 }
 
 impl Default for CrossOriginOpenerPolicy {
     fn default() -> Self {
-        Self::UnsafeNone
+        Self::SameOrigin // Changed from UnsafeNone for better security
     }
 }
 
 #[derive(Clone)]
 pub enum CrossOriginResourcePolicy {
     SameOrigin,
-    SameOriginAllowPopups,
-    SameOriginAllowPopupsAndRedirects,
+    SameSite,
     CrossOrigin,
-    CrossOriginAllowPopups,
-    CrossOriginAllowPopupsAndRedirects,
-    UnsafeNone,
 }
 
 impl Default for CrossOriginResourcePolicy {
     fn default() -> Self {
-        Self::UnsafeNone
+        Self::SameOrigin // Simplified and more secure
     }
 }
 
@@ -191,9 +194,19 @@ pub struct ContentSecurityPolicy {
 
 impl Default for ContentSecurityPolicy {
     fn default() -> Self {
+        let mut directives = HashMap::new();
+        directives.insert("default-src".to_string(), "'self'".to_string());
+        directives.insert("script-src".to_string(), "'self'".to_string());
+        directives.insert(
+            "style-src".to_string(),
+            "'self' 'unsafe-inline'".to_string(),
+        );
+        directives.insert("img-src".to_string(), "'self' data: https:".to_string());
+        directives.insert("object-src".to_string(), "'none'".to_string());
+
         Self {
             enabled: true,
-            directives: HashMap::new(),
+            directives,
             report_only: false,
         }
     }
@@ -202,7 +215,6 @@ impl Default for ContentSecurityPolicy {
 #[derive(Clone)]
 pub enum CrossOriginEmbedderPolicy {
     RequireCorp,
-    RequireCorpIframe,
     UnsafeNone,
 }
 
@@ -219,7 +231,7 @@ pub struct OriginAgentCluster {
 
 impl Default for OriginAgentCluster {
     fn default() -> Self {
-        Self { enabled: false }
+        Self { enabled: true } // Changed from false
     }
 }
 
@@ -232,7 +244,7 @@ pub struct CrossDomainPolicy {
 impl Default for CrossDomainPolicy {
     fn default() -> Self {
         Self {
-            enabled: false,
+            enabled: true, // Changed from false
             policy: "none".to_string(),
         }
     }
@@ -267,44 +279,28 @@ pub(crate) fn shield(
     move |req, mut res| {
         let config = config.clone();
         Box::pin(async move {
-            let content_security_policy = config.content_security_policy;
-            let hsts = config.hsts;
-            let frameguard = config.frameguard;
-            let no_sniff = config.no_sniff;
-            let xss_filter = config.xss_filter;
-            let referrer_policy = config.referrer_policy;
-            let dns_prefetch_control = config.dns_prefetch_control;
-            let ie_no_open = config.ie_no_open;
-            let hide_powered_by = config.hide_powered_by;
-            let permissions_policy = config.permissions_policy;
-            let cross_origin_opener_policy = config.cross_origin_opener_policy;
-            let cross_origin_resource_policy = config.cross_origin_resource_policy;
-            let cross_origin_embedder_policy = config.cross_origin_embedder_policy;
-            let origin_agent_cluster = config.origin_agent_cluster;
-            let cross_domain_policy = config.cross_domain_policy;
-
-            set_content_security_policy(&mut res, content_security_policy);
-            set_hsts(&mut res, hsts);
-            set_frameguard(&mut res, frameguard);
-            set_no_sniff(&mut res, no_sniff);
-            set_xss_filter(&mut res, xss_filter);
-            set_referrer_policy(&mut res, referrer_policy);
-            set_dns_prefetch_control(&mut res, dns_prefetch_control);
-            set_ie_no_open(&mut res, ie_no_open);
-            set_hide_powered_by(&mut res, hide_powered_by);
-            set_permissions_policy(&mut res, permissions_policy);
-            set_cross_origin_opener_policy(&mut res, cross_origin_opener_policy);
-            set_cross_origin_resource_policy(&mut res, cross_origin_resource_policy);
-            set_cross_origin_embedder_policy(&mut res, cross_origin_embedder_policy);
-            set_origin_agent_cluster(&mut res, origin_agent_cluster);
-            set_cross_domain_policy(&mut res, cross_domain_policy);
+            set_content_security_policy(&mut res, &config.content_security_policy);
+            set_hsts(&mut res, &config.hsts);
+            set_frameguard(&mut res, &config.frameguard);
+            set_no_sniff(&mut res, &config.no_sniff);
+            set_xss_filter(&mut res, &config.xss_filter);
+            set_referrer_policy(&mut res, &config.referrer_policy);
+            set_dns_prefetch_control(&mut res, &config.dns_prefetch_control);
+            set_ie_no_open(&mut res, &config.ie_no_open);
+            set_hide_powered_by(&mut res, &config.hide_powered_by);
+            set_permissions_policy(&mut res, &config.permissions_policy);
+            set_cross_origin_opener_policy(&mut res, &config.cross_origin_opener_policy);
+            set_cross_origin_resource_policy(&mut res, &config.cross_origin_resource_policy);
+            set_cross_origin_embedder_policy(&mut res, &config.cross_origin_embedder_policy);
+            set_origin_agent_cluster(&mut res, &config.origin_agent_cluster);
+            set_cross_domain_policy(&mut res, &config.cross_domain_policy);
 
             (req, None)
         })
     }
 }
 
-fn set_content_security_policy(res: &mut HttpResponse, csp: ContentSecurityPolicy) {
+fn set_content_security_policy(res: &mut HttpResponse, csp: &ContentSecurityPolicy) {
     if !csp.enabled {
         return;
     }
@@ -325,60 +321,79 @@ fn set_content_security_policy(res: &mut HttpResponse, csp: ContentSecurityPolic
     res.headers.insert(header_name, header_value);
 }
 
-fn set_hsts(res: &mut HttpResponse, hsts: Hsts) {
+fn set_hsts(res: &mut HttpResponse, hsts: &Hsts) {
     if !hsts.enabled {
         return;
-    };
+    }
 
     let mut value = format!("max-age={}", hsts.max_age);
 
     if hsts.include_subdomains {
-        value += "; includeSubDomains"
-    };
+        value.push_str("; includeSubDomains");
+    }
     if hsts.preload {
-        value += "; preload"
-    };
+        value.push_str("; preload");
+    }
 
     res.headers.insert("Strict-Transport-Security", value);
 }
 
-fn set_frameguard(res: &mut HttpResponse, frameguard: Frameguard) {}
+fn set_frameguard(res: &mut HttpResponse, frameguard: &Frameguard) {
+    if !frameguard.enabled {
+        return;
+    }
 
-fn set_no_sniff(res: &mut HttpResponse, no_sniff: NoSniff) {
+    let value = match frameguard.action.as_str() {
+        "deny" => "DENY".to_string(),
+        "sameorigin" => "SAMEORIGIN".to_string(),
+        "allow-from" => {
+            if let Some(domain) = &frameguard.domain {
+                format!("ALLOW-FROM {}", domain)
+            } else {
+                "DENY".to_string() // Fallback if no domain specified
+            }
+        }
+        _ => "DENY".to_string(), // Default fallback
+    };
+
+    res.headers.insert("X-Frame-Options", value);
+}
+
+fn set_no_sniff(res: &mut HttpResponse, no_sniff: &NoSniff) {
     if !no_sniff.enabled {
         return;
-    };
+    }
 
     res.headers.insert("X-Content-Type-Options", "nosniff");
 }
 
-fn set_xss_filter(res: &mut HttpResponse, xss_filter: XssFilter) {
+fn set_xss_filter(res: &mut HttpResponse, xss_filter: &XssFilter) {
     if !xss_filter.enabled {
         return;
     }
 
-    let mut value = String::from("1");
+    let mut value = "1".to_string();
 
-    if xss_filter.mode == String::from("block") {
-        value += "; mode=block";
+    if xss_filter.mode == "block" {
+        value.push_str("; mode=block");
     }
 
-    if xss_filter.report_uri.is_some() {
-        value += format!("; report=${}", xss_filter.report_uri.unwrap()).as_str();
+    if let Some(report_uri) = &xss_filter.report_uri {
+        value.push_str(&format!("; report={}", report_uri));
     }
 
     res.headers.insert("X-XSS-Protection", value);
 }
 
-fn set_referrer_policy(res: &mut HttpResponse, referrer_policy: ReferrerPolicy) {
+fn set_referrer_policy(res: &mut HttpResponse, referrer_policy: &ReferrerPolicy) {
     if !referrer_policy.enabled {
         return;
     }
     res.headers
-        .insert("Referrer-Policy", referrer_policy.policy);
+        .insert("Referrer-Policy", referrer_policy.policy.clone());
 }
 
-fn set_dns_prefetch_control(res: &mut HttpResponse, dns_prefetch_control: DnsPrefetchControl) {
+fn set_dns_prefetch_control(res: &mut HttpResponse, dns_prefetch_control: &DnsPrefetchControl) {
     if !dns_prefetch_control.enabled {
         return;
     }
@@ -389,10 +404,10 @@ fn set_dns_prefetch_control(res: &mut HttpResponse, dns_prefetch_control: DnsPre
         "off"
     };
 
-    res.headers.insert("DNS-Prefetch-Control", header_value);
+    res.headers.insert("X-DNS-Prefetch-Control", header_value); // Fixed header name
 }
 
-fn set_ie_no_open(res: &mut HttpResponse, ie_no_open: IENoOpen) {
+fn set_ie_no_open(res: &mut HttpResponse, ie_no_open: &IENoOpen) {
     if !ie_no_open.enabled {
         return;
     }
@@ -400,24 +415,19 @@ fn set_ie_no_open(res: &mut HttpResponse, ie_no_open: IENoOpen) {
     res.headers.insert("X-Download-Options", "noopen");
 }
 
-fn set_hide_powered_by(res: &mut HttpResponse, hide_powered_by: HidePoweredBy) {
-    if hide_powered_by.enabled {
+fn set_hide_powered_by(res: &mut HttpResponse, hide_powered_by: &HidePoweredBy) {
+    if !hide_powered_by.enabled {
+        // Fixed logic - was backwards
         return;
-    };
+    }
     res.headers.remove("X-Powered-By");
 }
 
-fn set_permissions_policy(res: &mut HttpResponse, permissions_policy: PermissionsPolicy) {
+fn set_permissions_policy(res: &mut HttpResponse, permissions_policy: &PermissionsPolicy) {
     if !permissions_policy.enabled {
         return;
     }
 
-    let mut header_value = String::new();
-
-    for feature in permissions_policy.features.keys() {
-        header_value.push_str(feature);
-        header_value.push_str(", ");
-    }
     let mut policies = Vec::new();
 
     for (feature, allowlist) in &permissions_policy.features {
@@ -447,62 +457,46 @@ fn set_permissions_policy(res: &mut HttpResponse, permissions_policy: Permission
 
 fn set_cross_origin_opener_policy(
     res: &mut HttpResponse,
-    cross_origin_opener_policy: CrossOriginOpenerPolicy,
+    cross_origin_opener_policy: &CrossOriginOpenerPolicy,
 ) {
     let header_value = match cross_origin_opener_policy {
-        CrossOriginOpenerPolicy::SameOrigin => String::from("same-origin"),
-        CrossOriginOpenerPolicy::SameOriginAllowPopups => String::from("same-origin-allow-popups"),
-        CrossOriginOpenerPolicy::SameOriginAllowPopupsAndRedirects => {
-            String::from("same-origin-allow-popups-and-redirects")
-        }
-        CrossOriginOpenerPolicy::UnsafeNone => String::from("unsafe-none"),
+        CrossOriginOpenerPolicy::SameOrigin => "same-origin",
+        CrossOriginOpenerPolicy::SameOriginAllowPopups => "same-origin-allow-popups",
+        CrossOriginOpenerPolicy::UnsafeNone => "unsafe-none",
     };
 
     res.headers
-        .insert("Cross-Origin-Opener-Policy", header_value);
+        .insert("Cross-Origin-Opener-Policy", header_value.to_string());
 }
 
 fn set_cross_origin_resource_policy(
     res: &mut HttpResponse,
-    cross_origin_resource_policy: CrossOriginResourcePolicy,
+    cross_origin_resource_policy: &CrossOriginResourcePolicy,
 ) {
     let header_value = match cross_origin_resource_policy {
-        CrossOriginResourcePolicy::SameOrigin => String::from("same-origin"),
-        CrossOriginResourcePolicy::SameOriginAllowPopups => {
-            String::from("same-origin-allow-popups")
-        }
-        CrossOriginResourcePolicy::SameOriginAllowPopupsAndRedirects => {
-            String::from("same-origin-allow-popups-and-redirects")
-        }
-        CrossOriginResourcePolicy::CrossOrigin => String::from("cross-origin"),
-        CrossOriginResourcePolicy::CrossOriginAllowPopups => {
-            String::from("cross-origin-allow-popups")
-        }
-        CrossOriginResourcePolicy::CrossOriginAllowPopupsAndRedirects => {
-            String::from("cross-origin-allow-popups-and-redirects")
-        }
-        CrossOriginResourcePolicy::UnsafeNone => String::from("unsafe-none"),
+        CrossOriginResourcePolicy::SameOrigin => "same-origin",
+        CrossOriginResourcePolicy::SameSite => "same-site",
+        CrossOriginResourcePolicy::CrossOrigin => "cross-origin",
     };
 
     res.headers
-        .insert("Cross-Origin-Resource-Policy", header_value);
+        .insert("Cross-Origin-Resource-Policy", header_value.to_string());
 }
 
 fn set_cross_origin_embedder_policy(
     res: &mut HttpResponse,
-    cross_origin_embedder_policy: CrossOriginEmbedderPolicy,
+    cross_origin_embedder_policy: &CrossOriginEmbedderPolicy,
 ) {
     let header_value = match cross_origin_embedder_policy {
-        CrossOriginEmbedderPolicy::RequireCorp => String::from("require-corp"),
-        CrossOriginEmbedderPolicy::RequireCorpIframe => String::from("require-corp-iframe"),
-        CrossOriginEmbedderPolicy::UnsafeNone => String::from("unsafe-none"),
+        CrossOriginEmbedderPolicy::RequireCorp => "require-corp",
+        CrossOriginEmbedderPolicy::UnsafeNone => "unsafe-none",
     };
 
     res.headers
-        .insert("Cross-Origin-Embedder-Policy", header_value);
+        .insert("Cross-Origin-Embedder-Policy", header_value.to_string());
 }
 
-fn set_origin_agent_cluster(res: &mut HttpResponse, origin_agent_cluster: OriginAgentCluster) {
+fn set_origin_agent_cluster(res: &mut HttpResponse, origin_agent_cluster: &OriginAgentCluster) {
     if !origin_agent_cluster.enabled {
         return;
     }
@@ -510,11 +504,13 @@ fn set_origin_agent_cluster(res: &mut HttpResponse, origin_agent_cluster: Origin
     res.headers.insert("Origin-Agent-Cluster", "?1");
 }
 
-fn set_cross_domain_policy(res: &mut HttpResponse, cross_domain_policy: CrossDomainPolicy) {
+fn set_cross_domain_policy(res: &mut HttpResponse, cross_domain_policy: &CrossDomainPolicy) {
     if !cross_domain_policy.enabled {
         return;
     }
 
-    res.headers
-        .insert("Cross-Domain-Policy", cross_domain_policy.policy);
+    res.headers.insert(
+        "X-Permitted-Cross-Domain-Policies",
+        cross_domain_policy.policy.clone(),
+    ); // Fixed header name
 }
