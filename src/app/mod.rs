@@ -261,23 +261,13 @@ impl App {
     ///
     /// ## Arguments
     ///
-    /// * `Option<CompressionConfig>` - The configuration for the rate limiter middleware.
+    /// Adds a compression middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `Option<CompressionConfig>` - The configuration for the compression middleware.
     ///
     /// ## Example
-    ///
-    /// ```
-    /// use ripress::app::App;
-    /// use ripress::middlewares::compression::CompressionConfig;
-    ///
-    /// let mut app = App::new();
-    ///
-    /// app.use_compression(None);
-    ///
-    /// app.use_compression(Some(CompressionConfig {
-    ///     level: 10,
-    ///     ..Default::default()
-    /// }));
-    /// ```
 
     pub fn use_compression(&mut self, config: Option<CompressionConfig>) -> &mut Self {
         self.middlewares.push(Middleware {
