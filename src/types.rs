@@ -66,6 +66,17 @@ pub(crate) enum ResponseContentType {
     BINARY,
 }
 
+impl ResponseContentType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ResponseContentType::TEXT => "text/plain",
+            ResponseContentType::JSON => "application/json",
+            ResponseContentType::HTML => "text/html",
+            ResponseContentType::BINARY => "application/octet-stream",
+        }
+    }
+}
+
 pub(crate) type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 
 pub(crate) type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;

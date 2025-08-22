@@ -1,7 +1,9 @@
 #![warn(missing_docs)]
 
 use crate::app::api_error::ApiError;
-use crate::helpers::{exec_logger, exec_middleware};
+use crate::helpers::{exec_post_middleware, exec_pre_middleware};
+use crate::middlewares::body_limit::body_limit;
+use crate::middlewares::compression::{CompressionConfig, compression};
 use crate::middlewares::cors::{CorsConfig, cors};
 use crate::middlewares::logger::{LoggerConfig, logger};
 use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
@@ -194,6 +196,35 @@ impl App {
         self
     }
 
+    /// Adds a body size limit middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `config` - An optional maximum size in bytes for the request body. If `None` is provided,
+    ///   the default limit is 1 MB (1,048,576 bytes).
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::app::App;
+    ///
+    /// let mut app = App::new();
+    ///
+    /// // Use the default 1 MB limit
+    /// app.use_body_limit(None);
+    ///
+    /// // Set a custom limit (e.g., 2 MB)
+    /// app.use_body_limit(Some(2 * 1024 * 1024));
+    /// ```
+    pub fn use_body_limit(&mut self, config: Option<usize>) -> &mut Self {
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(body_limit(config)),
+            path: "/".to_string(),
+            name: "body_limit".to_string(),
+        });
+        self
+    }
+
     /// Adds a rate limiter middleware to the application.
     ///
     /// ## Arguments
@@ -222,6 +253,27 @@ impl App {
             func: Self::middleware_from_closure(rate_limiter(config)),
             path: "/".to_string(),
             name: "rate_limiter".to_string(),
+        });
+        self
+    }
+
+    /// Adds a compression middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// Adds a compression middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `Option<CompressionConfig>` - The configuration for the compression middleware.
+    ///
+    /// ## Example
+
+    pub fn use_compression(&mut self, config: Option<CompressionConfig>) -> &mut Self {
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(compression(config)),
+            path: "/".to_string(),
+            name: "compression".to_string(),
         });
         self
     }
@@ -282,15 +334,15 @@ impl App {
         for middleware in self.middlewares.iter() {
             let middleware = middleware.clone();
 
-            if middleware.name == "logger" {
+            if middleware.name == "logger" || middleware.name == "compression" {
                 router = router.middleware(routerify::Middleware::post_with_info({
                     let middleware = middleware.clone();
-                    move |res, info| exec_logger(res, middleware.clone(), info)
+                    move |res, info| exec_post_middleware(res, middleware.clone(), info)
                 }));
             } else {
                 router = router.middleware(routerify::Middleware::pre({
                     let middleware = middleware.clone();
-                    move |req| exec_middleware(req, middleware.clone())
+                    move |req| exec_pre_middleware(req, middleware.clone())
                 }));
             }
         }

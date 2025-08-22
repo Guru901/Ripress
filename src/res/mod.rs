@@ -5,6 +5,7 @@ use crate::res::response_status::StatusCode;
 use crate::types::{ResponseContentBody, ResponseContentType};
 use bytes::Bytes;
 use futures::{Stream, StreamExt, stream};
+use hyper::body::to_bytes;
 use hyper::header::{HeaderName, HeaderValue, SET_COOKIE};
 use hyper::{Body, Response};
 use serde::Serialize;
@@ -657,9 +658,8 @@ impl HttpResponse {
         self
     }
 
-    pub(crate) fn from_hyper_response(res: &Response<Body>) -> Self {
-        // Body is not accessible here; keep a neutral placeholder to avoid wrong sizes.
-        let body = ResponseContentBody::new_binary(Bytes::new());
+    pub(crate) async fn from_hyper_response(res: &mut Response<Body>) -> Self {
+        let body_bytes = to_bytes(res.body_mut()).await.unwrap_or(Bytes::new());
 
         let content_type_hdr = res
             .headers()
@@ -669,6 +669,26 @@ impl HttpResponse {
         let content_type = content_type_hdr
             .map(determine_content_type_response)
             .unwrap_or(ResponseContentType::BINARY);
+
+        let body = match content_type {
+            ResponseContentType::BINARY => ResponseContentBody::new_binary(body_bytes),
+            ResponseContentType::TEXT => {
+                let text = String::from_utf8(body_bytes.to_vec())
+                    .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
+                ResponseContentBody::new_text(text)
+            }
+            ResponseContentType::JSON => {
+                // Avoid panic: if JSON parsing fails, fallback to empty object
+                let json_value =
+                    serde_json::from_slice(&body_bytes).unwrap_or(serde_json::Value::Null);
+                ResponseContentBody::new_json(json_value)
+            }
+            ResponseContentType::HTML => {
+                let html = String::from_utf8(body_bytes.to_vec())
+                    .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
+                ResponseContentBody::new_html(html)
+            }
+        };
 
         // Heuristic for SSE streams: text/event-stream + keep-alive
         let is_event_stream = content_type_hdr
@@ -755,24 +775,29 @@ impl HttpResponse {
             let mut response = match body {
                 ResponseContentBody::JSON(json) => Response::builder()
                     .status(self.status_code.as_u16())
-                    .header("Content-Type", "application/json")
+                    .header("Content-Type", self.content_type.as_str())
                     .body(Body::from(serde_json::to_string(&json).unwrap())),
                 ResponseContentBody::TEXT(text) => Response::builder()
                     .status(self.status_code.as_u16())
-                    .header("Content-Type", "text/plain")
+                    .header("Content-Type", self.content_type.as_str())
                     .body(Body::from(text)),
                 ResponseContentBody::HTML(html) => Response::builder()
                     .status(self.status_code.as_u16())
-                    .header("Content-Type", "text/html")
+                    .header("Content-Type", self.content_type.as_str())
                     .body(Body::from(html)),
                 ResponseContentBody::BINARY(bytes) => Response::builder()
                     .status(self.status_code.as_u16())
-                    .header("Content-Type", "application/octet-stream")
+                    .header("Content-Type", self.content_type.as_str())
                     .body(Body::from(bytes)),
             }
             .unwrap();
 
             for (key, value) in self.headers.iter() {
+                if key.eq_ignore_ascii_case("content-type") {
+                    // Already set via `.header("Content-Type", ...)` above; skip duplicates
+                    continue;
+                }
+
                 response.headers_mut().append(
                     HeaderName::from_bytes(key.as_bytes()).unwrap(),
                     HeaderValue::from_str(value).unwrap(),

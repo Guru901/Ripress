@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.5.0] - 2025-08-22
+
+Added Compression middleware
+Added `app.use_compression` method
+
+## [1.4.0] - 2025-08-22
+
+Added Body Size Limit middleware
+Added `app.use_body_limit` method
+
 ## [1.3.1] - 2025-08-22
 
 File upload middleware configuration now works
@@ -9,6 +19,7 @@ File upload middleware configuration now works
 Added Rate Limiter middleware
 Added `app.use_cors` method
 Added `app.use_logger` method
+Added `app.use_rate_limiter` method
 Made app methods chainable
 
 ## [1.2.0] - 2025-08-21
