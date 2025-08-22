@@ -36,7 +36,7 @@ pub(crate) async fn exec_pre_middleware(
 }
 
 pub(crate) async fn exec_post_middleware(
-    res: Response<Body>,
+    mut res: Response<Body>,
     middleware: Middleware,
     info: RequestInfo,
 ) -> Result<Response<Body>, ApiError> {
@@ -44,7 +44,7 @@ pub(crate) async fn exec_post_middleware(
 
     let our_req = HttpRequest::from_request_info(info);
 
-    let our_res = HttpResponse::from_hyper_response(&res);
+    let our_res = HttpResponse::from_hyper_response(&mut res).await;
 
     let (_, maybe_res) = mw_func(our_req, our_res).await;
 

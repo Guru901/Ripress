@@ -3,7 +3,7 @@ use crate::app::box_future;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use bytes::Bytes;
-use hyper::Method;
+use hyper::{Body, Method};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -64,6 +64,17 @@ pub(crate) enum ResponseContentType {
     JSON,
     HTML,
     BINARY,
+}
+
+impl ResponseContentType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ResponseContentType::TEXT => "text/plain",
+            ResponseContentType::JSON => "application/json",
+            ResponseContentType::HTML => "text/html",
+            ResponseContentType::BINARY => "application/octet-stream",
+        }
+    }
 }
 
 pub(crate) type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;

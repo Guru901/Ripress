@@ -2,7 +2,7 @@
 use crate::{
     context::HttpResponse,
     req::{HttpRequest, determine_content_type_response},
-    types::{FutMiddleware, ResponseContentBody, ResponseContentType},
+    types::{FutMiddleware, ResponseContentBody},
 };
 use flate2::{Compression, write::GzEncoder};
 use std::io::Write;
@@ -60,7 +60,7 @@ pub(crate) fn compression(
             };
 
             // Check if body meets minimum size threshold
-            if body_bytes.len() > config.threshold {
+            if body_bytes.len() < config.threshold {
                 return (req, None);
             }
 
@@ -144,9 +144,9 @@ fn get_response_body_bytes(response: &HttpResponse) -> Option<Vec<u8>> {
 fn set_response_body(
     response: &mut HttpResponse,
     compressed_body: Vec<u8>,
-    _content_type: &str, // We ignore this since compressed data should be binary
+    content_type: &str,
 ) -> Result<(), ()> {
-    // Always store compressed data as binary since it's no longer valid text
+    println!("content_type: {}", content_type);
     response.body = ResponseContentBody::BINARY(compressed_body.into());
     Ok(())
 }
