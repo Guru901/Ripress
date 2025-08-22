@@ -46,10 +46,19 @@ pub(crate) fn compression(
             let accepts_gzip = req
                 .headers
                 .get("Accept-Encoding")
-                .map(|encoding| encoding.to_lowercase().contains("gzip"))
+                .map(|v| accepts_gzip_encoding(v))
                 .unwrap_or(false);
 
             if !accepts_gzip {
+                return (req, None);
+            }
+
+            if res
+                .headers
+                .get("Content-Encoding")
+                .or_else(|| res.headers.get("content-encoding"))
+                .is_some()
+            {
                 return (req, None);
             }
 
@@ -101,7 +110,7 @@ pub(crate) fn compression(
 }
 
 /// Determines if content type should be compressed
-fn should_compress_content_type(content_type: &str) -> bool {
+pub(crate) fn should_compress_content_type(content_type: &str) -> bool {
     let compressible_types = [
         "text/",
         "application/json",
@@ -120,7 +129,7 @@ fn should_compress_content_type(content_type: &str) -> bool {
 }
 
 /// Compresses data using gzip
-fn compress_data(data: &[u8], level: u8) -> Result<Vec<u8>, std::io::Error> {
+pub(crate) fn compress_data(data: &[u8], level: u8) -> Result<Vec<u8>, std::io::Error> {
     let mut encoder = GzEncoder::new(Vec::new(), Compression::new(level.min(9) as u32));
     encoder.write_all(data)?;
     encoder.finish()
@@ -150,39 +159,20 @@ fn set_response_body(
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_should_compress_content_type() {
-        assert!(should_compress_content_type("text/html"));
-        assert!(should_compress_content_type("text/html; charset=utf-8"));
-        assert!(should_compress_content_type("application/json"));
-        assert!(should_compress_content_type("TEXT/PLAIN")); // Case insensitive
-
-        assert!(!should_compress_content_type("image/jpeg"));
-        assert!(!should_compress_content_type("image/png"));
-        assert!(!should_compress_content_type("application/octet-stream"));
-        assert!(!should_compress_content_type("video/mp4"));
-    }
-
-    #[test]
-    fn test_compress_data() {
-        let original = b"Hello, World! ".repeat(100);
-        let compressed = compress_data(&original, 6).unwrap();
-
-        // Compressed data should be smaller than original for repetitive content
-        assert!(compressed.len() < original.len());
-
-        // Should have gzip magic numbers at the beginning
-        assert_eq!(&compressed[0..2], &[0x1f, 0x8b]);
-    }
-
-    #[test]
-    fn test_compression_config_default() {
-        let config = CompressionConfig::default();
-        assert_eq!(config.threshold, 1024);
-        assert_eq!(config.level, 6);
-    }
+fn accepts_gzip_encoding(header: &str) -> bool {
+    header
+        .split(',')
+        .filter_map(|t| {
+            let mut parts = t.trim().split(';');
+            let enc = parts.next()?.trim().to_ascii_lowercase();
+            let mut q = 1.0_f32;
+            for p in parts {
+                if let Some(val) = p.trim().strip_prefix("q=") {
+                    q = val.parse::<f32>().unwrap_or(0.0);
+                }
+            }
+            Some((enc, q))
+        })
+        // gzip explicitly allowed with q>0 OR wildcard with q>0
+        .any(|(enc, q)| q > 0.0 && (enc == "gzip" || enc == "*"))
 }
