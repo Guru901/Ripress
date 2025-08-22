@@ -660,7 +660,6 @@ impl HttpResponse {
     }
 
     pub(crate) async fn from_hyper_response(res: &mut Response<Body>) -> Self {
-        // Body is not accessible here; keep a neutral placeholder to avoid wrong sizes.
         let body_bytes = to_bytes(res.body_mut()).await.unwrap_or(Bytes::new());
 
         let content_type_hdr = res
@@ -795,6 +794,11 @@ impl HttpResponse {
             .unwrap();
 
             for (key, value) in self.headers.iter() {
+                if key.eq_ignore_ascii_case("content-type") {
+                    // Already set via `.header("Content-Type", ...)` above; skip duplicates
+                    continue;
+                }
+
                 response.headers_mut().append(
                     HeaderName::from_bytes(key.as_bytes()).unwrap(),
                     HeaderValue::from_str(value).unwrap(),
