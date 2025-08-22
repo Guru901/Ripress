@@ -52,7 +52,15 @@ pub(crate) fn compression(
             if !accepts_gzip {
                 return (req, None);
             }
-
+            // Prevent double-encoding if an upstream already encoded the body
+            if res
+                .headers
+                .get("Content-Encoding")
+                .or_else(|| res.headers.get("content-encoding"))
+                .is_some()
+            {
+                return (req, None);
+            }
             // Get response body content for size check
             let body_bytes = match get_response_body_bytes(&res) {
                 Some(bytes) => bytes,
