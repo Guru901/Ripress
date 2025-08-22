@@ -674,8 +674,8 @@ impl HttpResponse {
         let body = match content_type {
             ResponseContentType::BINARY => ResponseContentBody::new_binary(body_bytes),
             ResponseContentType::TEXT => {
-                // Convert Bytes to String for TextData, handling UTF-8
-                let text = String::from_utf8(body_bytes.to_vec()).unwrap_or_default();
+                let text = String::from_utf8(body_bytes.to_vec())
+                    .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
                 ResponseContentBody::new_text(text)
             }
             ResponseContentType::JSON => {
@@ -685,8 +685,8 @@ impl HttpResponse {
                 ResponseContentBody::new_json(json_value)
             }
             ResponseContentType::HTML => {
-                // Convert Bytes to Vec<u8> for String::from_utf8, fallback to empty string on error
-                let html = String::from_utf8(body_bytes.to_vec()).unwrap_or_default();
+                let html = String::from_utf8(body_bytes.to_vec())
+                    .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
                 ResponseContentBody::new_html(html)
             }
         };
