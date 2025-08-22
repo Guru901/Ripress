@@ -235,4 +235,50 @@ pub mod body_limit;
 /// - Does not compress very small responses (below threshold)
 /// - Only supports gzip encoding (no brotli/deflate yet)
 pub mod compression;
+
+/// Shield middleware
+///
+/// This module provides a comprehensive set of HTTP security headers to protect web applications
+/// from common vulnerabilities such as XSS, clickjacking, MIME sniffing, and more. The shield
+/// middleware is highly configurable, allowing you to enable or disable individual protections
+/// and customize header values as needed.
+///
+/// ## Features
+/// - **Content Security Policy (CSP)**: Restricts sources for scripts, styles, images, and more
+/// - **HTTP Strict Transport Security (HSTS)**: Enforces HTTPS usage
+/// - **X-Frame-Options**: Prevents clickjacking by controlling frame embedding
+/// - **X-Content-Type-Options**: Disables MIME type sniffing
+/// - **X-XSS-Protection**: Enables browser XSS filters
+/// - **Referrer Policy**: Controls referrer information sent with requests
+/// - **DNS Prefetch Control**: Manages DNS prefetching for privacy
+/// - **IE No Open**: Prevents Internet Explorer from executing downloads
+/// - **Hide Powered-By**: Removes identifying server headers
+/// - **Permissions Policy**: Restricts browser features and APIs
+/// - **Cross-Origin Policies**: Controls resource, embedder, and opener policies
+/// - **Origin Agent Cluster**: Requests origin-keyed agent clustering
+/// - **Cross Domain Policy**: Restricts Flash/Silverlight cross-domain access
+///
+/// ## Usage
+/// ```rust
+/// use ripress::app::App;
+/// use ripress::middlewares::shield::ShieldConfig;
+///
+/// let mut app = App::new();
+/// // Use default secure settings
+/// app.use_shield(None);
+///
+/// // Customize shield settings
+/// app.use_shield(Some(ShieldConfig {
+///     hsts_enabled: true,
+///     ..Default::default()
+/// }));
+/// ```
+///
+/// ## Best Practices
+/// - Use shield as early as possible in your middleware chain.
+/// - Review and adjust the configuration to fit your application's needs.
+/// - Regularly update your security headers as new threats emerge.
+///
+/// ## See Also
+/// - [`App::use_shield`]
 pub mod shield;
