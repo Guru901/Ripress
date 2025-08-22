@@ -3,7 +3,7 @@ use crate::app::box_future;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use bytes::Bytes;
-use hyper::{Body, Method};
+use hyper::Method;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Display;

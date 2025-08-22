@@ -1,7 +1,7 @@
 #![warn(missing_docs)]
 use crate::{
     context::HttpResponse,
-    req::{HttpRequest, determine_content_type_response},
+    req::HttpRequest,
     types::{FutMiddleware, ResponseContentBody},
 };
 use flate2::{Compression, write::GzEncoder};

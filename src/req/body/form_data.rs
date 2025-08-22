@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-use std::{collections::HashMap, fmt::Display, str::Bytes};
+use std::{collections::HashMap, fmt::Display};
 use urlencoding::decode;
 
 /// A convenient wrapper around `HashMap<String, String>` for handling form data.

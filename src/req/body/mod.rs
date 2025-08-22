@@ -60,6 +60,14 @@ pub struct RequestBody {
 }
 
 impl RequestBodyContent {
+    /// Returns the length of the data in bytes.
+    ///
+    /// Note:
+    /// - TEXT/HTML: returns `String::len()` (UTF-8 byte length)
+    /// - JSON: returns the length of the compact serialized form
+    /// - BINARY: returns `Bytes::len()`
+    /// - FORM: returns the length of the query string
+
     pub fn len(&self) -> usize {
         match self {
             RequestBodyContent::TEXT(text) => text.len(),
@@ -85,8 +93,6 @@ pub mod form_data;
 /// This module provides the [`TextData`] type for handling plain text content
 /// with validation and encoding support.
 pub mod text_data;
-
-use std::borrow::Cow;
 
 use bytes::Bytes;
 // Re-export commonly used types for convenience
@@ -638,20 +644,4 @@ pub enum RequestBodyContent {
     /// - HEAD requests
     /// - OPTIONS requests
     EMPTY,
-}
-
-impl RequestBodyContent {
-    pub(crate) fn as_bytes(&self) -> Cow<'_, [u8]> {
-        use std::borrow::Cow;
-        match self {
-            RequestBodyContent::TEXT(text) => Cow::Borrowed(text.as_bytes()),
-            RequestBodyContent::JSON(json) => {
-                Cow::Owned(serde_json::to_vec(json).unwrap_or_else(|_| Vec::new()))
-            }
-            RequestBodyContent::BINARY(bytes) => Cow::Borrowed(bytes.as_ref()),
-            RequestBodyContent::FORM(form) => Cow::Owned(form.to_query_string().into_bytes()),
-            RequestBodyContent::BinaryWithFields(bytes, _) => Cow::Borrowed(bytes.as_ref()),
-            RequestBodyContent::EMPTY => Cow::Borrowed(&[]),
-        }
-    }
 }
