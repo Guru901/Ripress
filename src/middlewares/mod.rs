@@ -147,3 +147,5 @@ pub mod rate_limiter;
 /// # See Also
 /// - [`App::use_body_limit`]
 pub mod body_limit;
+
+pub mod compression;

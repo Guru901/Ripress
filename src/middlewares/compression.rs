@@ -1,0 +1,189 @@
+#![warn(missing_docs)]
+use crate::{
+    context::HttpResponse,
+    req::{HttpRequest, determine_content_type_response},
+    types::{FutMiddleware, ResponseContentBody, ResponseContentType},
+};
+use flate2::{Compression, write::GzEncoder};
+use std::io::Write;
+
+/// Configuration for the compression middleware
+#[derive(Clone)]
+pub struct CompressionConfig {
+    /// Minimum response size threshold to trigger compression (in bytes)
+    pub threshold: usize,
+    /// Compression level (0-9, where 6 is default, 9 is maximum compression)
+    pub level: u8,
+}
+
+impl Default for CompressionConfig {
+    fn default() -> Self {
+        Self {
+            threshold: 1024, // 1 KB - more reasonable than 1 MB for compression
+            level: 6,
+        }
+    }
+}
+
+/// Creates a compression middleware that gzip compresses response bodies
+/// when the client accepts gzip encoding and the response meets size threshold
+///
+/// # Arguments
+///
+/// * `config` - Optional compression configuration. Uses defaults if None.
+///
+/// # Returns
+///
+/// A middleware function that compresses HTTP responses
+pub(crate) fn compression(
+    config: Option<CompressionConfig>,
+) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
+    let config = config.unwrap_or_default();
+    move |req, mut res| {
+        let config = config.clone();
+        Box::pin(async move {
+            // Check if client accepts gzip encoding
+            let accepts_gzip = req
+                .headers
+                .get("Accept-Encoding")
+                .map(|encoding| encoding.to_lowercase().contains("gzip"))
+                .unwrap_or(false);
+
+            if !accepts_gzip {
+                return (req, None);
+            }
+
+            // Get response body content for size check
+            let body_bytes = match get_response_body_bytes(&res) {
+                Some(bytes) => bytes,
+                None => return (req, None),
+            };
+
+            // Check if body meets minimum size threshold
+            if body_bytes.len() > config.threshold {
+                return (req, None);
+            }
+
+            // Get content type
+            let headers = res.headers.clone();
+            let content_type = headers.get("Content-Type").unwrap_or("text/plain");
+
+            // Check if content type should be compressed
+
+            if !should_compress_content_type(content_type) {
+                return (req, None);
+            }
+
+            // Compress the body
+            match compress_data(&body_bytes, config.level) {
+                Ok(compressed_body) => {
+                    // Update response with compressed body
+                    if let Err(_) = set_response_body(&mut res, compressed_body, content_type) {
+                        return (req, None);
+                    }
+
+                    // Set compression headers
+                    res = res
+                        .set_header("Content-Encoding", "gzip")
+                        .set_header("Vary", "Accept-Encoding");
+
+                    // Remove original content-length as it's no longer valid
+                    res.headers.remove("Content-Length");
+
+                    (req, Some(res))
+                }
+                Err(_) => {
+                    // Compression failed, return original response
+                    (req, None)
+                }
+            }
+        })
+    }
+}
+
+/// Determines if content type should be compressed
+fn should_compress_content_type(content_type: &str) -> bool {
+    let compressible_types = [
+        "text/",
+        "application/json",
+        "application/javascript",
+        "application/xml",
+        "application/rss+xml",
+        "application/atom+xml",
+        "application/xhtml+xml",
+        "image/svg+xml",
+    ];
+
+    let content_type_lower = content_type.to_lowercase();
+    compressible_types
+        .iter()
+        .any(|&ct| content_type_lower.starts_with(ct))
+}
+
+/// Compresses data using gzip
+fn compress_data(data: &[u8], level: u8) -> Result<Vec<u8>, std::io::Error> {
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::new(level.min(9) as u32));
+    encoder.write_all(data)?;
+    encoder.finish()
+}
+
+/// Extracts body bytes from HttpResponse for size checking
+fn get_response_body_bytes(response: &HttpResponse) -> Option<Vec<u8>> {
+    match &response.body {
+        ResponseContentBody::TEXT(text) => Some(text.as_bytes().to_vec()),
+        ResponseContentBody::JSON(json) => serde_json::to_vec(json).ok(),
+        ResponseContentBody::HTML(html) => Some(html.as_bytes().to_vec()),
+        ResponseContentBody::BINARY(bytes) => Some(bytes.to_vec()),
+    }
+}
+
+/// Sets the compressed body on the HttpResponse
+///
+/// **Important**: For compressed content, we should always store as BINARY
+/// since the compressed data is no longer valid text/JSON/HTML
+fn set_response_body(
+    response: &mut HttpResponse,
+    compressed_body: Vec<u8>,
+    _content_type: &str, // We ignore this since compressed data should be binary
+) -> Result<(), ()> {
+    // Always store compressed data as binary since it's no longer valid text
+    response.body = ResponseContentBody::BINARY(compressed_body.into());
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_should_compress_content_type() {
+        assert!(should_compress_content_type("text/html"));
+        assert!(should_compress_content_type("text/html; charset=utf-8"));
+        assert!(should_compress_content_type("application/json"));
+        assert!(should_compress_content_type("TEXT/PLAIN")); // Case insensitive
+
+        assert!(!should_compress_content_type("image/jpeg"));
+        assert!(!should_compress_content_type("image/png"));
+        assert!(!should_compress_content_type("application/octet-stream"));
+        assert!(!should_compress_content_type("video/mp4"));
+    }
+
+    #[test]
+    fn test_compress_data() {
+        let original = b"Hello, World! ".repeat(100);
+        let compressed = compress_data(&original, 6).unwrap();
+
+        // Compressed data should be smaller than original for repetitive content
+        assert!(compressed.len() < original.len());
+
+        // Should have gzip magic numbers at the beginning
+        assert_eq!(&compressed[0..2], &[0x1f, 0x8b]);
+    }
+
+    #[test]
+    fn test_compression_config_default() {
+        let config = CompressionConfig::default();
+        assert_eq!(config.threshold, 1024);
+        assert_eq!(config.level, 6);
+    }
+}

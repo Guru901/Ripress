@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, str::Bytes};
 use urlencoding::decode;
 
 /// A convenient wrapper around `HashMap<String, String>` for handling form data.
@@ -208,6 +208,7 @@ impl FormData {
     pub fn byte_len(&self) -> usize {
         self.to_query_string().len()
     }
+
     /// Returns `true` if the form data contains no key-value pairs.
     ///
     /// # Examples

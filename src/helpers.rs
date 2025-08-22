@@ -8,7 +8,7 @@ use hyper::{Body, Request, Response};
 use routerify::RequestInfo;
 use url::form_urlencoded::Serializer;
 
-pub(crate) async fn exec_middleware(
+pub(crate) async fn exec_pre_middleware(
     mut req: Request<Body>,
     middleware: Middleware,
 ) -> Result<Request<Body>, ApiError> {
@@ -35,7 +35,7 @@ pub(crate) async fn exec_middleware(
     }
 }
 
-pub(crate) async fn exec_logger(
+pub(crate) async fn exec_post_middleware(
     res: Response<Body>,
     middleware: Middleware,
     info: RequestInfo,
@@ -50,9 +50,7 @@ pub(crate) async fn exec_logger(
 
     match maybe_res {
         None => Ok(res),
-        Some(res) => {
-            return Err(ApiError::Generic(res));
-        }
+        Some(res) => return Ok(res.to_responder()?),
     }
 }
 
