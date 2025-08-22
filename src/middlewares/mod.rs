@@ -113,3 +113,37 @@ pub mod file_upload;
 /// * Rate limiting is per-process; distributed deployments require shared state (e.g., Redis)
 /// * Identification is by IP by default; proxies may require custom logic
 pub mod rate_limiter;
+
+/// Body Size Limit Middleware
+///
+/// This middleware enforces a maximum size for incoming HTTP request bodies, helping to prevent
+/// resource exhaustion and denial-of-service attacks due to excessively large payloads.
+///
+/// # Features
+/// - **Configurable limit**: Set a custom maximum body size in bytes, or use the default (1 MiB).
+/// - **Early rejection**: Requests exceeding the limit are rejected with a `413 Payload Too Large` response.
+/// - **Integration**: Easily enabled via [`App::use_body_limit`].
+///
+/// # Usage
+/// ```rust
+/// use ripress::app::App;
+///
+/// let mut app = App::new();
+/// // Use the default 1 MiB limit
+/// app.use_body_limit(None);
+///
+/// // Set a custom limit (e.g., 2 MiB)
+/// app.use_body_limit(Some(2 * 1024 * 1024));
+/// ```
+///
+/// # Best Practices
+/// - **Order matters**: Register this middleware *before* any middleware that reads or processes the request body
+///   (such as file uploads or JSON parsers) to ensure the limit is enforced on the raw payload.
+/// - **Error handling**: Clients exceeding the limit receive a clear error response and the connection may be closed.
+///
+/// # Security
+/// Limiting body size is a key defense against certain classes of attacks and accidental misuse.
+///
+/// # See Also
+/// - [`App::use_body_limit`]
+pub mod body_limit;

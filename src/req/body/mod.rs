@@ -59,6 +59,21 @@ pub struct RequestBody {
     pub content_type: RequestBodyType,
 }
 
+impl RequestBodyContent {
+    pub fn len(&self) -> usize {
+        match self {
+            RequestBodyContent::TEXT(text) => text.len(),
+            RequestBodyContent::JSON(json) => {
+                serde_json::to_vec(json).map(|v| v.len()).unwrap_or(0)
+            }
+            RequestBodyContent::BINARY(bytes) => bytes.len(),
+            RequestBodyContent::BinaryWithFields(bytes, _form_data) => bytes.len(),
+            RequestBodyContent::EMPTY => 0,
+            RequestBodyContent::FORM(form_data) => form_data.byte_len(),
+        }
+    }
+}
+
 /// Module containing form data structures and utilities.
 ///
 /// This module provides the [`FormData`] type for handling HTML form submissions

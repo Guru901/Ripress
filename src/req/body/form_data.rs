@@ -203,6 +203,11 @@ impl FormData {
         self.inner.len()
     }
 
+    /// Returns the byte size when serializing this form as `application/x-www-form-urlencoded`
+    /// (percent-encoded, spaces as `%20`). Suitable for enforcing body limits.
+    pub fn byte_len(&self) -> usize {
+        self.to_query_string().len()
+    }
     /// Returns `true` if the form data contains no key-value pairs.
     ///
     /// # Examples

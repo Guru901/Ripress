@@ -58,6 +58,7 @@ mod tests {
             (StatusCode::NotFound, "404 Not Found"),
             (StatusCode::MethodNotAllowed, "405 Method Not Allowed"),
             (StatusCode::Conflict, "409 Conflict"),
+            (StatusCode::PayloadTooLarge, "413 Payload Too Large"),
             (StatusCode::TooManyRequests, "429 Too Many Requests"),
             (StatusCode::InternalServerError, "500 Internal Server Error"),
             (StatusCode::NotImplemented, "501 Not Implemented"),
@@ -93,6 +94,7 @@ mod tests {
             (404, StatusCode::NotFound),
             (405, StatusCode::MethodNotAllowed),
             (409, StatusCode::Conflict),
+            (413, StatusCode::PayloadTooLarge),
             (429, StatusCode::TooManyRequests),
             (500, StatusCode::InternalServerError),
             (501, StatusCode::NotImplemented),
@@ -115,5 +117,23 @@ mod tests {
                 other => panic!("expected Custom({}), got {:?}", code, other),
             }
         }
+    }
+
+    #[test]
+    fn payload_too_large_roundtrip() {
+        assert_eq!(StatusCode::PayloadTooLarge.as_u16(), 413);
+        assert_eq!(StatusCode::from_u16(413), StatusCode::PayloadTooLarge);
+    }
+
+    #[test]
+    fn payload_too_large_texts() {
+        assert_eq!(
+            StatusCode::PayloadTooLarge.canonical_reason(),
+            "Payload Too Large"
+        );
+        assert_eq!(
+            format!("{}", StatusCode::PayloadTooLarge),
+            "413 Payload Too Large"
+        );
     }
 }

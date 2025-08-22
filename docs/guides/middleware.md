@@ -133,6 +133,348 @@ The middleware is designed to be non-blocking:
 
 ---
 
+## Rate Limiter Middleware
+
+The Rate Limiter middleware implements a sliding window rate limiting algorithm that controls the number of requests clients can make within a specified time period. It's essential for protecting APIs from abuse, preventing DoS attacks, and ensuring fair resource usage across clients.
+
+### Features
+
+- **Sliding window algorithm** - More accurate than fixed windows, prevents burst traffic at window boundaries
+- **Per-client tracking** - Individual rate limits based on client IP addresses
+- **Proxy support** - Extracts real client IPs from `X-Forwarded-For` headers
+- **Automatic cleanup** - Periodic cleanup of expired entries to prevent memory leaks
+- **Standard headers** - Follows RFC-compliant rate limit headers for client guidance
+- **Configurable responses** - Custom messages and limits for different use cases
+- **Thread-safe** - Uses async mutexes for safe concurrent access
+- **Memory efficient** - Lightweight tracking structure per client
+- **Graceful degradation** - Continues operation even under high load
+
+### Configuration
+
+The `RateLimiterConfig` struct allows you to customize rate limiting behavior:
+
+- `window_ms` - Duration of the rate limiting window (default: 10 seconds)
+- `max_requests` - Maximum requests allowed per client per window (default: 10)
+- `proxy` - Whether to extract real IP from proxy headers (default: false)
+- `message` - Custom message returned when limit exceeded (default: "Too many requests")
+
+### Usage
+
+```rust
+use ripress::{app::App, middlewares::rate_limiter::RateLimiterConfig};
+use std::time::Duration;
+
+// Use default rate limiting (10 requests per 10 seconds)
+let mut app = App::new();
+app.use_rate_limiter(None);
+
+// API rate limiting for production (100 requests per minute)
+let mut app = App::new();
+let config = RateLimiterConfig {
+    window_ms: Duration::from_secs(60), // 1 minute window
+    max_requests: 100,
+    proxy: true, // Behind load balancer
+    message: "Rate limit exceeded. Please try again later.".to_string(),
+};
+app.use_rate_limiter(Some(config));
+
+// Strict rate limiting for sensitive endpoints
+let config = RateLimiterConfig {
+    window_ms: Duration::from_secs(300), // 5 minute window
+    max_requests: 5, // Very restrictive
+    proxy: false,
+    message: "Too many attempts. Please wait before trying again.".to_string(),
+};
+app.use_rate_limiter(Some(config));
+```
+
+### How It Works
+
+The Rate Limiter middleware:
+
+1. **Identifies client** by IP address (direct or via proxy headers)
+2. **Tracks requests** in a sliding time window per client
+3. **Rejects excess requests** with 429 Too Many Requests status
+4. **Adds standard headers** to guide client retry behavior
+5. **Cleans up expired data** automatically every 5 minutes
+6. **Continues processing** for requests within limits
+
+### Client Identification
+
+**Direct Connection Mode (`proxy: false`)**
+
+- Uses the direct client IP address from the TCP connection
+- Suitable for applications directly facing the internet
+- Most accurate when clients connect directly
+
+**Proxy Mode (`proxy: true`)**
+
+- Extracts the real client IP from `X-Forwarded-For` header
+- Falls back to direct IP if header is missing or malformed
+- Essential when behind load balancers, CDNs, or reverse proxies
+- Takes the first IP from comma-separated list (closest to client)
+
+### Response Headers
+
+The middleware adds standard rate limiting headers to all responses:
+
+- `X-RateLimit-Limit` - The maximum number of requests allowed in the window
+- `X-RateLimit-Remaining` - Number of requests remaining in current window
+- `X-RateLimit-Reset` - Seconds until the current window resets
+- `Retry-After` - Seconds to wait before retrying (only when rate limited)
+
+### Rate Limiting Algorithm
+
+The middleware uses a **sliding window** approach:
+
+1. **First request** from a client starts a new window
+2. **Subsequent requests** within the window are counted against the limit
+3. **Window expiry** resets the counter and starts a new window
+4. **Requests over limit** are rejected with 429 status until window resets
+
+This approach is more accurate than fixed windows because it doesn't allow burst traffic at window boundaries.
+
+### Examples
+
+Different rate limiting strategies:
+
+```rust
+// Development-friendly configuration
+let config = RateLimiterConfig {
+    window_ms: Duration::from_secs(10),
+    max_requests: 1000, // Very permissive for development
+    proxy: false,
+    message: "Development rate limit exceeded".to_string(),
+};
+
+// Authentication endpoint protection
+let auth_config = RateLimiterConfig {
+    window_ms: Duration::from_secs(300), // 5 minutes
+    max_requests: 5,
+    proxy: true,
+    message: "Too many login attempts. Please wait 5 minutes.".to_string(),
+};
+
+// Public API with generous limits
+let api_config = RateLimiterConfig {
+    window_ms: Duration::from_secs(60),
+    max_requests: 200,
+    proxy: true,
+    message: "API rate limit exceeded. See headers for retry timing.".to_string(),
+};
+```
+
+### Best Practices
+
+- Set `window_ms` based on your API's usage patterns
+- Use generous limits initially and adjust based on monitoring
+- Enable `proxy: true` when behind load balancers or CDNs
+- Provide clear error messages to guide client behavior
+- Monitor rate limit violation patterns
+- Consider different limits for different endpoint types
+
+### Limitations
+
+- Rate limits are per-application instance (not shared across load-balanced instances)
+- All client data stored in memory (not suitable for millions of unique clients)
+- IP-based limiting may affect multiple users behind NAT/proxy
+- Background cleanup runs every 5 minutes
+
+---
+
+## Body Size Limit Middleware
+
+The Body Size Limit middleware protects your application from excessively large request bodies that could consume server resources or cause denial-of-service attacks. It checks the incoming request body size and rejects requests that exceed the configured limit.
+
+### Features
+
+- **Configurable size limits** - Set custom maximum body sizes per route or globally
+- **Early rejection** - Rejects oversized requests before processing
+- **Detailed error responses** - JSON error messages with size information
+- **Memory protection** - Prevents memory exhaustion from large uploads
+- **Performance optimized** - Lightweight check with minimal overhead
+- **Standards compliant** - Returns proper HTTP 413 Payload Too Large status
+
+### Configuration
+
+The middleware accepts an optional maximum size in bytes:
+
+- If `None` is provided, the default limit is 1 MB (1,048,576 bytes)
+- Custom limits can be set based on your application's needs
+- Different limits can be applied to different routes
+
+### Usage
+
+```rust
+use ripress::app::App;
+
+// Use default 1 MB limit
+let mut app = App::new();
+app.use_body_limit(None);
+
+// Set custom limit (2 MB for file uploads)
+app.use_body_limit(Some(2 * 1024 * 1024));
+
+// Different limits for different endpoints
+app.use_body_limit_on("/api/upload", Some(10 * 1024 * 1024)); // 10 MB for uploads
+app.use_body_limit_on("/api/data", Some(100 * 1024));         // 100 KB for data API
+```
+
+### How It Works
+
+The Body Size Limit middleware:
+
+1. **Checks request body size** against the configured limit
+2. **Allows normal processing** if body is within the limit
+3. **Rejects immediately** if body exceeds the limit
+4. **Returns detailed error** with size information
+5. **Logs violation** for monitoring and debugging
+6. **Prevents resource exhaustion** by early termination
+
+### Error Response
+
+When the body size limit is exceeded, the middleware returns a `413 Payload Too Large` response with a detailed JSON error message:
+
+```json
+{
+  "error": "Request body too large",
+  "message": "Request body exceeded the configured limit of 1048576 bytes",
+  "limit": 1048576,
+  "received": 2097152
+}
+```
+
+### Common Size Limits
+
+Choose appropriate limits based on your use case:
+
+```rust
+// Small data APIs (JSON payloads)
+app.use_body_limit(Some(64 * 1024)); // 64 KB
+
+// Standard web forms
+app.use_body_limit(Some(1024 * 1024)); // 1 MB (default)
+
+// File upload endpoints
+app.use_body_limit(Some(50 * 1024 * 1024)); // 50 MB
+
+// Image upload services
+app.use_body_limit(Some(10 * 1024 * 1024)); // 10 MB
+
+// Document upload services
+app.use_body_limit(Some(100 * 1024 * 1024)); // 100 MB
+
+// Video upload (for chunked uploads, consider streaming)
+app.use_body_limit(Some(500 * 1024 * 1024)); // 500 MB
+```
+
+### Use Cases
+
+**API Protection**
+
+```rust
+// Protect JSON APIs from oversized payloads
+app.use_body_limit_on("/api/*", Some(256 * 1024)); // 256 KB for all API routes
+```
+
+**File Upload Services**
+
+```rust
+// Different limits for different file types
+app.use_body_limit_on("/upload/images", Some(5 * 1024 * 1024));     // 5 MB for images
+app.use_body_limit_on("/upload/documents", Some(20 * 1024 * 1024)); // 20 MB for documents
+app.use_body_limit_on("/upload/videos", Some(100 * 1024 * 1024));   // 100 MB for videos
+```
+
+**Form Processing**
+
+```rust
+// Standard web forms with file attachments
+app.use_body_limit_on("/forms/*", Some(2 * 1024 * 1024)); // 2 MB for form submissions
+```
+
+### Security Considerations
+
+**Memory Protection**
+
+- Large request bodies can exhaust server memory
+- Set limits based on available system resources
+- Monitor memory usage under load
+
+**Denial of Service Prevention**
+
+- Prevents attackers from sending extremely large requests
+- Combines well with rate limiting for comprehensive protection
+- Early rejection reduces processing overhead
+
+**Resource Planning**
+
+- Consider concurrent request limits when setting body size limits
+- Account for temporary memory usage during request processing
+- Plan for peak usage scenarios
+
+### Best Practices
+
+**Configuration Guidelines**
+
+- Start with conservative limits and increase based on monitoring
+- Set different limits for different endpoint types
+- Consider your server's memory constraints
+- Test limits with realistic payloads
+
+**Monitoring and Alerting**
+
+- Log body size limit violations for security monitoring
+- Track patterns in rejected requests
+- Monitor server memory usage
+- Set up alerts for unusual rejection patterns
+
+**Client Integration**
+
+- Provide clear error messages to help clients understand limits
+- Document size limits in API documentation
+- Implement client-side validation where possible
+- Consider chunked upload for large files
+
+### Performance Impact
+
+The middleware has minimal performance overhead:
+
+- **Single comparison** operation per request
+- **No body parsing** - works with raw body length
+- **Early termination** - rejects oversized requests immediately
+- **Memory efficient** - doesn't load oversized bodies into memory
+
+### Integration with Other Middleware
+
+**Order Matters**
+
+```rust
+// Place body limit early in middleware chain
+app.use_rate_limiter(None);           // 1. Rate limiting first
+app.use_body_limit(Some(1024 * 1024)); // 2. Body size check second
+app.use_cors(None);                    // 3. CORS after security checks
+```
+
+**With File Uploads**
+
+```rust
+// Body limit should come before file upload processing
+app.use_body_limit_on("/upload", Some(10 * 1024 * 1024)); // 10 MB limit
+app.use_file_upload_on("/upload", Some("uploads"));        // File processing after limit check
+```
+
+### Error Handling
+
+The middleware provides comprehensive error information:
+
+- **HTTP Status**: 413 Payload Too Large (RFC compliant)
+- **Error Details**: JSON response with limit and received size
+- **Logging**: Errors logged to stderr for monitoring
+- **Client Guidance**: Clear error messages for API consumers
+
+---
+
 ## CORS Middleware
 
 The CORS (Cross-Origin Resource Sharing) middleware handles CORS headers and preflight requests to control which origins can access your resources.
