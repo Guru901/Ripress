@@ -146,8 +146,8 @@ pub enum StatusCode {
     /// 413 Payload Too Large
     ///
     /// This response is sent when the request payload is too large for the server to handle.
-    /// The server may choose to respond with a 413 status code and include a Retry-After header
-    /// to indicate how long the user should wait before making a new request.
+    /// Servers typically reject the request immediately; clients should reduce the payload size
+    /// before retrying. (Retry behavior is client-specific.)
     PayloadTooLarge,
 
     /// 429 Too Many Requests

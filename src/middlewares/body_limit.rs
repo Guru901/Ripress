@@ -1,5 +1,7 @@
 #![warn(missing_docs)]
-use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
+use crate::{
+    context::HttpResponse, req::HttpRequest, res::response_status::StatusCode, types::FutMiddleware,
+};
 
 /// Middleware for limiting the maximum allowed size of the HTTP request body.
 ///
@@ -58,7 +60,7 @@ pub(crate) fn body_limit(
                     config
                 );
 
-                return (req, Some(res.status(413).json(serde_json::json!({
+                return (req, Some(res.status(StatusCode::PayloadTooLarge.as_u16()).json(serde_json::json!({
                     "error": "Request body too large",
                     "message": format!("Request body exceeded the configured limit of {} bytes", config),
                     "limit": config,
