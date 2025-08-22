@@ -208,6 +208,7 @@ impl FormData {
     pub fn byte_len(&self) -> usize {
         self.to_query_string().len()
     }
+
     /// Returns `true` if the form data contains no key-value pairs.
     ///
     /// # Examples

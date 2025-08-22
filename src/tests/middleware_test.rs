@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
 
+    use crate::middlewares::compression::{
+        CompressionConfig, compress_data, should_compress_content_type,
+    };
     use crate::middlewares::file_upload::FileUploadConfiguration;
     use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
     use crate::req::request_headers::RequestHeaders;
@@ -704,5 +707,37 @@ mod tests {
         );
         assert!(resp.headers.get("X-RateLimit-Reset").is_some());
         assert!(resp.headers.get("Retry-After").is_some());
+    }
+
+    #[test]
+    fn test_should_compress_content_type() {
+        assert!(should_compress_content_type("text/html"));
+        assert!(should_compress_content_type("text/html; charset=utf-8"));
+        assert!(should_compress_content_type("application/json"));
+        assert!(should_compress_content_type("TEXT/PLAIN")); // Case insensitive
+
+        assert!(!should_compress_content_type("image/jpeg"));
+        assert!(!should_compress_content_type("image/png"));
+        assert!(!should_compress_content_type("application/octet-stream"));
+        assert!(!should_compress_content_type("video/mp4"));
+    }
+
+    #[test]
+    fn test_compress_data() {
+        let original = b"Hello, World! ".repeat(100);
+        let compressed = compress_data(&original, 6).unwrap();
+
+        // Compressed data should be smaller than original for repetitive content
+        assert!(compressed.len() < original.len());
+
+        // Should have gzip magic numbers at the beginning
+        assert_eq!(&compressed[0..2], &[0x1f, 0x8b]);
+    }
+
+    #[test]
+    fn test_compression_config_default() {
+        let config = CompressionConfig::default();
+        assert_eq!(config.threshold, 1024);
+        assert_eq!(config.level, 6);
     }
 }

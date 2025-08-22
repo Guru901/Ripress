@@ -1,8 +1,9 @@
 #![warn(missing_docs)]
 
 use crate::app::api_error::ApiError;
-use crate::helpers::{exec_logger, exec_middleware};
+use crate::helpers::{exec_post_middleware, exec_pre_middleware};
 use crate::middlewares::body_limit::body_limit;
+use crate::middlewares::compression::{CompressionConfig, compression};
 use crate::middlewares::cors::{CorsConfig, cors};
 use crate::middlewares::logger::{LoggerConfig, logger};
 use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
@@ -256,6 +257,27 @@ impl App {
         self
     }
 
+    /// Adds a compression middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// Adds a compression middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `Option<CompressionConfig>` - The configuration for the compression middleware.
+    ///
+    /// ## Example
+
+    pub fn use_compression(&mut self, config: Option<CompressionConfig>) -> &mut Self {
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(compression(config)),
+            path: "/".to_string(),
+            name: "compression".to_string(),
+        });
+        self
+    }
+
     fn middleware_from_closure<F, Fut>(f: F) -> HandlerMiddleware
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
@@ -312,15 +334,15 @@ impl App {
         for middleware in self.middlewares.iter() {
             let middleware = middleware.clone();
 
-            if middleware.name == "logger" {
+            if middleware.name == "logger" || middleware.name == "compression" {
                 router = router.middleware(routerify::Middleware::post_with_info({
                     let middleware = middleware.clone();
-                    move |res, info| exec_logger(res, middleware.clone(), info)
+                    move |res, info| exec_post_middleware(res, middleware.clone(), info)
                 }));
             } else {
                 router = router.middleware(routerify::Middleware::pre({
                     let middleware = middleware.clone();
-                    move |req| exec_middleware(req, middleware.clone())
+                    move |req| exec_pre_middleware(req, middleware.clone())
                 }));
             }
         }

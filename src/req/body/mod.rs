@@ -60,6 +60,14 @@ pub struct RequestBody {
 }
 
 impl RequestBodyContent {
+    /// Returns the length of the data in bytes.
+    ///
+    /// Note:
+    /// - TEXT/HTML: returns `String::len()` (UTF-8 byte length)
+    /// - JSON: returns the length of the compact serialized form
+    /// - BINARY: returns `Bytes::len()`
+    /// - FORM: returns the length of the query string
+
     pub fn len(&self) -> usize {
         match self {
             RequestBodyContent::TEXT(text) => text.len(),
