@@ -649,7 +649,7 @@ impl RequestBodyContent {
                 Cow::Owned(serde_json::to_vec(json).unwrap_or_else(|_| Vec::new()))
             }
             RequestBodyContent::BINARY(bytes) => Cow::Borrowed(bytes.as_ref()),
-            RequestBodyContent::FORM(form) => Cow::Owned(form.to_string().into_bytes()),
+            RequestBodyContent::FORM(form) => Cow::Owned(form.to_query_string().into_bytes()),
             RequestBodyContent::BinaryWithFields(bytes, _) => Cow::Borrowed(bytes.as_ref()),
             RequestBodyContent::EMPTY => Cow::Borrowed(&[]),
         }

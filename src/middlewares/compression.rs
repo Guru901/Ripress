@@ -65,8 +65,7 @@ pub(crate) fn compression(
             }
 
             // Get content type
-            let headers = res.headers.clone();
-            let content_type = headers.get("Content-Type").unwrap_or("text/plain");
+            let content_type = res.content_type.as_str();
 
             // Check if content type should be compressed
 
