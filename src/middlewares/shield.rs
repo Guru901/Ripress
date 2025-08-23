@@ -1204,24 +1204,14 @@ fn set_hsts(res: &mut HttpResponse, hsts: &Hsts) {
     }
 
     let mut value = format!("max-age={}", hsts.max_age);
-
     if hsts.include_subdomains {
         value.push_str("; includeSubDomains");
     }
     if hsts.preload {
-        // Manual path to append preload. Use the same lower-case name the helper uses.
-        let mut value = format!("max-age={}", hsts.max_age);
-        if hsts.include_subdomains {
-            value.push_str("; includeSubDomains");
-        }
         value.push_str("; preload");
-        res.headers.insert("strict-transport-security", value);
-    } else {
-        // Normalized via helper.
-        res.headers.hsts(hsts.max_age, hsts.include_subdomains);
     }
-
-    res.headers.insert("Strict-Transport-Security", value);
+    // Use a single canonical header name to avoid duplicates.
+    res.headers.insert("strict-transport-security", value);
 }
 
 /// Sets X-Frame-Options header based on frameguard configuration
