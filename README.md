@@ -26,7 +26,7 @@ Ripress is an Express.js-inspired web framework for Rust that combines the famil
 - Async/await support with Tokio
 - HTTP/2 support via Hyper
 
-![Performance Benchmark](https://ripress.vercel.app/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fbench.0a851a86.png&w=3840&q=75)
+![Performance Benchmark](./benchmark.png)
 
 ## Table of Contents
 
