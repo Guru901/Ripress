@@ -1080,8 +1080,8 @@ impl Default for ShieldConfig {
 /// * **Strict-Transport-Security** - 1-year HSTS with includeSubDomains
 /// * **X-Frame-Options** - DENY to prevent clickjacking
 /// * **X-Content-Type-Options** - nosniff to prevent MIME confusion
-/// * **X-XSS-Protection** - 1; mode=block for legacy XSS protection
-/// * **Referrer-Policy** - no-referrer-when-downgrade for privacy
+/// * **X-XSS-Protection** - not sent by default (header deprecated in modern browsers)
+/// * **Referrer-Policy** - strict-origin-when-cross-origin for privacy
 /// * **X-DNS-Prefetch-Control** - off to improve privacy
 /// * **X-Download-Options** - noopen for IE security
 /// * **Permissions-Policy** - Restrictive policy disabling camera, microphone, etc.
@@ -1178,9 +1178,9 @@ fn set_content_security_policy(res: &mut HttpResponse, csp: &ContentSecurityPoli
     }
 
     let header_name = if csp.report_only {
-        "Content-Security-Policy-Report-Only"
+        "content-security-policy-report-only"
     } else {
-        "Content-Security-Policy"
+        "content-security-policy"
     };
 
     let mut entries: Vec<_> = csp.directives.iter().collect();
@@ -1246,7 +1246,7 @@ fn set_frameguard(res: &mut HttpResponse, frameguard: &Frameguard) {
         _ => "DENY".to_string(), // Default fallback for invalid actions
     };
 
-    res.headers.insert("X-Frame-Options", value);
+    res.headers.insert("x-frame-options", value);
 }
 
 /// Sets X-Content-Type-Options header to prevent MIME sniffing
@@ -1280,7 +1280,7 @@ fn set_xss_filter(res: &mut HttpResponse, xss_filter: &XssFilter) {
         value.push_str(&format!("; report={}", report_uri));
     }
 
-    res.headers.insert("X-XSS-Protection", value);
+    res.headers.insert("x-xss-protection", value);
 }
 
 /// Sets Referrer-Policy header based on configuration
@@ -1292,7 +1292,7 @@ fn set_referrer_policy(res: &mut HttpResponse, referrer_policy: &ReferrerPolicy)
         return;
     }
     res.headers
-        .insert("Referrer-Policy", referrer_policy.policy.clone());
+        .insert("referrer-policy", referrer_policy.policy.clone());
 }
 
 /// Sets X-DNS-Prefetch-Control header based on configuration
@@ -1310,7 +1310,7 @@ fn set_dns_prefetch_control(res: &mut HttpResponse, dns_prefetch_control: &DnsPr
         "off"
     };
 
-    res.headers.insert("X-DNS-Prefetch-Control", header_value);
+    res.headers.insert("x-dns-prefetch-control", header_value);
 }
 
 /// Sets X-Download-Options header for Internet Explorer protection
@@ -1322,7 +1322,7 @@ fn set_ie_no_open(res: &mut HttpResponse, ie_no_open: &IENoOpen) {
         return;
     }
 
-    res.headers.insert("X-Download-Options", "noopen");
+    res.headers.insert("x-download-options", "noopen");
 }
 
 /// Removes X-Powered-By header when hide powered-by is enabled
@@ -1333,6 +1333,8 @@ fn set_hide_powered_by(res: &mut HttpResponse, hide_powered_by: &HidePoweredBy) 
     if !hide_powered_by.enabled {
         return;
     }
+
+    res.headers.remove("x-powered-by");
     res.headers.remove("X-Powered-By");
 }
 
@@ -1369,7 +1371,7 @@ fn set_permissions_policy(res: &mut HttpResponse, permissions_policy: &Permissio
 
     if !policies.is_empty() {
         let header_value = policies.join(", ");
-        res.headers.insert("Permissions-Policy", header_value);
+        res.headers.insert("permissions-policy", header_value);
     }
 }
 
@@ -1388,7 +1390,7 @@ fn set_cross_origin_opener_policy(
     };
 
     res.headers
-        .insert("Cross-Origin-Opener-Policy", header_value.to_string());
+        .insert("cross-origin-opener-policy", header_value.to_string());
 }
 
 /// Sets Cross-Origin-Resource-Policy header based on policy configuration
@@ -1406,7 +1408,7 @@ fn set_cross_origin_resource_policy(
     };
 
     res.headers
-        .insert("Cross-Origin-Resource-Policy", header_value.to_string());
+        .insert("cross-origin-embedder-policy", header_value.to_string());
 }
 
 /// Sets Cross-Origin-Embedder-Policy header based on policy configuration
@@ -1435,7 +1437,7 @@ fn set_origin_agent_cluster(res: &mut HttpResponse, origin_agent_cluster: &Origi
         return;
     }
 
-    res.headers.insert("Origin-Agent-Cluster", "?1");
+    res.headers.insert("origin-agent-cluster", "?1");
 }
 
 /// Sets X-Permitted-Cross-Domain-Policies header based on policy configuration
@@ -1448,7 +1450,7 @@ fn set_cross_domain_policy(res: &mut HttpResponse, cross_domain_policy: &CrossDo
     }
 
     res.headers.insert(
-        "X-Permitted-Cross-Domain-Policies",
+        "x-permitted-cross-domain-policies",
         cross_domain_policy.policy.clone(),
     );
 }
