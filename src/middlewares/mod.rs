@@ -261,7 +261,7 @@ pub mod compression;
 /// ## Usage
 /// ```rust
 /// use ripress::app::App;
-/// use ripress::middlewares::shield::ShieldConfig;
+/// use ripress::middlewares::shield::{ShieldConfig, Hsts};
 ///
 /// let mut app = App::new();
 /// // Use default secure settings
@@ -269,7 +269,10 @@ pub mod compression;
 ///
 /// // Customize shield settings
 /// app.use_shield(Some(ShieldConfig {
-///     hsts_enabled: true,
+///     hsts: Hsts {
+///         enabled: true,
+///         ..Default::default()
+///     },
 ///     ..Default::default()
 /// }));
 /// ```
