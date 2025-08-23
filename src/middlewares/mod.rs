@@ -16,6 +16,7 @@
 //! - [`rate_limiter`] - Request rate limiting
 //! - [`body_limit`] - Request body size enforcement
 //! - [`compression`] - Response body compression (gzip)
+//! - [`shield`] - Security headers (CSP, HSTS, Frameguard, CORP/COEP/COOP, etc.)
 //!
 //! ## Usage
 //!
@@ -245,18 +246,18 @@ pub mod compression;
 ///
 /// ## Features
 /// - **Content Security Policy (CSP)**: Restricts sources for scripts, styles, images, and more
-/// - **HTTP Strict Transport Security (HSTS)**: Enforces HTTPS usage
-/// - **X-Frame-Options**: Prevents clickjacking by controlling frame embedding
+/// - **HTTP Strict Transport Security (HSTS)**: Enforces HTTPS usage (only meaningful over HTTPS)
+/// - **X-Frame-Options (legacy)**: Fallback for clickjacking protection; prefer CSP `frame-ancestors`
 /// - **X-Content-Type-Options**: Disables MIME type sniffing
-/// - **X-XSS-Protection**: Enables browser XSS filters
+/// - **X-XSS-Protection (legacy)**: Modern browsers ignore this; if sent, use `0` to disable the old auditor
 /// - **Referrer Policy**: Controls referrer information sent with requests
 /// - **DNS Prefetch Control**: Manages DNS prefetching for privacy
 /// - **IE No Open**: Prevents Internet Explorer from executing downloads
 /// - **Hide Powered-By**: Removes identifying server headers
 /// - **Permissions Policy**: Restricts browser features and APIs
-/// - **Cross-Origin Policies**: Controls resource, embedder, and opener policies
+/// - **Cross-Origin Policies**: Controls resource, embedder, and opener policies (may require CORP headers on subresources)
 /// - **Origin Agent Cluster**: Requests origin-keyed agent clustering
-/// - **Cross Domain Policy**: Restricts Flash/Silverlight cross-domain access
+/// - **X-Permitted-Cross-Domain-Policies (legacy)**: Restricts Flash/Silverlight cross-domain access
 ///
 /// ## Usage
 /// ```rust
@@ -280,6 +281,10 @@ pub mod compression;
 /// ## Best Practices
 /// - Use shield as early as possible in your middleware chain.
 /// - Review and adjust the configuration to fit your application's needs.
+/// - Start CSP in `report-only` mode and monitor violations before enforcing.
+/// - Prefer CSP `frame-ancestors` and keep `X-Frame-Options` only as a legacy fallback.
+/// - Be cautious with COEP/COOP/CORP: cross-origin isolation can break third-party scripts/assets.
+/// - Use HSTS only over HTTPS; consider gradual rollout before preloading (includeSubDomains, max-age).
 /// - Regularly update your security headers as new threats emerge.
 ///
 /// ## See Also

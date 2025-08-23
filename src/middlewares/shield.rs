@@ -431,8 +431,8 @@ pub struct XssFilter {
 impl Default for XssFilter {
     fn default() -> Self {
         Self {
-            enabled: true,
-            mode: "block".to_string(),
+            enabled: false,
+            mode: "0".to_string(),
             report_uri: None,
         }
     }
@@ -478,7 +478,7 @@ impl Default for ReferrerPolicy {
     fn default() -> Self {
         Self {
             enabled: true,
-            policy: "no-referrer-when-downgrade".to_string(),
+            policy: "strict-origin-when-cross-origin".to_string(),
         }
     }
 }
@@ -1142,9 +1142,10 @@ impl Default for ShieldConfig {
 pub(crate) fn shield(
     config: Option<ShieldConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
-    let config = config.unwrap_or_default();
+    let config = std::sync::Arc::new(config.unwrap_or_default());
     move |req, mut res| {
-        let config = config.clone();
+        let config = std::sync::Arc::clone(&config);
+
         Box::pin(async move {
             set_content_security_policy(&mut res, &config.content_security_policy);
             set_hsts(&mut res, &config.hsts);
@@ -1182,9 +1183,10 @@ fn set_content_security_policy(res: &mut HttpResponse, csp: &ContentSecurityPoli
         "Content-Security-Policy"
     };
 
-    let header_value = csp
-        .directives
-        .iter()
+    let mut entries: Vec<_> = csp.directives.iter().collect();
+    entries.sort_by(|a, b| a.0.cmp(b.0));
+    let header_value = entries
+        .into_iter()
         .map(|(k, v)| format!("{} {}", k, v))
         .collect::<Vec<_>>()
         .join("; ");
@@ -1207,7 +1209,16 @@ fn set_hsts(res: &mut HttpResponse, hsts: &Hsts) {
         value.push_str("; includeSubDomains");
     }
     if hsts.preload {
+        // Manual path to append preload. Use the same lower-case name the helper uses.
+        let mut value = format!("max-age={}", hsts.max_age);
+        if hsts.include_subdomains {
+            value.push_str("; includeSubDomains");
+        }
         value.push_str("; preload");
+        res.headers.insert("strict-transport-security", value);
+    } else {
+        // Normalized via helper.
+        res.headers.hsts(hsts.max_age, hsts.include_subdomains);
     }
 
     res.headers.insert("Strict-Transport-Security", value);
@@ -1247,7 +1258,7 @@ fn set_no_sniff(res: &mut HttpResponse, no_sniff: &NoSniff) {
         return;
     }
 
-    res.headers.insert("X-Content-Type-Options", "nosniff");
+    res.headers.no_sniff();
 }
 
 /// Sets X-XSS-Protection header based on XSS filter configuration
