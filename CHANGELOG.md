@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.0] - 2025-08-22
+
+Added Shield middleware
+Added `app.use_shield` method
+
 ## [1.5.0] - 2025-08-22
 
 Added Compression middleware
