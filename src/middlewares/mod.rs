@@ -16,6 +16,7 @@
 //! - [`rate_limiter`] - Request rate limiting
 //! - [`body_limit`] - Request body size enforcement
 //! - [`compression`] - Response body compression (gzip)
+//! - [`shield`] - Security headers (CSP, HSTS, Frameguard, CORP/COEP/COOP, etc.)
 //!
 //! ## Usage
 //!
@@ -235,3 +236,57 @@ pub mod body_limit;
 /// - Does not compress very small responses (below threshold)
 /// - Only supports gzip encoding (no brotli/deflate yet)
 pub mod compression;
+
+/// Shield middleware
+///
+/// This module provides a comprehensive set of HTTP security headers to protect web applications
+/// from common vulnerabilities such as XSS, clickjacking, MIME sniffing, and more. The shield
+/// middleware is highly configurable, allowing you to enable or disable individual protections
+/// and customize header values as needed.
+///
+/// ## Features
+/// - **Content Security Policy (CSP)**: Restricts sources for scripts, styles, images, and more
+/// - **HTTP Strict Transport Security (HSTS)**: Enforces HTTPS usage (only meaningful over HTTPS)
+/// - **X-Frame-Options (legacy)**: Fallback for clickjacking protection; prefer CSP `frame-ancestors`
+/// - **X-Content-Type-Options**: Disables MIME type sniffing
+/// - **X-XSS-Protection (legacy)**: Modern browsers ignore this; if sent, use `0` to disable the old auditor
+/// - **Referrer Policy**: Controls referrer information sent with requests
+/// - **DNS Prefetch Control**: Manages DNS prefetching for privacy
+/// - **IE No Open**: Prevents Internet Explorer from executing downloads
+/// - **Hide Powered-By**: Removes identifying server headers
+/// - **Permissions Policy**: Restricts browser features and APIs
+/// - **Cross-Origin Policies**: Controls resource, embedder, and opener policies (may require CORP headers on subresources)
+/// - **Origin Agent Cluster**: Requests origin-keyed agent clustering
+/// - **X-Permitted-Cross-Domain-Policies (legacy)**: Restricts Flash/Silverlight cross-domain access
+///
+/// ## Usage
+/// ```rust
+/// use ripress::app::App;
+/// use ripress::middlewares::shield::{ShieldConfig, Hsts};
+///
+/// let mut app = App::new();
+/// // Use default secure settings
+/// app.use_shield(None);
+///
+/// // Customize shield settings
+/// app.use_shield(Some(ShieldConfig {
+///     hsts: Hsts {
+///         enabled: true,
+///         ..Default::default()
+///     },
+///     ..Default::default()
+/// }));
+/// ```
+///
+/// ## Best Practices
+/// - Use shield as early as possible in your middleware chain.
+/// - Review and adjust the configuration to fit your application's needs.
+/// - Start CSP in `report-only` mode and monitor violations before enforcing.
+/// - Prefer CSP `frame-ancestors` and keep `X-Frame-Options` only as a legacy fallback.
+/// - Be cautious with COEP/COOP/CORP: cross-origin isolation can break third-party scripts/assets.
+/// - Use HSTS only over HTTPS; consider gradual rollout before preloading (includeSubDomains, max-age).
+/// - Regularly update your security headers as new threats emerge.
+///
+/// ## See Also
+/// - [`App::use_shield`]
+pub mod shield;

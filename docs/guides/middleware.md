@@ -1,5 +1,306 @@
 # Middleware Documentation
 
+## Shield Middleware
+
+The Shield middleware provides comprehensive HTTP security header protection for web applications. It automatically sets various security headers that help protect against common web vulnerabilities including XSS attacks, clickjacking, content sniffing, MIME type confusion, and other security threats.
+
+### Features
+
+- **Content Security Policy (CSP)** - Prevents XSS and data injection attacks
+- **HTTP Strict Transport Security (HSTS)** - Forces HTTPS connections and prevents downgrade attacks
+- **X-Frame-Options (Frameguard)** - Prevents clickjacking by controlling frame embedding
+- **X-Content-Type-Options** - Prevents MIME type sniffing attacks
+- **X-XSS-Protection** - Enables and configures browser XSS filtering (legacy support)
+- **Referrer Policy** - Controls referrer information leakage across origins
+- **DNS Prefetch Control** - Manages DNS prefetching behavior for privacy
+- **IE No Open** - Prevents Internet Explorer from executing downloaded files
+- **Hide Powered-By** - Removes X-Powered-By header to hide server technology
+- **Permissions Policy** - Controls browser feature and API access
+- **Cross-Origin Opener Policy** - Manages cross-origin window references
+- **Cross-Origin Resource Policy** - Controls cross-origin resource access
+- **Cross-Origin Embedder Policy** - Enables process isolation for sensitive resources
+- **Origin Agent Cluster** - Requests origin-keyed agent clustering
+- **Cross Domain Policy** - Controls Flash/Silverlight cross-domain access
+
+### Configuration
+
+The `ShieldConfig` struct allows you to customize each security feature individually. All features use secure defaults when using `ShieldConfig::default()`.
+
+### Usage
+
+```rust
+use ripress::{app::App, middlewares::shield::*};
+use std::collections::HashMap;
+
+// Use default security settings (recommended for most applications)
+let mut app = App::new();
+app.use_shield(None);
+
+// Custom CSP configuration for a web application
+let mut csp_directives = HashMap::new();
+csp_directives.insert("default-src".to_string(), "'self'".to_string());
+csp_directives.insert("script-src".to_string(), "'self' 'unsafe-eval' https://cdn.jsdelivr.net".to_string());
+csp_directives.insert("style-src".to_string(), "'self' 'unsafe-inline' https://fonts.googleapis.com".to_string());
+csp_directives.insert("font-src".to_string(), "'self' https://fonts.gstatic.com".to_string());
+
+let config = ShieldConfig {
+    content_security_policy: ContentSecurityPolicy {
+        enabled: true,
+        directives: csp_directives,
+        report_only: false,
+    },
+    hsts: Hsts {
+        enabled: true,
+        max_age: 63072000, // 2 years
+        include_subdomains: true,
+        preload: true,
+    },
+    ..Default::default()
+};
+
+app.use_shield(Some(config));
+
+// Development configuration with relaxed CSP
+let mut dev_csp = HashMap::new();
+dev_csp.insert("default-src".to_string(), "'self' 'unsafe-eval' 'unsafe-inline'".to_string());
+
+let dev_config = ShieldConfig {
+    content_security_policy: ContentSecurityPolicy {
+        enabled: true,
+        directives: dev_csp,
+        report_only: true, // Report violations but don't block
+    },
+    hsts: Hsts {
+        enabled: false, // Disable HSTS in development
+        ..Default::default()
+    },
+    ..Default::default()
+};
+
+app.use_shield(Some(dev_config));
+```
+
+### Security Headers Overview
+
+**Content Security Policy (CSP)**
+
+The most powerful security header, preventing XSS attacks by controlling which resources the browser can load:
+
+```rust
+// Default CSP directives (secure but functional)
+let mut csp = HashMap::new();
+csp.insert("default-src".to_string(), "'self'".to_string());
+csp.insert("script-src".to_string(), "'self'".to_string());
+csp.insert("style-src".to_string(), "'self' 'unsafe-inline'".to_string());
+csp.insert("img-src".to_string(), "'self' data: https:".to_string());
+csp.insert("object-src".to_string(), "'none'".to_string());
+```
+
+**HTTP Strict Transport Security (HSTS)**
+
+Forces HTTPS connections and prevents downgrade attacks:
+
+```rust
+let hsts = Hsts {
+    enabled: true,
+    max_age: 31536000,    // 1 year
+    include_subdomains: true,
+    preload: false,       // Requires manual browser submission
+};
+```
+
+**Cross-Origin Policies**
+
+Modern security headers for fine-grained cross-origin control:
+
+```rust
+// Process isolation and resource control
+cross_origin_opener_policy: CrossOriginOpenerPolicy::SameOrigin,
+cross_origin_resource_policy: CrossOriginResourcePolicy::SameOrigin,
+cross_origin_embedder_policy: CrossOriginEmbedderPolicy::UnsafeNone,
+```
+
+### Default Security Headers
+
+When using `app.use_shield(None)`, the following headers are automatically set:
+
+- **Content-Security-Policy**: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; object-src 'none'`
+- **Strict-Transport-Security**: `max-age=31536000; includeSubDomains`
+- **X-Frame-Options**: `DENY`
+- **X-Content-Type-Options**: `nosniff`
+- **X-XSS-Protection**: `0` (disabled for modern browsers)
+- **Referrer-Policy**: `strict-origin-when-cross-origin`
+- **X-DNS-Prefetch-Control**: `off`
+- **X-Download-Options**: `noopen`
+- **Permissions-Policy**: `camera=(), microphone=(), geolocation=(self), payment=()`
+- **Cross-Origin-Opener-Policy**: `same-origin`
+- **Cross-Origin-Resource-Policy**: `same-origin`
+- **Cross-Origin-Embedder-Policy**: `unsafe-none`
+- **Origin-Agent-Cluster**: `?1`
+- **X-Permitted-Cross-Domain-Policies**: `none`
+- **X-Powered-By**: _removed_
+
+### Configuration Examples
+
+**API-Only Configuration**
+
+```rust
+let api_config = ShieldConfig {
+    content_security_policy: ContentSecurityPolicy {
+        enabled: false, // No CSP needed for API-only
+        ..Default::default()
+    },
+    frameguard: Frameguard {
+        enabled: false, // No frame protection for APIs
+        ..Default::default()
+    },
+    cross_origin_resource_policy: CrossOriginResourcePolicy::CrossOrigin,
+    ..Default::default()
+};
+```
+
+**High-Security Configuration**
+
+```rust
+let secure_config = ShieldConfig {
+    hsts: Hsts {
+        enabled: true,
+        max_age: 63072000, // 2 years
+        include_subdomains: true,
+        preload: true,
+    },
+    cross_origin_embedder_policy: CrossOriginEmbedderPolicy::RequireCorp,
+    permissions_policy: PermissionsPolicy {
+        enabled: true,
+        features: {
+            let mut features = HashMap::new();
+            features.insert("camera".to_string(), vec![]); // Completely disabled
+            features.insert("microphone".to_string(), vec![]);
+            features.insert("geolocation".to_string(), vec![]);
+            features.insert("payment".to_string(), vec![]);
+            features
+        },
+    },
+    ..Default::default()
+};
+```
+
+### CSP Directive Reference
+
+**Common CSP Directives:**
+
+- `default-src` - Fallback for other directives
+- `script-src` - Controls JavaScript execution
+- `style-src` - Controls CSS loading and inline styles
+- `img-src` - Controls image loading
+- `font-src` - Controls font loading
+- `connect-src` - Controls AJAX, WebSocket connections
+- `frame-src` - Controls iframe sources
+- `object-src` - Controls plugins (Flash, Java)
+- `media-src` - Controls audio and video
+- `worker-src` - Controls web workers
+
+**Common Source Values:**
+
+- `'self'` - Same origin as the document
+- `'unsafe-inline'` - Allow inline scripts/styles (avoid if possible)
+- `'unsafe-eval'` - Allow eval() (avoid if possible)
+- `'none'` - Block all sources
+- `https:` - Allow any HTTPS source
+- `data:` - Allow data: URIs
+- `blob:` - Allow blob: URIs
+- Specific domains - `https://example.com`
+
+### Testing and Deployment
+
+**CSP Testing Strategy:**
+
+1. **Start with report-only mode**:
+
+   ```rust
+   content_security_policy: ContentSecurityPolicy {
+       enabled: true,
+       directives: your_directives,
+       report_only: true, // Test without breaking functionality
+   }
+   ```
+
+2. **Monitor browser console** for CSP violation reports
+3. **Gradually tighten policy** by removing `'unsafe-inline'` and `'unsafe-eval'`
+4. **Deploy enforcement** by setting `report_only: false`
+
+**HSTS Considerations:**
+
+- **HTTPS required** - HSTS headers ignored on HTTP connections
+- **Long-term commitment** - High max_age creates long HTTPS commitment
+- **Subdomain impact** - `include_subdomains` affects all current/future subdomains
+- **Preload submission** - `preload: true` requires manual browser vendor submission
+
+### Performance Considerations
+
+**Minimal Overhead:**
+
+- Headers set once per response with negligible CPU cost
+- Configuration shared efficiently via cloning
+- Disabled features completely skipped
+- No dynamic memory allocation during request processing
+
+**Memory Efficient:**
+
+- Zero allocation for header setting operations
+- String values computed once and cached
+- Configuration structs use efficient data structures
+
+### Security Best Practices
+
+**CSP Best Practices:**
+
+- Avoid `'unsafe-inline'` and `'unsafe-eval'` when possible
+- Use nonces or hashes for necessary inline content
+- Test thoroughly before enforcing policies
+- Set up violation reporting for monitoring
+
+**HSTS Best Practices:**
+
+- Start with shorter max_age and increase gradually
+- Ensure reliable HTTPS before enabling long-term HSTS
+- Consider impact on users with clock skew
+
+**Cross-Origin Policy Best Practices:**
+
+- Use `SameOrigin` policies for maximum security
+- Consider `SameSite` for multi-subdomain applications
+- Only use `CrossOrigin` when necessary for functionality
+
+### Troubleshooting
+
+**Common CSP Issues:**
+
+- **Resources blocked** - Check browser console for violation reports
+- **Inline styles/scripts blocked** - Move to external files or use nonces/hashes
+- **Third-party resources failing** - Add necessary domains to appropriate directives
+
+**HSTS Issues:**
+
+- **Not working** - Ensure serving over HTTPS
+- **Too restrictive** - Consider shorter max_age for testing
+- **Subdomain problems** - Review `include_subdomains` setting
+
+**Cross-Origin Issues:**
+
+- **API calls failing** - Adjust CORP policy for cross-origin APIs
+- **Embedding blocked** - Review frame policies and COEP settings
+- **Performance impact** - Consider COEP requirements for SharedArrayBuffer
+
+### Browser Compatibility
+
+- **Modern browsers** - All headers supported in Chrome 60+, Firefox 55+, Safari 12+
+- **Legacy graceful degradation** - Older browsers ignore unknown headers
+- **X-XSS-Protection** - Deprecated in modern browsers but harmless
+- **IE-specific headers** - Only affect Internet Explorer
+
+---
+
 ## Compression Middleware
 
 The Compression middleware automatically compresses HTTP response bodies using gzip compression when clients support it and responses meet certain criteria. This middleware reduces bandwidth usage and improves loading times for web applications by compressing text-based content.
