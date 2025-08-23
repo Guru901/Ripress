@@ -624,6 +624,30 @@ impl HttpResponse {
         self
     }
 
+    /// Sends the contents of a file as the response body.
+    ///
+    /// This method reads the file at the given path asynchronously and sets the response body to its contents.
+    /// The content type is inferred from the file's extension using the `infer` crate. If the file type cannot be determined,
+    /// it defaults to "bin".
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the file to be sent. Must be a static string slice.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining.
+    ///
+    /// # Example
+    /// ```rust
+    /// use ripress::context::HttpResponse;
+    ///
+    /// // Send a file as the response
+    /// let res = HttpResponse::new()
+    ///     .ok()
+    ///     .send_file("static/image.png")
+    ///     .await;
+    /// ```
     pub async fn send_file(mut self, path: &'static str) -> Self {
         let file = tokio::fs::read(path).await;
 
@@ -635,7 +659,6 @@ impl HttpResponse {
 
                 let mime_type = from_ext(file_extension);
                 self.content_type = ResponseContentType::from(mime_type);
-                println!("mime_type: {:?}", mime_type);
                 self.body = ResponseContentBody::new_binary(file);
             }
             Err(e) => {
