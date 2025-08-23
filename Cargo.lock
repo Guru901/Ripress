@@ -1088,6 +1088,7 @@ dependencies = [
  "hyper-staticfile",
  "infer",
  "mime",
+ "mime_guess",
  "reqwest",
  "routerify",
  "serde",

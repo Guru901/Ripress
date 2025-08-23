@@ -8,6 +8,7 @@ use futures::{Stream, StreamExt, stream};
 use hyper::body::to_bytes;
 use hyper::header::{HeaderName, HeaderValue, SET_COOKIE};
 use hyper::{Body, Response};
+use mime_guess::from_ext;
 use serde::Serialize;
 use std::convert::Infallible;
 use std::pin::Pin;
@@ -623,6 +624,28 @@ impl HttpResponse {
         self
     }
 
+    pub async fn send_file(mut self, path: &'static str) -> Self {
+        let file = tokio::fs::read(path).await;
+
+        match file {
+            Ok(file) => {
+                let file_extension = infer::get(&file)
+                    .map(|info| info.extension())
+                    .unwrap_or("bin");
+
+                let mime_type = from_ext(file_extension);
+                self.content_type = ResponseContentType::from(mime_type);
+                println!("mime_type: {:?}", mime_type);
+                self.body = ResponseContentBody::new_binary(file);
+            }
+            Err(e) => {
+                eprintln!("Error reading file: {}", e);
+            }
+        }
+
+        self
+    }
+
     /// Streams the response
     ///
     /// # Arguments
@@ -728,7 +751,7 @@ impl HttpResponse {
         }
     }
 
-    pub(crate) fn to_responder(self) -> Result<Response<Body>, Infallible> {
+    pub(crate) fn to_hyper_response(self) -> Result<Response<Body>, Infallible> {
         let body = self.body;
         if self.is_stream {
             let mut response = Response::builder().status(self.status_code.as_u16());
@@ -772,6 +795,8 @@ impl HttpResponse {
 
             return Ok(response.body(Body::wrap_stream(self.stream)).unwrap());
         } else {
+            println!("body: {:?}", body);
+
             let mut response = match body {
                 ResponseContentBody::JSON(json) => Response::builder()
                     .status(self.status_code.as_u16())

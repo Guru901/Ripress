@@ -82,7 +82,7 @@ mod tests {
             .set_cookie("session", "123", CookieOptions::default())
             .created()
             .json(&data)
-            .to_responder()
+            .to_hyper_response()
             .unwrap();
 
         assert_eq!(response.status(), 201);
@@ -123,7 +123,7 @@ mod tests {
             .set_cookie("session", "123", CookieOptions::default())
             .ok()
             .bytes(data)
-            .to_responder()
+            .to_hyper_response()
             .unwrap();
 
         assert_eq!(response.status(), 200);
@@ -186,7 +186,7 @@ mod tests {
         let response = HttpResponse::new()
             .set_header("X-Custom", "value")
             .html("<h1>Hello</h1>")
-            .to_responder()
+            .to_hyper_response()
             .unwrap();
 
         assert_eq!(response.status(), 200);
@@ -225,11 +225,11 @@ mod tests {
     #[test]
     fn test_to_responder() {
         let response = HttpResponse::new().ok().text("OK");
-        let hyper_response = response.to_responder().unwrap();
+        let hyper_response = response.to_hyper_response().unwrap();
         assert_eq!(hyper_response.status(), 200);
 
         let response = HttpResponse::new().internal_server_error().text("Invalid");
-        let hyper_response = response.to_responder().unwrap();
+        let hyper_response = response.to_hyper_response().unwrap();
 
         assert_eq!(hyper_response.status(), 500);
     }

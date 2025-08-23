@@ -50,7 +50,7 @@ pub(crate) async fn exec_post_middleware(
 
     match maybe_res {
         None => Ok(res),
-        Some(res) => return Ok(res.to_responder()?),
+        Some(res) => return Ok(res.to_hyper_response()?),
     }
 }
 

@@ -11,9 +11,9 @@ use crate::middlewares::shield::{ShieldConfig, shield};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::types::{Fut, FutMiddleware, HandlerMiddleware, HttpMethods, RouterFns, Routes};
-use hyper::header;
 use hyper::http::StatusCode;
 use hyper::{Body, Request, Response, Server};
+use hyper::{Uri, header};
 use hyper_staticfile::Static;
 use routerify::ext::RequestExt;
 use routerify::{Router, RouterService};
@@ -258,6 +258,36 @@ impl App {
         self
     }
 
+    /// Adds a security middleware (shield) to the application.
+    ///
+    /// The shield middleware helps protect your application from common web vulnerabilities
+    /// by setting various HTTP headers and applying security best practices.
+    ///
+    /// ## Arguments
+    ///
+    /// * `config` - An optional [`ShieldConfig`] to customize the shield middleware's behavior.
+    ///   If `None` is provided, default security settings will be applied.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::app::App;
+    /// use ripress::middlewares::shield::{ShieldConfig, Hsts};
+    ///
+    /// let mut app = App::new();
+    ///
+    /// // Use default shield settings
+    /// app.use_shield(None);
+    ///
+    /// // Use custom shield configuration
+    /// app.use_shield(Some(ShieldConfig {
+    ///     hsts: Hsts {
+    ///         enabled: true,
+    ///         ..Default::default()
+    ///     },
+    ///     ..Default::default()
+    /// }));
+    /// ```
     pub fn use_shield(&mut self, config: Option<ShieldConfig>) -> &mut Self {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(shield(config)),
@@ -300,22 +330,55 @@ impl App {
     ///
     /// ## Arguments
     ///
-    /// * `path` - The path to the route.
-    /// * `file` - The path to the file.
+    /// * `path` - The path to mount the static files at (e.g., "/public", "/static", or "/" for root)
+    /// * `file` - The path to the directory containing static files (e.g., "./public", "./assets")
     ///
     /// ## Example
     ///
     /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse} };
+    /// use ripress::app::App;
     ///
     /// let mut app = App::new();
-    /// app.static_files("/public", "./public");
     ///
+    /// // Mount static files at a specific path
+    /// app.static_files("/public", "./public");
+    /// app.static_files("/assets", "./dist/assets");
+    ///
+    /// // Mount static files at root (useful for SPAs)
+    /// app.static_files("/", "./dist");
     /// ```
+    ///
+    /// ## Important Notes
+    ///
+    /// - Serving from filesystem root "/" is blocked for security reasons
+    /// - When mounting at "/", static files will be served as fallback (API routes take precedence)
+    /// - Always use specific directories like "./public" for the file path
+    pub fn static_files(
+        &mut self,
+        path: &'static str,
+        file: &'static str,
+    ) -> Result<(), &'static str> {
+        // Validate inputs
+        if file == "/" {
+            return Err("Serving from filesystem root '/' is not allowed for security reasons");
+        }
 
-    pub fn static_files(&mut self, path: &'static str, file: &'static str) {
+        if path.is_empty() {
+            return Err("Mount path cannot be empty");
+        }
+
+        if file.is_empty() {
+            return Err("File path cannot be empty");
+        }
+
+        // Require paths to start with '/'
+        if !path.starts_with('/') {
+            return Err("Mount path must start with '/'");
+        }
+
         self.static_files.insert("serve_from", file);
         self.static_files.insert("mount_path", path);
+        Ok(())
     }
 
     /// Starts the server and listens on the specified address.
@@ -341,6 +404,7 @@ impl App {
     pub async fn listen<F: FnOnce()>(&self, port: u16, cb: F) {
         let mut router = Router::<Body, ApiError>::builder();
 
+        // Apply middlewares first
         for middleware in self.middlewares.iter() {
             let middleware = middleware.clone();
 
@@ -357,32 +421,8 @@ impl App {
             }
         }
 
-        if let (Some(mount_path), Some(serve_from)) = (
-            self.static_files.get("mount_path"),
-            self.static_files.get("serve_from"),
-        ) {
-            let serve_from = serve_from.to_string();
-            let mount_root = mount_path.to_string();
-            let mount_with_wildcard = format!("{}/*", mount_path);
-
-            let serve_from_clone = serve_from.clone();
-            let mount_root_clone = mount_root.clone();
-            router = router.get(mount_with_wildcard, move |req| {
-                let serve_from = serve_from_clone.clone();
-                let mount_root = mount_root_clone.clone();
-                async move {
-                    match Self::serve_static_with_headers(req, mount_root, serve_from).await {
-                        Ok(res) => Ok(res),
-                        Err(e) => Err(ApiError::Generic(
-                            HttpResponse::new()
-                                .internal_server_error()
-                                .text(e.to_string()),
-                        )),
-                    }
-                }
-            });
-        }
-
+        // Register API routes FIRST (before static files)
+        // This ensures API routes take precedence over static file serving
         for (path, methods) in &self.routes {
             for (method, handler) in methods {
                 let handler = handler.clone();
@@ -407,7 +447,7 @@ impl App {
 
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                match response.to_responder() {
+                                match response.to_hyper_response() {
                                     Ok(r) => Ok(r),
                                     Err(_e) => Err(ApiError::Generic(
                                         HttpResponse::new()
@@ -438,7 +478,7 @@ impl App {
 
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                match response.to_responder() {
+                                match response.to_hyper_response() {
                                     Ok(r) => Ok(r),
                                     Err(_e) => Err(ApiError::Generic(
                                         HttpResponse::new()
@@ -468,7 +508,7 @@ impl App {
                                 });
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                match response.to_responder() {
+                                match response.to_hyper_response() {
                                     Ok(r) => Ok(r),
                                     Err(_e) => Err(ApiError::Generic(
                                         HttpResponse::new()
@@ -498,7 +538,7 @@ impl App {
                                 });
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                match response.to_responder() {
+                                match response.to_hyper_response() {
                                     Ok(r) => Ok(r),
                                     Err(_e) => Err(ApiError::Generic(
                                         HttpResponse::new()
@@ -528,7 +568,7 @@ impl App {
                                 });
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                match response.to_responder() {
+                                match response.to_hyper_response() {
                                     Ok(r) => Ok(r),
                                     Err(_e) => Err(ApiError::Generic(
                                         HttpResponse::new()
@@ -558,7 +598,7 @@ impl App {
                                 });
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                match response.to_responder() {
+                                match response.to_hyper_response() {
                                     Ok(r) => Ok(r),
                                     Err(_e) => Err(ApiError::Generic(
                                         HttpResponse::new()
@@ -588,7 +628,7 @@ impl App {
                                 });
                                 let our_res = HttpResponse::new();
                                 let response = handler(our_req, our_res).await;
-                                match response.to_responder() {
+                                match response.to_hyper_response() {
                                     Ok(r) => Ok(r),
                                     Err(_e) => Err(ApiError::Generic(
                                         HttpResponse::new()
@@ -602,16 +642,52 @@ impl App {
                 }
             }
         }
-        router = router.err_handler(Self::error_handler);
 
+        // Register static file serving AFTER API routes
+        // This way, API routes take precedence over static files
+        if let (Some(mount_path), Some(serve_from)) = (
+            self.static_files.get("mount_path"),
+            self.static_files.get("serve_from"),
+        ) {
+            let serve_from = serve_from.to_string();
+            let mount_root = mount_path.to_string();
+
+            // Handle different mount path scenarios
+            let route_pattern = if mount_root == "/" {
+                // For root mounting, use a catch-all route with lower priority
+                // This will match any path that wasn't already matched by API routes
+                "/*"
+            } else {
+                // For specific path mounting, use the standard wildcard pattern
+                &format!("{}/*", mount_root)
+            };
+
+            let serve_from_clone = serve_from.clone();
+            let mount_root_clone = mount_root.clone();
+
+            router = router.get(route_pattern, move |req| {
+                let serve_from = serve_from_clone.clone();
+                let mount_root = mount_root_clone.clone();
+                async move {
+                    match Self::serve_static_with_headers(req, mount_root, serve_from).await {
+                        Ok(res) => Ok(res),
+                        Err(e) => Err(ApiError::Generic(
+                            HttpResponse::new()
+                                .internal_server_error()
+                                .text(e.to_string()),
+                        )),
+                    }
+                }
+            });
+        }
+
+        router = router.err_handler(Self::error_handler);
         let router = router.build().unwrap();
 
         cb();
 
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
-
         let service = RouterService::new(router).unwrap();
-
         let server = Server::bind(&addr).serve(service);
 
         if let Err(e) = server.await {
@@ -630,7 +706,7 @@ impl App {
 
         match api_err.as_ref() {
             ApiError::Generic(res) => <HttpResponse as Clone>::clone(res)
-                .to_responder()
+                .to_hyper_response()
                 .map_err(ApiError::from)
                 .unwrap(),
         }
@@ -653,9 +729,15 @@ impl App {
             .and_then(|v| v.to_str().ok())
             .map(|s| s.to_string());
 
-        let trimmed_path = if original_path.starts_with(mount_root.as_str()) {
-            &original_path[mount_root.len()..]
+        let trimmed_path = if mount_root == "/" {
+            // If mounting at root, serve the path as-is
+            original_path
+        } else if original_path.starts_with(&mount_root) {
+            // Strip the mount root prefix, but ensure we don't create an empty path
+            let remaining = &original_path[mount_root.len()..];
+            if remaining.is_empty() { "/" } else { remaining }
         } else {
+            // Path doesn't match mount root - this shouldn't happen in normal routing
             original_path
         };
 
@@ -671,7 +753,20 @@ impl App {
             normalized_path.to_string()
         };
 
-        parts.uri = new_path_and_query.parse().unwrap();
+        parts.uri = match new_path_and_query.parse() {
+            Ok(uri) => uri,
+            Err(e) => {
+                eprintln!(
+                    "Error parsing URI: {} (original: {}, mount_root: {}, trimmed: {}, normalized: {})",
+                    e, original_path, mount_root, trimmed_path, normalized_path
+                );
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!("Invalid URI after rewriting: {}", e),
+                ));
+            }
+        };
+
         let rewritten_req = Request::from_parts(parts, body);
 
         let static_service = Static::new(Path::new(fs_root.as_str()));

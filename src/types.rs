@@ -4,6 +4,7 @@ use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use bytes::Bytes;
 use hyper::Method;
+use mime_guess::MimeGuess;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -54,8 +55,8 @@ impl ResponseContentBody {
         ResponseContentBody::HTML(html.into())
     }
 
-    pub(crate) fn new_binary(bytes: Bytes) -> Self {
-        ResponseContentBody::BINARY(bytes)
+    pub(crate) fn new_binary<T: Into<Bytes>>(bytes: T) -> Self {
+        ResponseContentBody::BINARY(bytes.into())
     }
 }
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -64,6 +65,19 @@ pub(crate) enum ResponseContentType {
     JSON,
     HTML,
     BINARY,
+}
+
+impl From<MimeGuess> for ResponseContentType {
+    fn from(guess: MimeGuess) -> Self {
+        let mime = guess.first_or_octet_stream();
+
+        match (mime.type_(), mime.subtype()) {
+            (mime::TEXT, mime::HTML) => ResponseContentType::HTML,
+            (mime::TEXT, _) => ResponseContentType::TEXT,
+            (mime::APPLICATION, mime::JSON) => ResponseContentType::JSON,
+            _ => ResponseContentType::BINARY,
+        }
+    }
 }
 
 impl ResponseContentType {
