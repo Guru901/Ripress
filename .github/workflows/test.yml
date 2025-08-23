@@ -1,11 +1,9 @@
 name: Rust CI
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
 jobs:
   test:
     name: Run Cargo and Playwright Tests
@@ -15,7 +13,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
 
       - name: Cache Cargo Dependencies
         uses: actions/cache@v3
@@ -33,6 +36,12 @@ jobs:
 
       - name: Add Bun to PATH
         run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
+
+      - name: Verify installations
+        run: |
+          rustc --version
+          cargo --version
+          bun --version
 
       - name: Run Test Script
         run: chmod +x scripts/test.sh && scripts/test.sh
