@@ -362,22 +362,17 @@ impl App {
         if file == "/" {
             return Err("Serving from filesystem root '/' is not allowed for security reasons");
         }
-
         if path.is_empty() {
             return Err("Mount path cannot be empty");
         }
-
         if file.is_empty() {
             return Err("File path cannot be empty");
         }
-
         // Require paths to start with '/'
         if !path.starts_with('/') {
             return Err("Mount path must start with '/'");
         }
-
-        self.static_files.insert("serve_from", file);
-        self.static_files.insert("mount_path", path);
+        self.static_files.insert(path, file);
         Ok(())
     }
 
@@ -643,24 +638,16 @@ impl App {
             }
         }
 
-        // Register static file serving AFTER API routes
-        // This way, API routes take precedence over static files
-        if let (Some(mount_path), Some(serve_from)) = (
-            self.static_files.get("mount_path"),
-            self.static_files.get("serve_from"),
-        ) {
-            let serve_from = serve_from.to_string();
-            let mount_root = mount_path.to_string();
+        for (mount_path, serve_from) in self.static_files.iter() {
+            let serve_from = (*serve_from).to_string();
+            let mount_root = (*mount_path).to_string();
 
-            // Handle different mount path scenarios
-            let route_pattern = if mount_root == "/" {
-                // For root mounting, use a catch-all route with lower priority
-                // This will match any path that wasn't already matched by API routes
-                "/*"
+            let route_pattern_owned = if mount_root == "/" {
+                "/*".to_string()
             } else {
-                // For specific path mounting, use the standard wildcard pattern
-                &format!("{}/*", mount_root)
+                format!("{}/{}", mount_root, "*")
             };
+            let route_pattern: &'static str = Box::leak(route_pattern_owned.into_boxed_str());
 
             let serve_from_clone = serve_from.clone();
             let mount_root_clone = mount_root.clone();
