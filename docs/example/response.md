@@ -56,6 +56,31 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
+### Sending a file response
+
+To return a file response, use `.send_file()` with the path to the file.
+
+```rust
+use ripress::{
+    app::App,
+    context::{HttpRequest, HttpResponse},
+    types::RouterFns,
+};
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+
+    app.get("/", handler);
+
+    app.listen(3000, || println!("Server running on port 3000")).await;
+}
+
+async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.send_file("./public/index.html").await
+}
+```
+
 ### Sending a JSON Response
 
 To return a JSON response, use `.json()` with a serializable Rust struct.

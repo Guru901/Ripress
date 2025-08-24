@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.1] - 2025-08-22
+
+Fixed failing tests and multiple static file serving bugs
+
 ## [1.7.0] - 2025-08-22
 
 Added `res.send_file` method
