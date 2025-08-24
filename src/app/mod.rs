@@ -647,6 +647,7 @@ impl App {
             } else {
                 format!("{}/{}", mount_root, "*")
             };
+
             let route_pattern: &'static str = Box::leak(route_pattern_owned.into_boxed_str());
 
             let serve_from_clone = serve_from.clone();

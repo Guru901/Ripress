@@ -625,10 +625,9 @@ impl HttpResponse {
     }
 
     /// Sends the contents of a file as the response body.
-    ///
     /// This method reads the file at the given path asynchronously and sets the response body to its contents.
-    /// The content type is inferred from the file's extension using the `infer` crate. If the file type cannot be determined,
-    /// it defaults to "bin".
+    /// The content type is inferred from the file's bytes using the `infer` crate and then mapped to a MIME
+    /// type via `mime_guess`. If the type cannot be determined, it falls back to `application/octet-stream`.
     ///
     /// # Arguments
     ///
