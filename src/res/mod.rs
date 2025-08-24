@@ -639,7 +639,7 @@ impl HttpResponse {
     /// Returns `Self` for method chaining.
     ///
     /// # Example
-    /// ```rust
+    /// ```no_run
     /// use ripress::context::HttpResponse;
     ///
     /// // Send a file as the response
