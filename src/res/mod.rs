@@ -8,6 +8,7 @@ use futures::{Stream, StreamExt, stream};
 use hyper::body::to_bytes;
 use hyper::header::{HeaderName, HeaderValue, SET_COOKIE};
 use hyper::{Body, Response};
+use mime_guess::from_ext;
 use serde::Serialize;
 use std::convert::Infallible;
 use std::pin::Pin;
@@ -623,6 +624,50 @@ impl HttpResponse {
         self
     }
 
+    /// Sends the contents of a file as the response body.
+    /// This method reads the file at the given path asynchronously and sets the response body to its contents.
+    /// The content type is inferred from the file's bytes using the `infer` crate and then mapped to a MIME
+    /// type via `mime_guess`. If the type cannot be determined, it falls back to `application/octet-stream`.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the file to be sent. Must be a static string slice.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` for method chaining.
+    ///
+    /// # Example
+    /// ```ignore
+    /// use ripress::context::HttpResponse;
+    ///
+    /// // Send a file as the response
+    /// let res = HttpResponse::new()
+    ///     .ok()
+    ///     .send_file("static/image.png")
+    ///     .await;
+    /// ```
+    pub async fn send_file(mut self, path: &'static str) -> Self {
+        let file = tokio::fs::read(path).await;
+
+        match file {
+            Ok(file) => {
+                let file_extension = infer::get(&file)
+                    .map(|info| info.extension())
+                    .unwrap_or("bin");
+
+                let mime_type = from_ext(file_extension);
+                self.content_type = ResponseContentType::from(mime_type);
+                self.body = ResponseContentBody::new_binary(file);
+            }
+            Err(e) => {
+                eprintln!("Error reading file: {}", e);
+            }
+        }
+
+        self
+    }
+
     /// Streams the response
     ///
     /// # Arguments
@@ -728,7 +773,7 @@ impl HttpResponse {
         }
     }
 
-    pub(crate) fn to_responder(self) -> Result<Response<Body>, Infallible> {
+    pub(crate) fn to_hyper_response(self) -> Result<Response<Body>, Infallible> {
         let body = self.body;
         if self.is_stream {
             let mut response = Response::builder().status(self.status_code.as_u16());

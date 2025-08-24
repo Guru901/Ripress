@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.0] - 2025-08-22
+
+Added `res.send_file` method
+`app.static_files` now returns `Result<(), &'static str>`
+
 ## [1.6.0] - 2025-08-22
 
 Added Shield middleware

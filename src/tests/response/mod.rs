@@ -302,8 +302,6 @@ mod tests {
         let resp = sample_response();
         let debug_str = format!("{:?}", resp);
 
-        println!("{:?}", debug_str);
-
         // Stream should be displayed as "<stream>"
         assert!(debug_str.contains("HttpResponse"));
         assert!(debug_str.contains("status_code: Ok"));

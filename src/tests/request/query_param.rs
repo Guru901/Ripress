@@ -53,7 +53,6 @@ mod tests {
         qp.insert("tag", "web");
 
         let output = qp.to_string();
-        println!("{}", output);
         // order is not guaranteed, so just check both substrings
         assert!(output.contains("tag=rust"));
         assert!(output.contains("tag=web"));
