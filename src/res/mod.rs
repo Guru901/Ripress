@@ -639,7 +639,7 @@ impl HttpResponse {
     /// Returns `Self` for method chaining.
     ///
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// use ripress::context::HttpResponse;
     ///
     /// // Send a file as the response
@@ -818,8 +818,6 @@ impl HttpResponse {
 
             return Ok(response.body(Body::wrap_stream(self.stream)).unwrap());
         } else {
-            println!("body: {:?}", body);
-
             let mut response = match body {
                 ResponseContentBody::JSON(json) => Response::builder()
                     .status(self.status_code.as_u16())

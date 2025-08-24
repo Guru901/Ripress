@@ -153,7 +153,6 @@ fn set_response_body(
     compressed_body: Vec<u8>,
     content_type: &str,
 ) -> Result<(), ()> {
-    println!("content_type: {}", content_type);
     response.body = ResponseContentBody::BINARY(compressed_body.into());
     Ok(())
 }
