@@ -1404,7 +1404,7 @@ pub(crate) fn set_cross_origin_resource_policy(
     };
 
     res.headers
-        .insert("cross-origin-embedder-policy", header_value.to_string());
+        .insert("cross-origin-resource-policy", header_value.to_string());
 }
 
 /// Sets Cross-Origin-Embedder-Policy header based on policy configuration
