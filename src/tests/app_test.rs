@@ -6,6 +6,10 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 #[cfg(test)]
 mod tests {
+    use crate::middlewares::compression::CompressionConfig;
+    use crate::middlewares::cors::CorsConfig;
+    use crate::middlewares::rate_limiter::RateLimiterConfig;
+    use crate::middlewares::shield::ShieldConfig;
     use crate::{
         app::{App, api_error::ApiError, box_future},
         context::HttpResponse,
@@ -491,5 +495,132 @@ mod tests {
     fn test_hyper_error_impl_exists() {
         fn assert_impl<T: Into<ApiError>>() {}
         assert_impl::<hyper::Error>();
+    }
+
+    fn middleware_names(app: &App) -> Vec<String> {
+        app.middlewares.iter().map(|m| m.name.clone()).collect()
+    }
+
+    #[test]
+    fn test_use_logger_adds_middleware() {
+        let mut app = App::new();
+        app.use_logger(None);
+
+        let names = middleware_names(&app);
+        assert!(names.contains(&"logger".to_string()));
+        assert_eq!(app.middlewares.last().unwrap().path, "/");
+    }
+
+    #[test]
+    fn test_use_cors_adds_middleware() {
+        let mut app = App::new();
+        app.use_cors(Some(CorsConfig::default()));
+
+        let names = middleware_names(&app);
+        assert!(names.contains(&"cors".to_string()));
+        assert_eq!(app.middlewares.last().unwrap().path, "/");
+    }
+
+    #[test]
+    fn test_use_body_limit_adds_middleware() {
+        let mut app = App::new();
+        app.use_body_limit(Some(1024));
+
+        let names = middleware_names(&app);
+        assert!(names.contains(&"body_limit".to_string()));
+        assert_eq!(app.middlewares.last().unwrap().path, "/");
+    }
+
+    #[tokio::test]
+    async fn test_use_rate_limiter_adds_middleware() {
+        let mut app = App::new();
+        app.use_rate_limiter(Some(RateLimiterConfig::default()));
+
+        let names = middleware_names(&app);
+        assert!(names.contains(&"rate_limiter".to_string()));
+        assert_eq!(app.middlewares.last().unwrap().path, "/");
+    }
+
+    #[test]
+    fn test_use_shield_adds_middleware() {
+        let mut app = App::new();
+        app.use_shield(Some(ShieldConfig::default()));
+
+        let names = middleware_names(&app);
+        assert!(names.contains(&"shield".to_string()));
+        assert_eq!(app.middlewares.last().unwrap().path, "/");
+    }
+
+    #[test]
+    fn test_use_compression_adds_middleware() {
+        let mut app = App::new();
+        app.use_compression(Some(CompressionConfig::default()));
+
+        let names = middleware_names(&app);
+        assert!(names.contains(&"compression".to_string()));
+        assert_eq!(app.middlewares.last().unwrap().path, "/");
+    }
+
+    #[tokio::test]
+    async fn test_multiple_middlewares_added() {
+        let mut app = App::new();
+        app.use_logger(None)
+            .use_cors(None)
+            .use_body_limit(None)
+            .use_rate_limiter(None)
+            .use_shield(None)
+            .use_compression(None);
+
+        let names = middleware_names(&app);
+        assert_eq!(
+            names,
+            vec![
+                "logger",
+                "cors",
+                "body_limit",
+                "rate_limiter",
+                "shield",
+                "compression"
+            ]
+        );
+    }
+
+    #[test]
+    fn test_valid_static_file_mount() {
+        let mut app = App::new();
+        let result = app.static_files("/assets", "public");
+        assert!(result.is_ok());
+        assert_eq!(app.static_files.get("/assets"), Some(&"public"));
+    }
+
+    #[test]
+    fn test_root_file_not_allowed() {
+        let mut app = App::new();
+        let result = app.static_files("/assets", "/");
+        assert_eq!(
+            result,
+            Err("Serving from filesystem root '/' is not allowed for security reasons")
+        );
+    }
+
+    #[test]
+    fn test_empty_mount_path() {
+        let mut app = App::new();
+        let result = app.static_files("", "public");
+        assert_eq!(result, Err("Mount path cannot be empty"));
+    }
+
+    #[test]
+    fn test_empty_file_path() {
+        let mut app = App::new();
+        let result = app.static_files("/assets", "");
+        assert_eq!(result, Err("File path cannot be empty"));
+    }
+
+    #[test]
+    fn test_mount_path_must_start_with_slash() {
+        let mut app = App::new();
+        let result = app.static_files("assets", "public");
+        assert_eq!(result, Err("Mount path must start with '/'"));
     }
 }
