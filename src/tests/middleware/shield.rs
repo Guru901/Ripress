@@ -352,17 +352,17 @@ mod tests {
         let mut res = HttpResponse::new();
         set_cross_origin_resource_policy(&mut res, &CrossOriginResourcePolicy::SameOrigin);
         assert_eq!(
-            res.headers.get("cross-origin-embedder-policy").unwrap(),
+            res.headers.get("cross-origin-resource-policy").unwrap(),
             "same-origin"
         );
         set_cross_origin_resource_policy(&mut res, &CrossOriginResourcePolicy::SameSite);
         assert_eq!(
-            res.headers.get("cross-origin-embedder-policy").unwrap(),
+            res.headers.get("cross-origin-resource-policy").unwrap(),
             "same-site"
         );
         set_cross_origin_resource_policy(&mut res, &CrossOriginResourcePolicy::CrossOrigin);
         assert_eq!(
-            res.headers.get("cross-origin-embedder-policy").unwrap(),
+            res.headers.get("cross-origin-resource-policy").unwrap(),
             "cross-origin"
         );
     }
