@@ -85,7 +85,7 @@ pub(crate) fn compression(
             match compress_data(&body_bytes, config.level) {
                 Ok(compressed_body) => {
                     // Update response with compressed body
-                    if let Err(_) = set_response_body(&mut res, compressed_body, content_type) {
+                    if let Err(_) = set_response_body(&mut res, compressed_body) {
                         return (req, None);
                     }
 
@@ -135,7 +135,7 @@ pub(crate) fn compress_data(data: &[u8], level: u8) -> Result<Vec<u8>, std::io::
 }
 
 /// Extracts body bytes from HttpResponse for size checking
-fn get_response_body_bytes(response: &HttpResponse) -> Option<Vec<u8>> {
+pub(crate) fn get_response_body_bytes(response: &HttpResponse) -> Option<Vec<u8>> {
     match &response.body {
         ResponseContentBody::TEXT(text) => Some(text.as_bytes().to_vec()),
         ResponseContentBody::JSON(json) => serde_json::to_vec(json).ok(),
@@ -148,16 +148,15 @@ fn get_response_body_bytes(response: &HttpResponse) -> Option<Vec<u8>> {
 ///
 /// **Important**: For compressed content, we should always store as BINARY
 /// since the compressed data is no longer valid text/JSON/HTML
-fn set_response_body(
+pub(crate) fn set_response_body(
     response: &mut HttpResponse,
     compressed_body: Vec<u8>,
-    content_type: &str,
 ) -> Result<(), ()> {
     response.body = ResponseContentBody::BINARY(compressed_body.into());
     Ok(())
 }
 
-fn accepts_gzip_encoding(header: &str) -> bool {
+pub(crate) fn accepts_gzip_encoding(header: &str) -> bool {
     header
         .split(',')
         .filter_map(|t| {

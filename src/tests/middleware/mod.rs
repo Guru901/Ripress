@@ -1,3 +1,5 @@
+pub mod compression;
+
 #[cfg(test)]
 mod tests {
 
