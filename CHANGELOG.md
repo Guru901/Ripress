@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.2] - 2025-08-22
+
+Added more tests
+Fixed wrong header insertion in Shield middleware
+
 ## [1.7.1] - 2025-08-22
 
 Fixed failing tests and multiple static file serving bugs
