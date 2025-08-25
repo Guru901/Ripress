@@ -203,4 +203,23 @@ mod test {
         let (_req_out, res_opt) = mw(req, res).await;
         assert!(res_opt.is_none());
     }
+
+    #[test]
+    fn test_compress_data() {
+        let original = b"Hello, World! ".repeat(100);
+        let compressed = compress_data(&original, 6).unwrap();
+
+        // Compressed data should be smaller than original for repetitive content
+        assert!(compressed.len() < original.len());
+
+        // Should have gzip magic numbers at the beginning
+        assert_eq!(&compressed[0..2], &[0x1f, 0x8b]);
+    }
+
+    #[test]
+    fn test_compression_config_default() {
+        let config = CompressionConfig::default();
+        assert_eq!(config.threshold, 1024);
+        assert_eq!(config.level, 6);
+    }
 }
