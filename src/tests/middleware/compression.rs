@@ -15,7 +15,7 @@ mod test {
             "text/plain" => ResponseContentType::TEXT,
             "application/json" => ResponseContentType::JSON,
             "text/html" => ResponseContentType::HTML,
-            "application/javascript" => ResponseContentType::JSON,
+           "application/javascript" => ResponseContentType::TEXT,
             "application/octet-stream" => ResponseContentType::BINARY,
             _ => ResponseContentType::TEXT,
         };
