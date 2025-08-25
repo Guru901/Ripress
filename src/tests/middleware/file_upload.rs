@@ -39,11 +39,10 @@ mod test {
         );
 
         // Read the file content and verify it matches
-        let file_content = std::fs::read_to_string(&uploaded_path).unwrap();
+        let file_content = std::fs::read(&uploaded_path).unwrap();
         assert_eq!(
-            file_content, "Hello, this is a test file content!",
-            "File content mismatch. Expected: 'Hello, this is a test file content!', Got: '{}'",
-            file_content
+            file_content, test_content,
+            "File content mismatch"
         );
 
         // Check form data has the file reference
