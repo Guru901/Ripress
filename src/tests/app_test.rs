@@ -437,4 +437,59 @@ mod tests {
         let status = call_route(router, req).await;
         assert!(status == 500 || status == 400);
     }
+
+    #[test]
+    fn test_from_http_response() {
+        let mut res = HttpResponse::new();
+        res = res.status(404);
+        let err = ApiError::from(res);
+        match err {
+            ApiError::Generic(r) => assert_eq!(r.status_code.as_u16(), 404),
+        }
+    }
+
+    #[test]
+    fn test_display_trait() {
+        let mut res = HttpResponse::new();
+        res = res.status(400);
+        let err = ApiError::from(res);
+        let s = format!("{}", err);
+        assert!(s.contains("Middleware Error:"));
+    }
+
+    #[test]
+    fn test_error_trait() {
+        let mut res = HttpResponse::new();
+        res = res.status(500);
+        let err = ApiError::from(res);
+        let e: &dyn std::error::Error = &err;
+        let _ = e.to_string();
+    }
+
+    #[test]
+    fn test_from_box_dyn_error() {
+        let boxed: Box<dyn std::error::Error> = "some error".to_string().into();
+        let err = ApiError::from(boxed);
+        match err {
+            ApiError::Generic(r) => {
+                assert_eq!(r.status_code.as_u16(), 500);
+                assert_eq!(r.body.get_content_as_bytes(), ("some error").as_bytes());
+            }
+        }
+    }
+
+    #[test]
+    fn test_into_box_dyn_error() {
+        let mut res = HttpResponse::new();
+        res = res.status(500);
+        let err = ApiError::from(res);
+        let boxed: Box<dyn std::error::Error + Send> = err.into();
+        let _ = boxed.to_string();
+    }
+
+    #[test]
+    fn test_hyper_error_impl_exists() {
+        fn assert_impl<T: Into<ApiError>>() {}
+        assert_impl::<hyper::Error>();
+    }
 }
