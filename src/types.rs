@@ -609,3 +609,19 @@ pub trait RouterFns {
         routes.get(path).and_then(|handlers| handlers.get(&method))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::types::ResponseContentBody;
+
+    impl ResponseContentBody {
+        pub(crate) fn get_content_as_bytes(&self) -> Vec<u8> {
+            match self {
+                ResponseContentBody::TEXT(text) => text.as_bytes().to_vec(),
+                ResponseContentBody::HTML(html) => html.as_bytes().to_vec(),
+                ResponseContentBody::JSON(json) => serde_json::to_vec(json).unwrap_or_default(),
+                ResponseContentBody::BINARY(bytes) => bytes.to_vec(),
+            }
+        }
+    }
+}

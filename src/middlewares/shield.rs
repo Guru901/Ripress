@@ -1172,7 +1172,7 @@ pub(crate) fn shield(
 ///
 /// Constructs and sets the CSP header from the provided directives map.
 /// Uses Content-Security-Policy-Report-Only header when report_only is true.
-fn set_content_security_policy(res: &mut HttpResponse, csp: &ContentSecurityPolicy) {
+pub(crate) fn set_content_security_policy(res: &mut HttpResponse, csp: &ContentSecurityPolicy) {
     if !csp.enabled {
         return;
     }
@@ -1198,7 +1198,7 @@ fn set_content_security_policy(res: &mut HttpResponse, csp: &ContentSecurityPoli
 ///
 /// Constructs HSTS header with max-age, includeSubDomains, and preload directives
 /// as configured. Only sets header when HSTS is enabled.
-fn set_hsts(res: &mut HttpResponse, hsts: &Hsts) {
+pub(crate) fn set_hsts(res: &mut HttpResponse, hsts: &Hsts) {
     if !hsts.enabled {
         return;
     }
@@ -1218,7 +1218,7 @@ fn set_hsts(res: &mut HttpResponse, hsts: &Hsts) {
 ///
 /// Supports DENY, SAMEORIGIN, and ALLOW-FROM actions. Falls back to DENY
 /// if an invalid action is specified or if ALLOW-FROM is used without a domain.
-fn set_frameguard(res: &mut HttpResponse, frameguard: &Frameguard) {
+pub(crate) fn set_frameguard(res: &mut HttpResponse, frameguard: &Frameguard) {
     if !frameguard.enabled {
         return;
     }
@@ -1243,7 +1243,7 @@ fn set_frameguard(res: &mut HttpResponse, frameguard: &Frameguard) {
 ///
 /// Always sets the header to "nosniff" when enabled, as this is the only
 /// valid value for this security header.
-fn set_no_sniff(res: &mut HttpResponse, no_sniff: &NoSniff) {
+pub(crate) fn set_no_sniff(res: &mut HttpResponse, no_sniff: &NoSniff) {
     if !no_sniff.enabled {
         return;
     }
@@ -1255,7 +1255,7 @@ fn set_no_sniff(res: &mut HttpResponse, no_sniff: &NoSniff) {
 ///
 /// Constructs the header value with mode and optional report URI.
 /// This header is deprecated but included for legacy browser support.
-fn set_xss_filter(res: &mut HttpResponse, xss_filter: &XssFilter) {
+pub(crate) fn set_xss_filter(res: &mut HttpResponse, xss_filter: &XssFilter) {
     if !xss_filter.enabled {
         return;
     }
@@ -1277,7 +1277,7 @@ fn set_xss_filter(res: &mut HttpResponse, xss_filter: &XssFilter) {
 ///
 /// Controls how much referrer information is sent when navigating away from the page.
 /// Uses the configured policy string directly as the header value.
-fn set_referrer_policy(res: &mut HttpResponse, referrer_policy: &ReferrerPolicy) {
+pub(crate) fn set_referrer_policy(res: &mut HttpResponse, referrer_policy: &ReferrerPolicy) {
     if !referrer_policy.enabled {
         return;
     }
@@ -1289,7 +1289,10 @@ fn set_referrer_policy(res: &mut HttpResponse, referrer_policy: &ReferrerPolicy)
 ///
 /// Controls DNS prefetching behavior. Sets to "on" when allowed,
 /// "off" when disabled for privacy protection.
-fn set_dns_prefetch_control(res: &mut HttpResponse, dns_prefetch_control: &DnsPrefetchControl) {
+pub(crate) fn set_dns_prefetch_control(
+    res: &mut HttpResponse,
+    dns_prefetch_control: &DnsPrefetchControl,
+) {
     if !dns_prefetch_control.enabled {
         return;
     }
@@ -1307,7 +1310,7 @@ fn set_dns_prefetch_control(res: &mut HttpResponse, dns_prefetch_control: &DnsPr
 ///
 /// Always sets the header to "noopen" when enabled, preventing IE from
 /// executing downloaded files in the site's context.
-fn set_ie_no_open(res: &mut HttpResponse, ie_no_open: &IENoOpen) {
+pub(crate) fn set_ie_no_open(res: &mut HttpResponse, ie_no_open: &IENoOpen) {
     if !ie_no_open.enabled {
         return;
     }
@@ -1319,7 +1322,7 @@ fn set_ie_no_open(res: &mut HttpResponse, ie_no_open: &IENoOpen) {
 ///
 /// Removes any existing X-Powered-By header to prevent disclosure of
 /// server technology information to potential attackers.
-fn set_hide_powered_by(res: &mut HttpResponse, hide_powered_by: &HidePoweredBy) {
+pub(crate) fn set_hide_powered_by(res: &mut HttpResponse, hide_powered_by: &HidePoweredBy) {
     if !hide_powered_by.enabled {
         return;
     }
@@ -1333,7 +1336,10 @@ fn set_hide_powered_by(res: &mut HttpResponse, hide_powered_by: &HidePoweredBy) 
 /// Constructs the header from the features HashMap, formatting each feature
 /// with its allowlist. Empty allowlists result in () (disabled), while
 /// populated allowlists are formatted as space-separated quoted origins.
-fn set_permissions_policy(res: &mut HttpResponse, permissions_policy: &PermissionsPolicy) {
+pub(crate) fn set_permissions_policy(
+    res: &mut HttpResponse,
+    permissions_policy: &PermissionsPolicy,
+) {
     if !permissions_policy.enabled {
         return;
     }
@@ -1369,7 +1375,7 @@ fn set_permissions_policy(res: &mut HttpResponse, permissions_policy: &Permissio
 ///
 /// Maps the enum variant to the appropriate header value string.
 /// This header controls cross-origin window references and process isolation.
-fn set_cross_origin_opener_policy(
+pub(crate) fn set_cross_origin_opener_policy(
     res: &mut HttpResponse,
     cross_origin_opener_policy: &CrossOriginOpenerPolicy,
 ) {
@@ -1387,7 +1393,7 @@ fn set_cross_origin_opener_policy(
 ///
 /// Maps the enum variant to the appropriate header value string.
 /// This header controls cross-origin resource embedding permissions.
-fn set_cross_origin_resource_policy(
+pub(crate) fn set_cross_origin_resource_policy(
     res: &mut HttpResponse,
     cross_origin_resource_policy: &CrossOriginResourcePolicy,
 ) {
@@ -1398,14 +1404,14 @@ fn set_cross_origin_resource_policy(
     };
 
     res.headers
-        .insert("cross-origin-embedder-policy", header_value.to_string());
+        .insert("cross-origin-resource-policy", header_value.to_string());
 }
 
 /// Sets Cross-Origin-Embedder-Policy header based on policy configuration
 ///
 /// Maps the enum variant to the appropriate header value string.
 /// This header controls cross-origin resource requirements for embedder isolation.
-fn set_cross_origin_embedder_policy(
+pub(crate) fn set_cross_origin_embedder_policy(
     res: &mut HttpResponse,
     cross_origin_embedder_policy: &CrossOriginEmbedderPolicy,
 ) {
@@ -1422,7 +1428,10 @@ fn set_cross_origin_embedder_policy(
 ///
 /// Always sets the header to "?1" when enabled, requesting origin-keyed
 /// agent clustering for improved process isolation.
-fn set_origin_agent_cluster(res: &mut HttpResponse, origin_agent_cluster: &OriginAgentCluster) {
+pub(crate) fn set_origin_agent_cluster(
+    res: &mut HttpResponse,
+    origin_agent_cluster: &OriginAgentCluster,
+) {
     if !origin_agent_cluster.enabled {
         return;
     }
@@ -1434,7 +1443,10 @@ fn set_origin_agent_cluster(res: &mut HttpResponse, origin_agent_cluster: &Origi
 ///
 /// Controls Adobe Flash Player and Reader cross-domain policy file permissions.
 /// Uses the configured policy string directly as the header value.
-fn set_cross_domain_policy(res: &mut HttpResponse, cross_domain_policy: &CrossDomainPolicy) {
+pub(crate) fn set_cross_domain_policy(
+    res: &mut HttpResponse,
+    cross_domain_policy: &CrossDomainPolicy,
+) {
     if !cross_domain_policy.enabled {
         return;
     }
