@@ -51,7 +51,7 @@
 /// // Usage in HTTP client
 /// // client.post("https://api.example.com/users").body(json_body).send().await?;
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RequestBody {
     /// The actual body content data
     pub content: RequestBodyContent,
@@ -171,10 +171,10 @@ impl RequestBody {
     /// - Protocol buffer or other binary format data
     /// - Transmitting non-textual data (e.g., protocol buffers, compressed files)
     /// - Any HTTP request requiring `application/octet-stream` content type
-    pub(crate) fn new_binary(bytes: Bytes) -> Self {
+    pub(crate) fn new_binary<T: Into<Bytes>>(bytes: T) -> Self {
         RequestBody {
             content_type: RequestBodyType::BINARY,
-            content: RequestBodyContent::BINARY(bytes),
+            content: RequestBodyContent::BINARY(bytes.into()),
         }
     }
 
@@ -574,7 +574,7 @@ impl ToString for RequestBodyType {
 /// - Form data contains owned strings for all keys and values
 /// - Text data includes validation state and encoding information
 /// - Cloning may be expensive for large payloads
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RequestBodyContent {
     /// Plain text content data.
     ///
