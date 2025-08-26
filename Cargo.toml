@@ -1,6 +1,6 @@
 [package]
 name = "ripress"
-version = "1.7.2"
+version = "1.7.3"
 edition = "2024"
 description = "An Express.js-inspired web framework for Rust"
 license = "MIT"
@@ -15,7 +15,6 @@ serde_json = "1.0.141"
 tokio = { version = "1.46.1", features = ["macros", "rt-multi-thread", "fs", "io-util"] }
 url = "2.5.4"
 futures = "0.3.31"
-serde_urlencoded = "0.7.1"
 bytes = "1.10.1"
 hyper = { version = "0.14.32", features = ["stream"] }
 routerify = "3.0.0"

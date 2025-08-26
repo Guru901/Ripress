@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.3] - 2025-08-22
+
+Removed unnecessary dependencies
+
 ## [1.7.2] - 2025-08-22
 
 Added more tests

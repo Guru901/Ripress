@@ -1078,7 +1078,7 @@ dependencies = [
 
 [[package]]
 name = "ripress"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "bytes",
  "cookie",
@@ -1093,7 +1093,6 @@ dependencies = [
  "routerify",
  "serde",
  "serde_json",
- "serde_urlencoded",
  "tempfile",
  "tokio",
  "url",
