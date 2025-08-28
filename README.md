@@ -10,9 +10,9 @@ Ripress is an Express.js-inspired web framework for Rust that combines the famil
 
 ## Why Choose Ripress?
 
-**🚀 Performance First**
+**🚀 Performance**
 
-- Just 3% slower than Actix-Web (one of the fastest Rust web frameworks)
+- Ripress is just ~6–7% slower than Actix-Web (one of the fastest Rust web frameworks), even though performance hasn’t been the main focus yet.
 - Nearly 10x faster than Express.js
 
 **💡 Developer Experience**
