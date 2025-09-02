@@ -1169,8 +1169,9 @@ impl AsyncRead for HttpRequest {
 
             // Remove the bytes we just read from the body
             if bytes_to_copy == body_bytes.len() {
-                // If we read all bytes, set to empty
+                // If we read all bytes, set to empty and sync content_type
                 this.body.content = RequestBodyContent::EMPTY;
+                this.body.content_type = RequestBodyType::EMPTY;
             } else {
                 // If we read partial bytes, update the body with remaining bytes
                 let remaining_bytes = body_bytes[..start_pos].to_vec();
