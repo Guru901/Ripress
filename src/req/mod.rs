@@ -1072,3 +1072,6 @@ impl AsyncRead for HttpRequest {
         todo!()
     }
 }
+
+// Or remove these impls entirely and introduce a dedicated UpgradedIo
+// wrapper over hyper::upgrade::Upgraded that correctly implements AsyncRead/AsyncWrite.

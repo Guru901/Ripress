@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.4] - 2025-08-22
+
+Edited somethings for wynd integration
+
 ## [1.7.3] - 2025-08-22
 
 Removed unnecessary dependencies
