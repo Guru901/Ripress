@@ -1161,8 +1161,8 @@ impl AsyncRead for HttpRequest {
         // If we have data to read
         if !body_bytes.is_empty() {
             let bytes_to_copy = std::cmp::min(buf.remaining(), body_bytes.len());
-            let start_pos = body_bytes.len() - bytes_to_copy;
-            let end_pos = body_bytes.len();
+            let start_pos = 0;
+            let end_pos = bytes_to_copy;
 
             // Copy bytes to the buffer
             buf.put_slice(&body_bytes[start_pos..end_pos]);
@@ -1173,7 +1173,7 @@ impl AsyncRead for HttpRequest {
                 this.body.content = RequestBodyContent::EMPTY;
             } else {
                 // If we read partial bytes, update the body with remaining bytes
-                let remaining_bytes = body_bytes[..start_pos].to_vec();
+                let remaining_bytes = body_bytes[end_pos..].to_vec();
                 match &this.body.content {
                     RequestBodyContent::TEXT(_) => {
                         if let Ok(remaining_text) = String::from_utf8(remaining_bytes.clone()) {
