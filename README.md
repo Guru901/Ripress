@@ -1,5 +1,8 @@
 # Ripress
 
+[![Crates.io](https://img.shields.io/crates/v/ripress)](https://crates.io/crates/ripress)
+[![License](https://img.shields.io/crates/l/wynd)](LICENSE)
+
 ### An Express.js-inspired web framework for Rust
 
 Please star the repo if you like it, so that I know someone is using it.
