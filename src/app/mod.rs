@@ -226,6 +226,50 @@ impl App {
         self
     }
 
+    #[cfg(feature = "with-wynd")]
+    /// Adds wynd middleware to the application to use websockets.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::{app::App, types::RouterFns};
+    /// use wynd::wynd::Wynd;
+
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let mut app = App::new();
+    ///     let mut wynd = Wynd::new();
+
+    ///     wynd.on_connection(|conn| async move {
+    ///         conn.on_text(|event, handle| async move {
+    ///             println!("{}", event.data);
+    ///         });
+    ///     });
+
+    ///     app.get("/", |_, res| async move { res.ok().text("Hello World!") });
+
+    ///     app.get("/ws", wynd.handler());
+
+    ///     app.listen(3000, || {
+    ///         println!("Server running on http://localhost:3000");
+    ///         println!("WebSocket available at ws://localhost:3000/ws");
+    ///     })
+    ///     .await;
+    /// }
+    /// ```
+    pub fn use_wynd<F, Fut>(&mut self, path: &'static str, handler: F) -> &mut Self
+    where
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
+    {
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(handler),
+            path: path.to_string(),
+            name: "wynd".to_string(),
+        });
+        self
+    }
+
     /// Adds a rate limiter middleware to the application.
     ///
     /// ## Arguments

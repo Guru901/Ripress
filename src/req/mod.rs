@@ -14,6 +14,8 @@ use std::{
     collections::HashMap,
     net::{IpAddr, Ipv4Addr},
 };
+#[cfg(feature = "with-wynd")]
+use tokio::io::{AsyncRead, AsyncWrite};
 
 /// A struct that represents the request headers.
 /// And it's methods.
@@ -1032,5 +1034,41 @@ pub(crate) fn determine_content_type_response(content_type: &str) -> ResponseCon
             _ => ResponseContentType::BINARY,
         },
         Err(_) => ResponseContentType::BINARY, // Fallback for invalid MIME types
+    }
+}
+
+#[cfg(feature = "with-wynd")]
+impl AsyncWrite for HttpRequest {
+    fn poll_write(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &[u8],
+    ) -> std::task::Poll<Result<usize, std::io::Error>> {
+        todo!()
+    }
+
+    fn poll_flush(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Result<(), std::io::Error>> {
+        todo!()
+    }
+
+    fn poll_shutdown(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Result<(), std::io::Error>> {
+        todo!()
+    }
+}
+
+#[cfg(feature = "with-wynd")]
+impl AsyncRead for HttpRequest {
+    fn poll_read(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        todo!()
     }
 }

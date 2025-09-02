@@ -26,6 +26,7 @@ uuid = { version="1.18.0", features=["v4"] }
 infer = "0.19.0"
 flate2 = "1.1.2"
 mime_guess = "2.0.5"
+wynd = { version = "0.3", optional = true }
 
 [dev-dependencies]
 reqwest = "0.12.23"
@@ -33,3 +34,7 @@ tempfile = "3.10.1"
 
 [package.metadata.docs.rs]
 readme = "README.md"
+
+[features]
+with-wynd = ["wynd"]
+default = []
