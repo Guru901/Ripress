@@ -1046,7 +1046,7 @@ impl AsyncWrite for HttpRequest {
         buf: &[u8],
     ) -> std::task::Poll<Result<usize, std::io::Error>> {
         // Get a mutable reference to self
-        let this = unsafe { self.get_unchecked_mut() };
+        let this = self.get_mut();
 
         // Convert the buffer to bytes
         let new_bytes = bytes::Bytes::copy_from_slice(buf);
