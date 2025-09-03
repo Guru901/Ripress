@@ -704,8 +704,10 @@ impl HttpResponse {
     }
 
     #[cfg_attr(feature = "with-wynd", visibility::make(pub))]
-    pub(crate) async fn from_hyper_response(res: &mut Response<Body>) -> Self {
-        let body_bytes = to_bytes(res.body_mut()).await.unwrap_or(Bytes::new());
+    pub(crate) async fn from_hyper_response(
+        res: &mut Response<Body>,
+    ) -> Result<Self, hyper::Error> {
+        let body_bytes = to_bytes(res.body_mut()).await?;
 
         let content_type_hdr = res
             .headers()
@@ -762,7 +764,7 @@ impl HttpResponse {
             }
         }
 
-        HttpResponse {
+        Ok(HttpResponse {
             body,
             content_type,
             status_code,
@@ -771,7 +773,7 @@ impl HttpResponse {
             remove_cookies: Vec::new(),
             is_stream,
             stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
-        }
+        })
     }
 
     pub(crate) fn to_hyper_response(self) -> Result<Response<Body>, Infallible> {
