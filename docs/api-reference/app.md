@@ -15,9 +15,10 @@ The App follows a builder pattern where you configure routes, middleware, and st
 5. [Query Parameters and Request Body](#query-parameters-and-request-body)
 6. [Middleware System](#middleware-system)
 7. [Static File Serving](#static-file-serving)
-8. [Error Handling](#error-handling)
-9. [Starting the Server](#starting-the-server)
-10. [Complete Examples](#complete-examples)
+8. [WebSocket Support](#websocket-support)
+9. [Error Handling](#error-handling)
+10. [Starting the Server](#starting-the-server)
+11. [Complete Examples](#complete-examples)
 
 ## Creating an App Instance
 
@@ -829,6 +830,255 @@ The static file server:
 - Only serves files within the specified directory
 - Respects file system permissions
 - Returns appropriate HTTP status codes (404, 403, etc.)
+
+## WebSocket Support
+
+Ripress provides built-in WebSocket support through the `wynd` crate when the "with-wynd" feature is enabled (default). This allows you to create real-time applications alongside your HTTP routes.
+
+### Prerequisites
+
+Ensure you have the WebSocket dependencies in your `Cargo.toml`:
+
+```toml
+[dependencies]
+ripress = { version = "1", features = ["with-wynd"] }  # Enable WebSocket support (default)
+wynd = "0.4"  # WebSocket library
+```
+
+### Basic WebSocket Setup
+
+```rust
+use ripress::{app::App, types::RouterFns};
+use wynd::wynd::Wynd;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    let mut wynd = Wynd::new();
+
+    // HTTP routes
+    app.get("/", |_, res| async move {
+        res.ok().text("Hello, World!")
+    });
+
+    // WebSocket connection handler
+    wynd.on_connection(|conn| async move {
+        conn.on_text(|event, _| async move {
+            println!("Received message: {}", event.data);
+        });
+    });
+
+    // Mount WebSocket at /ws path
+    app.use_wynd("/ws", wynd.handler());
+
+    app.listen(3000, || {
+        println!("Server running on http://localhost:3000");
+        println!("WebSocket available at ws://localhost:3000/ws");
+    })
+    .await;
+}
+```
+
+### WebSocket Event Handlers
+
+The `wynd` crate provides several event handlers for different WebSocket events:
+
+#### Text Message Handler
+
+```rust
+wynd.on_connection(|conn| async move {
+    conn.on_text(|event, _| async move {
+        println!("Text message: {}", event.data);
+
+        // Echo the message back
+        if let Err(e) = event.handle.send_text(&format!("Echo: {}", event.data)).await {
+            eprintln!("Failed to send echo: {}", e);
+        }
+    });
+});
+```
+
+#### Binary Message Handler
+
+```rust
+wynd.on_connection(|conn| async move {
+    conn.on_binary(|event, _| async move {
+        println!("Binary message received, size: {} bytes", event.data.len());
+
+        // Echo binary data back
+        if let Err(e) = event.handle.send_binary(&event.data).await {
+            eprintln!("Failed to send binary echo: {}", e);
+        }
+    });
+});
+```
+
+#### Connection Close Handler
+
+```rust
+wynd.on_connection(|conn| async move {
+    conn.on_close(|event, _| async move {
+        println!("Connection closed: {:?}", event.code);
+    });
+});
+```
+
+#### Error Handler
+
+```rust
+wynd.on_connection(|conn| async move {
+    conn.on_error(|event, _| async move {
+        eprintln!("WebSocket error: {:?}", event.error);
+    });
+});
+```
+
+### Advanced WebSocket Example
+
+Here's a more comprehensive example with multiple event handlers and state management:
+
+```rust
+use ripress::{app::App, types::RouterFns};
+use wynd::wynd::Wynd;
+use std::sync::Arc;
+use tokio::sync::broadcast;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    let mut wynd = Wynd::new();
+
+    // Create a broadcast channel for chat messages
+    let (tx, _rx) = broadcast::channel::<String>(100);
+    let tx = Arc::new(tx);
+
+    // HTTP route for the chat page
+    app.get("/", |_, res| async move {
+        res.ok().html(r#"
+            <!DOCTYPE html>
+            <html>
+            <head><title>WebSocket Chat</title></head>
+            <body>
+                <h1>WebSocket Chat</h1>
+                <div id="messages"></div>
+                <input type="text" id="message" placeholder="Type a message...">
+                <button onclick="sendMessage()">Send</button>
+                <script>
+                    const ws = new WebSocket('ws://localhost:3000/ws');
+                    const messages = document.getElementById('messages');
+                    const input = document.getElementById('message');
+
+                    ws.onmessage = function(event) {
+                        const div = document.createElement('div');
+                        div.textContent = event.data;
+                        messages.appendChild(div);
+                    };
+
+                    function sendMessage() {
+                        if (input.value.trim()) {
+                            ws.send(input.value);
+                            input.value = '';
+                        }
+                    }
+
+                    input.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') sendMessage();
+                    });
+                </script>
+            </body>
+            </html>
+        "#)
+    });
+
+    // WebSocket connection handler with chat functionality
+    wynd.on_connection(|conn| async move {
+        let tx = tx.clone();
+        let mut rx = tx.subscribe();
+
+        // Handle incoming text messages
+        conn.on_text(|event, _| async move {
+            let message = format!("User: {}", event.data);
+            println!("{}", message);
+
+            // Broadcast message to all connected clients
+            if let Err(e) = tx.send(message.clone()) {
+                eprintln!("Failed to broadcast message: {}", e);
+            }
+
+            // Send confirmation back to sender
+            if let Err(e) = event.handle.send_text("Message sent!").await {
+                eprintln!("Failed to send confirmation: {}", e);
+            }
+        });
+
+        // Handle connection close
+        conn.on_close(|event, _| async move {
+            println!("Client disconnected: {:?}", event.code);
+        });
+
+        // Handle errors
+        conn.on_error(|event, _| async move {
+            eprintln!("WebSocket error: {:?}", event.error);
+        });
+    });
+
+    // Mount WebSocket at /ws path
+    app.use_wynd("/ws", wynd.handler());
+
+    app.listen(3000, || {
+        println!("🚀 Chat server running on http://localhost:3000");
+        println!("🔌 WebSocket available at ws://localhost:3000/ws");
+    })
+    .await;
+}
+```
+
+### WebSocket Best Practices
+
+1. **Error Handling**: Always handle WebSocket errors gracefully
+2. **Connection Management**: Track active connections for cleanup
+3. **Message Validation**: Validate incoming messages before processing
+4. **Rate Limiting**: Implement rate limiting for WebSocket messages
+5. **Security**: Validate WebSocket upgrade requests and implement authentication if needed
+6. **Graceful Shutdown**: Handle connection closures properly
+
+### Testing WebSocket Connections
+
+You can test WebSocket connections using various tools:
+
+```bash
+# Using wscat (install with: npm install -g wscat)
+wscat -c ws://localhost:3000/ws
+
+# Using curl (for WebSocket upgrade testing)
+curl -i -N -H "Connection: Upgrade" -H "Upgrade: websocket" \
+     -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
+     http://localhost:3000/ws
+```
+
+### WebSocket with Middleware
+
+WebSocket connections can coexist with HTTP middleware. The WebSocket middleware is applied before other middleware, ensuring proper WebSocket upgrade handling:
+
+```rust
+let mut app = App::new();
+let mut wynd = Wynd::new();
+
+// Add HTTP middleware
+app.use_middleware("/", |req, res| async {
+    println!("HTTP request: {} {}", req.method, req.path);
+    (req, None)
+});
+
+// WebSocket setup
+wynd.on_connection(|conn| async move {
+    conn.on_text(|event, _| async move {
+        println!("WebSocket message: {}", event.data);
+    });
+});
+
+app.use_wynd("/ws", wynd.handler());
+```
 
 ## Error Handling
 
