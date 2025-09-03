@@ -1,18 +1,18 @@
 # Changelog
 
-## [1.8.3] - 2025-08-22
+## [1.8.3] - 2025-09-4
 
 Fixed cyclic dependency issues when using with wynd
 
-## [1.8.2] - 2025-08-22
+## [1.8.2] - 2025-09-4
 
 Updated websocket versions
 
-## [1.8.1] - 2025-08-22
+## [1.8.1] - 2025-09-4
 
 Fixed nightly feature gates
 
-## [1.8.0] - 2025-08-22
+## [1.8.0] - 2025-09-4
 
 Added `app.use_wynd` method
 Added wynd middleware to the app
