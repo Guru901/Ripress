@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.3] - 2025-08-22
+
+Fixed cyclic dependency issues when using with wynd
+
 ## [1.8.2] - 2025-08-22
 
 Updated websocket versions
