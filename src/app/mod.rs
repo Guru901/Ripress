@@ -45,15 +45,6 @@ where
     Box::pin(future)
 }
 
-#[cfg(feature = "with-wynd")]
-pub(crate) fn box_wynd_middleware<F>(
-    future: F,
-) -> impl Future<Output = hyper::Result<hyper::Response<hyper::Body>>>
-where
-    F: Future<Output = hyper::Result<hyper::Response<hyper::Body>>> + Send + 'static,
-{
-    Box::pin(future)
-}
 /// Represents a middleware in the Ripress application.
 ///
 /// A `Middleware` consists of a function and an associated path. The function is an
@@ -88,7 +79,6 @@ pub struct Middleware {
 pub(crate) struct WyndMiddleware {
     pub func: WyndMiddlewareHandler,
     pub path: String,
-    pub(crate) name: String,
 }
 
 /// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests. It follows an Express-like pattern for route handling.
@@ -295,7 +285,6 @@ impl App {
         self.wynd_middleware = Some(WyndMiddleware {
             func: Self::wynd_middleware_from_closure(handler),
             path: path.to_string(),
-            name: "wynd".to_string(),
         });
         self
     }
@@ -408,7 +397,7 @@ impl App {
             + Send
             + 'static,
     {
-        Arc::new(move |req| Box::pin(box_wynd_middleware(f(req))))
+        Arc::new(move |req| Box::pin(f(req)))
     }
 
     /// Add a static file server to the application.
