@@ -46,7 +46,16 @@ pub(crate) async fn exec_post_middleware(
 
     let our_req = HttpRequest::from_request_info(info);
 
-    let our_res = HttpResponse::from_hyper_response(&mut res).await;
+    let our_res = match HttpResponse::from_hyper_response(&mut res).await {
+        Ok(res) => res,
+        Err(e) => {
+            return Err(ApiError::Generic(
+                HttpResponse::new()
+                    .internal_server_error()
+                    .text(e.to_string()),
+            ));
+        }
+    };
 
     let (_, maybe_res) = mw_func(our_req, our_res).await;
 
@@ -79,7 +88,7 @@ pub(crate) async fn exec_wynd_middleware(
             Ok(mut res) => {
                 // If successful, return the response as an error to stop processing
                 return Err(ApiError::Generic(
-                    HttpResponse::from_hyper_response(&mut res).await,
+                    HttpResponse::from_hyper_response(&mut res).await?,
                 ));
             }
         }
