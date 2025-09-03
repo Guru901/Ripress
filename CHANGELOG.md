@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.1] - 2025-08-22
+
+Fixed nightly feature gates
+
 ## [1.8.0] - 2025-08-22
 
 Added `app.use_wynd` method

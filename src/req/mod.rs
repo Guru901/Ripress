@@ -829,7 +829,106 @@ impl HttpRequest {
         }
     }
 
-    #[cfg_attr(feature = "with-wynd", visibility::make(pub))]
+    #[cfg(feature = "with-wynd")]
+    pub fn to_hyper_request(&self) -> Result<Request<Body>, Box<dyn std::error::Error>> {
+        let path = if self.path.is_empty() {
+            "/".to_string()
+        } else if !self.path.starts_with('/') {
+            return Err("Path must start with '/'".into());
+        } else {
+            self.path.clone()
+        };
+
+        let mut uri_builder = path.to_string();
+        if !self.query.is_empty() {
+            uri_builder.push('?');
+            uri_builder.push_str(&get_all_query(&self.query));
+        }
+
+        let uri: hyper::Uri = uri_builder
+            .parse()
+            .map_err(|e| format!("Failed to parse URI '{}': {}", uri_builder, e))?;
+
+        let mut builder = Request::builder()
+            .method(self.method.to_string().as_str())
+            .uri(uri);
+
+        // Add headers
+        if let Some(headers) = builder.headers_mut() {
+            // Add all headers
+            for (name, value) in self.headers.iter() {
+                if let (Ok(hn), Ok(hv)) = (
+                    hyper::header::HeaderName::from_bytes(name.as_bytes()),
+                    hyper::header::HeaderValue::from_str(value),
+                ) {
+                    headers.append(hn, hv);
+                }
+            }
+
+            if !self.cookies.is_empty() && !headers.contains_key(hyper::header::COOKIE) {
+                let cookie_str: String = self
+                    .cookies
+                    .iter()
+                    .map(|(name, value)| format!("{}={}", name, value))
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                headers.insert(
+                    hyper::header::COOKIE,
+                    hyper::header::HeaderValue::from_str(&cookie_str)?,
+                );
+            }
+        }
+
+        let data = self.get_all_data();
+
+        if let Some(ext) = builder.extensions_mut() {
+            ext.insert(data.clone());
+        }
+
+        let body = match &self.body.content {
+            RequestBodyContent::JSON(json) => {
+                builder
+                    .headers_mut()
+                    .unwrap()
+                    .insert(hyper::header::CONTENT_TYPE, "application/json".parse()?);
+                Body::from(serde_json::to_string(json)?)
+            }
+            RequestBodyContent::TEXT(text) => {
+                builder
+                    .headers_mut()
+                    .unwrap()
+                    .insert(hyper::header::CONTENT_TYPE, "text/plain".parse()?);
+                Body::from(text.as_bytes().to_vec())
+            }
+            RequestBodyContent::FORM(form) => {
+                builder.headers_mut().unwrap().insert(
+                    hyper::header::CONTENT_TYPE,
+                    "application/x-www-form-urlencoded".parse()?,
+                );
+                Body::from(form.to_string().clone())
+            }
+            RequestBodyContent::BINARY(bytes) => {
+                builder.headers_mut().unwrap().insert(
+                    hyper::header::CONTENT_TYPE,
+                    "application/octet-stream".parse()?,
+                );
+                Body::from(bytes.clone())
+            }
+            RequestBodyContent::BinaryWithFields(bytes, _form_data) => {
+                // For multipart forms with files, we send the binary data
+                // but the form fields are accessible via form_data()
+                builder
+                    .headers_mut()
+                    .unwrap()
+                    .insert(hyper::header::CONTENT_TYPE, "multipart/form-data".parse()?);
+                Body::from(bytes.clone())
+            }
+            RequestBodyContent::EMPTY => Body::empty(),
+        };
+
+        Ok(builder.body(body)?)
+    }
+    #[cfg(not(feature = "with-wynd"))]
     pub(crate) fn to_hyper_request(&self) -> Result<Request<Body>, Box<dyn std::error::Error>> {
         let path = if self.path.is_empty() {
             "/".to_string()

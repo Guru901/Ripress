@@ -703,7 +703,77 @@ impl HttpResponse {
         self
     }
 
-    #[cfg_attr(feature = "with-wynd", visibility::make(pub))]
+    #[cfg(feature = "with-wynd")]
+    pub async fn from_hyper_response(res: &mut Response<Body>) -> Result<Self, hyper::Error> {
+        let body_bytes = to_bytes(res.body_mut()).await?;
+
+        let content_type_hdr = res
+            .headers()
+            .get(hyper::header::CONTENT_TYPE)
+            .and_then(|h| h.to_str().ok());
+
+        let content_type = content_type_hdr
+            .map(determine_content_type_response)
+            .unwrap_or(ResponseContentType::BINARY);
+
+        let body = match content_type {
+            ResponseContentType::BINARY => ResponseContentBody::new_binary(body_bytes),
+            ResponseContentType::TEXT => {
+                let text = String::from_utf8(body_bytes.to_vec())
+                    .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
+                ResponseContentBody::new_text(text)
+            }
+            ResponseContentType::JSON => {
+                // Avoid panic: if JSON parsing fails, fallback to empty object
+                let json_value =
+                    serde_json::from_slice(&body_bytes).unwrap_or(serde_json::Value::Null);
+                ResponseContentBody::new_json(json_value)
+            }
+            ResponseContentType::HTML => {
+                let html = String::from_utf8(body_bytes.to_vec())
+                    .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
+                ResponseContentBody::new_html(html)
+            }
+        };
+
+        // Heuristic for SSE streams: text/event-stream + keep-alive
+        let is_event_stream = content_type_hdr
+            .map(|ct| ct.eq_ignore_ascii_case("text/event-stream"))
+            .unwrap_or(false);
+        let is_keep_alive = res
+            .headers()
+            .get(hyper::header::CONNECTION)
+            .and_then(|h| h.to_str().ok())
+            .map(|v| v.eq_ignore_ascii_case("keep-alive"))
+            .unwrap_or(false);
+        let is_stream = is_event_stream && is_keep_alive;
+
+        let status_code = StatusCode::from_u16(res.status().as_u16());
+        let mut headers = ResponseHeaders::new();
+
+        for (key, value) in res.headers().iter() {
+            if let Ok(v) = value.to_str() {
+                headers.insert(key.as_str(), v);
+            }
+        }
+        for value in res.headers().get_all(SET_COOKIE).iter() {
+            if let Ok(v) = value.to_str() {
+                headers.insert("Set-Cookie", v);
+            }
+        }
+
+        Ok(HttpResponse {
+            body,
+            content_type,
+            status_code,
+            headers,
+            cookies: Vec::new(),
+            remove_cookies: Vec::new(),
+            is_stream,
+            stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
+        })
+    }
+    #[cfg(not(feature = "with-wynd"))]
     pub(crate) async fn from_hyper_response(
         res: &mut Response<Body>,
     ) -> Result<Self, hyper::Error> {

@@ -202,7 +202,11 @@ impl std::fmt::Display for _HttpResponseError {
     }
 }
 
-#[cfg_attr(feature = "with-wynd", visibility::make(pub))]
+#[cfg(feature = "with-wynd")]
+pub type FutMiddleware =
+    Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
+
+#[cfg(not(feature = "with-wynd"))]
 pub(crate) type FutMiddleware =
     Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
 
