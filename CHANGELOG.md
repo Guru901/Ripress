@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.0] - 2025-08-22
+
+Added `app.use_wynd` method
+Added wynd middleware to the app
+
 ## [1.7.5] - 2025-08-22
 
 Added a few impls to make it work with wynd
