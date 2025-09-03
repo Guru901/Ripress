@@ -1,6 +1,8 @@
 #![warn(missing_docs)]
 
 use crate::app::api_error::ApiError;
+#[cfg(feature = "with-wynd")]
+use crate::helpers::exec_wynd_middleware;
 use crate::helpers::{exec_post_middleware, exec_pre_middleware};
 use crate::middlewares::body_limit::body_limit;
 use crate::middlewares::compression::{CompressionConfig, compression};
@@ -10,6 +12,8 @@ use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
 use crate::middlewares::shield::{ShieldConfig, shield};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
+#[cfg(feature = "with-wynd")]
+use crate::types::WyndMiddlewareHandler;
 use crate::types::{Fut, FutMiddleware, HandlerMiddleware, HttpMethods, RouterFns, Routes};
 use hyper::header;
 use hyper::http::StatusCode;
@@ -18,8 +22,11 @@ use hyper_staticfile::Static;
 use routerify::ext::RequestExt;
 use routerify::{Router, RouterService};
 use std::collections::HashMap;
+use std::future::Future;
 use std::net::SocketAddr;
 use std::path::Path;
+#[cfg(feature = "with-wynd")]
+use std::pin::Pin;
 use std::sync::Arc;
 
 pub(crate) mod api_error;
@@ -38,6 +45,15 @@ where
     Box::pin(future)
 }
 
+#[cfg(feature = "with-wynd")]
+pub(crate) fn box_wynd_middleware<F>(
+    future: F,
+) -> impl Future<Output = hyper::Result<hyper::Response<hyper::Body>>>
+where
+    F: Future<Output = hyper::Result<hyper::Response<hyper::Body>>> + Send + 'static,
+{
+    Box::pin(future)
+}
 /// Represents a middleware in the Ripress application.
 ///
 /// A `Middleware` consists of a function and an associated path. The function is an
@@ -67,11 +83,22 @@ pub struct Middleware {
     pub(crate) name: String,
 }
 
+#[cfg(feature = "with-wynd")]
+#[derive(Clone)]
+pub(crate) struct WyndMiddleware {
+    pub func: WyndMiddlewareHandler,
+    pub path: String,
+    pub(crate) name: String,
+}
+
 /// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests. It follows an Express-like pattern for route handling.
 pub struct App {
     routes: Routes,
     pub(crate) middlewares: Vec<Middleware>,
     pub(crate) static_files: HashMap<&'static str, &'static str>,
+
+    #[cfg(feature = "with-wynd")]
+    pub(crate) wynd_middleware: Option<WyndMiddleware>,
 }
 
 impl RouterFns for App {
@@ -94,6 +121,8 @@ impl App {
             routes: HashMap::new(),
             middlewares: Vec::new(),
             static_files: HashMap::new(),
+            #[cfg(feature = "with-wynd")]
+            wynd_middleware: None,
         }
     }
 
@@ -257,13 +286,14 @@ impl App {
     ///     .await;
     /// }
     /// ```
+    #[cfg(feature = "with-wynd")]
     pub fn use_wynd<F, Fut>(&mut self, path: &'static str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
-        Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
+        F: Fn(hyper::Request<hyper::Body>) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = hyper::Result<hyper::Response<hyper::Body>>> + Send + 'static,
     {
-        self.middlewares.push(Middleware {
-            func: Self::middleware_from_closure(handler),
+        self.wynd_middleware = Some(WyndMiddleware {
+            func: Self::wynd_middleware_from_closure(handler),
             path: path.to_string(),
             name: "wynd".to_string(),
         });
@@ -370,6 +400,17 @@ impl App {
         Arc::new(move |req, res| box_future_middleware(f(req, res)))
     }
 
+    #[cfg(feature = "with-wynd")]
+    fn wynd_middleware_from_closure<F, Fut>(f: F) -> WyndMiddlewareHandler
+    where
+        F: Fn(hyper::Request<hyper::Body>) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = hyper::Result<hyper::Response<hyper::Body>>>
+            + Send
+            + 'static,
+    {
+        Arc::new(move |req| Box::pin(box_wynd_middleware(f(req))))
+    }
+
     /// Add a static file server to the application.
     ///
     /// ## Arguments
@@ -458,6 +499,14 @@ impl App {
                     move |req| exec_pre_middleware(req, middleware.clone())
                 }));
             }
+        }
+
+        #[cfg(feature = "with-wynd")]
+        if let Some(middleware) = &self.wynd_middleware {
+            router = router.middleware(routerify::Middleware::pre({
+                let middleware = middleware.clone();
+                move |req| exec_wynd_middleware(req, middleware.clone())
+            }));
         }
 
         // Register API routes FIRST (before static files)

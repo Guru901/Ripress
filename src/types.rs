@@ -214,6 +214,16 @@ pub(crate) type FutMiddleware = FutMiddlewareInner;
 pub(crate) type HandlerMiddleware =
     Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>;
 
+#[cfg(feature = "with-wynd")]
+pub(crate) type WyndMiddlewareHandler = Arc<
+    dyn Fn(
+            hyper::Request<hyper::Body>,
+        )
+            -> Pin<Box<dyn Future<Output = hyper::Result<hyper::Response<hyper::Body>>> + Send>>
+        + Send
+        + Sync,
+>;
+
 /// Trait providing routing functionality for applications and routers.
 ///
 /// This trait defines methods for managing and registering HTTP routes,

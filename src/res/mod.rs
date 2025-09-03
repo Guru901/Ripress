@@ -703,7 +703,7 @@ impl HttpResponse {
         self
     }
 
-    pub(crate) async fn from_hyper_response(res: &mut Response<Body>) -> Self {
+    pub async fn from_hyper_response(res: &mut Response<Body>) -> Self {
         let body_bytes = to_bytes(res.body_mut()).await.unwrap_or(Bytes::new());
 
         let content_type_hdr = res
