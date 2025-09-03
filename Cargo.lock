@@ -1201,31 +1201,6 @@ dependencies = [
 [[package]]
 name = "ripress"
 version = "1.8.1"
-dependencies = [
- "bytes",
- "cookie",
- "flate2",
- "futures",
- "hyper 0.14.32",
- "hyper-staticfile",
- "infer",
- "mime",
- "mime_guess",
- "reqwest",
- "routerify",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "url",
- "urlencoding",
- "uuid",
- "wynd 0.4.0",
-]
-
-[[package]]
-name = "ripress"
-version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e762db59712628ab5002a24d0f90bf12930c9e2cf3502a7c5e5de1435913d5ee"
 dependencies = [
@@ -1246,6 +1221,31 @@ dependencies = [
  "urlencoding",
  "uuid",
  "wynd 0.3.1",
+]
+
+[[package]]
+name = "ripress"
+version = "1.8.2"
+dependencies = [
+ "bytes",
+ "cookie",
+ "flate2",
+ "futures",
+ "hyper 0.14.32",
+ "hyper-staticfile",
+ "infer",
+ "mime",
+ "mime_guess",
+ "reqwest",
+ "routerify",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "url",
+ "urlencoding",
+ "uuid",
+ "wynd 0.4.0",
 ]
 
 [[package]]

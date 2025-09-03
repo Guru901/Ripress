@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.2] - 2025-08-22
+
+Updated websocket versions
+
 ## [1.8.1] - 2025-08-22
 
 Fixed nightly feature gates
