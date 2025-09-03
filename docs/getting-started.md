@@ -149,11 +149,11 @@ wscat -c ws://localhost:3000/ws
 
 ## What's Next?
 
-- 📖 [Routing Guide](./routing) - Learn about advanced routing patterns
-- 🔧 [Middleware](./middleware) - Add custom middleware to your app
-- 📝 [Request & Response](./request-response) - Deep dive into handling HTTP data
-- 🔌 [WebSocket Guide](./websocket) - Build real-time applications
-- 🎯 [Examples](./examples) - More practical examples and use cases
+- 📖 [Routing Guide](./guides/routing.md) - Learn about advanced routing patterns
+- 🔧 [Middleware](./guides/middleware.md) - Add custom middleware to your app
+- 📝 [Request & Response](./guides/request-response.md) - Deep dive into handling HTTP data
+- 🔌 [WebSocket Guide](./guides/websocket.md) - Build real-time applications
+- 🎯 [Examples](./example/) - More practical examples and use cases
 
 ---
 
