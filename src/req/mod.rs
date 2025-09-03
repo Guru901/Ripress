@@ -856,12 +856,12 @@ impl HttpRequest {
         // Add headers
         if let Some(headers) = builder.headers_mut() {
             // Add all headers
-            for header in self.headers.iter() {
-                if let Ok(header_name) = hyper::header::HeaderName::from_bytes(header.0.as_bytes())
-                {
-                    if let Ok(header_value) = hyper::header::HeaderValue::from_str(header.1) {
-                        headers.insert(header_name, header_value);
-                    }
+            for (name, value) in self.headers.iter() {
+                if let (Ok(hn), Ok(hv)) = (
+                    hyper::header::HeaderName::from_bytes(name.as_bytes()),
+                    hyper::header::HeaderValue::from_str(value),
+                ) {
+                    headers.append(hn, hv);
                 }
             }
 
