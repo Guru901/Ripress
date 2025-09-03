@@ -267,7 +267,7 @@ impl App {
 
     ///     app.get("/", |_, res| async move { res.ok().text("Hello World!") });
 
-    ///     app.get("/ws", wynd.handler());
+    ///     app.use_wynd("/ws", wynd.handler());
 
     ///     app.listen(3000, || {
     ///         println!("Server running on http://localhost:3000");
@@ -276,7 +276,6 @@ impl App {
     ///     .await;
     /// }
     /// ```
-    #[cfg(feature = "with-wynd")]
     pub fn use_wynd<F, Fut>(&mut self, path: &'static str, handler: F) -> &mut Self
     where
         F: Fn(hyper::Request<hyper::Body>) -> Fut + Send + Sync + 'static,
