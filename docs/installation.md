@@ -43,6 +43,57 @@ ripress = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
+### WebSocket Support (with-wynd feature)
+
+Ripress includes built-in WebSocket support through the `wynd` crate. The "with-wynd" feature is optional and must be explicitly enabled:
+
+```toml
+[dependencies]
+ripress = { version = "1", features = ["with-wynd"] }  # Enable WebSocket support
+wynd = "0.4"  # WebSocket library
+```
+
+Or use without WebSocket support:
+
+```toml
+[dependencies]
+ripress = "1"  # WebSocket support disabled (default)
+```
+
+With WebSocket support enabled, you can create real-time applications:
+
+```rust
+use ripress::{app::App, types::RouterFns};
+use wynd::wynd::Wynd;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    let mut wynd = Wynd::new();
+
+    // HTTP route
+    app.get("/", |_, res| async move {
+        res.ok().text("Hello, World!")
+    });
+
+    // WebSocket connection handler
+    wynd.on_connection(|conn| async move {
+        conn.on_text(|event, _| async move {
+            println!("Received: {}", event.data);
+        });
+    });
+
+    // Mount WebSocket at /ws path
+    app.use_wynd("/ws", wynd.handler());
+
+    app.listen(3000, || {
+        println!("Server running on http://localhost:3000");
+        println!("WebSocket available at ws://localhost:3000/ws");
+    })
+    .await;
+}
+```
+
 ### Optional Dependencies
 
 Depending on your use case, you might want to add these common dependencies:

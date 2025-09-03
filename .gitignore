@@ -1,6 +1,5 @@
 /target
 src/main.rs
-.idea
 tarpaulin-report.html
 .DS_Store
 docs/.DS_Store

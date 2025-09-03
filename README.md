@@ -54,6 +54,7 @@ Ripress is a web framework inspired by Express.js, designed to bring the familia
 - **Built-in middleware** including CORS, logging, and file uploads
 - **Request/response objects** with JSON, text, and form parsing
 - **Type-safe handler signatures** for better developer experience
+- **WebSocket support** via the `wynd` crate (with "with-wynd" feature)
 - **Extensible architecture** via custom middleware
 
 ## Goals
@@ -101,6 +102,40 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ```
 
+### WebSocket Example
+
+```rust
+use ripress::{app::App, types::RouterFns};
+use wynd::wynd::Wynd;
+
+#[tokio::main]
+async fn main() {
+    let mut app = App::new();
+    let mut wynd = Wynd::new();
+
+    // HTTP route
+    app.get("/", |_, res| async move {
+        res.ok().text("Hello, World!")
+    });
+
+    // WebSocket connection handler
+    wynd.on_connection(|conn| async move {
+        conn.on_text(|event, _| async move {
+            println!("Received: {}", event.data);
+        });
+    });
+
+    // Mount WebSocket at /ws path
+    app.use_wynd("/ws", wynd.handler());
+
+    app.listen(3000, || {
+        println!("Server running on http://localhost:3000");
+        println!("WebSocket available at ws://localhost:3000/ws");
+    })
+    .await;
+}
+```
+
 View more basic examples in [Examples](./docs/example/) dir.
 View full blown code examples [here](https://github.com/Guru901/ripress-examples).
 
@@ -140,6 +175,7 @@ You can also check out the complete API documentation on [Docs.rs](https://docs.
 
 - [Getting Started Guide](./docs/getting-started.md)
 - [Middleware Guide](./docs/guides/middleware.md)
+- [WebSocket Guide](./docs/guides/websocket.md)
 - [API Reference](./docs/api-reference/)
 
 ## Changelog
