@@ -26,13 +26,21 @@ cargo add serde_json
 
 ### WebSocket Support (Optional)
 
-If you want to add WebSocket support to your app, add the wynd dependency:
+If you want to add WebSocket support to your app, add the wynd dependency and enable the feature:
 
 ```bash
 cargo add wynd
 ```
 
-The "with-wynd" feature is enabled by default in Ripress, so WebSocket support will be available automatically.
+And update your `Cargo.toml` to enable the feature:
+
+```toml
+[dependencies]
+ripress = { version = "1", features = ["with-wynd"] }
+wynd = "0.4"
+```
+
+The "with-wynd" feature is optional and must be explicitly enabled.
 
 ## Step 2: Basic "Hello World"
 
@@ -453,10 +461,18 @@ If you want to add real-time features to your Todo API, you can integrate WebSoc
 
 ### Adding WebSocket Dependencies
 
-First, add the wynd dependency to your `Cargo.toml`:
+First, add the wynd dependency to your `Cargo.toml` and enable the feature:
 
 ```bash
 cargo add wynd
+```
+
+And update your `Cargo.toml`:
+
+```toml
+[dependencies]
+ripress = { version = "1", features = ["with-wynd"] }
+wynd = "0.4"
 ```
 
 ### Creating a WebSocket-Enhanced Todo API

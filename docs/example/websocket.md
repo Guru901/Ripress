@@ -163,7 +163,7 @@ Make sure you have the required dependencies in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ripress = { version = "1", features = ["with-wynd"] }  # Enable WebSocket support (default)
+ripress = { version = "1", features = ["with-wynd"] }  # Enable WebSocket support
 wynd = "0.4"  # WebSocket library
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```

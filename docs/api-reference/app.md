@@ -833,7 +833,7 @@ The static file server:
 
 ## WebSocket Support
 
-Ripress provides built-in WebSocket support through the `wynd` crate when the "with-wynd" feature is enabled (default). This allows you to create real-time applications alongside your HTTP routes.
+Ripress provides built-in WebSocket support through the `wynd` crate when the "with-wynd" feature is enabled. This allows you to create real-time applications alongside your HTTP routes.
 
 ### Prerequisites
 
@@ -841,7 +841,7 @@ Ensure you have the WebSocket dependencies in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ripress = { version = "1", features = ["with-wynd"] }  # Enable WebSocket support (default)
+ripress = { version = "1", features = ["with-wynd"] }  # Enable WebSocket support
 wynd = "0.4"  # WebSocket library
 ```
 

@@ -38,11 +38,11 @@ serde_json = "1.0"  # For JSON handling
 
 ### WebSocket Support
 
-Ripress includes built-in WebSocket support through the `wynd` crate. The "with-wynd" feature is enabled by default:
+Ripress includes built-in WebSocket support through the `wynd` crate. The "with-wynd" feature is optional and must be explicitly enabled:
 
 ```toml
 [dependencies]
-ripress = { version = "1.0.1", features = ["with-wynd"] }  # Enable WebSocket support (default)
+ripress = { version = "1.0.1", features = ["with-wynd"] }  # Enable WebSocket support
 wynd = "0.4"  # WebSocket library
 ```
 

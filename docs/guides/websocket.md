@@ -12,7 +12,7 @@ Ensure you have the WebSocket dependencies in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ripress = { version = "1", features = ["with-wynd"] }  # Enable WebSocket support (default)
+ripress = { version = "1", features = ["with-wynd"] }  # Enable WebSocket support
 wynd = "0.4"  # WebSocket library
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
@@ -22,11 +22,11 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 You can explicitly control WebSocket support:
 
 ```toml
-# Enable WebSocket support (default)
+# Enable WebSocket support
 ripress = { version = "1", features = ["with-wynd"] }
 
-# Disable WebSocket support
-ripress = { version = "1", default-features = false }
+# Use without WebSocket support (default)
+ripress = "1"
 ```
 
 ## Basic WebSocket Setup

@@ -45,19 +45,19 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 ### WebSocket Support (with-wynd feature)
 
-Ripress includes built-in WebSocket support through the `wynd` crate. The "with-wynd" feature is enabled by default, but you can explicitly control it:
+Ripress includes built-in WebSocket support through the `wynd` crate. The "with-wynd" feature is optional and must be explicitly enabled:
 
 ```toml
 [dependencies]
-ripress = { version = "1", features = ["with-wynd"] }  # Enable WebSocket support (default)
+ripress = { version = "1", features = ["with-wynd"] }  # Enable WebSocket support
 wynd = "0.4"  # WebSocket library
 ```
 
-Or disable WebSocket support:
+Or use without WebSocket support:
 
 ```toml
 [dependencies]
-ripress = { version = "1", default-features = false }  # Disable WebSocket support
+ripress = "1"  # WebSocket support disabled (default)
 ```
 
 With WebSocket support enabled, you can create real-time applications:
