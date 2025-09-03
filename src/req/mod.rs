@@ -865,15 +865,17 @@ impl HttpRequest {
                 }
             }
 
-            // Add cookies as a single header (only if we have cookies)
-            if !self.cookies.is_empty() {
+            if !self.cookies.is_empty() && !headers.contains_key(hyper::header::COOKIE) {
                 let cookie_str: String = self
                     .cookies
                     .iter()
                     .map(|(name, value)| format!("{}={}", name, value))
                     .collect::<Vec<_>>()
                     .join("; ");
-                headers.insert(hyper::header::COOKIE, cookie_str.parse()?);
+                headers.insert(
+                    hyper::header::COOKIE,
+                    hyper::header::HeaderValue::from_str(&cookie_str)?,
+                );
             }
         }
 
