@@ -1,4 +1,6 @@
 #![warn(missing_docs)]
+#[cfg(feature = "with-wynd")]
+use crate::app::WyndMiddleware;
 use crate::{
     app::{Middleware, api_error::ApiError},
     req::{HttpRequest, query_params::QueryParams},
@@ -44,13 +46,54 @@ pub(crate) async fn exec_post_middleware(
 
     let our_req = HttpRequest::from_request_info(info);
 
-    let our_res = HttpResponse::from_hyper_response(&mut res).await;
+    let our_res = match HttpResponse::from_hyper_response(&mut res).await {
+        Ok(res) => res,
+        Err(e) => {
+            return Err(ApiError::Generic(
+                HttpResponse::new()
+                    .internal_server_error()
+                    .text(e.to_string()),
+            ));
+        }
+    };
 
     let (_, maybe_res) = mw_func(our_req, our_res).await;
 
     match maybe_res {
         None => Ok(res),
         Some(res) => return Ok(res.to_hyper_response()?),
+    }
+}
+
+#[cfg(feature = "with-wynd")]
+pub(crate) async fn exec_wynd_middleware(
+    mut req: Request<Body>,
+    middleware: WyndMiddleware,
+) -> Result<Request<Body>, ApiError> {
+    let mw_func = middleware.func;
+
+    let our_req = HttpRequest::from_hyper_request(&mut req)
+        .await
+        .map_err(ApiError::from)?;
+
+    if path_matches(middleware.path.as_str(), our_req.path.as_str()) {
+        // Call the wynd middleware function with the original hyper request
+        let response = mw_func(req).await;
+
+        match response {
+            Err(e) => {
+                // If there's an error, return the original request to continue processing
+                return our_req.to_hyper_request().map_err(ApiError::from);
+            }
+            Ok(mut res) => {
+                // If successful, return the response as an error to stop processing
+                return Err(ApiError::Generic(
+                    HttpResponse::from_hyper_response(&mut res).await?,
+                ));
+            }
+        }
+    } else {
+        our_req.to_hyper_request().map_err(ApiError::from)
     }
 }
 

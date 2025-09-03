@@ -829,6 +829,7 @@ impl HttpRequest {
         }
     }
 
+    #[cfg_attr(feature = "with-wynd", visibility::make(pub))]
     pub(crate) fn to_hyper_request(&self) -> Result<Request<Body>, Box<dyn std::error::Error>> {
         let path = if self.path.is_empty() {
             "/".to_string()
@@ -852,24 +853,29 @@ impl HttpRequest {
             .method(self.method.to_string().as_str())
             .uri(uri);
 
-        // Rest of the code remains the same...
+        // Add headers
         if let Some(headers) = builder.headers_mut() {
-            //
-            for header in self.headers.iter() {
-                if let Ok(header_name) = hyper::header::HeaderName::from_bytes(header.0.as_bytes())
-                {
-                    if let Ok(header_value) = hyper::header::HeaderValue::from_str(header.1) {
-                        headers.insert(header_name, header_value);
-                    }
+            // Add all headers
+            for (name, value) in self.headers.iter() {
+                if let (Ok(hn), Ok(hv)) = (
+                    hyper::header::HeaderName::from_bytes(name.as_bytes()),
+                    hyper::header::HeaderValue::from_str(value),
+                ) {
+                    headers.append(hn, hv);
                 }
+            }
 
+            if !self.cookies.is_empty() && !headers.contains_key(hyper::header::COOKIE) {
                 let cookie_str: String = self
                     .cookies
                     .iter()
                     .map(|(name, value)| format!("{}={}", name, value))
                     .collect::<Vec<_>>()
                     .join("; ");
-                headers.insert(hyper::header::COOKIE, cookie_str.parse()?);
+                headers.insert(
+                    hyper::header::COOKIE,
+                    hyper::header::HeaderValue::from_str(&cookie_str)?,
+                );
             }
         }
 

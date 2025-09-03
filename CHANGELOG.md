@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.5] - 2025-08-22
+
+Added a few impls to make it work with wynd
+
 ## [1.7.4] - 2025-08-22
 
 Edited somethings for wynd integration
