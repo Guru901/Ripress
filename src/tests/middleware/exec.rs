@@ -1,17 +1,19 @@
 #[cfg(test)]
 mod tests {
-    use hyper::{Body, Request, Response};
-    use routerify::RequestInfo;
+    use hyper::{Body, Request};
     use std::sync::Arc;
 
     use crate::{
-        app::WyndMiddleware,
         app::{Middleware, api_error::ApiError},
         helpers::exec_pre_middleware,
-        helpers::exec_wynd_middleware,
         req::HttpRequest,
         res::HttpResponse,
     };
+
+    #[cfg(feature = "with-wynd")]
+    use crate::app::WyndMiddleware;
+    #[cfg(feature = "with-wynd")]
+    use crate::helpers::exec_wynd_middleware;
 
     // Helper to make a dummy request
     fn make_request(path: &str) -> Request<Body> {
