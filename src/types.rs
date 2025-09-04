@@ -640,5 +640,16 @@ mod test {
                 ResponseContentBody::BINARY(bytes) => bytes.to_vec(),
             }
         }
+
+        pub(crate) fn get_content_as_string(&self) -> String {
+            match self {
+                ResponseContentBody::TEXT(text) => text.to_string(),
+                ResponseContentBody::HTML(html) => html.to_string(),
+                ResponseContentBody::JSON(json) => serde_json::to_string(json).unwrap_or_default(),
+                ResponseContentBody::BINARY(bytes) => {
+                    String::from_utf8(bytes.to_vec()).unwrap_or_default()
+                }
+            }
+        }
     }
 }
