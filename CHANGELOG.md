@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.4] - 2025-09-4
+
+Added Tests
+
 ## [1.8.3] - 2025-09-4
 
 Fixed cyclic dependency issues when using with wynd
