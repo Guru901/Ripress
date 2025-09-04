@@ -511,6 +511,21 @@ mod tests {
         assert_eq!(app.middlewares.last().unwrap().path, "/");
     }
 
+    #[cfg(feature = "with-wynd")]
+    #[test]
+    fn test_use_wynd_adds_wynd_middleware() {
+        let mut app = App::new();
+        app.use_wynd(
+            "/ws",
+            Box::new(|_req: Request<Body>| async move {
+                Ok(Response::new(Body::from("Hello, World!")))
+            }),
+        );
+
+        assert!(app.wynd_middleware.is_some());
+        assert!(app.wynd_middleware.unwrap().path == "/ws");
+    }
+
     #[test]
     fn test_use_cors_adds_middleware() {
         let mut app = App::new();
