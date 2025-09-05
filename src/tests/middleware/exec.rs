@@ -24,7 +24,7 @@ mod tests {
     fn passthrough_middleware() -> Middleware {
         Middleware {
             path: "/".to_string(),
-            func: Arc::new(|req: HttpRequest, res: HttpResponse| {
+            func: Arc::new(|req: HttpRequest, _: HttpResponse| {
                 Box::pin(async move { (req, None) })
             }),
             name: String::new(),

@@ -4,7 +4,6 @@ Thank you for your interest in contributing to Ripress! We welcome contributions
 
 ## Table of Contents
 
-- [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
 - [Development Setup](#development-setup)
 - [Project Structure](#project-structure)
@@ -14,10 +13,6 @@ Thank you for your interest in contributing to Ripress! We welcome contributions
 - [Performance Considerations](#performance-considerations)
 - [Submitting Changes](#submitting-changes)
 - [Community](#community)
-
-## Code of Conduct
-
-By participating in this project, you agree to abide by our community guidelines. Please be respectful and constructive in all interactions.
 
 ## Getting Started
 
