@@ -182,6 +182,10 @@ You can also check out the complete API documentation on [Docs.rs](https://docs.
 
 [View Changelog](./CHANGELOG.md)
 
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
 ---
 
 _Ripress v1.0.1 - Production Ready_ ✨
