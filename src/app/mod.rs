@@ -268,12 +268,6 @@ impl App {
     ///     app.get("/", |_, res| async move { res.ok().text("Hello World!") });
 
     ///     app.use_wynd("/ws", wynd.handler());
-
-    ///     app.listen(3000, || {
-    ///         println!("Server running on http://localhost:3000");
-    ///         println!("WebSocket available at ws://localhost:3000/ws");
-    ///     })
-    ///     .await;
     /// }
     /// ```
     pub fn use_wynd<F, Fut>(&mut self, path: &'static str, handler: F) -> &mut Self
@@ -472,6 +466,14 @@ impl App {
     pub async fn listen<F: FnOnce()>(&self, port: u16, cb: F) {
         let mut router = Router::<Body, ApiError>::builder();
 
+        #[cfg(feature = "with-wynd")]
+        if let Some(middleware) = &self.wynd_middleware {
+            router = router.middleware(routerify::Middleware::pre({
+                let middleware = middleware.clone();
+                move |req| exec_wynd_middleware(req, middleware.clone())
+            }));
+        }
+
         // Apply middlewares first
         for middleware in self.middlewares.iter() {
             let middleware = middleware.clone();
@@ -487,14 +489,6 @@ impl App {
                     move |req| exec_pre_middleware(req, middleware.clone())
                 }));
             }
-        }
-
-        #[cfg(feature = "with-wynd")]
-        if let Some(middleware) = &self.wynd_middleware {
-            router = router.middleware(routerify::Middleware::pre({
-                let middleware = middleware.clone();
-                move |req| exec_wynd_middleware(req, middleware.clone())
-            }));
         }
 
         // Register API routes FIRST (before static files)
