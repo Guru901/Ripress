@@ -85,6 +85,8 @@ mod tests {
             func: Arc::new(|_req: Request<Body>| {
                 Box::pin(async move {
                     // Instead of returning ApiError, return Ok with a response to match the expected type
+
+                    use hyper::Response;
                     Ok(Response::builder().status(400).body(Body::empty()).unwrap())
                 })
             }),
@@ -102,7 +104,10 @@ mod tests {
         let mw = WyndMiddleware {
             path: "/wynd".to_string(),
             func: Arc::new(|_req: Request<Body>| {
-                Box::pin(async move { Ok(Response::new(Body::from("stopped"))) })
+                Box::pin(async move {
+                    use hyper::Response;
+                    Ok(Response::new(Body::from("stopped")))
+                })
             }),
         };
 

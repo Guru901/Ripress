@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.6] - 2025-09-6
+
+Fixed a bug with wynd integration method
+
 ## [1.8.5] - 2025-09-6
 
 Removed unused code
