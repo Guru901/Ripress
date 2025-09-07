@@ -45,7 +45,7 @@ declare global {
     pingReceived?: boolean;
 
     // Error handling
-    wsError?: any;
+    wsError?: unknown;
   }
 
   // Extend globalThis to include our test properties
