@@ -531,11 +531,15 @@ async fn no_content_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
 cargo run --features with-wynd &  # Start server in background
 SERVER_PID=$!  # Store server process ID
 trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
-for i in {1..60}; do
-  if curl -sSf http://127.0.0.1:3000/ip-test >/dev/null; then
-    break
-  fi
+attempts=0
+until curl -sSf http://127.0.0.1:3000/ip-test >/dev/null; do
   sleep 1
+  attempts=$((attempts + 1))
+  if [ "$attempts" -ge 60 ]; then
+    echo "Server did not become ready within 60s"
+    kill "$SERVER_PID" 2>/dev/null || true
+    exit 1
+  fi
 done
 
 cd ../tests
