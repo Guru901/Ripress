@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.7] - 2025-09-6
+
+Fixed wynd integration not working with custom middlewares
+Added integration tests for testing wynd integrations
+
 ## [1.8.6] - 2025-09-6
 
 Fixed a bug with wynd integration method
