@@ -42,7 +42,7 @@ Ripress includes built-in WebSocket support through the `wynd` crate. The "with-
 
 ```toml
 [dependencies]
-ripress = { version = "1.0.1", features = ["with-wynd"] }  # Enable WebSocket support
+ripress = { version = "1, features = ["with-wynd"] }  # Enable WebSocket support
 wynd = "0.4"  # WebSocket library
 ```
 
