@@ -530,7 +530,7 @@ async fn no_content_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 cargo run --features with-wynd &  # Start server in background
 SERVER_PID=$!  # Store server process ID
-
+trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
 for i in {1..60}; do
   if curl -sSf http://127.0.0.1:3000/ip-test >/dev/null; then
     break
