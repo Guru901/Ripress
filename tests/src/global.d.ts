@@ -16,7 +16,7 @@ declare global {
     handshakeSuccessful?: boolean;
     serverClosed?: boolean;
 
-    errors: Events[];
+    errors?: Events[];
 
     // Connection metadata
     clientId?: string;

@@ -531,7 +531,12 @@ async fn no_content_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
 cargo run --features with-wynd &  # Start server in background
 SERVER_PID=$!  # Store server process ID
 
-sleep 20
+for i in {1..60}; do
+  if curl -sSf http://127.0.0.1:3000/ip-test >/dev/null; then
+    break
+  fi
+  sleep 1
+done
 
 cd ../tests
 bun install
