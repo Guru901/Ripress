@@ -34,8 +34,9 @@ echo '<!DOCTYPE html>
 </html>' > index.html
 echo 'This is a readme file' > readme.txt
 
+cd ..
 cargo add wynd --features with-ripress
-cd ../src
+cd src
 touch main.rs
 
 echo '
