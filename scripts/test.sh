@@ -34,11 +34,12 @@ echo '<!DOCTYPE html>
 </html>' > index.html
 echo 'This is a readme file' > readme.txt
 
-cd ../src
+cd ..
+cargo add wynd --features with-ripress
+cd src
 touch main.rs
 
 echo '
-
 use bytes::Bytes;
 use futures::stream;
 use ripress::app::App;
@@ -50,12 +51,34 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::time::Duration;
 use tokio::time;
+use wynd::wynd::Wynd;
 
 #[tokio::main]
 async fn main() {
     let mut app = App::new();
+    let mut wynd = Wynd::new();
+
+    wynd.on_connection(|conn| async move {
+        conn.on_open(|handle| async move {
+            handle
+                .send_text("Hello from ripress and wynd!")
+                .await
+                .unwrap();
+        })
+        .await;
+
+        conn.on_text(|event, handle| async move {
+            handle.send_text(&event.data).await.unwrap();
+        });
+
+        conn.on_binary(|event, handle| async move {
+            handle.send_binary(event.data.to_vec()).await.unwrap();
+        });
+    });
 
     app.use_cors(None);
+
+    app.use_wynd("/ws", wynd.handler());
     app.use_middleware("/multipart-file-test", file_upload(None));
 
     // request tests
@@ -128,7 +151,7 @@ async fn main() {
 
     app.static_files("/static", "../public").unwrap();
 
-    app.listen(8080, || println!("Server is running on port 8080"))
+    app.listen(3000, || println!("Server is running on port 3000"))
         .await;
 }
 
@@ -505,13 +528,23 @@ async fn no_content_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 ' > main.rs
 
-cargo run &  # Start server in background
+cargo run --features with-wynd &  # Start server in background
 SERVER_PID=$!  # Store server process ID
-
-sleep 20
+trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
+attempts=0
+until curl -sSf http://127.0.0.1:3000/ip-test >/dev/null; do
+  sleep 1
+  attempts=$((attempts + 1))
+  if [ "$attempts" -ge 60 ]; then
+    echo "Server did not become ready within 60s"
+    kill "$SERVER_PID" 2>/dev/null || true
+    exit 1
+  fi
+done
 
 cd ../tests
 bun install
+bunx playwright install
 
 # Run Playwright tests, fail script if tests fail
 bunx playwright test || {
@@ -526,5 +559,7 @@ cd ../src
 rm main.rs
 cd ..
 rm -rf public
+
+cargo remove wynd
 
 echo "All Tests passed!"
