@@ -534,6 +534,7 @@ sleep 20
 
 cd ../tests
 bun install
+bunx playwright install
 
 # Run Playwright tests, fail script if tests fail
 bunx playwright test || {
