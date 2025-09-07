@@ -48,8 +48,8 @@ test.describe("Request Tests", () => {
 
     const body = await originUrlAndPathResponse.json();
     expect(
-      body.originUrl === "http://localhost:8080" ||
-        body.originUrl === "http://127.0.0.1:8080"
+      body.originUrl === "http://localhost:3000" ||
+        body.originUrl === "http://127.0.0.1:3000"
     ).toBe(true);
     expect(body.path).toBe("/origin-url-and-path/test");
   });
