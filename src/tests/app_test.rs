@@ -6,10 +6,6 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::middlewares::compression::CompressionConfig;
-    use crate::middlewares::cors::CorsConfig;
-    use crate::middlewares::rate_limiter::RateLimiterConfig;
-    use crate::middlewares::shield::ShieldConfig;
     use crate::{
         app::{App, api_error::ApiError, box_future},
         context::HttpResponse,
