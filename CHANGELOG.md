@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.9] - 2025-09-10
+
+- Removed more things to reduce the bundle size
+
 ## [1.8.8] - 2025-09-10
 
 - Removed tests and docs from published crate
