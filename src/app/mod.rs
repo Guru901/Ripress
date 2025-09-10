@@ -134,16 +134,8 @@ impl App {
     /// use ripress::app::App;
     /// let mut app = App::new();
     ///
-    /// app.use_middleaware("path", |req, _res| async move {
-    ///     let mut req = req.clone();
-    ///     (req, None)
-    /// });
-    ///
-    /// ```
-
     #[deprecated(since = "1.9.0", note = "Use `use_pre_middleware` instead")]
-
-    pub fn use_middleaware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
+    pub fn use_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
