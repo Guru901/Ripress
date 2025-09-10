@@ -597,8 +597,19 @@ Middleware functions execute before route handlers, allowing you to:
 ### Basic Middleware Example
 
 ```rust
-app.use_middleware("/api/", |req, res| async {
+app.use_pre_middleware("/api/", |req, res| async {
     println!("API request: {} {}", req.method, req.path);
+
+    // Continue processing
+    (req, None)
+
+    // Or block the request:
+    // (req, Some(res.unauthorized().text("Access denied")))
+});
+
+app.use_post_middleware("/api/", |req, res| async {
+    println!("API request: {} {}", req.method, req.path);
+    println!("API response: {:#?}", res);
 
     // Continue processing
     (req, None)
@@ -613,7 +624,7 @@ app.use_middleware("/api/", |req, res| async {
 ```rust
 use serde_json::json;
 
-app.use_middleware("/protected/", |req, res| async {
+app.use_pre_middleware("/protected/", |req, res| async {
     match req.headers.get("Authorization") {
         Some(auth_header) if auth_header.starts_with("Bearer ") => {
             let token = &auth_header[7..]; // Remove "Bearer " prefix
@@ -648,7 +659,7 @@ fn validate_token(token: &str) -> bool {
 
 ```rust
 // Note: Replace with actual CORS implementation based on Ripress 1.x API
-app.use_middleware("/", |req, res| async {
+app.use_pre_middleware("/", |req, res| async {
     let res = res
         .set_header("Access-Control-Allow-Origin", "*")
         .set_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -663,7 +674,7 @@ app.use_middleware("/", |req, res| async {
 ```rust
 use chrono::Utc;
 
-app.use_middleware("/", |req, res| async {
+app.use_pre_middleware("/", |req, res| async {
     let timestamp = Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
     println!(
         "[{}] {} {} - {}",
@@ -683,19 +694,19 @@ Middleware executes in the order it's added:
 
 ```rust
 // This runs first
-app.use_middleware("/", |req, res| async {
+app.use_pre_middleware("/", |req, res| async {
     println!("First middleware");
     (req, None)
 });
 
 // This runs second
-app.use_middleware("/api/", |req, res| async {
+app.use_pre_middleware("/api/", |req, res| async {
     println!("API middleware");
     (req, None)
 });
 
 // This runs third (only for /api/ routes)
-app.use_middleware("/api/users/", |req, res| async {
+app.use_pre_middleware("/api/users/", |req, res| async {
     println!("Users API middleware");
     (req, None)
 });
@@ -711,10 +722,10 @@ The built-in file upload middleware processes binary file uploads and saves them
 use ripress::middlewares::file_upload::{file_upload, FileUploadConfiguration};
 
 // Use default upload directory ("uploads")
-app.use_middleware("/upload", file_upload(None));
+app.use_pre_middleware("/upload", file_upload(None));
 
 // Or specify a custom upload directory
-app.use_middleware("/upload", file_upload(Some(FileUploadConfiguration {
+app.use_pre_middleware("/upload", file_upload(Some(FileUploadConfiguration {
     upload_dir: "user_files",
     ..Default::default();
 })));
@@ -947,7 +958,7 @@ async fn main() {
     let mut app = App::new();
 
     // Add production middleware
-    app.use_middleware("/", |req, res| async {
+    app.use_pre_middleware("/", |req, res| async {
         // Security headers
         let res = res
             .set_header("X-Content-Type-Options", "nosniff")

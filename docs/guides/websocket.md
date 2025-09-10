@@ -675,13 +675,13 @@ let mut app = App::new();
 let mut wynd = Wynd::new();
 
 // Add HTTP middleware
-app.use_middleware("/", |req, res| async {
+app.use_pre_middleware("/", |req, res| async {
     println!("HTTP request: {} {}", req.method, req.path);
     (req, None)
 });
 
 // Add authentication middleware
-app.use_middleware("/api/", |req, res| async {
+app.use_pre_middleware("/api/", |req, res| async {
     // Check authentication for API routes
     if req.headers.get("Authorization").is_none() {
         return (req, Some(res.unauthorized().text("Authentication required")));

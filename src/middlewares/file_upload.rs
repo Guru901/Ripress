@@ -66,7 +66,7 @@ use uuid::Uuid;
 /// use ripress::{app::App, middlewares::file_upload::{FileUploadConfiguration, file_upload}};
 ///
 /// let mut app = App::new();
-/// app.use_middleware("/upload", file_upload(Some(FileUploadConfiguration::default())));
+/// app.use_pre_middleware("/upload", file_upload(Some(FileUploadConfiguration::default())));
 /// ```
 ///
 /// Custom configuration with size and type limits:
@@ -81,7 +81,7 @@ use uuid::Uuid;
 ///     max_files: 10,
 ///     allowed_file_types: vec!["jpg".to_string(), "png".to_string(), "pdf".to_string()],
 /// };
-/// app.use_middleware("/upload", file_upload(Some(config)));
+/// app.use_pre_middleware("/upload", file_upload(Some(config)));
 /// ```
 ///
 /// Using default configuration (no argument needed):
@@ -90,7 +90,7 @@ use uuid::Uuid;
 /// use ripress::{app::App, middlewares::file_upload::file_upload};
 ///
 /// let mut app = App::new();
-/// app.use_middleware("/upload", file_upload(None));
+/// app.use_pre_middleware("/upload", file_upload(None));
 /// ```
 ///
 /// Route handler that processes uploaded files:
@@ -238,7 +238,7 @@ impl Default for FileUploadConfiguration {
 
 /// Creates a file upload middleware function
 ///
-/// Returns a middleware function that can be used with `app.use_middleware()` to handle
+/// Returns a middleware function that can be used with `app.use_pre_middleware()` to handle
 /// file uploads on specified routes. The middleware processes multipart/form-data and
 /// binary uploads, saving files to the configured directory with unique UUID-based names.
 ///
@@ -382,14 +382,15 @@ pub fn file_upload(
                 if !config.allowed_file_types.is_empty() {
                     let ext_norm = extension.to_ascii_lowercase();
                     // Accept both "jpg" and "jpeg"
-                    let ext_norm = if ext_norm == "jpg" { "jpeg".to_string() } else { ext_norm };
-                    let allowed = config
-                        .allowed_file_types
-                        .iter()
-                        .any(|e| {
-                            let e = e.to_ascii_lowercase();
-                            e == ext_norm || (e == "jpg" && ext_norm == "jpeg")
-                        });
+                    let ext_norm = if ext_norm == "jpg" {
+                        "jpeg".to_string()
+                    } else {
+                        ext_norm
+                    };
+                    let allowed = config.allowed_file_types.iter().any(|e| {
+                        let e = e.to_ascii_lowercase();
+                        e == ext_norm || (e == "jpg" && ext_norm == "jpeg")
+                    });
                     if !allowed {
                         eprintln!(
                             "File upload middleware: File type '{}' not allowed (allowed types: {:?})",

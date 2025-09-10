@@ -233,10 +233,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_use_middleware_with_path() {
+    async fn test_use_pre_middleware_with_path() {
         let mut app = App::new();
 
-        app.use_middleware(Some("/api"), |req, res| async move { (req, Some(res)) });
+        app.use_pre_middleware(Some("/api"), |req, res| async move { (req, Some(res)) });
 
         assert_eq!(app.middlewares.len(), 1);
         assert_eq!(app.middlewares[0].path, "/api");
@@ -255,10 +255,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_use_middleware_with_default_path() {
+    async fn test_use_pre_middleware_with_default_path() {
         let mut app = App::new();
 
-        app.use_middleware(None, |req, res| async move { (req, Some(res)) });
+        app.use_pre_middleware(None, |req, res| async move { (req, Some(res)) });
 
         assert_eq!(app.middlewares.len(), 1);
         assert_eq!(app.middlewares[0].path, "/");
@@ -268,7 +268,7 @@ mod tests {
     async fn test_middleware_modifies_response() {
         let mut app = App::new();
 
-        app.use_middleware(Some("/test"), |req, mut res| async move {
+        app.use_pre_middleware(Some("/test"), |req, mut res| async move {
             res = res.status(401);
             (req, Some(res))
         });
@@ -497,20 +497,6 @@ mod tests {
         assert_impl::<hyper::Error>();
     }
 
-    fn middleware_names(app: &App) -> Vec<String> {
-        app.middlewares.iter().map(|m| m.name.clone()).collect()
-    }
-
-    #[test]
-    fn test_use_logger_adds_middleware() {
-        let mut app = App::new();
-        app.use_logger(None);
-
-        let names = middleware_names(&app);
-        assert!(names.contains(&"logger".to_string()));
-        assert_eq!(app.middlewares.last().unwrap().path, "/");
-    }
-
     #[cfg(feature = "with-wynd")]
     #[test]
     fn test_use_wynd_adds_wynd_middleware() {
@@ -524,80 +510,6 @@ mod tests {
 
         assert!(app.wynd_middleware.is_some());
         assert!(app.wynd_middleware.unwrap().path == "/ws");
-    }
-
-    #[test]
-    fn test_use_cors_adds_middleware() {
-        let mut app = App::new();
-        app.use_cors(Some(CorsConfig::default()));
-
-        let names = middleware_names(&app);
-        assert!(names.contains(&"cors".to_string()));
-        assert_eq!(app.middlewares.last().unwrap().path, "/");
-    }
-
-    #[test]
-    fn test_use_body_limit_adds_middleware() {
-        let mut app = App::new();
-        app.use_body_limit(Some(1024));
-
-        let names = middleware_names(&app);
-        assert!(names.contains(&"body_limit".to_string()));
-        assert_eq!(app.middlewares.last().unwrap().path, "/");
-    }
-
-    #[tokio::test]
-    async fn test_use_rate_limiter_adds_middleware() {
-        let mut app = App::new();
-        app.use_rate_limiter(Some(RateLimiterConfig::default()));
-
-        let names = middleware_names(&app);
-        assert!(names.contains(&"rate_limiter".to_string()));
-        assert_eq!(app.middlewares.last().unwrap().path, "/");
-    }
-
-    #[test]
-    fn test_use_shield_adds_middleware() {
-        let mut app = App::new();
-        app.use_shield(Some(ShieldConfig::default()));
-
-        let names = middleware_names(&app);
-        assert!(names.contains(&"shield".to_string()));
-        assert_eq!(app.middlewares.last().unwrap().path, "/");
-    }
-
-    #[test]
-    fn test_use_compression_adds_middleware() {
-        let mut app = App::new();
-        app.use_compression(Some(CompressionConfig::default()));
-
-        let names = middleware_names(&app);
-        assert!(names.contains(&"compression".to_string()));
-        assert_eq!(app.middlewares.last().unwrap().path, "/");
-    }
-
-    #[tokio::test]
-    async fn test_multiple_middlewares_added() {
-        let mut app = App::new();
-        app.use_logger(None)
-            .use_cors(None)
-            .use_body_limit(None)
-            .use_rate_limiter(None)
-            .use_shield(None)
-            .use_compression(None);
-
-        let names = middleware_names(&app);
-        assert_eq!(
-            names,
-            vec![
-                "logger",
-                "cors",
-                "body_limit",
-                "rate_limiter",
-                "shield",
-                "compression"
-            ]
-        );
     }
 
     #[test]

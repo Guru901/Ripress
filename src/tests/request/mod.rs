@@ -79,7 +79,7 @@ mod tests {
         let data = json!({"message": "test"});
         let response = HttpResponse::new()
             .set_header("X-Custom", "value")
-            .set_cookie("session", "123", CookieOptions::default())
+            .set_cookie("session", "123", Some(CookieOptions::default()))
             .created()
             .json(&data)
             .to_hyper_response()
@@ -120,7 +120,7 @@ mod tests {
         let data = vec![1, 2, 3, 4, 5];
         let response = HttpResponse::new()
             .set_header("X-Custom", "value")
-            .set_cookie("session", "123", CookieOptions::default())
+            .set_cookie("session", "123", Some(CookieOptions::default()))
             .ok()
             .bytes(data)
             .to_hyper_response()
@@ -197,12 +197,12 @@ mod tests {
     #[test]
     fn test_cookies() {
         let response = HttpResponse::new();
-        let response = response.set_cookie("key", "value", CookieOptions::default());
+        let response = response.set_cookie("key", "value", Some(CookieOptions::default()));
         assert_eq!(response.get_cookie("key").unwrap(), "value");
 
         let response = HttpResponse::new()
-            .set_cookie("session", "123", CookieOptions::default())
-            .set_cookie("another_cookie", "123", CookieOptions::default())
+            .set_cookie("session", "123", Some(CookieOptions::default()))
+            .set_cookie("another_cookie", "123", Some(CookieOptions::default()))
             .clear_cookie("old_session")
             .ok()
             .text("test");
@@ -237,11 +237,11 @@ mod tests {
     #[test]
     fn test_clear_cookie() {
         let response = HttpResponse::new();
-        let response = response.set_cookie("session", "abc123", CookieOptions::default());
+        let response = response.set_cookie("session", "abc123", None);
 
         assert_eq!(response.get_cookie("session").unwrap(), "abc123");
         let response = HttpResponse::new();
-        let response = response.set_cookie("session", "abc123", CookieOptions::default());
+        let response = response.set_cookie("session", "abc123", None);
         let response = response.clear_cookie("session");
 
         // Verify cookie is removed
@@ -249,7 +249,7 @@ mod tests {
 
         let response = HttpResponse::new();
 
-        let response = response.set_cookie("session", "abc123", CookieOptions::default());
+        let response = response.set_cookie("session", "abc123", None);
 
         let response = response.clear_cookie("non-existent");
 

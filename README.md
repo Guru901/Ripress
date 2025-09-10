@@ -51,7 +51,8 @@ Ripress is a web framework inspired by Express.js, designed to bring the familia
 
 - **Express-like routing** with `App` and `Router`
 - **Async handler support** built on `tokio`
-- **Built-in middleware** including CORS, logging, and file uploads
+- **Pre and post middleware** for request/response processing
+- **Built-in middleware** including CORS, logging, compression, and file uploads
 - **Request/response objects** with JSON, text, and form parsing
 - **Type-safe handler signatures** for better developer experience
 - **WebSocket support** via the `wynd` crate (with "with-wynd" feature)
@@ -152,10 +153,14 @@ use ripress::{
 async fn main() {
     let mut app = App::new();
 
-    // Add CORS and file upload middleware
-    app.use_cors(None)
-        .use_middleware("/upload", file_upload(None))
-        .use_rate_limiter(None);
+    // Add middleware (pre and post)
+    app.use_cors(None)                                    // Pre-middleware
+        .use_pre_middleware("/upload", file_upload(None)) // Pre-middleware
+        .use_post_middleware("/api/", |req, res| async {  // Post-middleware
+            println!("API response logged: {} {}", req.method, req.path);
+            (req, None)
+        })
+        .use_rate_limiter(None);                          // Pre-middleware
 
     app.listen(3000, || {
         println!("Server running on port 3000");

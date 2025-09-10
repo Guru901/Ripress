@@ -640,7 +640,7 @@ async fn main() {
     let mut app = App::new();
 
     // Add file upload middleware
-    app.use_middleware("/upload", file_upload(None));
+    app.use_pre_middleware("/upload", file_upload(None));
 
     // Handle file uploads
     app.post("/upload", upload_handler);
