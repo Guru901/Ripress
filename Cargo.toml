@@ -1,6 +1,6 @@
 [package]
 name = "ripress"
-version = "1.8.9"
+version = "1.9.0"
 edition = "2024"
 description = "An Express.js-inspired web framework for Rust"
 license = "MIT"
