@@ -501,7 +501,7 @@ impl HttpResponse {
     /// use ripress::res::CookieOptions;
     ///
     /// let res = HttpResponse::new()
-    ///     .set_cookie("session", "abc123", CookieOptions::default())
+    ///     .set_cookie("session", "abc123", None)
     ///     .ok()
     ///     .text("Logged in");
     /// ```
