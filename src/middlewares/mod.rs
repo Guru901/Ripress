@@ -99,7 +99,7 @@ pub mod logger;
 /// use ripress::{app::App, middlewares::file_upload::{FileUploadConfiguration, file_upload}};
 ///
 /// let mut app = App::new();
-/// app.use_middleware("/upload", file_upload(Some(FileUploadConfiguration::default())));
+/// app.use_pre_middleware("/upload", file_upload(Some(FileUploadConfiguration::default())));
 /// ```
 ///
 /// ## Request Data Added

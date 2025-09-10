@@ -1,5 +1,57 @@
 # Middleware Documentation
 
+## Middleware Types
+
+Ripress supports two types of middleware that execute at different points in the request lifecycle:
+
+### Pre-Middleware
+
+Pre-middleware executes **before** route handlers and is ideal for:
+
+- Authentication and authorization
+- Input validation
+- CORS handling
+- Request transformation
+- Rate limiting
+- Security checks
+
+```rust
+app.use_pre_middleware("/api/", |req, res| async {
+    // This runs before any route handler
+    println!("Authenticating request: {} {}", req.method, req.path);
+    (req, None)
+});
+```
+
+### Post-Middleware
+
+Post-middleware executes **after** route handlers and is ideal for:
+
+- Response logging
+- Response transformation
+- Adding response headers
+- Performance monitoring
+- Cleanup operations
+- Response compression
+
+```rust
+app.use_post_middleware("/api/", |req, res| async {
+    // This runs after the route handler
+    println!("Logging response: {} {}", req.method, req.path);
+    (req, None)
+});
+```
+
+### Execution Order
+
+The complete request lifecycle follows this order:
+
+1. **Pre-middleware** (in registration order)
+2. **Route handler**
+3. **Post-middleware** (in registration order)
+
+---
+
 ## Shield Middleware
 
 The Shield middleware provides comprehensive HTTP security header protection for web applications. It automatically sets various security headers that help protect against common web vulnerabilities including XSS attacks, clickjacking, content sniffing, MIME type confusion, and other security threats.
@@ -576,10 +628,10 @@ use ripress::{app::App, middlewares::file_upload::{file_upload, FileUploadConfig
 
 // Use default "uploads" directory
 let mut app = App::new();
-app.use_middleware("/upload", file_upload(None));
+app.use_pre_middleware("/upload", file_upload(None));
 
 // Use custom directory
-app.use_middleware("/files", file_upload(Some(FileUploadConfiguration {
+app.use_pre_middleware("/files", file_upload(Some(FileUploadConfiguration {
     upload_dir: "user_files",
     ..Default::default();
 })));

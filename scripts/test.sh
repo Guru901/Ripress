@@ -40,6 +40,7 @@ cd src
 touch main.rs
 
 echo '
+
 use bytes::Bytes;
 use futures::stream;
 use ripress::app::App;
@@ -79,7 +80,7 @@ async fn main() {
     app.use_cors(None);
 
     app.use_wynd("/ws", wynd.handler());
-    app.use_middleware("/multipart-file-test", file_upload(None));
+    app.use_pre_middleware("/multipart-file-test", file_upload(None));
 
     // request tests
     app.get("/cookie-test", cookie_handler);
@@ -120,7 +121,7 @@ async fn main() {
     app.post("/multipart-text-test", multipart_text_test);
     app.post("/multipart-file-test", multipart_file_test);
 
-    app.use_middleware("/auth", |req, res| {
+    app.use_pre_middleware("/auth", |req, res| {
         let has_token = req.get_cookie("token").is_some();
         let req_cloned = req.clone(); // owned
         Box::pin(async move {
@@ -348,7 +349,7 @@ struct NoContentTypeData {
 async fn no_content_type_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     let data = req.json::<NoContentTypeData>();
     match data {
-        Ok(data) => res.ok(),
+        Ok(_) => res.ok(),
         Err(_) => res.status(400),
     }
 }
@@ -405,7 +406,7 @@ async fn multipart_text_test(req: HttpRequest, res: HttpResponse) -> HttpRespons
 }
 
 async fn multipart_file_test(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let data = req.get_all_data();
+    let _ = req.get_all_data();
     res.ok()
 }
 
@@ -414,8 +415,7 @@ async fn multipart_file_test(req: HttpRequest, res: HttpResponse) -> HttpRespons
 // ---------------------------------------------------------------------------------------------- //
 
 async fn get_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.ok()
-        .set_cookie("test-cookie", "value", CookieOptions::default())
+    res.ok().set_cookie("test-cookie", "value", None)
 }
 
 async fn binary_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -427,20 +427,20 @@ async fn get_cookie_with_options_test(_req: HttpRequest, res: HttpResponse) -> H
     res.ok().set_cookie(
         "secure-cookie",
         "value",
-        CookieOptions {
+        Some(CookieOptions {
             http_only: true,
             same_site: CookieSameSiteOptions::Strict,
             secure: true,
             ..Default::default()
-        },
+        }),
     )
 }
 
 async fn get_multi_cookie_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
-        .set_cookie("session", "abc123", CookieOptions::default())
-        .set_cookie("theme", "dark", CookieOptions::default())
-        .set_cookie("lang", "en", CookieOptions::default())
+        .set_cookie("session", "abc123", None)
+        .set_cookie("theme", "dark", None)
+        .set_cookie("lang", "en", None)
 }
 
 async fn custom_headers_test(_req: HttpRequest, res: HttpResponse) -> HttpResponse {

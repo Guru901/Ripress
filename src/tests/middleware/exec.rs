@@ -4,7 +4,7 @@ mod tests {
     use std::sync::Arc;
 
     use crate::{
-        app::{Middleware, api_error::ApiError},
+        app::{Middleware, MiddlewareType, api_error::ApiError},
         helpers::exec_pre_middleware,
         req::HttpRequest,
         res::HttpResponse,
@@ -27,7 +27,7 @@ mod tests {
             func: Arc::new(|req: HttpRequest, _: HttpResponse| {
                 Box::pin(async move { (req, None) })
             }),
-            name: String::new(),
+            middleware_type: MiddlewareType::Pre,
         }
     }
 
@@ -41,7 +41,7 @@ mod tests {
                     (req, Some(res))
                 })
             }),
-            name: String::new(),
+            middleware_type: MiddlewareType::Pre,
         }
     }
 

@@ -501,7 +501,7 @@ impl HttpResponse {
     /// use ripress::res::CookieOptions;
     ///
     /// let res = HttpResponse::new()
-    ///     .set_cookie("session", "abc123", CookieOptions::default())
+    ///     .set_cookie("session", "abc123", None)
     ///     .ok()
     ///     .text("Logged in");
     /// ```
@@ -510,12 +510,12 @@ impl HttpResponse {
         mut self,
         cookie_name: &'static str,
         cookie_value: &'static str,
-        options: CookieOptions,
+        options: Option<CookieOptions>,
     ) -> Self {
         self.cookies.push(Cookie {
             name: cookie_name,
             value: cookie_value,
-            options,
+            options: options.unwrap_or_default(),
         });
 
         self

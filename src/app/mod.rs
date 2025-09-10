@@ -71,7 +71,13 @@ pub struct Middleware {
     /// If the incoming request path starts with this string, the middleware will be invoked.
     pub path: String,
 
-    pub(crate) name: String,
+    pub(crate) middleware_type: MiddlewareType,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) enum MiddlewareType {
+    Pre,
+    Post,
 }
 
 #[cfg(feature = "with-wynd")]
@@ -128,13 +134,7 @@ impl App {
     /// use ripress::app::App;
     /// let mut app = App::new();
     ///
-    /// app.use_middleware("path", |req, _res| async move {
-    ///     let mut req = req.clone();
-    ///     (req, None)
-    /// });
-    ///
-    /// ```
-
+    #[deprecated(since = "1.9.0", note = "Use `use_pre_middleware` instead")]
     pub fn use_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
@@ -145,11 +145,80 @@ impl App {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(middleware),
             path: path,
-            name: "custom".to_string(),
+            middleware_type: MiddlewareType::Pre,
         });
         self
     }
 
+    /// Adds a pre middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path or route prefix this middleware applies to.
+    /// * `middleware` - The middleware to add.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::app::App;
+    /// let mut app = App::new();
+    ///
+    /// app.use_pre_middleware("path", |req, _res| async move {
+    ///     let mut req = req.clone();
+    ///     (req, None)
+    /// });
+    ///
+    /// ```
+
+    pub fn use_pre_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
+    where
+        P: Into<Option<&'static str>>,
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
+    {
+        let path = path.into().unwrap_or("/").to_string();
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(middleware),
+            path: path,
+            middleware_type: MiddlewareType::Pre,
+        });
+        self
+    }
+
+    /// Adds a post middleware to the application.
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path or route prefix this middleware applies to.
+    /// * `middleware` - The middleware to add.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::app::App;
+    /// let mut app = App::new();
+    ///
+    /// app.use_post_middleware("path", |req, _res| async move {
+    ///     let mut req = req.clone();
+    ///     (req, None)
+    /// });
+    ///
+    /// ```
+
+    pub fn use_post_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
+    where
+        P: Into<Option<&'static str>>,
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
+    {
+        let path = path.into().unwrap_or("/").to_string();
+        self.middlewares.push(Middleware {
+            func: Self::middleware_from_closure(middleware),
+            path: path,
+            middleware_type: MiddlewareType::Post,
+        });
+        self
+    }
     /// Adds a logger middleware to the application.
     ///
     /// ## Arguments
@@ -178,7 +247,7 @@ impl App {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(logger(config)),
             path: "/".to_string(),
-            name: "logger".to_string(),
+            middleware_type: MiddlewareType::Post,
         });
         self
     }
@@ -211,7 +280,7 @@ impl App {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(cors(config)),
             path: "/".to_string(),
-            name: "cors".to_string(),
+            middleware_type: MiddlewareType::Pre,
         });
         self
     }
@@ -240,7 +309,7 @@ impl App {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(body_limit(config)),
             path: "/".to_string(),
-            name: "body_limit".to_string(),
+            middleware_type: MiddlewareType::Pre,
         });
         self
     }
@@ -309,7 +378,7 @@ impl App {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(rate_limiter(config)),
             path: "/".to_string(),
-            name: "rate_limiter".to_string(),
+            middleware_type: MiddlewareType::Pre,
         });
         self
     }
@@ -348,7 +417,7 @@ impl App {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(shield(config)),
             path: "/".to_string(),
-            name: "shield".to_string(),
+            middleware_type: MiddlewareType::Pre,
         });
         self
     }
@@ -369,7 +438,7 @@ impl App {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(compression(config)),
             path: "/".to_string(),
-            name: "compression".to_string(),
+            middleware_type: MiddlewareType::Post,
         });
         self
     }
@@ -478,7 +547,7 @@ impl App {
         for middleware in self.middlewares.iter() {
             let middleware = middleware.clone();
 
-            if middleware.name == "logger" || middleware.name == "compression" {
+            if middleware.middleware_type == MiddlewareType::Post {
                 router = router.middleware(routerify::Middleware::post_with_info({
                     let middleware = middleware.clone();
                     move |res, info| exec_post_middleware(res, middleware.clone(), info)

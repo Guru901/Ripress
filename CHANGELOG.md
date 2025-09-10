@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased] - 2025-01-XX
+
+### Added
+
+- **Post-middleware support**: Added `use_post_middleware` method to execute middleware after route handlers
+- **Middleware types**: Introduced `MiddlewareType::Pre` and `MiddlewareType::Post` enum variants
+- **Enhanced middleware execution**: Middleware now executes in proper order (pre → route → post)
+- **Post-middleware documentation**: Comprehensive documentation for pre and post middleware usage
+
+### Changed
+
+- **Middleware execution flow**: Updated middleware execution to support both pre and post processing
+- **Built-in middleware types**: Logger and compression middleware now use post-middleware by default
+- **Documentation updates**: Updated API reference and guides to include post-middleware examples
+- **Set Cookie**: res.set_cookie now takes option of cookie config and when none is passed default is set
+
+### Technical Details
+
+- Added `MiddlewareType` enum to distinguish between pre and post middleware
+- Updated `App::listen` method to handle different middleware types appropriately
+- Enhanced middleware execution helpers to support post-middleware processing
+- Added comprehensive tests for post-middleware functionality
+
 ## [1.8.9] - 2025-09-10
 
 - Removed more things to reduce the bundle size
