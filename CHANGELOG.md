@@ -1,115 +1,119 @@
 # Changelog
 
-## [1.8.7] - 2025-09-6
+## [1.8.8] - 2025-09-10
 
-Fixed wynd integration not working with custom middlewares
-Added integration tests for testing wynd integrations
+- Removed tests and docs from published crate
 
-## [1.8.6] - 2025-09-6
+## [1.8.7] - 2025-09-06
 
-Fixed a bug with wynd integration method
+- Fixed wynd integration not working with custom middlewares
+- Added integration tests for testing wynd integrations
 
-## [1.8.5] - 2025-09-6
+## [1.8.6] - 2025-09-06
 
-Removed unused code
-Added contributing guidelines
+- Fixed a bug with wynd integration method
 
-## [1.8.4] - 2025-09-4
+## [1.8.5] - 2025-09-06
 
-Added Tests
+- Removed unused code
+- Added contributing guidelines
 
-## [1.8.3] - 2025-09-4
+## [1.8.4] - 2025-09-04
 
-Fixed cyclic dependency issues when using with wynd
+- Added Tests
 
-## [1.8.2] - 2025-09-4
+## [1.8.3] - 2025-09-04
 
-Updated websocket versions
+- Fixed cyclic dependency issues when using with wynd
 
-## [1.8.1] - 2025-09-3
+## [1.8.2] - 2025-09-04
 
-Fixed nightly feature gates
+- Updated websocket versions
 
-## [1.8.0] - 2025-09-3
+## [1.8.1] - 2025-09-03
 
-Added `app.use_wynd` method
-Added wynd middleware to the app
+- Fixed nightly feature gates
+
+## [1.8.0] - 2025-09-03
+
+- Added `app.use_wynd` method
+- Added wynd middleware to the app
 
 ## [1.7.5] - 2025-08-22
 
-Added a few impls to make it work with wynd
+- Added a few impls to make it work with wynd
 
 ## [1.7.4] - 2025-08-22
 
-Edited somethings for wynd integration
+- Edited somethings for wynd integration
 
 ## [1.7.3] - 2025-08-22
 
-Removed unnecessary dependencies
+- Removed unnecessary dependencies
 
 ## [1.7.2] - 2025-08-22
 
-Added more tests
-Fixed wrong header insertion in Shield middleware
+- Added more tests
+- Fixed wrong header insertion in Shield middleware
 
 ## [1.7.1] - 2025-08-22
 
-Fixed failing tests and multiple static file serving bugs
+- Fixed failing tests and multiple static file serving bugs
 
 ## [1.7.0] - 2025-08-22
 
-Added `res.send_file` method
-`app.static_files` now returns `Result<(), &'static str>`
+- Added `res.send_file` method
+- `app.static_files` now returns `Result<(), &'static str>`
 
 ## [1.6.0] - 2025-08-22
 
-Added Shield middleware
-Added `app.use_shield` method
+- Added Shield middleware
+- Added `app.use_shield` method
 
 ## [1.5.0] - 2025-08-22
 
-Added Compression middleware
-Added `app.use_compression` method
+- Added Compression middleware
+- Added `app.use_compression` method
 
 ## [1.4.0] - 2025-08-22
 
-Added Body Size Limit middleware
-Added `app.use_body_limit` method
+- Added Body Size Limit middleware
+- Added `app.use_body_limit` method
 
 ## [1.3.1] - 2025-08-22
 
-File upload middleware configuration now works
+- File upload middleware configuration now works
 
 ## [1.3.0] - 2025-08-22
 
-Added Rate Limiter middleware
-Added `app.use_cors` method
-Added `app.use_logger` method
-Added `app.use_rate_limiter` method
-Made app methods chainable
+- Added Rate Limiter middleware
+- Added `app.use_cors` method
+- Added `app.use_logger` method
+- Added `app.use_rate_limiter` method
+- Made app methods chainable
 
 ## [1.2.0] - 2025-08-21
 
-Added logger middleware configuration options
+- Added logger middleware configuration options
 
 ## [1.1.3] - 2025-08-20
 
-Finally fixed
+- Finally fixed
 
 ## [1.1.2] - 2025-08-20
 
-Fixed broken file upload middleware
+- Fixed broken file upload middleware
 
 ## [1.1.1] - 2025-08-20
 
-Fixed multipart formdata parsing with no files
-Added more tests
+- Fixed multipart formdata parsing with no files
+- Added more tests
 
 ## [1.1.0] - 2025-08-19
 
-Added file upload middleware
-Added support for `multipart/form-data` requests
-Added support for binary data
+- Added file upload middleware
+- Added support for `multipart/form-data` requests
+- Added support for binary data
 
 ## [1.0.1] - 2025-08-14
 
