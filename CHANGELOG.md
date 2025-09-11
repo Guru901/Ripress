@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.1] - 2025-09-11
+
+- Fixed incorrect docs for `res.set_cookie`
+
 ## [1.9.0] - 2025-09-11
 
 ### Added
