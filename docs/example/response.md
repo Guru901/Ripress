@@ -244,8 +244,8 @@ async fn main() {
 }
 
 async fn set_session(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_cookie("session_id", "abc123", CookieOptions::default())
-        .set_cookie("user_id", "user_123", CookieOptions::default())
+    res.set_cookie("session_id", "abc123", None)
+        .set_cookie("user_id", "user_123", None)
         .ok()
         .json(serde_json::json!({
             "message": "Session started"
@@ -282,7 +282,7 @@ async fn main() {
 }
 
 async fn login(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    res.set_cookie("session_id", "abc123", CookieOptions::default())
+    res.set_cookie("session_id", "abc123", None)
         .set_header("X-Auth-Token", "jwt_token_here")
         .ok()
         .json(serde_json::json!({

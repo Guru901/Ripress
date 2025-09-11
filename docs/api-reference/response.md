@@ -292,7 +292,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.set_cookie(
         "session",
         "abc123",
-        CookieOptions {
+        Some(CookieOptions {
             http_only: true,
             secure: true,
             same_site: CookieSameSiteOptions::Strict,
@@ -300,7 +300,7 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
             domain: Some(""),
             max_age: None,
             expires: None,
-        },
+        }),
     )
     .ok()
     .text("Cookie set")
