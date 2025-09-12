@@ -1182,6 +1182,9 @@ use ripress::{app::App, middlewares::logger::LogerConfig};
 
 // Use default logging (logs method, path, and duration)
 let mut app = App::new();
+
+tracing_subscriber::fmt::init();
+
 app.use_logger(None);
 
 // Use custom logging configuration
@@ -1201,7 +1204,7 @@ The logger middleware:
 2. **Captures request details** (method, path) from the request
 3. **Continues processing** - doesn't interrupt the request flow
 4. **Calculates duration** after processing
-5. **Prints log information** to stdout based on configuration
+5. **Emits log events** via the `tracing` subscriber at `info` level based on configuration
 
 ### Log Format
 
@@ -1232,7 +1235,7 @@ The logger middleware:
 - Uses `std::time::Instant` for precise duration measurement
 - Performs minimal string operations
 - Does not block request processing
-- Outputs synchronously to stdout
+- Emits via `tracing`; output behavior depends on the configured subscriber
 
 ### Examples
 
@@ -1240,6 +1243,8 @@ Different configuration examples:
 
 ```rust
 // Log everything (default)
+tracing_subscriber::fmt::init();
+
 app.use_logger(None);
 
 // Only log duration and method

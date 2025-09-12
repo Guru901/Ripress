@@ -227,9 +227,11 @@ impl App {
     ///
     /// ## Example
     ///
-    /// ```
+    /// ```no_run
     /// use ripress::app::App;
     /// use ripress::middlewares::logger::LoggerConfig;
+    ///
+    /// tracing_subscriber::fmt::init();
     ///
     /// let mut app = App::new();
     ///
