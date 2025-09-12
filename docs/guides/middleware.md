@@ -1204,7 +1204,7 @@ The logger middleware:
 2. **Captures request details** (method, path) from the request
 3. **Continues processing** - doesn't interrupt the request flow
 4. **Calculates duration** after processing
-5. **Prints log information** to stdout based on configuration
+5. **Emits log events** via the `tracing` subscriber at `info` level based on configuration
 
 ### Log Format
 
@@ -1235,7 +1235,7 @@ The logger middleware:
 - Uses `std::time::Instant` for precise duration measurement
 - Performs minimal string operations
 - Does not block request processing
-- Outputs synchronously to stdout
+- Emits via `tracing`; output behavior depends on the configured subscriber
 
 ### Examples
 
