@@ -1182,6 +1182,9 @@ use ripress::{app::App, middlewares::logger::LogerConfig};
 
 // Use default logging (logs method, path, and duration)
 let mut app = App::new();
+
+tracing_subscriber::fmt::init();
+
 app.use_logger(None);
 
 // Use custom logging configuration
@@ -1240,6 +1243,8 @@ Different configuration examples:
 
 ```rust
 // Log everything (default)
+tracing_subscriber::fmt::init();
+
 app.use_logger(None);
 
 // Only log duration and method

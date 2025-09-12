@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.2] - 2025-09-13
+
+- Used tracing instead of println! for logging
+
 ## [1.9.1] - 2025-09-11
 
 - Fixed incorrect docs for `res.set_cookie`

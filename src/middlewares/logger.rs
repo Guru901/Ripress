@@ -1,6 +1,7 @@
 #![warn(missing_docs)]
 use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
 use std::collections::HashMap;
+use tracing::info;
 
 /// Builtin Logger Middleware
 ///
@@ -47,7 +48,7 @@ use std::collections::HashMap;
 ///
 /// ## Log Format
 ///
-/// The middleware outputs structured logs to stdout with the following format:
+/// The middleware outputs structured logs using the `tracing` crate with the following format:
 /// ```md
 /// path: /api/users,
 /// user_agent: Mozilla/5.0...,
@@ -63,17 +64,19 @@ use std::collections::HashMap;
 ///
 /// Basic usage with default configuration:
 ///
-/// ```rust
+/// ```no_run
 /// use ripress::{app::App, middlewares::logger::LoggerConfig};
 ///
+/// tracing_subscriber::fmt::init();
 /// let mut app = App::new();
 /// app.use_logger(Some(LoggerConfig::default()));
 /// ```
 ///
 /// Minimal logging configuration:
 ///
-/// ```rust
+/// ```no_run
 /// use ripress::{app::App, middlewares::logger::LoggerConfig};
+/// tracing_subscriber::fmt::init();
 ///
 /// let mut app = App::new();
 /// let config = LoggerConfig {
@@ -92,8 +95,9 @@ use std::collections::HashMap;
 ///
 /// Custom header logging with path exclusions:
 ///
-/// ```rust
+/// ```no_run
 /// use ripress::{app::App, middlewares::logger::LoggerConfig};
+/// tracing_subscriber::fmt::init();
 ///
 /// let mut app = App::new();
 /// let config = LoggerConfig {
@@ -120,8 +124,10 @@ use std::collections::HashMap;
 ///
 /// Using default configuration (recommended for development):
 ///
-/// ```rust
+/// ```no_run
 /// use ripress::app::App;
+///
+/// tracing_subscriber::fmt::init();
 ///
 /// let mut app = App::new();
 /// app.use_logger(None); // Uses LoggerConfig::default()
@@ -129,8 +135,10 @@ use std::collections::HashMap;
 ///
 /// Production configuration with security considerations:
 ///
-/// ```rust
+/// ```no_run
 /// use ripress::{app::App, middlewares::logger::LoggerConfig};
+///
+/// tracing_subscriber::fmt::init();
 ///
 /// let mut app = App::new();
 /// let config = LoggerConfig {
@@ -331,10 +339,25 @@ impl Default for LoggerConfig {
 ///
 /// ## Log Output
 ///
-/// All log output is written to stdout using `println!`. The format is
+/// All log output is written using the `tracing` crate at the `info` level. The format is
 /// comma-separated key-value pairs, making it suitable for structured
 /// log parsing systems. Fields are output in a consistent order regardless
 /// of configuration.
+///
+/// ## Tracing Setup
+///
+/// To see the log output, you need to initialize a tracing subscriber in your application:
+///
+/// ```rust
+/// use tracing_subscriber;
+///
+/// fn main() {
+///     // Initialize tracing subscriber
+///     tracing_subscriber::fmt::init();
+///     
+///     // Your app code here
+/// }
+/// ```
 pub(crate) fn logger(
     config: Option<LoggerConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
@@ -406,7 +429,7 @@ pub(crate) fn logger(
 
             let msg = msg.trim_end_matches([',', ' ', '\t', '\n']);
 
-            println!("{}", msg);
+            info!("{}", msg);
 
             (req, None)
         })

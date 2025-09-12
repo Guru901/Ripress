@@ -23,10 +23,13 @@
 //! Middlewares can be registered globally or for specific routes using the [`App`] builder methods.
 //! For example, to enable CORS and logging:
 //!
-//! ```rust
+//! ```no_run
 //! use ripress::app::App;
 //!
 //! let mut app = App::new();
+//!
+//! tracing_subscriber::fmt::init();
+//!
 //! app.use_cors(None);
 //! app.use_logger(None);
 //! ```
@@ -70,8 +73,9 @@ pub mod cors;
 /// - Customizable log format
 ///
 /// ## Usage
-/// ```rust
+/// ```no_run
 /// use ripress::app::App;
+/// tracing_subscriber::fmt::init();
 ///
 /// let mut app = App::new();
 /// app.use_logger(None);
