@@ -69,8 +69,7 @@ Ripress is a web framework inspired by Express.js, designed to bring the familia
 
 ## Getting Started
 
-The easiest way to get started is with the HexStack CLI
-.
+The easiest way to get started is with the HexStack CLI.
 
 HexStack is a project scaffolding tool (similar to create-t3-app) that lets you spin up new Rust web projects in seconds. With just a few selections, you can choose:
 

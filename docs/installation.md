@@ -19,45 +19,18 @@ rustc --version
 
 ### New Project
 
-If you're starting a new project, create it with Cargo:
+If you're starting a new project, create it with HexStack CLI.
 
 ```bash
-cargo new my-ripress-app
-cd my-ripress-app
-```
-
-### Adding Dependencies
-
-Add Ripress and the required async runtime to your `Cargo.toml`:
-
-```bash
-cargo add ripress
-cargo add tokio --features macros,rt-multi-thread
-```
-
-Alternatively, you can manually add them to your `Cargo.toml`:
-
-```toml
-[dependencies]
-ripress = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+hexstack new my-project --template ripress
 ```
 
 ### WebSocket Support (with-wynd feature)
 
 Ripress includes built-in WebSocket support through the `wynd` crate. The "with-wynd" feature is optional and must be explicitly enabled:
 
-```toml
-[dependencies]
-ripress = { version = "1", features = ["with-wynd"] }  # Enable WebSocket support
-wynd = "0.4"  # WebSocket library
-```
-
-Or use without WebSocket support:
-
-```toml
-[dependencies]
-ripress = "1"  # WebSocket support disabled (default)
+```bash
+hexstack new my-project --template full
 ```
 
 With WebSocket support enabled, you can create real-time applications:

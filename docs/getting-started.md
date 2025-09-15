@@ -18,33 +18,47 @@ Ripress is an Express-inspired web framework for Rust, designed to provide a sim
 - **WebSocket support** via the `wynd` crate (with "with-wynd" feature)
 - **Extensible** via custom middleware
 
-## Installation
+## Getting Started
 
-Add Ripress and Tokio to your `Cargo.toml`:
+The easiest way to get started is with the HexStack CLI
+.
 
-```bash
+HexStack is a project scaffolding tool (similar to create-t3-app) that lets you spin up new Rust web projects in seconds. With just a few selections, you can choose:
+
+Backend: Ripress, Wynd, or both
+
+Frontend: React, Svelte, or none
+
+Extras: Out-of-the-box HTTP + WebSocket support
+
+This means you can quickly bootstrap a full-stack project (Rust backend + modern frontend) or just a backend-only Ripress/Wynd project.
+
+To create a new project with Ripress:
+
+```sh
+hexstack new my-project --template ripress
+```
+
+Alternatively, you can create a new project manually by running the following commands:
+
+```sh
+cargo new my-project
+cd my-project
 cargo add ripress
 cargo add tokio --features macros,rt-multi-thread
 ```
 
-Or manually:
-
-```toml
-[dependencies]
-ripress = "1.0.1"
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
-serde_json = "1.0"  # For JSON handling
-```
+This will create a new project with Ripress.
 
 ### WebSocket Support
 
 Ripress includes built-in WebSocket support through the `wynd` crate. The "with-wynd" feature is optional and must be explicitly enabled:
 
-```toml
-[dependencies]
-ripress = { version = "1, features = ["with-wynd"] }  # Enable WebSocket support
-wynd = "0.4"  # WebSocket library
+```sh
+hexstack new my-project --template full
 ```
+
+This will do everything automatically for you.
 
 ## Quick Start
 
