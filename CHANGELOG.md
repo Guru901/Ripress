@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.3] - 2025-09-15
+
+- Improved README
+
 ## [1.9.2] - 2025-09-13
 
 - Used tracing instead of println! for logging

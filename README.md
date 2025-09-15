@@ -67,14 +67,37 @@ Ripress is a web framework inspired by Express.js, designed to bring the familia
 
 ---
 
-## Installation
+## Getting Started
 
-You can add `ripress` to your project using Cargo:
+The easiest way to get started is with the HexStack CLI
+.
+
+HexStack is a project scaffolding tool (similar to create-t3-app) that lets you spin up new Rust web projects in seconds. With just a few selections, you can choose:
+
+Backend: Ripress, Wynd, or both
+
+Frontend: React, Svelte, or none
+
+Extras: Out-of-the-box HTTP + WebSocket support
+
+This means you can quickly bootstrap a full-stack project (Rust backend + modern frontend) or just a backend-only Ripress/Wynd project.
+
+To create a new project with Ripress:
 
 ```sh
+hexstack new my-project --template ripress
+```
+
+Alternatively, you can create a new project manually by running the following commands:
+
+```sh
+cargo new my-project
+cd my-project
 cargo add ripress
 cargo add tokio --features macros,rt-multi-thread
 ```
+
+This will create a new project with Ripress.
 
 ## Basic Example
 
