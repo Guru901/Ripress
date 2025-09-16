@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.4] - 2025-09-16
+
+- Internal refactoring
+
 ## [1.9.3] - 2025-09-15
 
 - Improved README
