@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-use crate::app::box_future;
+use crate::helpers::box_future;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use bytes::Bytes;
@@ -36,9 +36,7 @@ impl ResponseContentBody {
             ResponseContentBody::BINARY(bytes) => bytes.len(),
         }
     }
-}
 
-impl ResponseContentBody {
     pub(crate) fn new_text<T: Into<String>>(text: T) -> Self {
         ResponseContentBody::TEXT(text.into())
     }
@@ -59,6 +57,7 @@ impl ResponseContentBody {
         ResponseContentBody::BINARY(bytes.into())
     }
 }
+
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub(crate) enum ResponseContentType {
     TEXT,

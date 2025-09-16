@@ -5,6 +5,7 @@ use crate::{
     app::{Middleware, api_error::ApiError},
     req::{HttpRequest, query_params::QueryParams},
     res::HttpResponse,
+    types::{Fut, FutMiddleware},
 };
 use hyper::{Body, Request, Response};
 use routerify::RequestInfo;
@@ -290,4 +291,18 @@ pub(crate) fn extract_quoted_or_token(input: &str) -> &str {
     } else {
         val.split(';').next().unwrap_or(val).trim()
     }
+}
+
+pub(crate) fn box_future<F>(future: F) -> Fut
+where
+    F: Future<Output = HttpResponse> + Send + 'static,
+{
+    Box::pin(future)
+}
+
+pub(crate) fn box_future_middleware<F>(future: F) -> FutMiddleware
+where
+    F: Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
+{
+    Box::pin(future)
 }

@@ -3,7 +3,7 @@
 use crate::app::api_error::ApiError;
 #[cfg(feature = "with-wynd")]
 use crate::helpers::exec_wynd_middleware;
-use crate::helpers::{exec_post_middleware, exec_pre_middleware};
+use crate::helpers::{box_future_middleware, exec_post_middleware, exec_pre_middleware};
 use crate::middlewares::body_limit::body_limit;
 use crate::middlewares::compression::{CompressionConfig, compression};
 use crate::middlewares::cors::{CorsConfig, cors};
@@ -14,15 +14,14 @@ use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 #[cfg(feature = "with-wynd")]
 use crate::types::WyndMiddlewareHandler;
-use crate::types::{Fut, FutMiddleware, HandlerMiddleware, HttpMethods, RouterFns, Routes};
-use hyper::header;
+use crate::types::{FutMiddleware, HandlerMiddleware, HttpMethods, RouterFns, Routes};
 use hyper::http::StatusCode;
 use hyper::{Body, Request, Response, Server};
+use hyper::{Method, header};
 use hyper_staticfile::Static;
 use routerify::ext::RequestExt;
 use routerify::{Router, RouterService};
 use std::collections::HashMap;
-use std::future::Future;
 use std::net::SocketAddr;
 use std::path::Path;
 #[cfg(feature = "with-wynd")]
@@ -30,20 +29,6 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 pub(crate) mod api_error;
-
-pub(crate) fn box_future<F>(future: F) -> Fut
-where
-    F: Future<Output = HttpResponse> + Send + 'static,
-{
-    Box::pin(future)
-}
-
-pub(crate) fn box_future_middleware<F>(future: F) -> FutMiddleware
-where
-    F: Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
-{
-    Box::pin(future)
-}
 
 /// Represents a middleware in the Ripress application.
 ///
@@ -567,220 +552,43 @@ impl App {
         for (path, methods) in &self.routes {
             for (method, handler) in methods {
                 let handler = handler.clone();
-                match method {
-                    HttpMethods::GET => {
-                        router = router.get(path, move |mut req| {
-                            let handler = handler.clone();
-                            async move {
-                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
-                                    .await
-                                {
-                                    Ok(r) => r,
-                                    Err(e) => {
-                                        return Err(ApiError::Generic(
-                                            HttpResponse::new().bad_request().text(e.to_string()),
-                                        ));
-                                    }
-                                };
-                                req.params().iter().for_each(|(key, value)| {
-                                    our_req.set_param(key, value);
-                                });
+                let method = match method {
+                    HttpMethods::GET => Method::GET,
+                    HttpMethods::POST => Method::POST,
+                    HttpMethods::PUT => Method::PUT,
+                    HttpMethods::DELETE => Method::DELETE,
+                    HttpMethods::PATCH => Method::PATCH,
+                    HttpMethods::HEAD => Method::HEAD,
+                    HttpMethods::OPTIONS => Method::OPTIONS,
+                };
 
-                                let our_res = HttpResponse::new();
-                                let response = handler(our_req, our_res).await;
-                                match response.to_hyper_response() {
-                                    Ok(r) => Ok(r),
-                                    Err(_e) => Err(ApiError::Generic(
-                                        HttpResponse::new()
-                                            .bad_request()
-                                            .text("Failed to create response"),
-                                    )),
-                                }
+                router = router.add(path, vec![method], move |mut req| {
+                    let handler = handler.clone();
+                    async move {
+                        let mut our_req = match HttpRequest::from_hyper_request(&mut req).await {
+                            Ok(r) => r,
+                            Err(e) => {
+                                return Err(ApiError::Generic(
+                                    HttpResponse::new().bad_request().text(e.to_string()),
+                                ));
                             }
+                        };
+                        req.params().iter().for_each(|(key, value)| {
+                            our_req.set_param(key, value);
                         });
-                    }
-                    HttpMethods::POST => {
-                        router = router.post(path, move |mut req| {
-                            let handler = handler.clone();
-                            async move {
-                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
-                                    .await
-                                {
-                                    Ok(r) => r,
-                                    Err(e) => {
-                                        return Err(ApiError::Generic(
-                                            HttpResponse::new().bad_request().text(e.to_string()),
-                                        ));
-                                    }
-                                };
-                                req.params().iter().for_each(|(key, value)| {
-                                    our_req.set_param(key, value);
-                                });
 
-                                let our_res = HttpResponse::new();
-                                let response = handler(our_req, our_res).await;
-                                match response.to_hyper_response() {
-                                    Ok(r) => Ok(r),
-                                    Err(_e) => Err(ApiError::Generic(
-                                        HttpResponse::new()
-                                            .bad_request()
-                                            .text("Failed to create response"),
-                                    )),
-                                }
-                            }
-                        });
+                        let our_res = HttpResponse::new();
+                        let response = handler(our_req, our_res).await;
+                        match response.to_hyper_response() {
+                            Ok(r) => Ok(r),
+                            Err(_e) => Err(ApiError::Generic(
+                                HttpResponse::new()
+                                    .bad_request()
+                                    .text("Failed to create response"),
+                            )),
+                        }
                     }
-                    HttpMethods::PUT => {
-                        router = router.put(path, move |mut req| {
-                            let handler = handler.clone();
-                            async move {
-                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
-                                    .await
-                                {
-                                    Ok(r) => r,
-                                    Err(e) => {
-                                        return Err(ApiError::Generic(
-                                            HttpResponse::new().bad_request().text(e.to_string()),
-                                        ));
-                                    }
-                                };
-                                req.params().iter().for_each(|(key, value)| {
-                                    our_req.set_param(key, value);
-                                });
-                                let our_res = HttpResponse::new();
-                                let response = handler(our_req, our_res).await;
-                                match response.to_hyper_response() {
-                                    Ok(r) => Ok(r),
-                                    Err(_e) => Err(ApiError::Generic(
-                                        HttpResponse::new()
-                                            .bad_request()
-                                            .text("Failed to create response"),
-                                    )),
-                                }
-                            }
-                        });
-                    }
-                    HttpMethods::DELETE => {
-                        router = router.delete(path, move |mut req| {
-                            let handler = handler.clone();
-                            async move {
-                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
-                                    .await
-                                {
-                                    Ok(r) => r,
-                                    Err(e) => {
-                                        return Err(ApiError::Generic(
-                                            HttpResponse::new().bad_request().text(e.to_string()),
-                                        ));
-                                    }
-                                };
-                                req.params().iter().for_each(|(key, value)| {
-                                    our_req.set_param(key, value);
-                                });
-                                let our_res = HttpResponse::new();
-                                let response = handler(our_req, our_res).await;
-                                match response.to_hyper_response() {
-                                    Ok(r) => Ok(r),
-                                    Err(_e) => Err(ApiError::Generic(
-                                        HttpResponse::new()
-                                            .bad_request()
-                                            .text("Failed to create response"),
-                                    )),
-                                }
-                            }
-                        });
-                    }
-                    HttpMethods::PATCH => {
-                        router = router.patch(path, move |mut req| {
-                            let handler = handler.clone();
-                            async move {
-                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
-                                    .await
-                                {
-                                    Ok(r) => r,
-                                    Err(e) => {
-                                        return Err(ApiError::Generic(
-                                            HttpResponse::new().bad_request().text(e.to_string()),
-                                        ));
-                                    }
-                                };
-                                req.params().iter().for_each(|(key, value)| {
-                                    our_req.set_param(key, value);
-                                });
-                                let our_res = HttpResponse::new();
-                                let response = handler(our_req, our_res).await;
-                                match response.to_hyper_response() {
-                                    Ok(r) => Ok(r),
-                                    Err(_e) => Err(ApiError::Generic(
-                                        HttpResponse::new()
-                                            .bad_request()
-                                            .text("Failed to create response"),
-                                    )),
-                                }
-                            }
-                        });
-                    }
-                    HttpMethods::HEAD => {
-                        router = router.head(path, move |mut req| {
-                            let handler = handler.clone();
-                            async move {
-                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
-                                    .await
-                                {
-                                    Ok(r) => r,
-                                    Err(e) => {
-                                        return Err(ApiError::Generic(
-                                            HttpResponse::new().bad_request().text(e.to_string()),
-                                        ));
-                                    }
-                                };
-                                req.params().iter().for_each(|(key, value)| {
-                                    our_req.set_param(key, value);
-                                });
-                                let our_res = HttpResponse::new();
-                                let response = handler(our_req, our_res).await;
-                                match response.to_hyper_response() {
-                                    Ok(r) => Ok(r),
-                                    Err(_e) => Err(ApiError::Generic(
-                                        HttpResponse::new()
-                                            .bad_request()
-                                            .text("Failed to create response"),
-                                    )),
-                                }
-                            }
-                        });
-                    }
-                    HttpMethods::OPTIONS => {
-                        router = router.options(path, move |mut req| {
-                            let handler = handler.clone();
-                            async move {
-                                let mut our_req = match HttpRequest::from_hyper_request(&mut req)
-                                    .await
-                                {
-                                    Ok(r) => r,
-                                    Err(e) => {
-                                        return Err(ApiError::Generic(
-                                            HttpResponse::new().bad_request().text(e.to_string()),
-                                        ));
-                                    }
-                                };
-                                req.params().iter().for_each(|(key, value)| {
-                                    our_req.set_param(key, value);
-                                });
-                                let our_res = HttpResponse::new();
-                                let response = handler(our_req, our_res).await;
-                                match response.to_hyper_response() {
-                                    Ok(r) => Ok(r),
-                                    Err(_e) => Err(ApiError::Generic(
-                                        HttpResponse::new()
-                                            .bad_request()
-                                            .text("Failed to create response"),
-                                    )),
-                                }
-                            }
-                        });
-                    }
-                }
+                });
             }
         }
 
