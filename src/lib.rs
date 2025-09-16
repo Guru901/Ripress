@@ -53,3 +53,5 @@ pub mod types;
 
 /// Internal test module for framework testing.
 mod tests;
+
+pub mod error;
