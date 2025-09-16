@@ -7,8 +7,9 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 #[cfg(test)]
 mod tests {
     use crate::{
-        app::{App, api_error::ApiError, box_future},
+        app::{App, api_error::ApiError},
         context::HttpResponse,
+        helpers::box_future,
         req::HttpRequest,
         types::{HttpMethods, RouterFns},
     };
