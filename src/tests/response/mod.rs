@@ -11,10 +11,9 @@ mod tests {
     use crate::req::body::TextData;
     use crate::req::determine_content_type_request;
     use crate::req::origin_url::Url;
-    use crate::res::Cookie;
-    use crate::res::CookieOptions;
     use crate::res::HttpResponse;
     use crate::res::ResponseError;
+    use crate::res::response_cookie::{Cookie, CookieOptions};
     use crate::res::response_headers::ResponseHeaders;
     use crate::res::response_status::StatusCode;
     use crate::types::HttpRequestError;

@@ -19,6 +19,10 @@ pub mod response_headers;
 /// Contains the response status enum and its methods.
 pub mod response_status;
 
+/// Contains the response cookie struct and its methods.
+pub mod response_cookie;
+
+use response_cookie::{Cookie, CookieOptions, CookieSameSiteOptions};
 use response_headers::ResponseHeaders;
 
 /// Represents errors that can occur when generating an HTTP response.
@@ -90,101 +94,6 @@ impl std::fmt::Display for ResponseError {
 /// - `cookies` - Response cookies to be set
 /// - `headers` - Response headers
 /// - `remove_cookies` - Cookies to be removed
-
-/// Options for the SameSite attribute of cookies.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CookieSameSiteOptions {
-    /// Sets the SameSite attribute to Strict
-    Strict,
-
-    /// Sets the SameSite attribute to Lax
-    Lax,
-
-    /// Sets the SameSite attribute to None
-    None,
-}
-
-/// Options for setting cookies
-#[derive(Debug, Clone, PartialEq)]
-pub struct CookieOptions {
-    /// Sets the HttpOnly attribute
-    pub http_only: bool,
-
-    /// Sets the Secure attribute
-    pub secure: bool,
-
-    /// Sets the SameSite attribute
-    pub same_site: CookieSameSiteOptions,
-
-    /// Sets the Path attribute
-    pub path: Option<&'static str>,
-
-    /// Sets the Domain attribute
-    pub domain: Option<&'static str>,
-
-    /// Sets the Max-Age attribute
-    pub max_age: Option<i64>,
-
-    /// Sets the Expires attribute
-    pub expires: Option<i64>,
-}
-
-impl Default for CookieOptions {
-    fn default() -> Self {
-        Self {
-            http_only: true,
-            secure: true,
-            same_site: CookieSameSiteOptions::None,
-            path: Some("/"),
-            domain: None,
-            max_age: None,
-            expires: None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Cookie {
-    pub name: &'static str,
-    pub value: &'static str,
-    pub(crate) options: CookieOptions,
-}
-
-/// Represents an HTTP response being sent to the client.
-///
-/// The HttpResponse struct provides methods to construct and manipulate HTTP responses
-/// including status codes, headers, cookies, and different types of response bodies.
-///
-/// # Examples
-///
-/// Basic usage:
-/// ```rust
-/// use ripress::context::HttpResponse;
-///
-/// let res = HttpResponse::new();
-/// res.ok().text("Hello, World!");
-/// ```
-///
-/// JSON response:
-/// ```rust
-/// use ripress::context::HttpResponse;
-/// use serde_json::json;
-///
-/// let res = HttpResponse::new();
-/// res.ok().json(json!({
-///     "message": "Success",
-///     "code": 200
-/// }));
-/// ```
-///
-/// # Fields
-/// - `status_code` - HTTP status code (e.g., 200, 404, 500)
-/// - `body` - Response body content (JSON, text)
-/// - `content_type` - Content-Type header value
-/// - `cookies` - Response cookies to be set
-/// - `headers` - Response headers
-/// - `remove_cookies` - Cookies to be removed
-
 pub struct HttpResponse {
     // Response body content
     pub(crate) body: ResponseContentBody,
@@ -221,12 +130,6 @@ impl std::fmt::Debug for HttpResponse {
             .field("is_stream", &self.is_stream)
             .field("stream", &"<stream>")
             .finish()
-    }
-}
-
-impl Default for HttpResponse {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

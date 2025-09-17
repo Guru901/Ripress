@@ -8,7 +8,8 @@ pub mod route_params;
 mod tests {
     use crate::{
         req::origin_url::Url,
-        res::{CookieOptions, HttpResponse},
+        res::HttpResponse,
+        res::response_cookie::CookieOptions,
         types::{_HttpResponseError, ResponseContentBody, ResponseContentType},
     };
     use serde_json::json;

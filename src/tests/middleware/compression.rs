@@ -9,13 +9,13 @@ mod test {
     use crate::types::{ResponseContentBody, ResponseContentType};
 
     fn make_response_with_body(body: ResponseContentBody, content_type: &str) -> HttpResponse {
-        let mut res = HttpResponse::default();
+        let mut res = HttpResponse::new();
         res.body = body;
         res.content_type = match content_type {
             "text/plain" => ResponseContentType::TEXT,
             "application/json" => ResponseContentType::JSON,
             "text/html" => ResponseContentType::HTML,
-           "application/javascript" => ResponseContentType::TEXT,
+            "application/javascript" => ResponseContentType::TEXT,
             "application/octet-stream" => ResponseContentType::BINARY,
             _ => ResponseContentType::TEXT,
         };
@@ -65,7 +65,7 @@ mod test {
         let html = "<h1>hi</h1>";
         let bin = vec![1, 2, 3, 4];
 
-        let mut res = HttpResponse::default();
+        let mut res = HttpResponse::new();
         res.body = ResponseContentBody::TEXT(text.into());
         assert_eq!(
             get_response_body_bytes(&res),
@@ -90,7 +90,7 @@ mod test {
 
     #[test]
     fn test_set_response_body_sets_binary() {
-        let mut res = HttpResponse::default();
+        let mut res = HttpResponse::new();
         let compressed = vec![1, 2, 3, 4, 5];
         set_response_body(&mut res, compressed.clone()).unwrap();
         match &res.body {

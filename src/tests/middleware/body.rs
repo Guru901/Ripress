@@ -19,7 +19,7 @@ mod test {
     }
 
     fn make_res() -> HttpResponse {
-        HttpResponse::default()
+        HttpResponse::new()
     }
 
     #[tokio::test]

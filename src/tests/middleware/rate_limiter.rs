@@ -30,7 +30,7 @@ mod test {
     }
 
     fn mock_res() -> HttpResponse {
-        HttpResponse::default()
+        HttpResponse::new()
     }
 
     #[tokio::test]
