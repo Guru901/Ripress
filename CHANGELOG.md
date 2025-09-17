@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.5] - 2025-09-17
+
+- Global Error Type from `ripress::error::RipressError`
+
 ## [1.9.4] - 2025-09-16
 
 - Internal refactoring
