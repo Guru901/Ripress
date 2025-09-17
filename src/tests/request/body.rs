@@ -46,7 +46,7 @@ mod tests {
             limit: 500,
         });
 
-        assert!(matches!(result, Err(ripress_error)));
+        assert_eq!(result, Err(ripress_error));
     }
 
     #[test]

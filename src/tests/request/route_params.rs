@@ -3,7 +3,7 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::{
-        error::{RipressError, RipressErrorKind},
+        error::RipressErrorKind,
         req::route_params::{ParamError, RouteParams},
     };
 

@@ -54,4 +54,12 @@ pub mod types;
 /// Internal test module for framework testing.
 mod tests;
 
+/// Error types and utilities for the Ripress framework.
+///
+/// This module provides structured error types, error categories, and conversion utilities
+/// for handling errors throughout the framework. It includes the [`RipressError`] struct,
+/// the [`RipressErrorKind`] enum for classifying errors, and conversions from lower-level
+/// errors such as query parameter and route parameter parsing failures.
+///
+/// See [`error::RipressError`] and [`error::RipressErrorKind`] for details.
 pub mod error;
