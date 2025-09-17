@@ -97,7 +97,7 @@ pub mod text_data;
 use bytes::Bytes;
 // Re-export commonly used types for convenience
 pub use form_data::FormData;
-pub use text_data::{TextData, TextDataError};
+pub use text_data::TextData;
 
 impl RequestBody {
     /// Creates a new request body with plain text content.

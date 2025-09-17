@@ -2,7 +2,10 @@
 mod tests {
     use std::collections::HashMap;
 
-    use crate::req::route_params::{ParamError, RouteParams};
+    use crate::{
+        error::RipressErrorKind,
+        req::route_params::{ParamError, RouteParams},
+    };
 
     #[test]
     fn test_basic_params_operations() {
@@ -43,19 +46,24 @@ mod tests {
         let params = RouteParams::new();
 
         match params.get_int("missing") {
-            Err(ParamError::NotFound(name)) => assert_eq!(name, "missing"),
-            _ => panic!("Expected NotFound error"),
+            Err(e) => {
+                assert_eq!(e.kind, RipressErrorKind::NotFound)
+            }
+            _ => panic!("Expected error"),
         }
 
         let mut params = RouteParams::new();
         params.insert("invalid", "not-a-number");
 
         match params.get_int("invalid") {
-            Err(ParamError::ParseError { param, value, .. }) => {
-                assert_eq!(param, "invalid");
-                assert_eq!(value, "not-a-number");
+            Err(e) => {
+                assert_eq!(e.kind, RipressErrorKind::ParseError);
+                assert_eq!(
+                    e.message,
+                    "Failed to parse route param 'invalid' from: i32 to: 'not-a-number'"
+                )
             }
-            _ => panic!("Expected ParseError"),
+            _ => panic!("Expected error"),
         }
     }
 

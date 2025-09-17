@@ -5,6 +5,8 @@ use std::str::FromStr;
 
 use serde::Serialize;
 
+use crate::error::RipressError;
+
 /// A collection of parameters extracted from a route's URL pattern.
 ///
 /// `RouteParams` provides a type-safe way to handle URL path parameters in web routes.
@@ -73,17 +75,14 @@ use serde::Serialize;
 /// ## Error Handling
 ///
 /// ```rust
-/// use ripress::req::route_params::{RouteParams, ParamError};
+/// use ripress::req::route_params::RouteParams;
 ///
 /// let params = RouteParams::new();
 ///
 /// // Handle missing parameters
 /// match params.get_int("missing") {
 ///     Ok(value) => println!("Value: {}", value),
-///     Err(ParamError::NotFound(name)) => println!("Parameter '{}' not found", name),
-///     Err(ParamError::ParseError { param, value, target_type }) => {
-///         println!("Failed to parse '{}' = '{}' as {}", param, value, target_type);
-///     }
+///     Err(e) => println!("Error: {}", e),
 /// }
 /// ```
 ///
@@ -134,7 +133,7 @@ pub struct RouteParams {
 /// This enum provides detailed information about parameter access failures,
 /// making it easier to provide meaningful error messages to users or logs.
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub enum ParamError {
+pub(crate) enum ParamError {
     /// The parameter with the given name does not exist in the route.
     ///
     /// This typically occurs when:
@@ -321,7 +320,7 @@ impl RouteParams {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::route_params::{RouteParams, ParamError};
+    /// use ripress::req::route_params::RouteParams;
     ///
     /// let mut params = RouteParams::new();
     /// params.insert("id", "123");
@@ -335,30 +334,26 @@ impl RouteParams {
     /// assert_eq!(params.get_parsed::<bool>("active").unwrap(), true);
     ///
     /// // Missing parameter
-    /// assert!(matches!(
-    ///     params.get_parsed::<i32>("missing"),
-    ///     Err(ParamError::NotFound(_))
-    /// ));
+    /// assert!(params.get_parsed::<i32>("missing").is_err());
     ///
     /// // Parse error
-    /// assert!(matches!(
-    ///     params.get_parsed::<i32>("invalid"),
-    ///     Err(ParamError::ParseError { .. })
-    /// ));
+    /// assert!(params.get_parsed::<i32>("invalid").is_err());
     /// ```
-    pub fn get_parsed<T>(&self, name: &str) -> Result<T, ParamError>
+    pub fn get_parsed<T>(&self, name: &str) -> Result<T, RipressError>
     where
         T: FromStr,
         T::Err: std::fmt::Debug,
     {
         let value = self
             .get(name)
-            .ok_or_else(|| ParamError::NotFound(name.to_string()))?;
+            .ok_or_else(|| RipressError::from(ParamError::NotFound(name.to_string())))?;
 
-        value.parse::<T>().map_err(|_| ParamError::ParseError {
-            param: name.to_string(),
-            value: value.to_string(),
-            target_type: std::any::type_name::<T>().to_string(),
+        value.parse::<T>().map_err(|_| {
+            RipressError::from(ParamError::ParseError {
+                param: name.to_string(),
+                value: value.to_string(),
+                target_type: std::any::type_name::<T>().to_string(),
+            })
         })
     }
 
@@ -388,7 +383,7 @@ impl RouteParams {
     /// assert_eq!(params.get_int("user_id").unwrap(), 42);
     /// assert_eq!(params.get_int("negative").unwrap(), -10);
     /// ```
-    pub fn get_int(&self, name: &str) -> Result<i32, ParamError> {
+    pub fn get_int(&self, name: &str) -> Result<i32, RipressError> {
         self.get_parsed::<i32>(name)
     }
 
@@ -423,7 +418,7 @@ impl RouteParams {
     /// params.insert("negative", "-5");
     /// assert!(params.get_uint("negative").is_err());
     /// ```
-    pub fn get_uint(&self, name: &str) -> Result<u32, ParamError> {
+    pub fn get_uint(&self, name: &str) -> Result<u32, RipressError> {
         self.get_parsed::<u32>(name)
     }
 
@@ -496,7 +491,7 @@ impl RouteParams {
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::route_params::{RouteParams, ParamError};
+    /// use ripress::req::route_params::{RouteParams};
     ///
     /// let mut params = RouteParams::new();
     /// params.insert("page", "5");
@@ -509,18 +504,15 @@ impl RouteParams {
     /// assert_eq!(params.get_or_parse_default("invalid_limit", 10).unwrap(), 10);
     ///
     /// // Missing parameter - returns error
-    /// assert!(matches!(
-    ///     params.get_or_parse_default("missing", 1),
-    ///     Err(ParamError::NotFound(_))
-    /// ));
+    /// assert!(params.get_or_parse_default("missing", 1).is_err());
     /// ```
-    pub fn get_or_parse_default<T>(&self, name: &str, default: T) -> Result<T, ParamError>
+    pub fn get_or_parse_default<T>(&self, name: &str, default: T) -> Result<T, RipressError>
     where
         T: FromStr,
         T::Err: std::fmt::Debug,
     {
         match self.get(name) {
-            None => Err(ParamError::NotFound(name.to_string())),
+            None => Err(RipressError::from(ParamError::NotFound(name.to_string()))),
             Some(value) => Ok(value.parse().unwrap_or(default)),
         }
     }
@@ -679,7 +671,7 @@ impl RouteParams {
     /// This method provides a way to implement complex validation logic that
     /// might involve multiple parameters or custom business rules. The extractor
     /// function receives a reference to the `RouteParams` and should return
-    /// either `Ok(())` for success or `Err(Vec<ParamError>)` for failures.
+    /// either `Ok(())` for success or `Err(Vec<RipressError>)` for failures.
     ///
     /// # Parameters
     ///
@@ -688,12 +680,12 @@ impl RouteParams {
     /// # Returns
     ///
     /// - `Ok(())` if validation passes
-    /// - `Err(Vec<ParamError>)` containing all validation errors
+    /// - `Err(Vec<RipressError>)` containing all validation errors
     ///
     /// # Examples
     ///
     /// ```rust
-    /// use ripress::req::route_params::{RouteParams, ParamError};
+    /// use ripress::req::route_params::{RouteParams};
     ///
     /// let mut params = RouteParams::new();
     /// params.insert("user_id", "42");
@@ -719,9 +711,9 @@ impl RouteParams {
     ///
     /// assert!(result.is_ok());
     /// ```
-    pub fn extract<F>(&self, extractor: F) -> Result<(), Vec<ParamError>>
+    pub fn extract<F>(&self, extractor: F) -> Result<(), Vec<RipressError>>
     where
-        F: FnOnce(&Self) -> Result<(), Vec<ParamError>>,
+        F: FnOnce(&Self) -> Result<(), Vec<RipressError>>,
     {
         extractor(self)
     }
@@ -752,7 +744,7 @@ impl RouteParams {
     /// // Equivalent to:
     /// assert_eq!(params.get_int("id").unwrap(), 42);
     /// ```
-    pub fn id(&self) -> Result<i32, ParamError> {
+    pub fn id(&self) -> Result<i32, RipressError> {
         self.get_int("id")
     }
 

@@ -4,8 +4,12 @@ mod tests {
     use serde_json::json;
     use std::collections::hash_map::HashMap;
 
-    use crate::req::body::{
-        FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData, TextDataError,
+    use crate::{
+        error::{RipressError, RipressErrorKind},
+        req::body::{
+            FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData,
+            text_data::TextDataError,
+        },
     };
 
     #[test]
@@ -37,7 +41,12 @@ mod tests {
         let large_text = "x".repeat(1000);
         let bytes = large_text.as_bytes().to_vec();
         let result = TextData::from_bytes_with_limit(bytes, 500);
-        assert!(matches!(result, Err(TextDataError::TooLarge { .. })));
+        let ripress_error = RipressError::from(TextDataError::TooLarge {
+            size: 1000,
+            limit: 500,
+        });
+
+        assert_eq!(result, Err(ripress_error));
     }
 
     #[test]
@@ -589,10 +598,7 @@ mod tests {
     fn test_try_from_vec_u8_invalid_utf8() {
         let bytes = vec![0xff, 0xfe, 0xfd]; // invalid UTF-8
         let err = TextData::try_from(bytes).unwrap_err();
-        match err {
-            TextDataError::InvalidUtf8(_) => {} // expected
-            _ => panic!("expected InvalidUtf8 error"),
-        }
+        assert_eq!(err.kind, RipressErrorKind::ParseError)
     }
 
     #[test]
@@ -607,7 +613,13 @@ mod tests {
         // Construct TextData from invalid bytes (simulate via from_bytes)
         let bytes = vec![0xff, 0xfe];
         let text = TextData::try_from(bytes.clone()).unwrap_err();
-        assert!(matches!(text, TextDataError::InvalidUtf8(_)));
+        assert!(matches!(
+            text,
+            RipressError {
+                kind: RipressErrorKind::ParseError,
+                ..
+            }
+        ));
     }
 
     #[test]

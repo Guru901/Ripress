@@ -4,9 +4,11 @@ use std::str::Utf8Error;
 
 use serde::Serialize;
 
+use crate::error::RipressError;
+
 /// Represents various errors that can occur when working with text data.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TextDataError {
+pub(crate) enum TextDataError {
     /// The byte sequence is not valid UTF-8.
     ///
     /// This error occurs when attempting to interpret bytes as UTF-8 text
@@ -75,7 +77,7 @@ pub struct TextData {
 }
 
 impl TryFrom<TextData> for String {
-    type Error = TextDataError;
+    type Error = RipressError;
 
     /// Attempts to convert `TextData` to a `String`.
     ///
@@ -138,7 +140,7 @@ impl TextData {
     /// let invalid_bytes = vec![0xFF, 0xFE];
     /// assert!(TextData::from_bytes(invalid_bytes).is_err());
     /// ```
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, TextDataError> {
+    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, RipressError> {
         // Validate UTF-8
         std::str::from_utf8(&bytes).map_err(TextDataError::InvalidUtf8)?;
 
@@ -176,12 +178,12 @@ impl TextData {
     /// let large_text = "This is a very long string".as_bytes().to_vec();
     /// assert!(TextData::from_bytes_with_limit(large_text, 5).is_err());
     /// ```
-    pub fn from_bytes_with_limit(bytes: Vec<u8>, limit: usize) -> Result<Self, TextDataError> {
+    pub fn from_bytes_with_limit(bytes: Vec<u8>, limit: usize) -> Result<Self, RipressError> {
         if bytes.len() > limit {
-            return Err(TextDataError::TooLarge {
+            return Err(RipressError::from(TextDataError::TooLarge {
                 size: bytes.len(),
                 limit,
-            });
+            }));
         }
         Self::from_bytes(bytes)
     }
@@ -243,8 +245,9 @@ impl TextData {
     /// let invalid = TextData::from_raw_bytes(vec![0xFF], None);
     /// assert!(invalid.as_str().is_err());
     /// ```
-    pub fn as_str(&self) -> Result<&str, TextDataError> {
-        std::str::from_utf8(&self.inner).map_err(TextDataError::InvalidUtf8)
+    pub fn as_str(&self) -> Result<&str, RipressError> {
+        std::str::from_utf8(&self.inner)
+            .map_err(|e| RipressError::from(TextDataError::InvalidUtf8(e)))
     }
 
     /// Returns the text as a string slice, replacing invalid UTF-8 with replacement characters.
@@ -290,8 +293,9 @@ impl TextData {
     /// let string = text.into_string().unwrap();
     /// assert_eq!(string, "Hello!");
     /// ```
-    pub fn into_string(self) -> Result<String, TextDataError> {
-        String::from_utf8(self.inner).map_err(|e| TextDataError::InvalidUtf8(e.utf8_error()))
+    pub fn into_string(self) -> Result<String, RipressError> {
+        String::from_utf8(self.inner)
+            .map_err(|e| RipressError::from(TextDataError::InvalidUtf8(e.utf8_error())))
     }
 
     /// Converts to a `String`, replacing invalid UTF-8 with replacement characters.
@@ -406,7 +410,7 @@ impl TextData {
     /// assert_eq!(unicode.len_chars().unwrap(), 5); // 1 emoji + 4 ASCII chars
     /// assert_eq!(unicode.len_bytes(), 8); // But 8 bytes total
     /// ```
-    pub fn len_chars(&self) -> Result<usize, TextDataError> {
+    pub fn len_chars(&self) -> Result<usize, RipressError> {
         Ok(self.as_str()?.chars().count())
     }
 
@@ -515,7 +519,7 @@ impl TextData {
     /// let lines: Vec<&str> = text.lines().unwrap().collect();
     /// assert_eq!(lines, vec!["Line 1", "Line 2", "Line 3"]);
     /// ```
-    pub fn lines(&self) -> Result<std::str::Lines, TextDataError> {
+    pub fn lines(&self) -> Result<std::str::Lines, RipressError> {
         Ok(self.as_str()?.lines())
     }
 
@@ -536,7 +540,7 @@ impl TextData {
     /// let text = TextData::new("  Hello, world!  ".to_string());
     /// assert_eq!(text.trim().unwrap(), "Hello, world!");
     /// ```
-    pub fn trim(&self) -> Result<&str, TextDataError> {
+    pub fn trim(&self) -> Result<&str, RipressError> {
         Ok(self.as_str()?.trim())
     }
 
@@ -562,7 +566,7 @@ impl TextData {
     /// assert!(text.contains("world").unwrap());
     /// assert!(!text.contains("Rust").unwrap());
     /// ```
-    pub fn contains(&self, needle: &str) -> Result<bool, TextDataError> {
+    pub fn contains(&self, needle: &str) -> Result<bool, RipressError> {
         Ok(self.as_str()?.contains(needle))
     }
 
@@ -592,7 +596,7 @@ impl TextData {
     pub fn split<'a>(
         &'a self,
         delimiter: &'a str,
-    ) -> Result<std::str::Split<'a, &'a str>, TextDataError> {
+    ) -> Result<std::str::Split<'a, &'a str>, RipressError> {
         Ok(self.as_str()?.split(delimiter))
     }
 
@@ -715,7 +719,7 @@ impl From<&str> for TextData {
 }
 
 impl TryFrom<Vec<u8>> for TextData {
-    type Error = TextDataError;
+    type Error = RipressError;
 
     /// Attempts to create `TextData` from a byte vector with UTF-8 validation.
     ///
