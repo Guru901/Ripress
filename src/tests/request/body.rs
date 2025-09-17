@@ -598,9 +598,7 @@ mod tests {
     fn test_try_from_vec_u8_invalid_utf8() {
         let bytes = vec![0xff, 0xfe, 0xfd]; // invalid UTF-8
         let err = TextData::try_from(bytes).unwrap_err();
-        if err.kind != RipressErrorKind::ParseError {
-            panic!("expected InvalidInput error");
-        }
+        assert_eq!(err.kind, RipressErrorKind::ParseError)
     }
 
     #[test]

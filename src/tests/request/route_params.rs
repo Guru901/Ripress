@@ -47,9 +47,7 @@ mod tests {
 
         match params.get_int("missing") {
             Err(e) => {
-                if e.kind != RipressErrorKind::NotFound {
-                    panic!("Expected NotFound error");
-                }
+                assert_eq!(e.kind, RipressErrorKind::NotFound)
             }
             _ => panic!("Expected error"),
         }
@@ -59,15 +57,11 @@ mod tests {
 
         match params.get_int("invalid") {
             Err(e) => {
-                println!("{:?}", e);
-                if e.kind != RipressErrorKind::ParseError {
-                    panic!("Expected ParseError error");
-                }
-
-                if e.message != "Failed to parse route param 'invalid' from: i32 to: 'not-a-number'"
-                {
-                    panic!("Expected error message");
-                }
+                assert_eq!(e.kind, RipressErrorKind::ParseError);
+                assert_eq!(
+                    e.message,
+                    "Failed to parse route param 'invalid' from: i32 to: 'not-a-number'"
+                )
             }
             _ => panic!("Expected error"),
         }
