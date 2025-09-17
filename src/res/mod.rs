@@ -401,7 +401,7 @@ impl HttpResponse {
     /// # Example
     /// ```rust
     /// use ripress::context::HttpResponse;
-    /// use ripress::res::CookieOptions;
+    /// use ripress::res::response_cookie::CookieOptions;
     ///
     /// let res = HttpResponse::new()
     ///     .set_cookie("session", "abc123", None)

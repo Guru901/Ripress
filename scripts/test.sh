@@ -40,13 +40,12 @@ cd src
 touch main.rs
 
 echo '
-
 use bytes::Bytes;
 use futures::stream;
 use ripress::app::App;
 use ripress::context::{HttpRequest, HttpResponse};
 use ripress::middlewares::file_upload::file_upload;
-use ripress::res::{CookieOptions, CookieSameSiteOptions};
+use ripress::res::response_cookie::{CookieOptions, CookieSameSiteOptions};
 use ripress::types::RouterFns;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -525,7 +524,6 @@ async fn multiple_headers_test(_: HttpRequest, res: HttpResponse) -> HttpRespons
 async fn no_content_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.no_content()
 }
-
 ' > main.rs
 
 cargo run --features with-wynd &  # Start server in background
