@@ -29,10 +29,10 @@ pub struct CookieOptions {
     /// Sets the Domain attribute
     pub domain: Option<&'static str>,
 
-    /// Sets the Max-Age attribute
+    /// Sets the Max-Age attribute (in seconds)
     pub max_age: Option<i64>,
 
-    /// Sets the Expires attribute
+    /// Sets the Expires attribute as a UNIX timestamp in seconds
     pub expires: Option<i64>,
 }
 

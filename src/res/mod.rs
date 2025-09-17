@@ -762,7 +762,7 @@ impl HttpResponse {
             response = response.header("Connection", "keep-alive");
 
             for c in self.cookies.iter() {
-                let cookie = cookie::Cookie::build((c.name, c.value))
+                let mut cookie_builder = cookie::Cookie::build((c.name, c.value))
                     .http_only(c.options.http_only)
                     .same_site(match c.options.same_site {
                         crate::res::CookieSameSiteOptions::Lax => cookie::SameSite::Lax,
@@ -770,10 +770,23 @@ impl HttpResponse {
                         crate::res::CookieSameSiteOptions::None => cookie::SameSite::None,
                     })
                     .secure(c.options.secure)
-                    .path(c.options.path.unwrap_or("/"))
-                    .max_age(cookie::time::Duration::seconds(
-                        c.options.max_age.unwrap_or(0),
-                    ));
+                    .path(c.options.path.unwrap_or("/"));
+
+                if let Some(domain) = c.options.domain {
+                    cookie_builder = cookie_builder.domain(domain);
+                }
+                if let Some(max_age_secs) = c.options.max_age {
+                    cookie_builder =
+                        cookie_builder.max_age(cookie::time::Duration::seconds(max_age_secs));
+                }
+                if let Some(expires_unix) = c.options.expires {
+                    if let Ok(odt) = cookie::time::OffsetDateTime::from_unix_timestamp(expires_unix)
+                    {
+                        cookie_builder = cookie_builder.expires(odt);
+                    }
+                }
+
+                let cookie = cookie_builder;
                 response = response.header(
                     SET_COOKIE,
                     HeaderValue::from_str(&cookie.to_string()).unwrap(),
@@ -826,7 +839,7 @@ impl HttpResponse {
             }
 
             self.cookies.iter().for_each(|c| {
-                let cookie = cookie::Cookie::build((c.name, c.value))
+                let mut cookie_builder = cookie::Cookie::build((c.name, c.value))
                     .http_only(c.options.http_only)
                     .same_site(match c.options.same_site {
                         crate::res::CookieSameSiteOptions::Lax => cookie::SameSite::Lax,
@@ -834,10 +847,23 @@ impl HttpResponse {
                         crate::res::CookieSameSiteOptions::None => cookie::SameSite::None,
                     })
                     .secure(c.options.secure)
-                    .path(c.options.path.unwrap_or("/"))
-                    .max_age(cookie::time::Duration::seconds(
-                        c.options.max_age.unwrap_or(0),
-                    ));
+                    .path(c.options.path.unwrap_or("/"));
+
+                if let Some(domain) = c.options.domain {
+                    cookie_builder = cookie_builder.domain(domain);
+                }
+                if let Some(max_age_secs) = c.options.max_age {
+                    cookie_builder =
+                        cookie_builder.max_age(cookie::time::Duration::seconds(max_age_secs));
+                }
+                if let Some(expires_unix) = c.options.expires {
+                    if let Ok(odt) = cookie::time::OffsetDateTime::from_unix_timestamp(expires_unix)
+                    {
+                        cookie_builder = cookie_builder.expires(odt);
+                    }
+                }
+
+                let cookie = cookie_builder;
                 response.headers_mut().append(
                     SET_COOKIE,
                     HeaderValue::from_str(&cookie.to_string()).unwrap(),
