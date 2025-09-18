@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.9.6] - 2025-09-18
+
+### Added
+
+- Extended cookie attributes:
+
+  - domain (optional domain for cookies)
+  - max_age (optional max age for cookie expiration)
+  - expires (optional explicit expiration timestamp)
+
+- Refined cookie builder pattern for safer and more complete cookie construction
+
+### Changed
+
+- Modularized cookie functionality: moved all cookie-related types to res::response_cookie module for clearer separation of concerns
+- Updated documentation examples to use new module paths
+
+### Internal
+
+- Improved cookie handling in both streaming and non-streaming response paths
+- Strengthened cookie attribute preservation during response building
+- Updated tests to reflect new cookie module paths
+
 ## [1.9.5] - 2025-09-17
 
 - Global Error Type from `ripress::error::RipressError`
