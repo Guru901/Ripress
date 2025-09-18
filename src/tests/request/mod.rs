@@ -90,7 +90,7 @@ mod tests {
         assert_eq!(response.headers().get("X-Custom").unwrap(), "value");
         assert_eq!(
             response.headers().get("Set-Cookie").unwrap(),
-            "session=123; HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0"
+            "session=123; HttpOnly; SameSite=None; Secure; Path=/"
         );
         assert_eq!(
             response.headers().get("Content-Type").unwrap(),
@@ -131,7 +131,7 @@ mod tests {
         assert_eq!(response.headers().get("X-Custom").unwrap(), "value");
         assert_eq!(
             response.headers().get("Set-Cookie").unwrap(),
-            "session=123; HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0"
+            "session=123; HttpOnly; SameSite=None; Secure; Path=/"
         );
         assert_eq!(
             response.headers().get("Content-Type").unwrap(),

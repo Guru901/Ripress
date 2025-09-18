@@ -19,10 +19,14 @@ pub mod response_headers;
 /// Contains the response status enum and its methods.
 pub mod response_status;
 
-/// Contains the response cookie struct and its methods.
+/// Contains cookie types used by HttpResponse (options, enums).
 pub mod response_cookie;
 
-use response_cookie::{Cookie, CookieOptions, CookieSameSiteOptions};
+// Re-export for backward compatibility: crate::res::CookieOptions / CookieSameSiteOptions
+pub use response_cookie::{CookieOptions, CookieSameSiteOptions};
+// Cookie stays crate-private
+use response_cookie::Cookie;
+
 use response_headers::ResponseHeaders;
 
 /// Represents errors that can occur when generating an HTTP response.
