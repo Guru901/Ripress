@@ -9,11 +9,7 @@
 //! ## Quick Start
 //!
 //! ```rust
-//! use ripress::{
-//!     app::App,
-//!     context::{HttpRequest, HttpResponse},
-//!     types::RouterFns,
-//! };
+//! use ripress::{app::App, types::RouterFns};
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -55,11 +51,7 @@
 //!
 //! ### RESTful API with JSON
 //! ```rust
-//! use ripress::{
-//!     app::App,
-//!     context::{HttpRequest, HttpResponse},
-//!     types::RouterFns,
-//! };
+//! use ripress::{app::App, types::RouterFns};
 //! use serde::{Deserialize, Serialize};
 //!
 //! #[derive(Serialize, Deserialize)]
@@ -107,12 +99,7 @@
 //!
 //! ### File Upload with Middleware
 //! ```rust
-//! use ripress::{
-//!     app::App,
-//!     context::{HttpRequest, HttpResponse},
-//!     middlewares::file_upload::file_upload,
-//!     types::RouterFns,
-//! };
+//! use ripress::{app::App, middlewares::file_upload::file_upload, types::RouterFns};
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -136,16 +123,6 @@
 //! }
 //! ```
 //!
-//! ## Modules
-//!
-//! - [`app`] - The main application struct and its methods for configuring and running your server.
-//! - [`req`] - The HTTP request struct and utilities for extracting data from requests.
-//! - [`res`] - The HTTP response struct and methods for building responses.
-//! - [`context`] - Convenient re-exports of common request and response types.
-//! - [`helpers`] - Utility functions and helpers for common web tasks.
-//! - [`middlewares`] - Built-in middleware modules for CORS, logging, file uploads, and rate limiting.
-//! - [`router`] - The router struct and routing logic for organizing endpoints.
-//! - [`types`] - Core types, traits, and enums used throughout the framework.
 
 /// The main application struct and its methods for configuring and running your server.
 ///
@@ -158,22 +135,27 @@
 /// ```rust
 /// use ripress::{app::App, types::RouterFns};
 ///
-/// let mut app = App::new();
-/// app.get("/", |_req, res| async move {
-///     res.ok().text("Hello, World!")
-/// });
+/// #[tokio::main]
+/// async fn main() {
+///     let mut app = App::new();
+///     app.get("/", |_req, res| async move { res.ok().text("Hello, World!") } );
+/// }
 /// ```
 ///
 /// With middleware:
 /// ```rust
 /// use ripress::{app::App, types::RouterFns};
 ///
-/// let mut app = App::new();
-/// app.use_cors(None)
-///     .use_logger(None)
-///     .get("/api/data", |_req, res| async move {
-///         res.ok().json(serde_json::json!({"status": "ok"}))
-///     });
+/// #[tokio::main]
+/// async fn main() {
+///     let mut app = App::new();
+///
+///     app.use_cors(None)
+///         .use_logger(None)
+///         .get("/api/data", |_req, res| async move {
+///             res.ok().json(serde_json::json!({"status": "ok"}))
+///         });
+/// }
 /// ```
 ///
 /// See [`app::App`] for details.
@@ -221,20 +203,19 @@ pub mod req;
 /// use ripress::context::HttpResponse;
 ///
 /// // JSON response
-/// let json_res = HttpResponse::new()
-///     .ok()
-///     .json(serde_json::json!({"message": "Success"}));
+/// async fn json_res(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+///     res.ok().json(serde_json::json!({"message": "Success"}));
+/// }
 ///
 /// // Text response with custom status
-/// let text_res = HttpResponse::new()
-///     .status(201)
-///     .text("Resource created");
+/// async fn text_res(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+///     res.status(201).text("Resource created");
+/// }
 ///
 /// // Response with cookies
-/// let cookie_res = HttpResponse::new()
-///     .ok()
-///     .set_cookie("session", "abc123", None)
-///     .text("Logged in");
+/// async fn cookie_res(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+///     res.ok().set_cookie("session", "abc123", None).text("Logged in");
+/// }
 /// ```
 ///
 /// See [`res::HttpResponse`] for details.
@@ -285,14 +266,17 @@ pub mod helpers;
 /// ```rust
 /// use ripress::{app::App, types::RouterFns};
 ///
-/// let mut app = App::new();
-///
-/// // Add multiple middleware
-/// app.use_cors(None)                    // Enable CORS
-///     .use_logger(None)                 // Enable request logging
-///     .use_compression(None)            // Enable response compression
-///     .use_rate_limiter(None)           // Enable rate limiting
-///     .use_shield(None);                // Add security headers
+/// #[tokio::main]
+/// async fn main() {
+///     let mut app = App::new();
+///     
+///     // Add multiple middleware
+///     app.use_cors(None)                    // Enable CORS    
+///         .use_logger(None)                 // Enable request logging
+///         .use_compression(None)            // Enable response compression
+///         .use_rate_limiter(None)           // Enable rate limiting
+///         .use_shield(None);                // Add security headers
+/// }
 /// ```
 pub mod middlewares;
 
