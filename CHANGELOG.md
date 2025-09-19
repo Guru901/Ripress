@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.9.7] - 2025-09-19
+
+- Added RipressError::new(), message(), and kind() methods for better error management
+- Comprehensive Module Docs: Added detailed documentation across all major modules
+- Usage Examples: Extensive code examples for routing, middleware, and handlers
+- API References: Updated all documentation to reflect new import paths
+- Feature Explanations: Added explanations for router grouping, composition, and versioning
+- Import Reorganization: Cleaned up import statements across the codebase
+
 ## [1.9.6] - 2025-09-18
 
 ### Added
