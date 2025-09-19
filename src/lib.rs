@@ -157,8 +157,6 @@
 ///         });
 /// }
 /// ```
-///
-/// See [`app::App`] for details.
 pub mod app;
 
 /// The HTTP request struct and its methods for extracting data from requests.
