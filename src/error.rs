@@ -69,6 +69,62 @@ pub struct RipressError {
     pub message: String,
 }
 
+impl RipressError {
+    /// Creates a new `RipressError` with the specified kind and message.
+    ///
+    /// # Arguments
+    ///
+    /// * `kind` - The category or type of error (see [`RipressErrorKind`]).
+    /// * `message` - A human-readable error message describing the error.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::error::{RipressError, RipressErrorKind};
+    ///
+    /// let err = RipressError::new(RipressErrorKind::InvalidInput, "Invalid user ID".to_string());
+    /// assert_eq!(err.kind, RipressErrorKind::InvalidInput);
+    /// assert_eq!(err.message, "Invalid user ID");
+    /// ```
+    pub fn new(kind: RipressErrorKind, message: String) -> Self {
+        Self { kind, message }
+    }
+
+    /// Returns a reference to the error message.
+    ///
+    /// # Returns
+    ///
+    /// A string slice containing the human-readable error message associated with this error.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::error::{RipressError, RipressErrorKind};
+    /// let err = RipressError::new(RipressErrorKind::InvalidInput, "Invalid user ID".to_string());
+    /// assert_eq!(err.message(), "Invalid user ID");
+    /// ```
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// Returns a reference to the error kind.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the [`RipressErrorKind`] indicating the category or type of this error.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::error::{RipressError, RipressErrorKind};
+    /// let err = RipressError::new(RipressErrorKind::ParseError, "Failed to parse".to_string());
+    /// assert_eq!(*err.kind(), RipressErrorKind::ParseError);
+    /// ```
+    pub fn kind(&self) -> &RipressErrorKind {
+        &self.kind
+    }
+}
+
 impl Display for RipressError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -100,13 +156,6 @@ impl From<std::string::FromUtf8Error> for RipressError {
 impl From<QueryParamError> for RipressError {
     fn from(value: QueryParamError) -> Self {
         match value {
-            QueryParamError::MultipleValues { param, values } => Self {
-                kind: RipressErrorKind::ParseError,
-                message: format!(
-                    "Multiple values found for parameter '{}': {:?}",
-                    param, values
-                ),
-            },
             QueryParamError::NotFound(param) => Self {
                 kind: RipressErrorKind::NotFound,
                 message: format!("Query Param '{}' not found", param),
@@ -158,10 +207,6 @@ impl From<TextDataError> for RipressError {
             TextDataError::TooLarge { size, limit } => Self {
                 kind: RipressErrorKind::InvalidInput,
                 message: format!("Text too large: {} bytes (limit: {} bytes)", size, limit),
-            },
-            TextDataError::Empty => Self {
-                kind: RipressErrorKind::InvalidInput,
-                message: "Text data is empty".to_string(),
             },
         }
     }

@@ -1,8 +1,9 @@
 #![warn(missing_docs)]
 #[cfg(feature = "with-wynd")]
-use crate::app::WyndMiddleware;
+use crate::middlewares::WyndMiddleware;
 use crate::{
-    app::{Middleware, api_error::ApiError},
+    app::api_error::ApiError,
+    middlewares::Middleware,
     req::{HttpRequest, query_params::QueryParams},
     res::HttpResponse,
     types::{Fut, FutMiddleware},

@@ -94,19 +94,6 @@ mod tests {
     }
 
     #[test]
-    fn test_display_multiple_values() {
-        let err = QueryParamError::MultipleValues {
-            param: "tag".into(),
-            values: vec!["rust".into(), "web".into()],
-        };
-        let output = format!("{}", err);
-        assert_eq!(
-            output,
-            "Multiple values found for parameter 'tag': [\"rust\", \"web\"]"
-        );
-    }
-
-    #[test]
     fn test_from_query_string() {
         let query =
             QueryParams::from_query_string("page=2&limit=10&tags=rust&tags=web&active=true");
