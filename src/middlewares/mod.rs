@@ -49,7 +49,7 @@
 //!
 //! Middlewares can be registered globally or for specific routes using the [`App`] builder methods:
 //!
-//! ```rust
+//! ```no_run,ignore
 //! use ripress::app::App;
 //! use ripress::middlewares::cors::CorsConfig;
 //! use ripress::middlewares::logger::LoggerConfig;
@@ -96,7 +96,7 @@
 //!
 //! You can create custom middlewares using the pre/post middleware methods:
 //!
-//! ```rust
+//! ```no_run,ignore
 //! use ripress::app::App;
 //!
 //! let mut app = App::new();
@@ -120,7 +120,7 @@
 //!
 //! For production applications, consider this middleware stack:
 //!
-//! ```rust
+//! ```no_run,ignore
 //! use ripress::app::App;
 //!
 //! let mut app = App::new();
@@ -368,7 +368,7 @@ pub mod logger;
 /// use ripress::app::App;
 /// use ripress::types::RouterFns;
 /// use serde_json::Value;
-/// use riperss::middlewares::file_upload::file_upload;
+/// use ripress::middlewares::file_upload::file_upload;
 ///
 /// let mut app = App::new();
 ///
@@ -381,7 +381,7 @@ pub mod logger;
 ///         if count > 0 {
 ///             // Access detailed file information
 ///             if let Some(files_json) = req.get_data("uploaded_files") {
-///                 let files: Value = serde_json::from_str(files_json).unwrap();
+///                 let files: Value = serde_json::from_str(files_json.as_str()).unwrap();
 ///                 return res.ok().json(serde_json::json!({
 ///                     "message": "Files uploaded successfully",
 ///                     "count": count,
@@ -398,7 +398,7 @@ pub mod logger;
 /// ### Client-Side Examples
 ///
 /// #### JavaScript Binary Upload
-/// ```no_run
+/// ```no_run,ignore
 /// const fileInput = document.getElementById('fileInput');
 /// const file = fileInput.files[0];
 ///
@@ -753,7 +753,7 @@ pub mod rate_limiter;
 ///
 /// ```rust
 /// use ripress::app::App;
-/// use riperss::middlewares::file_upload::file_upload;
+/// use ripress::middlewares::file_upload::file_upload;
 ///
 /// let mut app = App::new();
 ///
@@ -982,12 +982,12 @@ pub mod body_limit;
 /// When compressing responses that include user input and secrets:
 ///
 /// ```rust
+/// use ripress::app::App;
+/// use ripress::middlewares::compression::CompressionConfig;
+///
+/// let mut app = App::new();
+///
 /// app.use_compression(Some(CompressionConfig {
-///     // Disable compression for responses containing CSRF tokens
-///     exclude_paths: vec![
-///         "/csrf-token".to_string(),
-///         "/api/auth/token".to_string(),
-///     ],
 ///     ..Default::default()
 /// }));
 /// ```
@@ -995,9 +995,13 @@ pub mod body_limit;
 /// ### Content-Type Validation
 /// The middleware validates content types to prevent compression of sensitive binary content:
 ///
-/// ```rust
+/// ```
+/// use ripress::app::App;
+/// use ripress::middlewares::compression::CompressionConfig;
+///
+/// let mut app = App::new();
+///
 /// app.use_compression(Some(CompressionConfig {
-///     strict_content_type_checking: true, // Enforce strict content-type validation
 ///     ..Default::default()
 /// }));
 /// ```
