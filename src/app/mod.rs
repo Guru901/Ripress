@@ -35,20 +35,22 @@
 #![warn(missing_docs)]
 
 use crate::app::api_error::ApiError;
-#[cfg(feature = "with-wynd")]
-use crate::helpers::exec_wynd_middleware;
+
 use crate::helpers::{box_future_middleware, exec_post_middleware, exec_pre_middleware};
+#[cfg(feature = "with-wynd")]
+use crate::middlewares::WyndMiddleware;
 use crate::middlewares::body_limit::body_limit;
 use crate::middlewares::compression::{CompressionConfig, compression};
 use crate::middlewares::cors::{CorsConfig, cors};
 use crate::middlewares::logger::{LoggerConfig, logger};
 use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
 use crate::middlewares::shield::{ShieldConfig, shield};
+use crate::middlewares::{Middleware, MiddlewareType};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 #[cfg(feature = "with-wynd")]
 use crate::types::WyndMiddlewareHandler;
-use crate::types::{FutMiddleware, HandlerMiddleware, HttpMethods, RouterFns, Routes};
+use crate::types::{HandlerMiddleware, HttpMethods, RouterFns, Routes};
 use hyper::http::StatusCode;
 use hyper::{Body, Request, Response, Server};
 use hyper::{Method, header};
@@ -58,90 +60,9 @@ use routerify::{Router, RouterService};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path;
-#[cfg(feature = "with-wynd")]
-use std::pin::Pin;
 use std::sync::Arc;
 
 pub(crate) mod api_error;
-
-/// Represents a middleware in the Ripress application.
-///
-/// A `Middleware` consists of a function and an associated path. The function is an
-/// asynchronous closure or function that takes an [`HttpRequest`] and [`HttpResponse`],
-/// and returns a future resolving to a tuple of the potentially modified request and an
-/// optional response. If the middleware returns `Some(response)`, the response is sent
-/// immediately and further processing is halted. If it returns `None`, the request
-/// continues through the middleware chain and to the route handler.
-///
-/// The `path` field specifies the route prefix or pattern for which this middleware
-/// should be applied. Middlewares are matched in the order they are added to the app.
-///
-/// ## Middleware Execution Order
-///
-/// 1. Pre-middlewares (in registration order)
-/// 2. Route handler
-/// 3. Post-middlewares (in registration order)
-///
-/// ## Example
-///
-/// ```
-/// use ripress::app::{App, Middleware};
-/// use ripress::req::HttpRequest;
-/// use ripress::res::HttpResponse;
-/// use std::sync::Arc;
-///
-/// // Custom middleware that adds a header to all responses
-/// let custom_middleware = Middleware {
-///     func: Arc::new(|req, mut res| {
-///         Box::pin(async move {
-///             res = res.header("X-Custom", "middleware-applied");
-///             (req, Some(res))
-///         })
-///     }),
-///     path: "/api".to_string(),
-///     middleware_type: crate::app::MiddlewareType::Pre,
-/// };
-/// ```
-#[derive(Clone)]
-pub struct Middleware {
-    /// The middleware function.
-    ///
-    /// This is an `Arc`-wrapped closure or function pointer that takes an [`HttpRequest`]
-    /// and [`HttpResponse`], and returns a boxed future resolving to a tuple of the
-    /// (possibly modified) request and an optional response.
-    pub func: Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
-
-    /// The path or route prefix this middleware applies to.
-    ///
-    /// If the incoming request path starts with this string, the middleware will be invoked.
-    /// Use "/" to apply to all routes.
-    pub path: String,
-
-    /// The type of middleware (Pre or Post execution).
-    pub(crate) middleware_type: MiddlewareType,
-}
-
-/// Defines when a middleware should be executed in the request lifecycle.
-#[derive(Clone, PartialEq, Eq)]
-pub(crate) enum MiddlewareType {
-    /// Middleware executed before the route handler.
-    Pre,
-    /// Middleware executed after the route handler.
-    Post,
-}
-
-#[cfg(feature = "with-wynd")]
-/// WebSocket middleware container for the Wynd WebSocket implementation.
-///
-/// This struct holds the WebSocket handler and the path it should be mounted on.
-/// Only available when the `with-wynd` feature is enabled.
-#[derive(Clone)]
-pub(crate) struct WyndMiddleware {
-    /// The WebSocket handler function.
-    pub func: WyndMiddlewareHandler,
-    /// The path where WebSocket connections should be accepted.
-    pub path: String,
-}
 
 /// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests.
 ///
@@ -984,6 +905,8 @@ impl App {
         #[cfg(feature = "with-wynd")]
         if let Some(middleware) = &self.wynd_middleware {
             router = router.middleware(routerify::Middleware::pre({
+                use crate::helpers::exec_wynd_middleware;
+
                 let middleware = middleware.clone();
                 move |req| exec_wynd_middleware(req, middleware.clone())
             }));

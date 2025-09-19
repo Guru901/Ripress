@@ -1,3 +1,243 @@
+//! # HTTP Request Module
+//!
+//! This module provides the core [`HttpRequest`] struct and associated functionality for handling
+//! incoming HTTP requests in the Ripress web framework. The HttpRequest struct serves as a
+//! comprehensive representation of an HTTP request, providing convenient access to all request
+//! data including headers, cookies, query parameters, route parameters, and request body content.
+//!
+//! ## Key Features
+//!
+//! - **Comprehensive Request Data**: Access to all aspects of the HTTP request
+//! - **Type-Safe Body Parsing**: JSON, form data, text, and binary content support
+//! - **Cookie Management**: Easy cookie retrieval and manipulation
+//! - **Route Parameters**: Dynamic route parameter extraction
+//! - **Query String Parsing**: Automatic query parameter parsing
+//! - **Header Access**: Type-safe header manipulation
+//! - **Client Information**: IP address, protocol, and user agent detection
+//! - **Security Features**: XHR detection, secure connection identification
+//! - **Middleware Integration**: Request data sharing between middleware and handlers
+//!
+//! ## Request Lifecycle
+//!
+//! The HttpRequest is created from incoming Hyper requests and flows through the middleware chain:
+//!
+//! ```text
+//! 1. Raw HTTP Request (from client)
+//!      ↓
+//! 2. HttpRequest::from_hyper_request() - Parse and structure request data
+//!      ↓
+//! 3. Pre-middleware processing - Modify request, add data
+//!      ↓
+//! 4. Route handler execution - Main business logic
+//!      ↓
+//! 5. Post-middleware processing - Modify response
+//! ```
+//!
+//! ## Basic Usage
+//!
+//! ```no_run
+//! use ripress::app::App;
+//! use ripress::types::RouterFns;
+//! use serde::{Deserialize, Serialize};
+//!
+//! #[derive(Deserialize, Serialize)]
+//! struct CreateUserRequest {
+//!     name: String,
+//!     email: String,
+//!     age: Option<u32>,
+//! }
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     let mut app = App::new();
+//!
+//!     // GET request with query parameters
+//!     app.get("/users", |req, res| async move {
+//!         let page = req.query.get("page").unwrap_or("1");
+//!         let limit = req.query.get("limit").unwrap_or("10");
+//!         
+//!         println!("Fetching users: page {}, limit {}", page, limit);
+//!         res.ok().json(serde_json::json!({
+//!             "users": [],
+//!             "page": page,
+//!             "limit": limit
+//!         }))
+//!     });
+//!
+//!     // POST request with JSON body
+//!     app.post("/users", |req, res| async move {
+//!         match req.json::<CreateUserRequest>() {
+//!             Ok(user_data) => {
+//!                 println!("Creating user: {} ({})", user_data.name, user_data.email);
+//!                 res.ok().json(serde_json::json!({
+//!                     "message": "User created successfully",
+//!                     "id": 123
+//!                 }))
+//!             }
+//!             Err(e) => {
+//!                 res.bad_request().json(serde_json::json!({
+//!                     "error": "Invalid JSON data",
+//!                     "details": e
+//!                 }))
+//!             }
+//!         }
+//!     });
+//!
+//!     // Route with parameters
+//!     app.get("/users/:id", |req, res| async move {
+//!         let user_id = req.params.get("id").unwrap_or("0");
+//!         println!("Fetching user with ID: {}", user_id);
+//!         
+//!         res.ok().json(serde_json::json!({
+//!             "user": {
+//!                 "id": user_id,
+//!                 "name": "John Doe"
+//!             }
+//!         }))
+//!     });
+//!
+//!     app.listen(3000, || println!("Server running on http://localhost:3000")).await;
+//! }
+//! ```
+//!
+//! ## Request Body Types
+//!
+//! The HttpRequest supports multiple body content types with type-safe access methods:
+//!
+//! ### JSON Content
+//! ```rust
+//! // Deserialize JSON directly into structs
+//! match req.json::<MyStruct>() {
+//!     Ok(data) => { /* handle structured data */ }
+//!     Err(e) => { /* handle parsing error */ }
+//! }
+//! ```
+//!
+//! ### Form Data
+//! ```rust
+//! // Access form fields from application/x-www-form-urlencoded
+//! match req.form_data() {
+//!     Ok(form) => {
+//!         let username = form.get("username").unwrap_or("");
+//!         let password = form.get("password").unwrap_or("");
+//!     }
+//!     Err(e) => { /* handle error */ }
+//! }
+//! ```
+//!
+//! ### Text Content
+//! ```rust
+//! // Get raw text content
+//! match req.text() {
+//!     Ok(text_content) => println!("Received text: {}", text_content),
+//!     Err(e) => println!("Not text content: {}", e),
+//! }
+//! ```
+//!
+//! ### Binary Data
+//! ```rust
+//! // Access raw binary data
+//! match req.bytes() {
+//!     Ok(binary_data) => {
+//!         println!("Received {} bytes", binary_data.len());
+//!         // Process binary data (file upload, image, etc.)
+//!     }
+//!     Err(e) => println!("Not binary content: {}", e),
+//! }
+//! ```
+//!
+//! ## Client Information Access
+//!
+//! ```rust
+//! app.get("/info", |req, res| async move {
+//!     // Client IP address (considers X-Forwarded-For for proxies)
+//!     println!("Client IP: {}", req.ip);
+//!     
+//!     // Protocol detection
+//!     if req.is_secure {
+//!         println!("Secure HTTPS connection");
+//!     } else {
+//!         println!("HTTP connection");
+//!     }
+//!     
+//!     // AJAX request detection
+//!     if req.xhr {
+//!         println!("AJAX request detected");
+//!     }
+//!     
+//!     // User agent
+//!     if let Some(user_agent) = req.headers.get("user-agent") {
+//!         println!("User Agent: {}", user_agent);
+//!     }
+//!     
+//!     res.ok().text("Request info logged")
+//! });
+//! ```
+//!
+//! ## Advanced Usage Patterns
+//!
+//! ### Middleware Data Sharing
+//! ```rust
+//! // In middleware
+//! app.use_pre_middleware(None, |mut req, res| async move {
+//!     // Add authentication data
+//!     req.set_data("user_id", "12345");
+//!     req.set_data("user_role", "admin");
+//!     (req, None)
+//! });
+//!
+//! // In route handler
+//! app.get("/dashboard", |req, res| async move {
+//!     if let Some(user_id) = req.get_data("user_id") {
+//!         if let Some(role) = req.get_data("user_role") {
+//!             println!("User {} with role {} accessing dashboard", user_id, role);
+//!         }
+//!     }
+//!     res.ok().text("Dashboard")
+//! });
+//! ```
+//!
+//! ### Cookie Management
+//! ```rust
+//! app.get("/profile", |req, res| async move {
+//!     // Check for session cookie
+//!     match req.get_cookie("session_id") {
+//!         Some(session_id) => {
+//!             println!("Authenticated session: {}", session_id);
+//!             res.ok().text("Welcome back!")
+//!         }
+//!         None => {
+//!             res.unauthorized().text("Please log in")
+//!         }
+//!     }
+//! });
+//! ```
+//!
+//! ### Content Type Detection
+//! ```rust
+//! use ripress::req::body::RequestBodyType;
+//!
+//! app.post("/upload", |req, res| async move {
+//!     if req.is(RequestBodyType::JSON) {
+//!         // Handle JSON upload
+//!         match req.json::<serde_json::Value>() {
+//!             Ok(data) => { /* process JSON */ }
+//!             Err(e) => { /* handle error */ }
+//!         }
+//!     } else if req.is(RequestBodyType::BINARY) {
+//!         // Handle binary upload
+//!         match req.bytes() {
+//!             Ok(data) => { /* process binary data */ }
+//!             Err(e) => { /* handle error */ }
+//!         }
+//!     } else {
+//!         return res.bad_request().text("Unsupported content type");
+//!     }
+//!     
+//!     res.ok().text("Upload processed")
+//! });
+//! ```
+
 #![warn(missing_docs)]
 
 use crate::{
@@ -59,7 +299,7 @@ use route_params::RouteParams;
 ///
 /// Basic usage:
 /// ```rust
-/// use ripress::context::HttpRequest;
+/// use ripress::req::HttpRequest;
 ///
 /// let req = HttpRequest::new();
 /// println!("Method: {:?}", req.method);
@@ -72,7 +312,7 @@ use route_params::RouteParams;
 /// use ripress::context::HttpRequest;
 /// use serde::{Deserialize, Serialize};
 ///
-/// ##[derive(Deserialize, Serialize)]
+/// #[derive(Deserialize, Serialize)]
 /// struct User {
 ///     name: String,
 ///     age: u32
@@ -142,7 +382,7 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```rust
-    /// use ripress::context::HttpRequest;
+    /// use ripress::req::HttpRequest;
     /// use ripress::types::HttpMethods;
     ///
     /// let req = HttpRequest::new();
@@ -205,7 +445,7 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```
-    /// let mut req = ripress::context::HttpRequest::new();
+    /// let mut req = ripress::req::HttpRequest::new();
     /// req.set_data("id", "123");
     /// let id = req.get_data("id");
     /// println!("Id: {:?}", id);
@@ -223,7 +463,7 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```
-    /// let req = ripress::context::HttpRequest::new();
+    /// let req = ripress::req::HttpRequest::new();
     ///
     /// let data = req.get_all_data();
     ///
@@ -267,7 +507,7 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```rust
-    /// use ripress::{context::HttpRequest};
+    /// use ripress::req::HttpRequest;
     /// use ripress::req::body::RequestBodyType;
     ///
     /// let req = HttpRequest::new();
@@ -328,7 +568,7 @@ impl HttpRequest {
     /// use ripress::context::HttpRequest;
     /// use serde::{Deserialize, Serialize};
     ///
-    /// ##[derive(Deserialize, Serialize)]
+    /// #[derive(Deserialize, Serialize)]
     /// struct LoginData {
     ///     username: String,
     ///     password: String
@@ -365,7 +605,7 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```no_run
-    /// let req = ripress::context::HttpRequest::new();
+    /// let req = ripress::req::HttpRequest::new();
     /// let text = req.text().unwrap();
     /// println!("text : {:?}", text);
     /// ```
@@ -395,7 +635,7 @@ impl HttpRequest {
     ///
     /// ## Example
     /// ```no_run
-    /// let req = ripress::context::HttpRequest::new();
+    /// let req = ripress::req::HttpRequest::new();
     /// // Let' say form data was sent as key=value and key2=value2
     /// let form_data = req.form_data().unwrap();
     /// println!("key = : {:?}", form_data.get("key"));

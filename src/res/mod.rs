@@ -1,3 +1,97 @@
+//! # HTTP Response Module
+//!
+//! This module provides the core [`HttpResponse`] struct and related utilities for
+//! constructing HTTP responses in Ripress. It offers a fluent, expressive API to
+//! set status codes, headers, cookies, and different body types (JSON, text, HTML,
+//! binary, and streams).
+//!
+//! ## Key Features
+//!
+//! - **Fluent API**: Chainable methods for status, headers, cookies, and body
+//! - **Typed Bodies**: JSON, text, HTML, binary, and streaming responses
+//! - **Cookie Helpers**: Set and clear cookies with options (SameSite, HttpOnly, etc.)
+//! - **Content-Type Handling**: Sensible defaults with explicit overrides
+//! - **Streaming Support**: Send Server-Sent Events or chunked responses
+//! - **Interoperability**: Convert to and from Hyper `Response<Body>`
+//!
+//! ## Basic Usage
+//!
+//! ```rust
+//! use ripress::res::HttpResponse;
+//!
+//! // Plain text response
+//! let res = HttpResponse::new().ok().text("Hello, World!");
+//!
+//! // JSON response
+//! let res = HttpResponse::new().ok().json(serde_json::json!({
+//!     "message": "Success",
+//!     "code": 200
+//! }));
+//!
+//! // HTML response
+//! let res = HttpResponse::new().ok().html("<h1>Welcome</h1>");
+//! ```
+//!
+//! ## Setting Status and Headers
+//!
+//! ```rust
+//! use ripress::res::HttpResponse;
+//!
+//! let res = HttpResponse::new()
+//!     .status(201)
+//!     .set_header("x-request-id", "abc-123")
+//!     .text("Created");
+//! ```
+//!
+//! ## Cookies
+//!
+//! ```rust
+//! use ripress::res::{HttpResponse, CookieOptions};
+//!
+//! let res = HttpResponse::new()
+//!     .ok()
+//!     .set_cookie(
+//!         "session",
+//!         "abc123",
+//!         Some(CookieOptions { http_only: true, secure: true, ..Default::default() })
+//!     )
+//!     .text("Logged in");
+//!
+//! // Clear cookie
+//! let res = HttpResponse::new().ok().clear_cookie("session").text("Logged out");
+//! ```
+//!
+//! ## Redirects
+//!
+//! ```rust
+//! use ripress::res::HttpResponse;
+//!
+//! let res = HttpResponse::new().redirect("/login");
+//! let res = HttpResponse::new().permanent_redirect("/docs");
+//! ```
+//!
+//! ## Streaming (SSE / chunked)
+//!
+//! ```rust
+//! use ripress::res::HttpResponse;
+//! use bytes::Bytes;
+//! use futures::stream;
+//! use futures::StreamExt;
+//!
+//! let sse = stream::iter(0..3).map(|n| Ok::<Bytes, std::io::Error>(Bytes::from(format!("data: {}\n\n", n))));
+//! let res = HttpResponse::new().ok().write(sse);
+//! ```
+//!
+//! ## Conversions with Hyper
+//!
+//! Internally Ripress converts `HttpResponse` to Hyper `Response<Body>` when sending, and can
+//! reconstruct `HttpResponse` from Hyper responses in tests.
+//!
+//! - Build response to send: `to_hyper_response()`
+//! - Parse response in tests: `from_hyper_response()`
+//!
+//! These helpers ensure consistent content-type detection and body decoding.
+
 #![warn(missing_docs)]
 
 use crate::req::determine_content_type_response;
@@ -73,7 +167,7 @@ impl std::fmt::Display for ResponseError {
 ///
 /// Basic usage:
 /// ```rust
-/// use ripress::context::HttpResponse;
+/// use ripress::res::HttpResponse;
 ///
 /// let res = HttpResponse::new();
 /// res.ok().text("Hello, World!");
@@ -81,7 +175,7 @@ impl std::fmt::Display for ResponseError {
 ///
 /// JSON response:
 /// ```rust
-/// use ripress::context::HttpResponse;
+/// use ripress::res::HttpResponse;
 /// use serde_json::json;
 ///
 /// let res = HttpResponse::new();
@@ -165,7 +259,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress::context::HttpResponse;
+    /// use ripress::res::HttpResponse;
     ///
     /// let res = HttpResponse::new();
     /// ```
@@ -315,7 +409,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress::context::HttpResponse;
+    /// use ripress::res::HttpResponse;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
@@ -352,7 +446,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress::context::HttpResponse;
+    /// use ripress::res::HttpResponse;
     /// use bytes::Bytes;
     ///
     /// let data = vec![1, 2, 3, 4, 5];
@@ -377,7 +471,9 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```
-    /// use ripress::context::HttpResponse;
+    /// use ripress::res::HttpResponse;
+    /// ```
+    /// use ripress::res::HttpResponse;
     /// let res = HttpResponse::new();
     /// res.set_header("key", "value"); // Sets the key cookie to value
     /// ```
@@ -404,7 +500,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress::context::HttpResponse;
+    /// use ripress::res::HttpResponse;
     /// use ripress::res::response_cookie::CookieOptions;
     ///
     /// let res = HttpResponse::new()
@@ -546,7 +642,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```ignore
-    /// use ripress::context::HttpResponse;
+    /// use ripress::res::HttpResponse;
     ///
     /// // Send a file as the response
     /// let res = HttpResponse::new()

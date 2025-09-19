@@ -4,16 +4,17 @@ mod tests {
     use std::sync::Arc;
 
     use crate::{
-        app::{Middleware, MiddlewareType, api_error::ApiError},
+        app::api_error::ApiError,
         helpers::exec_pre_middleware,
+        middlewares::{Middleware, MiddlewareType},
         req::HttpRequest,
         res::HttpResponse,
     };
 
     #[cfg(feature = "with-wynd")]
-    use crate::app::WyndMiddleware;
-    #[cfg(feature = "with-wynd")]
     use crate::helpers::exec_wynd_middleware;
+    #[cfg(feature = "with-wynd")]
+    use crate::middlewares::WyndMiddleware;
 
     // Helper to make a dummy request
     fn make_request(path: &str) -> Request<Body> {
@@ -76,7 +77,7 @@ mod tests {
     #[cfg(feature = "with-wynd")]
     #[tokio::test]
     async fn test_exec_wynd_middleware_error_continues() {
-        use crate::{app::WyndMiddleware, helpers::exec_wynd_middleware};
+        use crate::helpers::exec_wynd_middleware;
 
         let req = make_request("/wynd");
 

@@ -1,3 +1,52 @@
+//! # Router Module
+//!
+//! This module provides the [`Router`] type for grouping related routes under a
+//! common base path and mounting them to an [`App`]. It mirrors Express-style
+//! routers, enabling clean organization, versioning, and composition of APIs.
+//!
+//! ## Key Features
+//!
+//! - **Grouping**: Collect handlers under a single base path
+//! - **Composition**: Build routers in isolation and mount onto an `App`
+//! - **Versioning**: Create versioned APIs like `/v1`, `/v2`
+//! - **Familiar ergonomics**: Same `get/post/put/delete/patch/head/options` API as `App`
+//!
+//! ## Basic Usage
+//!
+//! ```rust
+//! use ripress::{router::Router, app::App};
+//! use ripress::types::RouterFns;
+//! use ripress::{req::HttpRequest, res::HttpResponse};
+//!
+//! async fn hello_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+//!     res.ok().text("Hello from router")
+//! }
+//!
+//! let mut router = Router::new("/api");
+//! router.get("/hello", hello_handler);
+//!
+//! let mut app = App::new();
+//! router.register(&mut app);
+//! ```
+//!
+//! ## Versioning Example
+//!
+//! ```rust
+//! use ripress::{router::Router, app::App};
+//! use ripress::types::RouterFns;
+//! use ripress::{req::HttpRequest, res::HttpResponse};
+//!
+//! async fn status(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+//!     res.ok().json(serde_json::json!({"status": "ok"}))
+//! }
+//!
+//! let mut v1 = Router::new("/v1");
+//! v1.get("/status", status);
+//!
+//! let mut app = App::new();
+//! v1.register(&mut app);
+//! ```
+
 #![warn(missing_docs)]
 use crate::{
     app::App,
@@ -14,7 +63,8 @@ use std::collections::HashMap;
 /// # Example
 ///
 /// ```
-/// use ripress::{router::Router, context::{HttpRequest, HttpResponse}, app::App};
+/// use ripress::{router::Router, app::App};
+/// use ripress::{req::HttpRequest, res::HttpResponse};
 /// use ripress::types::RouterFns;
 ///
 /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
@@ -76,8 +126,9 @@ impl Router {
     /// ## Example
     ///
     /// ```
-    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}, app::App};
-    /// use crate::ripress::types::RouterFns;
+    /// use ripress::{router::Router, app::App};
+    /// use ripress::{req::HttpRequest, res::HttpResponse};
+    /// use ripress::types::RouterFns;
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
