@@ -1,5 +1,6 @@
 mod app_test;
 mod helper_test;
+mod integration;
 mod middleware;
 mod request;
 mod response;
