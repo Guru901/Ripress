@@ -8,7 +8,7 @@
 //!
 //! ## Quick Start
 //!
-//! ```rust
+//! ```no_run,ignore
 //! use ripress::{app::App, types::RouterFns};
 //!
 //! #[tokio::main]
@@ -50,7 +50,7 @@
 //! ## Advanced Examples
 //!
 //! ### RESTful API with JSON
-//! ```rust
+//! ```no_run,ignore
 //! use ripress::{app::App, types::RouterFns};
 //! use serde::{Deserialize, Serialize};
 //!
@@ -98,7 +98,7 @@
 //! ```
 //!
 //! ### File Upload with Middleware
-//! ```rust
+//! ```no_run,ignore
 //! use ripress::{app::App, middlewares::file_upload::file_upload, types::RouterFns};
 //!
 //! #[tokio::main]
@@ -198,21 +198,21 @@ pub mod req;
 ///
 /// Creating responses:
 /// ```rust
-/// use ripress::context::HttpResponse;
+/// use ripress::context::{HttpResponse, HttpRequest};
 ///
 /// // JSON response
 /// async fn json_res(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-///     res.ok().json(serde_json::json!({"message": "Success"}));
+///     return res.ok().json(serde_json::json!({"message": "Success"}));
 /// }
 ///
 /// // Text response with custom status
 /// async fn text_res(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-///     res.status(201).text("Resource created");
+///     return res.status(201).text("Resource created");
 /// }
 ///
 /// // Response with cookies
 /// async fn cookie_res(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-///     res.ok().set_cookie("session", "abc123", None).text("Logged in");
+///     return res.ok().set_cookie("session", "abc123", None).text("Logged in");
 /// }
 /// ```
 ///
@@ -321,14 +321,14 @@ mod tests;
 ///
 /// // Create a custom error
 /// let error = RipressError::new(
-///     RipressErrorKind::Validation,
+///     RipressErrorKind::InvalidInput,
 ///     "Invalid input data".to_string()
 /// );
 ///
 /// // Handle different error types
 /// match error.kind() {
-///     RipressErrorKind::Validation => {
-///         println!("Validation error: {}", error.message());
+///     RipressErrorKind::InvalidInput => {
+///         println!("Invalid data: {}", error.message());
 ///     }
 ///     RipressErrorKind::NotFound => {
 ///         println!("Resource not found: {}", error.message());

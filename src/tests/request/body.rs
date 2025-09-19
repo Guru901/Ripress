@@ -567,13 +567,6 @@ mod tests {
     }
 
     #[test]
-    fn test_text_data_error_display_empty() {
-        let error = TextDataError::Empty;
-        let msg = format!("{}", error);
-        assert_eq!(msg, "Text data is empty");
-    }
-
-    #[test]
     fn test_from_string() {
         let s = String::from("Hello");
         let text = TextData::from(s.clone());

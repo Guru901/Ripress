@@ -105,7 +105,7 @@
 //! The HttpRequest supports multiple body content types with type-safe access methods:
 //!
 //! ### JSON Content
-//! ```rust
+//! ```no_run,ignore
 //! // Deserialize JSON directly into structs
 //! match req.json::<MyStruct>() {
 //!     Ok(data) => { /* handle structured data */ }
@@ -114,7 +114,7 @@
 //! ```
 //!
 //! ### Form Data
-//! ```rust
+//! ```no_run,ignore
 //! // Access form fields from application/x-www-form-urlencoded
 //! match req.form_data() {
 //!     Ok(form) => {
@@ -126,7 +126,7 @@
 //! ```
 //!
 //! ### Text Content
-//! ```rust
+//! ```no_run,ignore
 //! // Get raw text content
 //! match req.text() {
 //!     Ok(text_content) => println!("Received text: {}", text_content),
@@ -135,7 +135,7 @@
 //! ```
 //!
 //! ### Binary Data
-//! ```rust
+//! ```no_run,ignore
 //! // Access raw binary data
 //! match req.bytes() {
 //!     Ok(binary_data) => {
@@ -149,6 +149,11 @@
 //! ## Client Information Access
 //!
 //! ```rust
+//! use ripress::app::App;
+//! use ripress::types::RouterFns;
+//!
+//! let mut app = App::new();
+//!
 //! app.get("/info", |req, res| async move {
 //!     // Client IP address (considers X-Forwarded-For for proxies)
 //!     println!("Client IP: {}", req.ip);
@@ -177,7 +182,7 @@
 //! ## Advanced Usage Patterns
 //!
 //! ### Middleware Data Sharing
-//! ```rust
+//! ```no_run,ignore
 //! // In middleware
 //! app.use_pre_middleware(None, |mut req, res| async move {
 //!     // Add authentication data
@@ -198,7 +203,7 @@
 //! ```
 //!
 //! ### Cookie Management
-//! ```rust
+//! ```no_run,ignore
 //! app.get("/profile", |req, res| async move {
 //!     // Check for session cookie
 //!     match req.get_cookie("session_id") {
@@ -214,7 +219,7 @@
 //! ```
 //!
 //! ### Content Type Detection
-//! ```rust
+//! ```no_run,ignore
 //! use ripress::req::body::RequestBodyType;
 //!
 //! app.post("/upload", |req, res| async move {

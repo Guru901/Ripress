@@ -141,9 +141,6 @@ impl App {
     /// use ripress::app::App;
     ///
     /// let mut app = App::new();
-    ///
-    /// // App is now ready for configuration
-    /// assert_eq!(app.middlewares.len(), 0);
     /// ```
     pub fn new() -> Self {
         App {
@@ -218,7 +215,7 @@ impl App {
     ///
     /// // Authentication middleware for API routes
     /// app.use_pre_middleware(Some("/api"), |req, res| async move {
-    ///     if req.header("authorization").is_none() {
+    ///     if req.headers.get("authorization").is_none() {
     ///         return (req, Some(res.unauthorized().text("Missing authorization header")));
     ///     }
     ///     (req, None) // Continue processing
@@ -226,7 +223,7 @@ impl App {
     ///
     /// // Logging middleware for all routes
     /// app.use_pre_middleware(None, |req, res| async move {
-    ///     println!("Request: {} {}", req.method(), req.path());
+    ///     println!("Request: {} {}", req.method, req.path);
     ///     (req, None)
     /// });
     /// ```
@@ -266,14 +263,14 @@ impl App {
     ///
     /// // Add security headers to all responses
     /// app.use_post_middleware(None, |req, mut res| async move {
-    ///     res = res.header("X-Frame-Options", "DENY")
-    ///            .header("X-Content-Type-Options", "nosniff");
+    ///     res = res.set_header("X-Frame-Options", "DENY")
+    ///         .set_header("X-Content-Type-Options", "nosniff");
     ///     (req, Some(res))
     /// });
     ///
     /// // Log response status for API routes
     /// app.use_post_middleware(Some("/api"), |req, res| async move {
-    ///     println!("API Response: {} - Status: {}", req.path(), res.status());
+    ///     println!("API Response: {}", req.path);
     ///     (req, Some(res))
     /// });
     /// ```
@@ -305,7 +302,7 @@ impl App {
     ///
     /// ## Example
     ///
-    /// ```no_run
+    /// ```
     /// use ripress::app::App;
     /// use ripress::middlewares::logger::LoggerConfig;
     ///
@@ -322,7 +319,6 @@ impl App {
     ///     method: true,      // Log HTTP method
     ///     path: true,        // Log request path
     ///     status: true,      // Log response status
-    ///     duration: true,    // Log request duration
     ///     ..Default::default()
     /// }));
     /// ```
@@ -369,7 +365,6 @@ impl App {
     ///     allowed_origin: "https://example.com",
     ///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS, HEAD",
     ///     allowed_headers: "Content-Type, Authorization",
-    ///     max_age: 86400, // 24 hours
     ///     ..Default::default()
     /// }));
     /// ```
@@ -536,6 +531,7 @@ impl App {
     /// use ripress::middlewares::rate_limiter::RateLimiterConfig;
     /// use std::time::Duration;
     ///
+    ///
     /// let mut app = App::new();
     ///
     /// // Use default rate limiting (typically 100 requests per minute)
@@ -544,9 +540,7 @@ impl App {
     /// // Custom rate limiting configuration
     /// app.use_rate_limiter(Some(RateLimiterConfig {
     ///     max_requests: 10,                    // Allow 10 requests
-    ///     window: Duration::from_secs(60),     // Per 60 seconds
-    ///     skip_successful: false,              // Count all requests
-    ///     skip_failed: false,                  // Count failed requests too
+    ///     window_ms: Duration::from_secs(60),     // Per 60 seconds
     ///     message: "Rate limit exceeded".to_string(),
     ///     ..Default::default()
     /// }));
@@ -606,9 +600,6 @@ impl App {
     ///         preload: true,
     ///         ..Default::default()
     ///     },
-    ///     content_type_options: true,      // Prevent MIME sniffing
-    ///     frame_options: true,             // Prevent clickjacking
-    ///     xss_protection: true,            // Enable XSS filtering
     ///     ..Default::default()
     /// }));
     /// ```
@@ -665,11 +656,6 @@ impl App {
     /// app.use_compression(Some(CompressionConfig {
     ///     level: 6,                        // Compression level (0-9)
     ///     threshold: 1024,                 // Minimum bytes to compress
-    ///     algorithms: vec!["gzip".to_string(), "br".to_string()], // Brotli + gzip
-    ///     exclude_content_types: vec![
-    ///         "image/".to_string(),        // Don't compress images
-    ///         "video/".to_string(),        // Don't compress videos
-    ///     ],
     ///     ..Default::default()
     /// }));
     /// ```

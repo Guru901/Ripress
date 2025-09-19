@@ -25,9 +25,6 @@ pub(crate) enum TextDataError {
         /// How much was the limit set to
         limit: usize,
     },
-
-    /// The text data is empty when non-empty data was expected.
-    Empty,
 }
 
 impl Display for TextDataError {
@@ -37,7 +34,6 @@ impl Display for TextDataError {
             TextDataError::TooLarge { size, limit } => {
                 write!(f, "Text too large: {} bytes (limit: {} bytes)", size, limit)
             }
-            TextDataError::Empty => write!(f, "Text data is empty"),
         }
     }
 }

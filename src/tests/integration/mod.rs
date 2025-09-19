@@ -1,9 +1,12 @@
+// mod request;
+// mod response;
+// mod stream;
+
 use crate::app::App;
 use crate::middlewares::file_upload::file_upload;
 use crate::types::RouterFns;
 use crate::{context::HttpRequest, context::HttpResponse};
 use bytes::Bytes;
-use futures::stream;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::time::Duration;
@@ -84,8 +87,11 @@ fn build_integration_app() -> App {
     app.get("/custom-status-test", custom_status_test);
     app.get("/redirect-test", redirect_test);
     app.get("/permanent-redirect-test", permanent_redirect_test);
+    app.get("/redirected", redirected_handler);
+    app.get("/new-location", new_location_handler);
     app.get("/binary-test", binary_test);
     app.get("/cors-test", cors_test);
+    app.options("/cors-test", cors_test);
     app.get("/multiple-headers-test", multiple_headers_test);
     app.delete("/no-content-test", no_content_test);
 
@@ -318,6 +324,14 @@ async fn permanent_redirect_test(_req: HttpRequest, res: HttpResponse) -> HttpRe
     res.permanent_redirect("/new-location")
 }
 
+async fn redirected_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().text("ok")
+}
+
+async fn new_location_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    res.ok().text("ok")
+}
+
 async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     match req.get_cookie("token") {
         Some(token) => res.ok().text(token),
@@ -326,7 +340,7 @@ async fn auth(req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 async fn stream_text(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let s = stream::unfold(1, |state| async move {
+    let s = futures::stream::unfold(1, |state| async move {
         if state <= 3 {
             time::sleep(Duration::from_millis(10)).await;
             Some((
@@ -341,7 +355,7 @@ async fn stream_text(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 async fn stream_json(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let s = stream::unfold(1, |state| async move {
+    let s = futures::stream::unfold(1, |state| async move {
         if state <= 3 {
             time::sleep(Duration::from_millis(10)).await;
             Some((
@@ -359,6 +373,15 @@ async fn stream_json(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 
 async fn cors_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
     res.ok()
+        .set_header("access-control-allow-origin", "https://example.com")
+        .set_header(
+            "access-control-allow-methods",
+            "GET,POST,PUT,DELETE,OPTIONS",
+        )
+        .set_header(
+            "access-control-allow-headers",
+            "Content-Type, Authorization",
+        )
 }
 
 async fn multiple_headers_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {

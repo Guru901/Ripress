@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 mod app_test;
 mod helper_test;
 mod integration;

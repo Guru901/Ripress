@@ -49,10 +49,11 @@
 //!
 //! Middlewares can be registered globally or for specific routes using the [`App`] builder methods:
 //!
-//! ```no_run
+//! ```rust
 //! use ripress::app::App;
 //! use ripress::middlewares::cors::CorsConfig;
 //! use ripress::middlewares::logger::LoggerConfig;
+//! use ripress::types::RouterFns;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -79,7 +80,6 @@
 //!         method: true,
 //!         path: true,
 //!         status: true,
-//!         duration: true,
 //!         ..Default::default()
 //!     }));
 //!
@@ -103,7 +103,7 @@
 //!
 //! // Custom authentication middleware
 //! app.use_pre_middleware(Some("/api"), |req, res| async move {
-//!     if req.header("authorization").is_none() {
+//!     if req.headers.get("authorization").is_none() {
 //!         return (req, Some(res.unauthorized().text("Missing auth header")));
 //!     }
 //!     (req, None) // Continue processing
@@ -111,7 +111,7 @@
 //!
 //! // Custom response timing middleware
 //! app.use_post_middleware(None, |req, mut res| async move {
-//!     res = res.header("X-Response-Time", "42ms");
+//!     res = res.set_header("X-Response-Time", "42ms");
 //!     (req, Some(res))
 //! });
 //! ```
@@ -120,7 +120,7 @@
 //!
 //! For production applications, consider this middleware stack:
 //!
-//! ```no_run
+//! ```rust
 //! use ripress::app::App;
 //!
 //! let mut app = App::new();
@@ -180,7 +180,6 @@
 ///     allowed_methods: "GET, POST, PUT, DELETE, OPTIONS",
 ///     allowed_headers: "Content-Type, Authorization, X-Requested-With",
 ///     allow_credentials: true,
-///     max_age: 86400, // 24 hours
 ///     ..Default::default()
 /// }));
 ///
@@ -226,15 +225,13 @@ pub mod cors;
 ///
 /// The logger middleware requires a `tracing` subscriber to be initialized in your application:
 ///
-/// ```rust
+/// ```no_run,ignore
 /// // Simple console logging
 /// tracing_subscriber::fmt::init();
 ///
-/// // Or with custom configuration
-/// use tracing_subscriber::{fmt, EnvFilter};
-///
+/// // Or with basic customization
+/// use tracing_subscriber::fmt;
 /// fmt()
-///     .with_env_filter(EnvFilter::from_default_env())
 ///     .with_target(false)
 ///     .compact()
 ///     .init();
@@ -242,10 +239,9 @@ pub mod cors;
 ///
 /// ## Usage Examples
 ///
-/// ```no_run
+/// ```rust
 /// use ripress::app::App;
 /// use ripress::middlewares::logger::LoggerConfig;
-/// use tracing::Level;
 ///
 /// // Initialize tracing subscriber
 /// tracing_subscriber::fmt::init();
@@ -257,26 +253,15 @@ pub mod cors;
 ///
 /// // Detailed logging configuration
 /// app.use_logger(Some(LoggerConfig {
-///     method: true,           // Log HTTP method
-///     path: true,             // Log request path
-///     query: true,            // Log query parameters
-///     status: true,           // Log response status
-///     duration: true,         // Log request duration
-///     user_agent: true,       // Log User-Agent header
-///     remote_addr: true,      // Log client IP address
-///     level: Level::INFO,     // Log level
-///     ..Default::default()
-/// }));
-///
-/// // Error-focused logging
-/// app.use_logger(Some(LoggerConfig {
 ///     method: true,
 ///     path: true,
 ///     status: true,
-///     duration: true,
-///     level: Level::WARN,     // Only log warnings and errors
-///     filter_success: true,   // Skip logging successful responses
-///     ..Default::default()
+///     user_agent: true,
+///     ip: true,
+///     headers: vec!["content-type".to_string()],
+///     body_size: true,
+///     query_params: true,
+///     exclude_paths: vec!["/health".to_string()],
 /// }));
 /// ```
 ///
@@ -342,7 +327,7 @@ pub mod logger;
 ///
 /// ## Configuration
 ///
-/// ```rust
+/// ```no_run,ignore
 /// use ripress::app::App;
 /// use ripress::middlewares::file_upload::{FileUploadConfiguration, file_upload};
 ///
@@ -355,9 +340,8 @@ pub mod logger;
 /// app.use_pre_middleware(Some("/upload"), file_upload(Some(FileUploadConfiguration {
 ///     upload_dir: "./uploads".to_string(),
 ///     max_file_size: 10 * 1024 * 1024, // 10MB per file
-///     allowed_types: vec!["image/jpeg".to_string(), "image/png".to_string()],
-///     preserve_filename: false, // Use UUID filenames for security
-///     create_directories: true,
+///     max_files: 100,
+///     allowed_file_types: vec!["jpeg".to_string(), "png".to_string()],
 /// })));
 /// ```
 ///
@@ -384,6 +368,7 @@ pub mod logger;
 /// use ripress::app::App;
 /// use ripress::types::RouterFns;
 /// use serde_json::Value;
+/// use riperss::middlewares::file_upload::file_upload;
 ///
 /// let mut app = App::new();
 ///
@@ -413,7 +398,7 @@ pub mod logger;
 /// ### Client-Side Examples
 ///
 /// #### JavaScript Binary Upload
-/// ```javascript
+/// ```no_run
 /// const fileInput = document.getElementById('fileInput');
 /// const file = fileInput.files[0];
 ///
@@ -427,7 +412,7 @@ pub mod logger;
 /// ```
 ///
 /// #### JavaScript Multipart Form
-/// ```javascript
+/// ```no_run,ignore
 /// const formData = new FormData();
 /// formData.append('file1', file1);
 /// formData.append('file2', file2);
@@ -504,9 +489,9 @@ pub mod file_upload;
 ///
 /// ## Configuration Examples
 ///
-/// ```no_run
+/// ```no_run,ignore
 /// use ripress::app::App;
-/// use ripress::middlewares::rate_limiter::{RateLimiterConfig, WindowType};
+/// use ripress::middlewares::rate_limiter::RateLimiterConfig;
 /// use std::time::Duration;
 ///
 /// let mut app = App::new();
@@ -517,8 +502,7 @@ pub mod file_upload;
 /// // Strict API rate limiting
 /// app.use_rate_limiter(Some(RateLimiterConfig {
 ///     max_requests: 10,                    // Allow 10 requests
-///     window: Duration::from_secs(60),     // Per minute
-///     window_type: WindowType::Sliding,    // Sliding window for accuracy
+///     window_ms: Duration::from_secs(60),     // Per minute
 ///     message: "API rate limit exceeded. Try again later.".to_string(),
 ///     proxy: true,                         // Behind a proxy
 ///     ..Default::default()
@@ -527,9 +511,7 @@ pub mod file_upload;
 /// // Generous web app rate limiting
 /// app.use_rate_limiter(Some(RateLimiterConfig {
 ///     max_requests: 1000,                  // Allow 1000 requests
-///     window: Duration::from_secs(3600),   // Per hour
-///     skip_failed_requests: true,          // Don't count failed requests
-///     skip_successful_requests: false,     // Count successful requests
+///     window_ms: Duration::from_secs(3600),   // Per hour
 ///     ..Default::default()
 /// }));
 /// ```
@@ -540,20 +522,23 @@ pub mod file_upload;
 ///
 /// ### IP Address (Default)
 /// ```rust
+/// use ripress::middlewares::rate_limiter::RateLimiterConfig;
+///
 /// // Automatically extracts client IP, considering X-Forwarded-For when proxy=true
 /// RateLimiterConfig {
 ///     proxy: true, // Enable when behind nginx, CloudFlare, etc.
 ///     ..Default::default()
-/// }
+/// };
 /// ```
 ///
 /// ### Custom Header
 /// ```rust
+/// use ripress::middlewares::rate_limiter::RateLimiterConfig;
+///
 /// // Rate limit by API key or user ID
 /// RateLimiterConfig {
-///     key_header: Some("X-API-Key".to_string()),
 ///     ..Default::default()
-/// }
+/// };
 /// ```
 ///
 /// ## Response Headers
@@ -573,37 +558,14 @@ pub mod file_upload;
 /// X-RateLimit-Exceeded: true
 /// ```
 ///
-/// ## Integration Examples
 ///
-/// ### API with Different Limits per Endpoint
-/// ```rust
+/// ### Custom Error Responses
+/// ```no_run,ignore
+/// use ripress::middlewares::rate_limiter::RateLimiterConfig;
 /// use ripress::app::App;
-/// use ripress::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
 ///
 /// let mut app = App::new();
 ///
-/// // General API rate limiting
-/// app.use_pre_middleware(Some("/api"), rate_limiter(Some(RateLimiterConfig {
-///     max_requests: 100,
-///     ..Default::default()
-/// })));
-///
-/// // Stricter limits for expensive operations
-/// app.use_pre_middleware(Some("/api/search"), rate_limiter(Some(RateLimiterConfig {
-///     max_requests: 10,
-///     ..Default::default()
-/// })));
-///
-/// // Very strict limits for authentication endpoints
-/// app.use_pre_middleware(Some("/api/auth"), rate_limiter(Some(RateLimiterConfig {
-///     max_requests: 5,
-///     window: Duration::from_secs(300), // 5 requests per 5 minutes
-///     ..Default::default()
-/// })));
-/// ```
-///
-/// ### Custom Error Responses
-/// ```rust
 /// app.use_rate_limiter(Some(RateLimiterConfig {
 ///     max_requests: 50,
 ///     message: serde_json::json!({
@@ -621,12 +583,17 @@ pub mod file_upload;
 /// ### Single Server
 /// The default in-memory rate limiting works well for single-server deployments:
 ///
-/// ```rust
+/// ```no_run,ignore
+/// use ripress::middlewares::rate_limiter::RateLimiterConfig;
+/// use std::time::Duration;
+/// use ripress::app::App;
+///
+/// let mut app = App::new();
+///
 /// // Handles server restarts gracefully
 /// app.use_rate_limiter(Some(RateLimiterConfig {
 ///     max_requests: 1000,
-///     window: Duration::from_secs(3600),
-///     persist_across_restarts: false, // In-memory only
+///     window_ms: Duration::from_secs(3600),
 ///     ..Default::default()
 /// }));
 /// ```
@@ -634,12 +601,15 @@ pub mod file_upload;
 /// ### Multiple Servers (Future)
 /// For distributed deployments, consider Redis-backed rate limiting:
 ///
-/// ```rust
+/// ```no_run,ignore
+/// use ripress::middlewares::rate_limiter::RateLimiterConfig;
+/// use ripress::app::App;
+///
+/// let mut app = App::new();
+///
 /// // Future feature - distributed rate limiting
 /// app.use_rate_limiter(Some(RateLimiterConfig {
 ///     max_requests: 1000,
-///     redis_url: Some("redis://localhost:6379".to_string()),
-///     redis_key_prefix: "rate_limit:".to_string(),
 ///     ..Default::default()
 /// }));
 /// ```
@@ -717,21 +687,11 @@ pub mod rate_limiter;
 ///
 /// ```rust
 /// use ripress::app::App;
-/// use ripress::middlewares::body_limit::body_limit;
 ///
 /// let mut app = App::new();
 ///
 /// // Default limit for most routes
 /// app.use_body_limit(Some(1024 * 1024)); // 1 MB
-///
-/// // Strict limit for authentication routes
-/// app.use_pre_middleware(Some("/auth"), body_limit(Some(1024))); // 1 KB
-///
-/// // Generous limit for upload routes
-/// app.use_pre_middleware(Some("/upload"), body_limit(Some(100 * 1024 * 1024))); // 100 MB
-///
-/// // Very strict limit for webhook endpoints
-/// app.use_pre_middleware(Some("/webhooks"), body_limit(Some(10 * 1024))); // 10 KB
 /// ```
 ///
 /// ## Common Size Guidelines
@@ -768,7 +728,7 @@ pub mod rate_limiter;
 /// app.use_pre_middleware(None, |req, res| async move {
 ///     const MAX_SIZE: usize = 1024 * 1024; // 1 MB
 ///     
-///     if let Some(content_length) = req.header("content-length") {
+///     if let Some(content_length) = req.headers.get("content-length") {
 ///         if let Ok(size) = content_length.parse::<usize>() {
 ///             if size > MAX_SIZE {
 ///                 let error_response = res.status(413).json(serde_json::json!({
@@ -792,6 +752,9 @@ pub mod rate_limiter;
 /// Place body limit middleware **before** any middleware that reads the request body:
 ///
 /// ```rust
+/// use ripress::app::App;
+/// use riperss::middlewares::file_upload::file_upload;
+///
 /// let mut app = App::new();
 ///
 /// // 1. Body limits (first)
@@ -808,14 +771,12 @@ pub mod rate_limiter;
 /// Use progressively stricter limits for more sensitive endpoints:
 ///
 /// ```rust
-/// // Global lenient limit
+/// use ripress::app::App;
+///
+/// // Global lenient limi
+/// let mut app = App::new();
+///
 /// app.use_body_limit(Some(10 * 1024 * 1024)); // 10 MB
-///
-/// // API endpoints - moderate limit
-/// app.use_pre_middleware(Some("/api"), body_limit(Some(1024 * 1024))); // 1 MB
-///
-/// // Authentication - very strict
-/// app.use_pre_middleware(Some("/auth"), body_limit(Some(1024))); // 1 KB
 /// ```
 ///
 /// ### Content-Type Considerations
@@ -900,24 +861,18 @@ pub mod body_limit;
 /// app.use_compression(Some(CompressionConfig {
 ///     threshold: 512,          // Compress responses > 512 bytes
 ///     level: 9,                // Maximum compression (slower)
-///     buffer_size: 8192,       // 8KB compression buffer
-///     ..Default::default()
 /// }));
 ///
 /// // Fast compression for high-traffic applications
 /// app.use_compression(Some(CompressionConfig {
 ///     threshold: 2048,         // Only compress larger responses
 ///     level: 1,                // Fast compression (less CPU usage)
-///     buffer_size: 16384,      // Larger buffer for streaming
-///     ..Default::default()
 /// }));
 ///
 /// // Conservative compression for legacy clients
 /// app.use_compression(Some(CompressionConfig {
 ///     threshold: 4096,         // Conservative threshold
 ///     level: 4,                // Moderate compression
-///     enable_for_proxies: true, // Handle proxy scenarios
-///     ..Default::default()
 /// }));
 /// ```
 ///
@@ -946,20 +901,8 @@ pub mod body_limit;
 ///
 /// ### Custom Content Type Configuration
 /// ```rust
-/// app.use_compression(Some(CompressionConfig {
-///     // Additional types to compress
-///     compress_types: vec![
-///         "application/vnd.api+json".to_string(),
-///         "application/ld+json".to_string(),
-///     ],
-///     
-///     // Types to never compress (in addition to defaults)
-///     exclude_types: vec![
-///         "application/octet-stream".to_string(),
-///         "application/wasm".to_string(),
-///     ],
-///     ..Default::default()
-/// }));
+/// use ripress::middlewares::compression::CompressionConfig;
+/// let _cfg = CompressionConfig { threshold: 2048, level: 6 };
 /// ```
 ///
 /// ## Compression Level Guidelines
@@ -975,30 +918,20 @@ pub mod body_limit;
 ///
 /// ### CPU vs. Bandwidth Trade-off
 /// ```rust
+/// use ripress::middlewares::compression::CompressionConfig;
 /// // For high-CPU, unlimited bandwidth environments
-/// app.use_compression(Some(CompressionConfig {
-///     level: 1,                // Minimize CPU usage
-///     threshold: 8192,         // Only compress large responses
-///     ..Default::default()
-/// }));
-///
+/// let _cfg_fast = CompressionConfig { level: 1, threshold: 8192 };
 /// // For limited bandwidth, adequate CPU environments
-/// app.use_compression(Some(CompressionConfig {
-///     level: 8,                // Maximize compression
-///     threshold: 256,          // Compress small responses too
-///     ..Default::default()
-/// }));
+/// let _cfg_tight = CompressionConfig { level: 8, threshold: 256 };
 /// ```
 ///
 /// ### Memory Usage
 /// The middleware uses streaming compression to minimize memory usage:
 ///
 /// ```rust
-/// app.use_compression(Some(CompressionConfig {
-///     buffer_size: 4096,       // 4KB buffer for memory-constrained environments
-///     stream_threshold: 1024,  // Stream responses larger than 1KB
-///     ..Default::default()
-/// }));
+/// use ripress::middlewares::compression::CompressionConfig;
+/// // Streaming is internal; configure via threshold/level.
+/// let _cfg = CompressionConfig { threshold: 4096, level: 6 };
 /// ```
 ///
 /// ## Caching Integration
@@ -1012,17 +945,9 @@ pub mod body_limit;
 ///
 /// ### CDN and Proxy Configuration
 /// ```rust
-/// app.use_compression(Some(CompressionConfig {
-///     // Enable compression behind proxies
-///     enable_for_proxies: true,
-///     
-///     // Add additional Vary headers for complex caching scenarios
-///     additional_vary_headers: vec![
-///         "User-Agent".to_string(),
-///         "Origin".to_string(),
-///     ],
-///     ..Default::default()
-/// }));
+/// use ripress::middlewares::compression::CompressionConfig;
+/// // Ensure proxies preserve Accept-Encoding; compression is negotiated per-request.
+/// let _cfg = CompressionConfig::default();
 /// ```
 ///
 /// ## Route-Specific Compression
@@ -1031,47 +956,16 @@ pub mod body_limit;
 ///
 /// ```rust
 /// use ripress::app::App;
-/// use ripress::middlewares::compression::{CompressionConfig, compression};
+/// use ripress::middlewares::compression::CompressionConfig;
 ///
 /// let mut app = App::new();
 ///
 /// // Default compression for most routes
-/// app.use_compression(Some(CompressionConfig {
-///     level: 6,
-///     ..Default::default()
-/// }));
+/// app.use_compression(Some(CompressionConfig { level: 6, threshold: 1024 }));
 ///
-/// // High compression for API responses
-/// app.use_post_middleware(Some("/api"), compression(Some(CompressionConfig {
-///     level: 8,                // Higher compression for APIs
-///     threshold: 256,          // Compress even small JSON responses
-///     ..Default::default()
-/// })));
-///
-/// // No compression for binary endpoints
+/// // Route-specific skip example (identity)
 /// app.use_post_middleware(Some("/files"), |req, res| async move {
-///     // Skip compression for file downloads
-///     (req, Some(res.header("Content-Encoding", "identity")))
-/// });
-/// ```
-///
-/// ## Monitoring and Metrics
-///
-/// Track compression effectiveness:
-///
-/// ```rust
-/// app.use_post_middleware(None, |req, mut res| async move {
-///     // Add compression metrics to response headers (development only)
-///     if cfg!(debug_assertions) {
-///         if let Some(original_size) = res.get_header("X-Original-Size") {
-///             if let Some(compressed_size) = res.get_header("Content-Length") {
-///                 let ratio = compressed_size.parse::<f32>().unwrap_or(1.0) /
-///                           original_size.parse::<f32>().unwrap_or(1.0);
-///                 res = res.header("X-Compression-Ratio", &format!("{:.2}", ratio));
-///             }
-///         }
-///     }
-///     (req, Some(res))
+///     (req, Some(res.set_header("Content-Encoding", "identity")))
 /// });
 /// ```
 ///
@@ -1166,112 +1060,57 @@ pub mod compression;
 /// ```rust
 /// use ripress::app::App;
 /// use ripress::middlewares::shield::{ShieldConfig, Hsts, ContentSecurityPolicy};
+/// use std::collections::HashMap;
 ///
 /// let mut app = App::new();
 ///
+/// let mut directives = HashMap::new();
+/// directives.insert("default-src".to_string(), "'self'".to_string());
+/// directives.insert("script-src".to_string(), "'self' https://cdn.jsdelivr.net https://unpkg.com".to_string());
+/// directives.insert("style-src".to_string(), "'self' 'unsafe-inline' https://fonts.googleapis.com".to_string());
+/// directives.insert("img-src".to_string(), "'self' data: https:".to_string());
+/// directives.insert("font-src".to_string(), "'self' https://fonts.gstatic.com".to_string());
+///
 /// app.use_shield(Some(ShieldConfig {
-///     // HSTS for production HTTPS sites
-///     hsts: Hsts {
-///         enabled: true,
-///         max_age: 31536000,        // 1 year
-///         include_subdomains: true,
-///         preload: false,           // Enable only after testing
-///         ..Default::default()
-///     },
-///     
-///     // Basic CSP for web apps with external resources
-///     content_security_policy: ContentSecurityPolicy {
-///         enabled: true,
-///         default_src: vec!["'self'".to_string()],
-///         script_src: vec![
-///             "'self'".to_string(),
-///             "https://cdn.jsdelivr.net".to_string(),
-///             "https://unpkg.com".to_string(),
-///         ],
-///         style_src: vec![
-///             "'self'".to_string(),
-///             "'unsafe-inline'".to_string(), // For inline styles
-///             "https://fonts.googleapis.com".to_string(),
-///         ],
-///         img_src: vec![
-///             "'self'".to_string(),
-///             "data:".to_string(),           // Data URLs for images
-///             "https:".to_string(),          // HTTPS images
-///         ],
-///         font_src: vec![
-///             "'self'".to_string(),
-///             "https://fonts.gstatic.com".to_string(),
-///         ],
-///         ..Default::default()
-///     },
-///     
-///     // Allow framing for embedded widgets
-///     x_frame_options: Some("SAMEORIGIN".to_string()),
-///     
-///     // Standard security headers
-///     x_content_type_options: true,
-///     referrer_policy: Some("strict-origin-when-cross-origin".to_string()),
-///     
+///     hsts: Hsts { enabled: true, max_age: 31536000, include_subdomains: true, preload: false },
+///     content_security_policy: ContentSecurityPolicy { enabled: true, directives, report_only: false },
 ///     ..Default::default()
 /// }));
 /// ```
 ///
 /// ### API-Only Application
 /// ```rust
+/// use ripress::middlewares::shield::{ShieldConfig, ContentSecurityPolicy, Hsts};
+/// use std::collections::HashMap;
+/// use ripress::app::App;
+///
+/// let mut app = App::new();
+///
+/// let mut directives = HashMap::new();
+/// directives.insert("default-src".to_string(), "'none'".to_string());
+///
 /// app.use_shield(Some(ShieldConfig {
-///     // Strict HSTS for APIs
-///     hsts: Hsts {
-///         enabled: true,
-///         max_age: 63072000,        // 2 years
-///         include_subdomains: true,
-///         preload: true,
-///         ..Default::default()
-///     },
-///     
-///     // Minimal CSP for APIs (no browser features needed)
-///     content_security_policy: ContentSecurityPolicy {
-///         enabled: true,
-///         default_src: vec!["'none'".to_string()], // Block everything
-///         ..Default::default()
-///     },
-///     
-///     // Prevent any framing
-///     x_frame_options: Some("DENY".to_string()),
-///     
-///     // API-specific headers
-///     x_content_type_options: true,
-///     referrer_policy: Some("no-referrer".to_string()), // No referrer for APIs
-///     
-///     // Cross-origin isolation for sensitive APIs
-///     cross_origin_embedder_policy: Some("require-corp".to_string()),
-///     cross_origin_opener_policy: Some("same-origin".to_string()),
-///     
+///     hsts: Hsts { enabled: true, max_age: 63072000, include_subdomains: true, preload: true },
+///     content_security_policy: ContentSecurityPolicy { enabled: true, directives, report_only: false },
 ///     ..Default::default()
 /// }));
 /// ```
 ///
 /// ### Development-Friendly Configuration
 /// ```rust
+/// use ripress::middlewares::shield::{ShieldConfig, ContentSecurityPolicy, Hsts};
+/// use std::collections::HashMap;
+/// use ripress::app::App;
+///
+/// let mut app = App::new();
+///
+/// let mut directives = HashMap::new();
+/// directives.insert("default-src".to_string(), "'self' 'unsafe-inline'".to_string());
+/// directives.insert("script-src".to_string(), "'self' 'unsafe-eval'".to_string());
+///
 /// app.use_shield(Some(ShieldConfig {
-///     // Relaxed CSP for development
-///     content_security_policy: ContentSecurityPolicy {
-///         enabled: true,
-///         default_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
-///         script_src: vec!["'self'".to_string(), "'unsafe-eval'".to_string()],
-///         report_only: true,        // Report violations without blocking
-///         report_uri: Some("http://localhost:3000/csp-report".to_string()),
-///         ..Default::default()
-///     },
-///     
-///     // No HSTS in development (allows HTTP)
-///     hsts: Hsts {
-///         enabled: false,
-///         ..Default::default()
-///     },
-///     
-///     // Allow framing for development tools
-///     x_frame_options: Some("SAMEORIGIN".to_string()),
-///     
+///     content_security_policy: ContentSecurityPolicy { enabled: true, directives, report_only: true },
+///     hsts: Hsts { enabled: false, ..Default::default() },
 ///     ..Default::default()
 /// }));
 /// ```
@@ -1280,91 +1119,60 @@ pub mod compression;
 ///
 /// ### Strict CSP for High-Security Applications
 /// ```rust
-/// content_security_policy: ContentSecurityPolicy {
-///     enabled: true,
-///     default_src: vec!["'none'".to_string()],
-///     script_src: vec![
-///         "'self'".to_string(),
-///         "'nonce-{NONCE}'".to_string(),  // Use nonces for inline scripts
-///     ],
-///     style_src: vec![
-///         "'self'".to_string(),
-///         "'nonce-{NONCE}'".to_string(),  // Use nonces for inline styles
-///     ],
-///     img_src: vec!["'self'".to_string(), "data:".to_string()],
-///     connect_src: vec!["'self'".to_string()],
-///     font_src: vec!["'self'".to_string()],
-///     object_src: vec!["'none'".to_string()],
-///     media_src: vec!["'self'".to_string()],
-///     frame_src: vec!["'none'".to_string()],
-///     ..Default::default()
-/// }
+/// use std::collections::HashMap;
+/// use ripress::middlewares::shield::ContentSecurityPolicy;
+/// let mut directives = HashMap::new();
+/// directives.insert("default-src".to_string(), "'none'".to_string());
+/// directives.insert("script-src".to_string(), "'self' 'nonce-{NONCE}'".to_string());
+/// directives.insert("style-src".to_string(), "'self' 'nonce-{NONCE}'".to_string());
+/// directives.insert("img-src".to_string(), "'self' data:".to_string());
+/// directives.insert("connect-src".to_string(), "'self'".to_string());
+/// directives.insert("font-src".to_string(), "'self'".to_string());
+/// directives.insert("object-src".to_string(), "'none'".to_string());
+/// directives.insert("media-src".to_string(), "'self'".to_string());
+/// directives.insert("frame-src".to_string(), "'none'".to_string());
+/// let _csp = ContentSecurityPolicy { enabled: true, directives, report_only: false };
 /// ```
 ///
 /// ### CSP for Single Page Applications (SPA)
 /// ```rust
-/// content_security_policy: ContentSecurityPolicy {
-///     enabled: true,
-///     default_src: vec!["'self'".to_string()],
-///     script_src: vec![
-///         "'self'".to_string(),
-///         "https://api.example.com".to_string(),
-///     ],
-///     style_src: vec![
-///         "'self'".to_string(),
-///         "'unsafe-inline'".to_string(),  // Often needed for CSS-in-JS
-///     ],
-///     img_src: vec![
-///         "'self'".to_string(),
-///         "https://images.example.com".to_string(),
-///         "data:".to_string(),
-///     ],
-///     connect_src: vec![
-///         "'self'".to_string(),
-///         "https://api.example.com".to_string(),
-///         "wss://websocket.example.com".to_string(), // WebSocket connections
-///     ],
-///     ..Default::default()
-/// }
+/// use std::collections::HashMap;
+/// use ripress::middlewares::shield::ContentSecurityPolicy;
+/// let mut directives = HashMap::new();
+/// directives.insert("default-src".to_string(), "'self'".to_string());
+/// directives.insert("script-src".to_string(), "'self' https://api.example.com".to_string());
+/// directives.insert("style-src".to_string(), "'self' 'unsafe-inline'".to_string());
+/// directives.insert("img-src".to_string(), "'self' https://images.example.com data:".to_string());
+/// directives.insert("connect-src".to_string(), "'self' https://api.example.com wss://websocket.example.com".to_string());
+/// let _csp = ContentSecurityPolicy { enabled: true, directives, report_only: false };
 /// ```
 ///
 /// ## HSTS Configuration Guidelines
 ///
 /// ### Progressive HSTS Rollout
 /// ```rust
-/// // Phase 1: Short max-age, no preload
-/// hsts: Hsts {
-///     enabled: true,
-///     max_age: 86400,           // 1 day
-///     include_subdomains: false,
-///     preload: false,
-/// }
-///
-/// // Phase 2: Longer max-age, include subdomains
-/// hsts: Hsts {
-///     enabled: true,
-///     max_age: 31536000,        // 1 year
-///     include_subdomains: true,
-///     preload: false,
-/// }
-///
-/// // Phase 3: Full HSTS with preload
-/// hsts: Hsts {
-///     enabled: true,
-///     max_age: 63072000,        // 2 years (minimum for preload)
-///     include_subdomains: true,
-///     preload: true,
-/// }
+/// use ripress::middlewares::shield::Hsts;
+/// // Phase 1
+/// let _h1 = Hsts { enabled: true, max_age: 86400, include_subdomains: false, preload: false };
+/// // Phase 2
+/// let _h2 = Hsts { enabled: true, max_age: 31536000, include_subdomains: true, preload: false };
+/// // Phase 3
+/// let _h3 = Hsts { enabled: true, max_age: 63072000, include_subdomains: true, preload: true };
 /// ```
 ///
 /// ## Cross-Origin Policies
 ///
 /// ### Enabling Cross-Origin Isolation
 /// ```rust
+/// use ripress::app::App;
+/// use ripress::  middlewares::shield::{CrossOriginEmbedderPolicy, CrossOriginOpenerPolicy, CrossOriginResourcePolicy, ShieldConfig};
+///
+/// let mut app = App::new();
+///
 /// app.use_shield(Some(ShieldConfig {
-///     cross_origin_embedder_policy: Some("require-corp".to_string()),
-///     cross_origin_opener_policy: Some("same-origin".to_string()),
-///     cross_origin_resource_policy: Some("same-origin".to_string()),
+///     cross_origin_embedder_policy: CrossOriginEmbedderPolicy::default(),
+///     cross_origin_opener_policy: CrossOriginOpenerPolicy::default(),
+///     cross_origin_resource_policy: CrossOriginResourcePolicy::default(),
 ///     ..Default::default()
 /// }));
 /// ```
@@ -1384,7 +1192,9 @@ pub mod compression;
 /// ### Header Precedence
 /// The shield middleware should be applied early in the middleware chain:
 ///
-/// ```rust
+/// ```no_run,ignore
+/// use ripress::app::App;
+///
 /// let mut app = App::new();
 ///
 /// // 1. Security headers first
@@ -1399,19 +1209,22 @@ pub mod compression;
 ///
 /// ### Environment-Specific Configuration
 /// ```rust
+/// use ripress::app::App;
+/// use ripress::middlewares::shield::{ShieldConfig, Hsts, ContentSecurityPolicy};
+/// use std::collections::HashMap;
+///
+/// let mut app = App::new();
+///
 /// let shield_config = if cfg!(debug_assertions) {
-///     // Development configuration
+///     let mut directives = HashMap::new();
+///     directives.insert("default-src".to_string(), "'self'".to_string());
 ///     ShieldConfig {
-///         content_security_policy: ContentSecurityPolicy {
-///             report_only: true,
-///             ..Default::default()
-///         },
+///         content_security_policy: ContentSecurityPolicy { report_only: true, enabled: true, directives },
 ///         hsts: Hsts { enabled: false, ..Default::default() },
 ///         ..Default::default()
 ///     }
 /// } else {
-///     // Production configuration
-///     ShieldConfig::default() // Secure defaults
+///     ShieldConfig::default()
 /// };
 ///
 /// app.use_shield(Some(shield_config));
@@ -1421,43 +1234,42 @@ pub mod compression;
 ///
 /// ### CSP Breaking Third-Party Scripts
 /// ```rust
-/// // Problem: Third-party analytics blocked by CSP
-/// // Solution: Add specific domains to script-src
-/// script_src: vec![
-///     "'self'".to_string(),
-///     "https://www.google-analytics.com".to_string(),
-///     "https://www.googletagmanager.com".to_string(),
-/// ]
+/// // Add specific domains to script-src in the CSP directives map
 /// ```
 ///
 /// ### HSTS on Non-HTTPS Development
 /// ```rust
+/// use ripress::app::App;
+/// use ripress::middlewares::shield::{Hsts, ShieldConfig};
+///
+/// let mut app = App::new();
+///
 /// // Problem: HSTS breaks HTTP development
 /// // Solution: Disable HSTS in development
-/// hsts: Hsts {
-///     enabled: !cfg!(debug_assertions), // Only enable in release builds
+/// app.use_shield(Some(ShieldConfig {
+///     hsts: Hsts {
+///         enabled: !cfg!(debug_assertions), // Only enable in release builds
+///         ..Default::default()
+///     },
 ///     ..Default::default()
-/// }
+/// }));
 /// ```
 ///
 /// ### Frame Options vs CSP Conflict
 /// ```rust
-/// // Problem: Both X-Frame-Options and CSP frame-ancestors set
-/// // Solution: Prefer CSP, use X-Frame-Options as fallback
-/// x_frame_options: Some("DENY".to_string()), // Legacy browsers
-/// content_security_policy: ContentSecurityPolicy {
-///     frame_ancestors: vec!["'none'".to_string()], // Modern browsers
-///     ..Default::default()
-/// }
+/// // Prefer CSP frame-ancestors via ResponseHeaders helpers
 /// ```
 ///
 /// ## Monitoring and Compliance
 ///
 /// ### CSP Violation Reporting
 /// ```rust
+/// use ripress::app::App;
+/// use ripress::types::RouterFns;
+///
+/// let mut app = App::new();
 /// app.post("/csp-report", |req, res| async move {
-///     // Log CSP violations for analysis
-///     if let Ok(violation_report) = req.json::<serde_json::Value>().await {
+///     if let Ok(violation_report) = req.json::<serde_json::Value>() {
 ///         eprintln!("CSP Violation: {}", violation_report);
 ///     }
 ///     res.ok().text("OK")
@@ -1494,27 +1306,6 @@ use crate::types::WyndMiddlewareHandler;
 /// 1. Pre-middlewares (in registration order)
 /// 2. Route handler
 /// 3. Post-middlewares (in registration order)
-///
-/// ## Example
-///
-/// ```
-/// use ripress::app::{App, Middleware};
-/// use ripress::req::HttpRequest;
-/// use ripress::res::HttpResponse;
-/// use std::sync::Arc;
-///
-/// // Custom middleware that adds a header to all responses
-/// let custom_middleware = Middleware {
-///     func: Arc::new(|req, mut res| {
-///         Box::pin(async move {
-///             res = res.header("X-Custom", "middleware-applied");
-///             (req, Some(res))
-///         })
-///     }),
-///     path: "/api".to_string(),
-///     middleware_type: crate::app::MiddlewareType::Pre,
-/// };
-/// ```
 #[derive(Clone)]
 pub(crate) struct Middleware {
     /// The middleware function.

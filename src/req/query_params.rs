@@ -82,42 +82,6 @@ pub(crate) enum QueryParamError {
         /// The target type that parsing was attempted for
         target_type: String,
     },
-
-    /// Multiple values were found for a parameter when a single value was expected.
-    ///
-    /// This error occurs when a parameter appears multiple times in the query string
-    /// (e.g., `tags=rust&tags=web`) but the calling code expected only one value.
-    /// While the current implementation doesn't typically generate this error,
-    /// it's provided for future extensibility and consistency.
-    ///
-    /// # Fields
-    ///
-    /// * `param` - The name of the parameter that has multiple values
-    /// * `values` - All values found for this parameter in the order they appeared
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use ripress::req::query_params::QueryParams;
-    ///
-    /// // Demonstrate multi-value handling using get_all()
-    /// let params = QueryParams::from_query_string("tags=rust&tags=web&tags=backend");
-    /// let values = params.get_all("tags").unwrap();
-    /// assert_eq!(values.len(), 3);
-    /// ```
-    ///
-    /// # Note
-    ///
-    /// The current `QueryParams` implementation handles multiple values gracefully
-    /// by providing separate methods (`get()` vs `get_all()`), so this error is
-    /// primarily reserved for future use cases where strict single-value semantics
-    /// are required.
-    MultipleValues {
-        /// The name of the parameter that has multiple values
-        param: String,
-        /// All values found for this parameter
-        values: Vec<String>,
-    },
 }
 
 impl fmt::Display for QueryParamError {
@@ -133,13 +97,6 @@ impl fmt::Display for QueryParamError {
                     f,
                     "Failed to parse parameter '{}' with value '{}' as {}",
                     param, value, target_type
-                )
-            }
-            QueryParamError::MultipleValues { param, values } => {
-                write!(
-                    f,
-                    "Multiple values found for parameter '{}': {:?}",
-                    param, values
                 )
             }
         }
