@@ -19,38 +19,6 @@
 /// This struct enforces consistency between the content type and the actual data format,
 /// preventing common mistakes like sending JSON data with a form content type. Each
 /// constructor method automatically sets the appropriate content type header.
-///
-/// # Examples
-///
-/// ```ignore
-/// use ripress::req::body::{RequestBody, FormData, TextData};
-///
-/// use serde_json::json;
-///
-/// // JSON body
-/// let json_body = RequestBody::new_json(json!({
-///     "username": "alice",
-///     "email": "alice@example.com"
-/// }));
-///
-/// // Form data body
-/// let mut form = FormData::new();
-/// form.insert("username", "alice");
-/// form.insert("password", "secret");
-/// let form_body = RequestBody::new_form(form);
-///
-/// // Text body
-/// let text_data = TextData::new(String::from("Hello, world!"));
-/// let text_body = RequestBody::new_text(text_data);
-///
-/// // Binary body
-/// use bytes::Bytes;
-/// let binary_data = Bytes::from_static(b"\xDE\xAD\xBE\xEF");
-/// let binary_body = RequestBody::new_binary(binary_data);
-///
-/// // Usage in HTTP client
-/// // client.post("https://api.example.com/users").body(json_body).send().await?;
-/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct RequestBody {
     /// The actual body content data
@@ -114,19 +82,6 @@ impl RequestBody {
     ///
     /// A new `RequestBody` instance with `TEXT` content type
     ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// use ripress::req::body::{RequestBody, RequestBodyType};
-    /// use ripress::req::body::text_data::TextData;
-    ///
-    /// let text_data = TextData::new(String::from("Hello, server!"));
-    /// let body = RequestBody::new_text(text_data);
-    ///
-    /// assert_eq!(body.content_type, RequestBodyType::TEXT);
-    /// // body.content will be RequestBodyContent::TEXT(text_data)
-    /// ```
-    ///
     /// # Use Cases
     ///
     /// - Sending plain text messages
@@ -153,16 +108,6 @@ impl RequestBody {
     /// # Returns
     ///
     /// A new `RequestBody` instance with `BINARY` content type
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// use ripress::req::body::{RequestBody, RequestBodyType};
-    ///
-    /// let bytes = Bytes::new();
-    /// let binary_content = RequestBody::new_binary(bytes);
-    /// assert_eq!(binary_content.content_type, RequestBodyType::BINARY);
-    /// ```
     ///
     /// # Use Cases
     ///
@@ -220,20 +165,6 @@ impl RequestBody {
     ///
     /// A new `RequestBody` instance with `FORM` content type
     ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// use ripress::req::body::{RequestBody, RequestBodyType, FormData};
-    ///
-    /// let mut form = FormData::new();
-    /// form.insert("username", "alice");
-    /// form.insert("password", "secret123");
-    /// form.insert("remember_me", "on");
-    ///
-    /// let body = RequestBody::new_form(form);
-    /// assert_eq!(body.content_type, RequestBodyType::FORM);
-    /// ```
-    ///
     /// # Use Cases
     ///
     /// - HTML form submissions (login, registration, etc.)
@@ -269,40 +200,6 @@ impl RequestBody {
     /// - Any serializable struct (with `#[derive(Serialize)]`)
     /// - Primitive types (numbers, strings, booleans)
     /// - Collections (Vec, HashMap, etc.)
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// use ripress::req::body::{RequestBody, RequestBodyType};
-    /// use serde_json::json;
-    /// use serde::Serialize;
-    ///
-    /// // Using json! macro
-    /// let body1 = RequestBody::new_json(json!({
-    ///     "name": "Alice",
-    ///     "age": 30,
-    ///     "active": true
-    /// }));
-    ///
-    /// // Using a serializable struct
-    /// #[derive(Serialize)]
-    /// struct User {
-    ///     id: u64,
-    ///     email: String,
-    /// }
-    ///
-    /// let user = User {
-    ///     id: 123,
-    ///     email: "user@example.com".to_string(),
-    /// };
-    /// let body2 = RequestBody::new_json(serde_json::to_value(user).unwrap());
-    ///
-    /// // Using primitive values
-    /// let body3 = RequestBody::new_json("simple string");
-    /// let body4 = RequestBody::new_json(vec![1, 2, 3, 4, 5]);
-    ///
-    /// assert_eq!(body1.content_type, RequestBodyType::JSON);
-    /// ```
     ///
     /// # Use Cases
     ///

@@ -8,7 +8,7 @@
 //!
 //! ## Quick Start
 //!
-//! ```no_run,ignore
+//! ```no_run
 //! use ripress::{app::App, types::RouterFns};
 //!
 //! #[tokio::main]
@@ -50,7 +50,7 @@
 //! ## Advanced Examples
 //!
 //! ### RESTful API with JSON
-//! ```no_run,ignore
+//! ```no_run
 //! use ripress::{app::App, types::RouterFns};
 //! use serde::{Deserialize, Serialize};
 //!
@@ -98,7 +98,7 @@
 //! ```
 //!
 //! ### File Upload with Middleware
-//! ```no_run,ignore
+//! ```no_run
 //! use ripress::{app::App, middlewares::file_upload::file_upload, types::RouterFns};
 //!
 //! #[tokio::main]

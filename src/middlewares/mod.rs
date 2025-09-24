@@ -49,7 +49,7 @@
 //!
 //! Middlewares can be registered globally or for specific routes using the [`App`] builder methods:
 //!
-//! ```no_run,ignore
+//! ```no_run
 //! use ripress::app::App;
 //! use ripress::middlewares::cors::CorsConfig;
 //! use ripress::middlewares::logger::LoggerConfig;
@@ -96,7 +96,7 @@
 //!
 //! You can create custom middlewares using the pre/post middleware methods:
 //!
-//! ```no_run,ignore
+//! ```no_run
 //! use ripress::app::App;
 //!
 //! let mut app = App::new();
@@ -120,7 +120,7 @@
 //!
 //! For production applications, consider this middleware stack:
 //!
-//! ```no_run,ignore
+//! ```no_run
 //! use ripress::app::App;
 //!
 //! let mut app = App::new();
@@ -225,7 +225,7 @@ pub mod cors;
 ///
 /// The logger middleware requires a `tracing` subscriber to be initialized in your application:
 ///
-/// ```no_run,ignore
+/// ```no_run
 /// // Simple console logging
 /// tracing_subscriber::fmt::init();
 ///
@@ -327,7 +327,7 @@ pub mod logger;
 ///
 /// ## Configuration
 ///
-/// ```no_run,ignore
+/// ```no_run
 /// use ripress::app::App;
 /// use ripress::middlewares::file_upload::{FileUploadConfiguration, file_upload};
 ///
@@ -395,44 +395,6 @@ pub mod logger;
 /// });
 /// ```
 ///
-/// ### Client-Side Examples
-///
-/// #### JavaScript Binary Upload
-/// ```no_run,ignore
-/// const fileInput = document.getElementById('fileInput');
-/// const file = fileInput.files[0];
-///
-/// fetch('/upload', {
-///     method: 'POST',
-///     body: file,
-///     headers: {
-///         'Content-Type': file.type
-///     }
-/// });
-/// ```
-///
-/// #### JavaScript Multipart Form
-/// ```no_run,ignore
-/// const formData = new FormData();
-/// formData.append('file1', file1);
-/// formData.append('file2', file2);
-/// formData.append('description', 'My uploaded files');
-///
-/// fetch('/upload', {
-///     method: 'POST',
-///     body: formData
-/// });
-/// ```
-///
-/// #### HTML Form
-/// ```html
-/// <form action="/upload" method="post" enctype="multipart/form-data">
-///     <input type="file" name="files" multiple>
-///     <input type="text" name="description" placeholder="Description">
-///     <input type="submit" value="Upload">
-/// </form>
-/// ```
-///
 /// ## Security Considerations
 ///
 /// - **File Type Validation**: Always validate uploaded file types in your route handlers
@@ -489,7 +451,7 @@ pub mod file_upload;
 ///
 /// ## Configuration Examples
 ///
-/// ```no_run,ignore
+/// ```no_run
 /// use ripress::app::App;
 /// use ripress::middlewares::rate_limiter::RateLimiterConfig;
 /// use std::time::Duration;
@@ -560,7 +522,7 @@ pub mod file_upload;
 ///
 ///
 /// ### Custom Error Responses
-/// ```no_run,ignore
+/// ```no_run
 /// use ripress::middlewares::rate_limiter::RateLimiterConfig;
 /// use ripress::app::App;
 ///
@@ -583,7 +545,7 @@ pub mod file_upload;
 /// ### Single Server
 /// The default in-memory rate limiting works well for single-server deployments:
 ///
-/// ```no_run,ignore
+/// ```no_run
 /// use ripress::middlewares::rate_limiter::RateLimiterConfig;
 /// use std::time::Duration;
 /// use ripress::app::App;
@@ -601,7 +563,7 @@ pub mod file_upload;
 /// ### Multiple Servers (Future)
 /// For distributed deployments, consider Redis-backed rate limiting:
 ///
-/// ```no_run,ignore
+/// ```no_run
 /// use ripress::middlewares::rate_limiter::RateLimiterConfig;
 /// use ripress::app::App;
 ///
@@ -1196,7 +1158,7 @@ pub mod compression;
 /// ### Header Precedence
 /// The shield middleware should be applied early in the middleware chain:
 ///
-/// ```no_run,ignore
+/// ```no_run
 /// use ripress::app::App;
 ///
 /// let mut app = App::new();

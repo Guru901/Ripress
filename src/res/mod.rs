@@ -17,7 +17,7 @@
 //! ## Basic Usage
 //!
 //! ```rust
-//! use ripress::res::HttpResponse;
+//! use ripress::context::HttpResponse;
 //!
 //! // Plain text response
 //! let res = HttpResponse::new().ok().text("Hello, World!");
@@ -35,7 +35,7 @@
 //! ## Setting Status and Headers
 //!
 //! ```rust
-//! use ripress::res::HttpResponse;
+//! use ripress::context::HttpResponse;
 //!
 //! let res = HttpResponse::new()
 //!     .status(201)
@@ -64,7 +64,7 @@
 //! ## Redirects
 //!
 //! ```rust
-//! use ripress::res::HttpResponse;
+//! use ripress::context::HttpResponse;
 //!
 //! let res = HttpResponse::new().redirect("/login");
 //! let res = HttpResponse::new().permanent_redirect("/docs");
@@ -73,7 +73,7 @@
 //! ## Streaming (SSE / chunked)
 //!
 //! ```rust
-//! use ripress::res::HttpResponse;
+//! use ripress::context::HttpResponse;
 //! use bytes::Bytes;
 //! use futures::stream;
 //! use futures::StreamExt;
@@ -167,7 +167,7 @@ impl std::fmt::Display for ResponseError {
 ///
 /// Basic usage:
 /// ```rust
-/// use ripress::res::HttpResponse;
+/// use ripress::context::HttpResponse;
 ///
 /// let res = HttpResponse::new();
 /// res.ok().text("Hello, World!");
@@ -175,7 +175,7 @@ impl std::fmt::Display for ResponseError {
 ///
 /// JSON response:
 /// ```rust
-/// use ripress::res::HttpResponse;
+/// use ripress::context::HttpResponse;
 /// use serde_json::json;
 ///
 /// let res = HttpResponse::new();
@@ -259,7 +259,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress::res::HttpResponse;
+    /// use ripress::context::HttpResponse;
     ///
     /// let res = HttpResponse::new();
     /// ```
@@ -409,7 +409,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress::res::HttpResponse;
+    /// use ripress::context::HttpResponse;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
@@ -446,7 +446,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress::res::HttpResponse;
+    /// use ripress::context::HttpResponse;
     /// use bytes::Bytes;
     ///
     /// let data = vec![1, 2, 3, 4, 5];
@@ -471,9 +471,9 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```
-    /// use ripress::res::HttpResponse;
+    /// use ripress::context::HttpResponse;
     /// ```
-    /// use ripress::res::HttpResponse;
+    /// use ripress::context::HttpResponse;
     /// let res = HttpResponse::new();
     /// res.set_header("key", "value"); // Sets the key cookie to value
     /// ```
@@ -500,7 +500,7 @@ impl HttpResponse {
     ///
     /// # Example
     /// ```rust
-    /// use ripress::res::HttpResponse;
+    /// use ripress::context::HttpResponse;
     /// use ripress::res::response_cookie::CookieOptions;
     ///
     /// let res = HttpResponse::new()
@@ -641,14 +641,14 @@ impl HttpResponse {
     /// Returns `Self` for method chaining.
     ///
     /// # Example
-    /// ```ignore
-    /// use ripress::res::HttpResponse;
+    /// ```no_run
+    /// use ripress::context::HttpResponse;
+    /// use ripress::context::HttpRequest;
     ///
-    /// // Send a file as the response
-    /// let res = HttpResponse::new()
-    ///     .ok()
-    ///     .send_file("static/image.png")
-    ///     .await;
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     // Send a file as the response
+    ///     res.ok().send_file("static/image.png").await
+    /// }
     /// ```
     pub async fn send_file(mut self, path: &'static str) -> Self {
         let file = tokio::fs::read(path).await;
