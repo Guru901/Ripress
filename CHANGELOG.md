@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.8] - 2025-09-25
+
+Docs improved
+
 ## [1.9.7] - 2025-09-19
 
 - Added RipressError::new(), message(), and kind() methods for better error management
