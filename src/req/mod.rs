@@ -105,44 +105,76 @@
 //! The HttpRequest supports multiple body content types with type-safe access methods:
 //!
 //! ### JSON Content
-//! ```no_run,ignore
+//! ```no_run
+//! use ripress::context::HttpRequest;
+//! use ripress::context::HttpResponse;
+//! use serde::{Deserialize, Serialize};
+//!
 //! // Deserialize JSON directly into structs
-//! match req.json::<MyStruct>() {
-//!     Ok(data) => { /* handle structured data */ }
-//!     Err(e) => { /* handle parsing error */ }
+//!
+//! #[derive(Deserialize, Serialize)]
+//! struct MyStruct;
+//!
+//! async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+//!     match req.json::<MyStruct>() {
+//!         Ok(data) => { /* handle structured data */ }
+//!         Err(e) => { /* handle parsing error */ }
+//!     }
+//!
+//!     res.ok()
 //! }
 //! ```
 //!
 //! ### Form Data
-//! ```no_run,ignore
+//! ```no_run
+//! use ripress::context::HttpRequest;
+//! use ripress::context::HttpResponse;
+//!
 //! // Access form fields from application/x-www-form-urlencoded
-//! match req.form_data() {
-//!     Ok(form) => {
-//!         let username = form.get("username").unwrap_or("");
-//!         let password = form.get("password").unwrap_or("");
+//! async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+//!     match req.form_data() {
+//!         Ok(form) => {
+//!             let username = form.get("username").unwrap_or("");
+//!             let password = form.get("password").unwrap_or("");
+//!         }
+//!         Err(e) => { /* handle error */ }
 //!     }
-//!     Err(e) => { /* handle error */ }
+//!
+//!     res.ok()
 //! }
 //! ```
 //!
 //! ### Text Content
-//! ```no_run,ignore
+//! ```no_run
+//! use ripress::context::HttpRequest;
+//! use ripress::context::HttpResponse;
+//!
 //! // Get raw text content
-//! match req.text() {
-//!     Ok(text_content) => println!("Received text: {}", text_content),
-//!     Err(e) => println!("Not text content: {}", e),
+//! async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+//!     match req.text() {
+//!         Ok(text_content) => println!("Received text: {}", text_content),
+//!         Err(e) => println!("Not text content: {}", e),
+//!     }
+//!
+//!     res.ok()
 //! }
 //! ```
 //!
 //! ### Binary Data
-//! ```no_run,ignore
+//! ```no_run
+//! use ripress::context::HttpRequest;
+//! use ripress::context::HttpResponse;
+//!
 //! // Access raw binary data
-//! match req.bytes() {
-//!     Ok(binary_data) => {
-//!         println!("Received {} bytes", binary_data.len());
-//!         // Process binary data (file upload, image, etc.)
+//! async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+//!     match req.bytes() {
+//!         Ok(binary_data) => {
+//!             println!("Received {} bytes", binary_data.len());
+//!             // Process binary data (file upload, image, etc.)
+//!         }
+//!         Err(e) => println!("Not binary content: {}", e),
 //!     }
-//!     Err(e) => println!("Not binary content: {}", e),
+//!     res.ok().text("Binary data processed")
 //! }
 //! ```
 //!
@@ -182,7 +214,12 @@
 //! ## Advanced Usage Patterns
 //!
 //! ### Middleware Data Sharing
-//! ```no_run,ignore
+//! ```no_run
+//! use ripress::app::App;
+//! use ripress::types::RouterFns;
+//!
+//! let mut app = App::new();
+//!
 //! // In middleware
 //! app.use_pre_middleware(None, |mut req, res| async move {
 //!     // Add authentication data
@@ -203,7 +240,12 @@
 //! ```
 //!
 //! ### Cookie Management
-//! ```no_run,ignore
+//! ```no_run
+//! use ripress::app::App;
+//! use ripress::types::RouterFns;
+//!
+//! let mut app = App::new();
+//!
 //! app.get("/profile", |req, res| async move {
 //!     // Check for session cookie
 //!     match req.get_cookie("session_id") {
@@ -219,8 +261,12 @@
 //! ```
 //!
 //! ### Content Type Detection
-//! ```no_run,ignore
+//! ```no_run
 //! use ripress::req::body::RequestBodyType;
+//! use ripress::app::App;
+//! use ripress::types::RouterFns;
+//!
+//! let mut app = App::new();
 //!
 //! app.post("/upload", |req, res| async move {
 //!     if req.is(RequestBodyType::JSON) {

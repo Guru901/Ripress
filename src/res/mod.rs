@@ -641,14 +641,14 @@ impl HttpResponse {
     /// Returns `Self` for method chaining.
     ///
     /// # Example
-    /// ```ignore
-    /// use ripress::res::HttpResponse;
+    /// ```no_run
+    /// use ripress::context::HttpResponse;
+    /// use ripress::context::HttpRequest;
     ///
-    /// // Send a file as the response
-    /// let res = HttpResponse::new()
-    ///     .ok()
-    ///     .send_file("static/image.png")
-    ///     .await;
+    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     // Send a file as the response
+    ///     res.ok().send_file("static/image.png").await
+    /// }
     /// ```
     pub async fn send_file(mut self, path: &'static str) -> Self {
         let file = tokio::fs::read(path).await;
