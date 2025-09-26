@@ -8,7 +8,7 @@ authors = ["You guru911u@gmail.com"]
 keywords = ["http", "server", "framework", "web"]
 categories = ["web-programming::http-server"]
 repository = "https://github.com/guru901/ripress"
-exclude = ["tests/*", "docs/*", "CHANGELOG.md", "CONTRIBUTING.md", ".github", "benchmark.png", "scripts/*"]
+exclude = ["tests/*", "CHANGELOG.md", "CONTRIBUTING.md", ".github", "benchmark.png", "scripts/*"]
 
 [dependencies]
 serde = { version = "1.0.219", features = ["derive"] }
