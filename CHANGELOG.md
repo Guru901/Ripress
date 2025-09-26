@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.9.9] - 2025-09-25
+## [1.9.9] - 2025-09-27
 
 Moved docs to https://ripress.vercel.app
 
