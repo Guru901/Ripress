@@ -9,7 +9,7 @@ use crate::{
     types::{Fut, FutMiddleware},
 };
 use hyper::{Body, Request, Response};
-use routerify::RequestInfo;
+use routerify::{RequestInfo, ext::RequestExt};
 use url::form_urlencoded::Serializer;
 
 pub(crate) async fn exec_pre_middleware(
@@ -19,9 +19,13 @@ pub(crate) async fn exec_pre_middleware(
     let mw_func = middleware.func;
 
     let our_res = HttpResponse::new();
-    let our_req = HttpRequest::from_hyper_request(&mut req)
+    let mut our_req = HttpRequest::from_hyper_request(&mut req)
         .await
         .map_err(ApiError::from)?;
+
+    req.params().iter().for_each(|(key, value)| {
+        our_req.set_param(key, value);
+    });
 
     if path_matches(middleware.path.as_str(), our_req.path.as_str()) {
         let (modified_req, maybe_res) = mw_func(our_req, our_res).await;
