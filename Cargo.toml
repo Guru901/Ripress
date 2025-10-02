@@ -34,7 +34,6 @@ reqwest = { version = "0.12.23", features = ["json"] }
 tempfile = "3.10.1"
 tracing-subscriber = "0.3"
 
-
 [package.metadata.docs.rs]
 readme = "README.md"
 
