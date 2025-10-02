@@ -919,7 +919,8 @@ impl App {
         // This ensures API routes take precedence over static file serving
         for (path, methods) in &self.routes {
             for (method, handler) in methods {
-                let handler = handler.clone();
+                let handler = Arc::clone(handler);
+
                 let method = match method {
                     HttpMethods::GET => Method::GET,
                     HttpMethods::POST => Method::POST,
@@ -931,7 +932,8 @@ impl App {
                 };
 
                 router = router.add(path, vec![method], move |mut req| {
-                    let handler = handler.clone();
+                    let handler = Arc::clone(&handler);
+
                     async move {
                         let mut our_req = match HttpRequest::from_hyper_request(&mut req).await {
                             Ok(r) => r,
@@ -941,12 +943,13 @@ impl App {
                                 ));
                             }
                         };
+
                         req.params().iter().for_each(|(key, value)| {
                             our_req.set_param(key, value);
                         });
 
-                        let our_res = HttpResponse::new();
-                        let response = handler(our_req, our_res).await;
+                        let response = handler(our_req, HttpResponse::new()).await;
+
                         match response.to_hyper_response() {
                             Ok(r) => Ok(r),
                             Err(_e) => Err(ApiError::Generic(

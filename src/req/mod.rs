@@ -839,16 +839,7 @@ impl HttpRequest {
 
         let headers = RequestHeaders::_from_map(headers);
 
-        let mut params = HashMap::new();
-
-        if let Some(param_routerify) = req.data::<routerify::RouteParams>() {
-            println!("Params: {:?}", param_routerify);
-            param_routerify.iter().for_each(|(key, value)| {
-                params.insert(key.to_string(), value.to_string());
-            });
-        }
-
-        let params = RouteParams::from_map(params);
+        let params = RouteParams::new();
 
         let mut data = RequestData::new();
 
