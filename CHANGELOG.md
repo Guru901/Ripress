@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.11] - 2025-10-04
+
+- Added graceful shutdown with `app.with_graceful_shutdown()`
+
 ## [1.9.10] - 2025-10-03
 
 - Updated API route setup to use Arc::clone for handler cloning, improving memory management and making Arc usage more explicit

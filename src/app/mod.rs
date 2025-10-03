@@ -118,6 +118,8 @@ pub struct App {
     /// Static file mappings from mount path to filesystem path.
     pub(crate) static_files: HashMap<&'static str, &'static str>,
 
+    pub(crate) graceful_shutdown: bool,
+
     #[cfg(feature = "with-wynd")]
     /// Optional WebSocket middleware (only available with `wynd` feature).
     pub(crate) wynd_middleware: Option<WyndMiddleware>,
@@ -147,6 +149,7 @@ impl App {
             routes: HashMap::new(),
             middlewares: Vec::new(),
             static_files: HashMap::new(),
+            graceful_shutdown: false,
             #[cfg(feature = "with-wynd")]
             wynd_middleware: None,
         }
@@ -187,10 +190,29 @@ impl App {
         let path = path.into().unwrap_or("/").to_string();
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(middleware),
-            path: path,
+            path,
             middleware_type: MiddlewareType::Pre,
         });
         self
+    }
+
+    /// Enables graceful shutdown for the application.
+    ///
+    /// When graceful shutdown is enabled, the server will listen for a shutdown signal
+    /// (such as Ctrl+C) and attempt to shut down cleanly, finishing any in-flight requests
+    /// before exiting. This is useful for production environments where you want to avoid
+    /// abruptly terminating active connections.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use ripress::app::App;
+    ///
+    /// let mut app = App::new();
+    /// app.with_graceful_shutdown();
+    /// ```
+    pub fn with_graceful_shutdown(&mut self) {
+        self.graceful_shutdown = true
     }
 
     /// Adds a pre-execution middleware to the application.
@@ -1003,8 +1025,18 @@ impl App {
         let service = RouterService::new(router).unwrap();
         let server = Server::bind(&addr).serve(service);
 
-        if let Err(e) = server.await {
-            eprintln!("server error: {}", e);
+        if self.graceful_shutdown {
+            let server = server.with_graceful_shutdown(async {
+                tokio::signal::ctrl_c().await.unwrap();
+            });
+
+            if let Err(e) = server.await {
+                eprintln!("server error: {}", e);
+            }
+        } else {
+            if let Err(e) = server.await {
+                eprintln!("server error: {}", e);
+            }
         }
     }
 

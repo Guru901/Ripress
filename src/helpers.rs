@@ -9,7 +9,7 @@ use crate::{
     types::{Fut, FutMiddleware},
 };
 use hyper::{Body, Request, Response};
-use routerify::{RequestInfo, ext::RequestExt};
+use routerify::RequestInfo;
 use url::form_urlencoded::Serializer;
 
 pub(crate) async fn exec_pre_middleware(

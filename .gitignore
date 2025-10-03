@@ -5,3 +5,6 @@ tarpaulin-report.html
 docs/.DS_Store
 tests/test-results/
 *.last-run.json
+.idea/modules.xml
+.idea/ripress.iml
+.idea/vcs.xml
