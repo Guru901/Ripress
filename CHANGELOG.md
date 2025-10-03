@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.10] - 2025-10-03
+
+- Updated API route setup to use Arc::clone for handler cloning, improving memory management and making Arc usage more explicit
+
+- Fixed bug with route params panics with middlewares
+
 ## [1.9.9] - 2025-09-27
 
 Moved docs to https://ripress.vercel.app
