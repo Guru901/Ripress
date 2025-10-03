@@ -470,7 +470,7 @@ impl App {
     ///             handle.send_text(event.data).await.ok();
     ///         });
     ///
-    ///         conn.on_close(|_event, _handle| async move {
+    ///         conn.on_close(|_event| async move {
     ///             println!("WebSocket connection closed");
     ///         });
     ///     });

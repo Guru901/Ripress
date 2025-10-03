@@ -1006,7 +1006,7 @@ impl HttpRequest {
         })
     }
 
-    pub(crate) fn from_request_info(req_info: RequestInfo) -> Self {
+    pub(crate) fn from_request_info(req_info: &RequestInfo) -> Self {
         let mut headers = RequestHeaders::new();
 
         req_info.headers().iter().for_each(|(key, value)| {
