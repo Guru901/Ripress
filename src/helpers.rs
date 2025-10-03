@@ -9,7 +9,7 @@ use crate::{
     types::{Fut, FutMiddleware},
 };
 use hyper::{Body, Request, Response};
-use routerify::RequestInfo;
+use routerify::{RequestInfo, ext::RequestExt};
 use url::form_urlencoded::Serializer;
 
 pub(crate) async fn exec_pre_middleware(
@@ -19,9 +19,17 @@ pub(crate) async fn exec_pre_middleware(
     let mw_func = middleware.func;
 
     let our_res = HttpResponse::new();
-    let our_req = HttpRequest::from_hyper_request(&mut req)
+
+    let mut our_req = HttpRequest::from_hyper_request(&mut req)
         .await
         .map_err(ApiError::from)?;
+
+    if let Some(params) = req.uri().query() {
+        for param in params.split('&') {
+            let (key, value) = param.split_once('=').unwrap_or((param, ""));
+            our_req.set_param(key, value);
+        }
+    }
 
     if path_matches(middleware.path.as_str(), our_req.path.as_str()) {
         let (modified_req, maybe_res) = mw_func(our_req, our_res).await;
@@ -46,7 +54,13 @@ pub(crate) async fn exec_post_middleware(
 ) -> Result<Response<Body>, ApiError> {
     let mw_func = middleware.func;
 
-    let our_req = HttpRequest::from_request_info(info);
+    let mut our_req = HttpRequest::from_request_info(&info);
+
+    if let Some(data) = info.data::<routerify::RouteParams>() {
+        data.iter().for_each(|(key, value)| {
+            our_req.set_param(key, value);
+        });
+    }
 
     let our_res = match HttpResponse::from_hyper_response(&mut res).await {
         Ok(res) => res,

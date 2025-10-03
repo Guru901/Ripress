@@ -299,7 +299,7 @@ use crate::{
 use cookie::Cookie;
 use hyper::{Body, Request, body::to_bytes, header::HOST};
 use mime::Mime;
-use routerify::{RequestInfo, ext::RequestExt};
+use routerify::RequestInfo;
 use serde_json::Value;
 use std::{
     collections::HashMap,
@@ -839,16 +839,7 @@ impl HttpRequest {
 
         let headers = RequestHeaders::_from_map(headers);
 
-        let mut params = HashMap::new();
-
-        if let Some(param_routerify) = req.data::<routerify::RouteParams>() {
-            println!("Params: {:?}", param_routerify);
-            param_routerify.iter().for_each(|(key, value)| {
-                params.insert(key.to_string(), value.to_string());
-            });
-        }
-
-        let params = RouteParams::from_map(params);
+        let params = RouteParams::new();
 
         let mut data = RequestData::new();
 
@@ -1015,7 +1006,7 @@ impl HttpRequest {
         })
     }
 
-    pub(crate) fn from_request_info(req_info: RequestInfo) -> Self {
+    pub(crate) fn from_request_info(req_info: &RequestInfo) -> Self {
         let mut headers = RequestHeaders::new();
 
         req_info.headers().iter().for_each(|(key, value)| {
@@ -1053,14 +1044,7 @@ impl HttpRequest {
             .collect::<HashMap<String, String>>();
 
         let query = QueryParams::from_map(queries);
-        let mut params = RouteParams::new();
-
-        if let Some(param_routerify) = req_info.data::<routerify::RouteParams>() {
-            println!("Params: {:?}", param_routerify);
-            param_routerify.iter().for_each(|(key, value)| {
-                params.insert(key.to_string(), value.to_string());
-            });
-        }
+        let params = RouteParams::new();
 
         let mut cookies_map = HashMap::new();
         let cookies = Self::get_cookies_from_req_info(&req_info);
