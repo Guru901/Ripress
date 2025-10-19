@@ -81,7 +81,7 @@ pub struct Router {
     ///
     /// All routes registered with this router will be prefixed with this path
     /// when mounted to an application.
-    base_path: &'static str,
+    pub(crate) base_path: &'static str,
 
     /// The collection of routes registered on this router.
     ///
@@ -140,6 +140,7 @@ impl Router {
     /// router.register(&mut app);
     /// ```
 
+    #[deprecated(since = "1.9.12", note = "use `app.router` instead")]
     pub fn register(self, app: &mut App) {
         for (path, methods) in self.routes {
             for (method, handler) in methods {
