@@ -26,7 +26,7 @@
 //! router.get("/hello", hello_handler);
 //!
 //! let mut app = App::new();
-//! router.register(&mut app);
+//! app.router(&mut app);
 //! ```
 //!
 //! ## Versioning Example
@@ -74,7 +74,7 @@ use std::collections::HashMap;
 /// let mut router = Router::new("/api");
 /// router.get("/hello", handler);
 /// let mut app = App::new();
-/// router.register(&mut app);
+/// app.router(&mut app);
 /// ```
 pub struct Router {
     /// The base path on which the router will be mounted to the app.
@@ -137,7 +137,7 @@ impl Router {
     /// let mut router = Router::new("/api");
     /// let mut app = App::new();
     /// router.patch("/hello", handler);
-    /// router.register(&mut app);
+    /// app.router(&mut app);
     /// ```
 
     #[deprecated(since = "1.9.12", note = "use `app.router` instead")]
