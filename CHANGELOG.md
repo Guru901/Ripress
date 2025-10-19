@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.12] - 2025-10-19
+
+- Deprecated `router.register(&mut app)` in favor of `app.router(router)`
+
 ## [1.9.11] - 2025-10-04
 
 - Added graceful shutdown with `app.with_graceful_shutdown()`
