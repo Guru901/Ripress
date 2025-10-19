@@ -26,7 +26,7 @@
 //! router.get("/hello", hello_handler);
 //!
 //! let mut app = App::new();
-//! router.register(&mut app);
+//! app.router(router);
 //! ```
 //!
 //! ## Versioning Example
@@ -74,14 +74,14 @@ use std::collections::HashMap;
 /// let mut router = Router::new("/api");
 /// router.get("/hello", handler);
 /// let mut app = App::new();
-/// router.register(&mut app);
+/// app.router(router);
 /// ```
 pub struct Router {
     /// The base path on which the router will be mounted to the app.
     ///
     /// All routes registered with this router will be prefixed with this path
     /// when mounted to an application.
-    base_path: &'static str,
+    pub(crate) base_path: &'static str,
 
     /// The collection of routes registered on this router.
     ///
@@ -137,9 +137,10 @@ impl Router {
     /// let mut router = Router::new("/api");
     /// let mut app = App::new();
     /// router.patch("/hello", handler);
-    /// router.register(&mut app);
+    /// app.router(router);
     /// ```
 
+    #[deprecated(since = "1.9.12", note = "use `app.router` instead")]
     pub fn register(self, app: &mut App) {
         for (path, methods) in self.routes {
             for (method, handler) in methods {

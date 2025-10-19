@@ -48,6 +48,7 @@ use crate::middlewares::shield::{ShieldConfig, shield};
 use crate::middlewares::{Middleware, MiddlewareType};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
+use crate::router::Router;
 #[cfg(feature = "with-wynd")]
 use crate::types::WyndMiddlewareHandler;
 use crate::types::{HandlerMiddleware, HttpMethods, RouterFns, Routes};
@@ -56,7 +57,7 @@ use hyper::{Body, Request, Response, Server};
 use hyper::{Method, header};
 use hyper_staticfile::Static;
 use routerify::ext::RequestExt;
-use routerify::{Router, RouterService};
+use routerify::{Router as RouterifyRouter, RouterService};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -733,6 +734,51 @@ impl App {
         Arc::new(move |req| Box::pin(f(req)))
     }
 
+    /// Mounts a [`Router`] at a specific base path, registering all of its routes onto the application.
+    ///
+    /// This method allows you to modularly organize and group routes using separate routers,
+    /// then attach them to your application. Each route registered with the router will be
+    /// prefixed by the router's base path. This is useful for API versioning, feature groupings,
+    /// or splitting logic into modules. The router's routes are incorporated into the main
+    /// application's route table, and will take precedence over static file handlers.
+    ///
+    /// # Example
+    /// ```
+    /// use ripress::{app::App, router::Router};
+    /// use ripress::{req::HttpRequest, res::HttpResponse};
+    /// use ripress::types::RouterFns;
+    ///
+    /// async fn v1_status(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+    ///     res.ok().json(serde_json::json!({"status": "ok"}))
+    /// }
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let mut api_router = Router::new("/api/v1");
+    ///     api_router.get("/status", v1_status);
+    ///     
+    ///     let mut app = App::new();
+    ///     app.router(api_router);
+    /// }
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `router` - The [`Router`] instance whose routes will be registered onto this application.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic.
+    pub fn router(&mut self, mut router: Router) {
+        let base_path = router.base_path;
+        for (path, methods) in router.routes() {
+            for (method, handler) in methods.to_owned() {
+                let full_path = format!("{}{}", base_path, path);
+                self.add_route(method, &full_path, move |req, res| (handler)(req, res));
+            }
+        }
+    }
+
     /// Configures static file serving for the application.
     ///
     /// This method allows you to serve static assets (HTML, CSS, JavaScript, images, etc.)
@@ -908,7 +954,7 @@ impl App {
     /// - Configure reverse proxy (nginx, Apache) for production
     /// - Enable logging middleware to monitor requests
     pub async fn listen<F: FnOnce()>(&self, port: u16, cb: F) {
-        let mut router = Router::<Body, ApiError>::builder();
+        let mut router = RouterifyRouter::<Body, ApiError>::builder();
 
         #[cfg(feature = "with-wynd")]
         if let Some(middleware) = &self.wynd_middleware {
