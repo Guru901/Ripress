@@ -104,9 +104,11 @@ use crate::types::{ResponseContentBody, ResponseContentType};
 use bytes::Bytes;
 use futures::executor::block_on;
 use futures::{Stream, StreamExt, stream};
+use http_body_util::BodyExt;
+#[cfg(feature = "with-wynd")]
+use http_body_util::Full;
 #[cfg(not(feature = "with-wynd"))]
 use http_body_util::Full;
-use http_body_util::{BodyExt, Full};
 use hyper::Response;
 use hyper::header::{HeaderName, HeaderValue, SET_COOKIE};
 use mime_guess::from_ext;
