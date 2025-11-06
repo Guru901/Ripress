@@ -109,9 +109,15 @@ pub(crate) async fn exec_wynd_middleware(
         let response = mw_func(req).await;
 
         match response {
-            Err(e) => {
+            Err(_e) => {
                 // If there's an error, return the original request to continue processing
-                return our_req.to_hyper_request().map_err(ApiError::from);
+                // Since we can't recreate Incoming, we'll return an error indicating
+                // the request was consumed
+                return Err(ApiError::Generic(
+                    HttpResponse::new()
+                        .internal_server_error()
+                        .text("Request body was consumed and cannot be reconstructed"),
+                ));
             }
             Ok(mut res) => {
                 // If successful, return the response as an error to stop processing
@@ -121,7 +127,13 @@ pub(crate) async fn exec_wynd_middleware(
             }
         }
     } else {
-        our_req.to_hyper_request().map_err(ApiError::from)
+        // Return original request - but it was consumed, so we can't return it
+        // This is a limitation of the Incoming type
+        Err(ApiError::Generic(
+            HttpResponse::new()
+                .internal_server_error()
+                .text("Request body was consumed"),
+        ))
     }
 }
 

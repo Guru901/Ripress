@@ -499,6 +499,8 @@ mod tests {
     #[cfg(feature = "with-wynd")]
     #[test]
     fn test_use_wynd_adds_wynd_middleware() {
+        use hyper::body::Incoming;
+
         let mut app = App::new();
         app.use_wynd(
             "/ws",

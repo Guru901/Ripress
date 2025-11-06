@@ -3,7 +3,11 @@ use crate::helpers::box_future;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use bytes::Bytes;
+#[cfg(feature = "with-wynd")]
+use http_body_util::Full;
 use hyper::Method;
+#[cfg(feature = "with-wynd")]
+use hyper::body::Incoming;
 use mime_guess::MimeGuess;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -215,10 +219,13 @@ pub(crate) type HandlerMiddleware =
 #[cfg(feature = "with-wynd")]
 pub(crate) type WyndMiddlewareHandler = Arc<
     dyn Fn(
-            hyper::Request<hyper::Body>,
-        )
-            -> Pin<Box<dyn Future<Output = hyper::Result<hyper::Response<hyper::Body>>> + Send>>
-        + Send
+            hyper::Request<Incoming>,
+        ) -> Pin<
+            Box<
+                dyn Future<Output = hyper::Result<hyper::Response<Full<hyper::body::Bytes>>>>
+                    + Send,
+            >,
+        > + Send
         + Sync,
 >;
 

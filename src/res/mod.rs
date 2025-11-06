@@ -94,6 +94,8 @@
 
 #![warn(missing_docs)]
 
+#[cfg(feature = "with-wynd")]
+use crate::app::api_error::ApiError;
 #[cfg(not(feature = "with-wynd"))]
 use crate::app::api_error::ApiError;
 use crate::req::determine_content_type_response;
@@ -102,9 +104,9 @@ use crate::types::{ResponseContentBody, ResponseContentType};
 use bytes::Bytes;
 use futures::executor::block_on;
 use futures::{Stream, StreamExt, stream};
-use http_body_util::BodyExt;
 #[cfg(not(feature = "with-wynd"))]
 use http_body_util::Full;
+use http_body_util::{BodyExt, Full};
 use hyper::Response;
 use hyper::header::{HeaderName, HeaderValue, SET_COOKIE};
 use mime_guess::from_ext;
@@ -712,7 +714,7 @@ impl HttpResponse {
     }
 
     #[cfg(feature = "with-wynd")]
-    pub async fn from_hyper_response(res: &mut Response<Body>) -> Result<Self, hyper::Error> {
+    pub async fn from_hyper_response(res: &mut Response<Full<Bytes>>) -> Result<Self, ApiError> {
         let collected = res.body_mut().collect().await?;
         let body_bytes = collected.to_bytes();
 

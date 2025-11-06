@@ -54,6 +54,8 @@ use crate::types::WyndMiddlewareHandler;
 use crate::types::{HandlerMiddleware, HttpMethods, RouterFns, Routes};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
+#[cfg(feature = "with-wynd")]
+use hyper::body::Incoming;
 use hyper::http::StatusCode;
 use hyper::service::Service;
 use hyper::{Method, header};
@@ -528,8 +530,8 @@ impl App {
     /// ```
     pub fn use_wynd<F, Fut>(&mut self, path: &'static str, handler: F) -> &mut Self
     where
-        F: Fn(hyper::Request<hyper::Body>) -> Fut + Send + Sync + 'static,
-        Fut: std::future::Future<Output = hyper::Result<hyper::Response<hyper::Body>>>
+        F: Fn(hyper::Request<Incoming>) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = hyper::Result<hyper::Response<Full<hyper::body::Bytes>>>>
             + Send
             + 'static,
     {
@@ -730,8 +732,8 @@ impl App {
     /// This is an internal helper method for the WebSocket functionality.
     fn wynd_middleware_from_closure<F, Fut>(f: F) -> WyndMiddlewareHandler
     where
-        F: Fn(hyper::Request<hyper::Body>) -> Fut + Send + Sync + 'static,
-        Fut: std::future::Future<Output = hyper::Result<hyper::Response<hyper::Body>>>
+        F: Fn(hyper::Request<Incoming>) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = hyper::Result<hyper::Response<Full<hyper::body::Bytes>>>>
             + Send
             + 'static,
     {
