@@ -267,7 +267,7 @@ impl TextData {
     /// let invalid = TextData::from_raw_bytes(vec![b'H', b'i', 0xFF], None);
     /// assert_eq!(invalid.as_str_lossy(), "Hi�");
     /// ```
-    pub fn as_str_lossy(&self) -> std::borrow::Cow<str> {
+    pub fn as_str_lossy(&self) -> std::borrow::Cow<'_, str> {
         String::from_utf8_lossy(&self.inner)
     }
 
@@ -515,7 +515,7 @@ impl TextData {
     /// let lines: Vec<&str> = text.lines().unwrap().collect();
     /// assert_eq!(lines, vec!["Line 1", "Line 2", "Line 3"]);
     /// ```
-    pub fn lines(&self) -> Result<std::str::Lines, RipressError> {
+    pub fn lines(&self) -> Result<std::str::Lines<'_>, RipressError> {
         Ok(self.as_str()?.lines())
     }
 
