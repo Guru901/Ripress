@@ -292,14 +292,17 @@
 #![warn(missing_docs)]
 
 use crate::{
+    app::api_error::ApiError,
     helpers::{extract_boundary, get_all_query, parse_multipart_form},
     req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
     types::{HttpMethods, ResponseContentType},
 };
+use bytes::Bytes;
 use cookie::Cookie;
-use hyper::{Body, Request, body::to_bytes, header::HOST};
+use http_body_util::{BodyExt, Full};
+use hyper::{Request, body::Incoming, header::HOST};
 use mime::Mime;
-use routerify::RequestInfo;
+use routerify_ng::RequestInfo;
 use serde_json::Value;
 use std::{
     collections::HashMap,
@@ -741,7 +744,7 @@ impl HttpRequest {
         self.params.insert(key.to_string(), value.to_string());
     }
 
-    fn get_cookies_from_req(req: &Request<Body>) -> Vec<Cookie<'_>> {
+    fn get_cookies_from_req(req: &Request<Incoming>) -> Vec<Cookie<'_>> {
         let mut cookies = Vec::new();
 
         if let Some(header_value) = req.headers().get("cookie") {
@@ -773,9 +776,7 @@ impl HttpRequest {
         cookies
     }
 
-    pub(crate) async fn from_hyper_request(
-        req: &mut Request<hyper::body::Body>,
-    ) -> Result<Self, hyper::Error> {
+    pub(crate) async fn from_hyper_request(req: &mut Request<Incoming>) -> Result<Self, ApiError> {
         let origin_url = match req.uri().authority() {
             Some(authority) => {
                 let scheme = req.uri().scheme_str().unwrap_or("http");
@@ -864,120 +865,106 @@ impl HttpRequest {
         let request_body = match content_type {
             RequestBodyType::FORM => {
                 // Read the full body bytes first, then branch depending on content subtype
-                let body_bytes = to_bytes(req.body_mut()).await;
-
-                match body_bytes {
-                    Ok(bytes) => {
-                        let body_string = std::str::from_utf8(&bytes).unwrap_or("").to_string();
-                        match FormData::from_query_string(&body_string) {
-                            Ok(fd) => RequestBody::new_form(fd),
-                            Err(_e) => {
-                                // Prefer logging via `log`/`tracing` instead of printing.
-                                RequestBody::new_form(FormData::new())
-                            }
-                        }
+                let collected = req.body_mut().collect().await?;
+                let body_bytes = collected.to_bytes();
+                let body_string = std::str::from_utf8(&body_bytes).unwrap_or("").to_string();
+                match FormData::from_query_string(&body_string) {
+                    Ok(fd) => RequestBody::new_form(fd),
+                    Err(_e) => {
+                        // Prefer logging via `log`/`tracing` instead of printing.
+                        RequestBody::new_form(FormData::new())
                     }
-                    Err(err) => return Err(err),
                 }
             }
             RequestBodyType::MultipartForm => {
-                let body_bytes = to_bytes(req.body_mut()).await;
+                let collected = req.body_mut().collect().await?;
+                let body_bytes = collected.to_bytes();
+                {
+                    // Get content type header to extract boundary
+                    let content_type_header = req
+                        .headers()
+                        .get(hyper::header::CONTENT_TYPE)
+                        .and_then(|val| val.to_str().ok())
+                        .unwrap_or_default();
 
-                match body_bytes {
-                    Ok(bytes) => {
-                        // Get content type header to extract boundary
-                        let content_type_header = req
-                            .headers()
-                            .get(hyper::header::CONTENT_TYPE)
-                            .and_then(|val| val.to_str().ok())
-                            .unwrap_or_default();
+                    let boundary = if content_type_header
+                        .to_lowercase()
+                        .contains("multipart/form-data")
+                    {
+                        extract_boundary(&content_type_header)
+                    } else {
+                        None
+                    };
 
-                        let boundary = if content_type_header
-                            .to_lowercase()
-                            .contains("multipart/form-data")
-                        {
-                            extract_boundary(&content_type_header)
-                        } else {
-                            None
-                        };
-
-                        // Parse multipart/form-data using the same logic as the middleware
-                        let (fields, file_parts) = if let Some(boundary) = boundary {
-                            parse_multipart_form(&bytes, &boundary)
-                        } else {
-                            // If not multipart, try to parse as form data using the same method
-                            let body_string = std::str::from_utf8(&bytes).unwrap_or("").to_string();
-                            match FormData::from_query_string(&body_string) {
-                                Ok(fd) => {
-                                    // Convert FormData to fields vector for consistency
-                                    let form_fields = fd
-                                        .iter()
-                                        .map(|(k, v)| (k.to_string(), v.to_string()))
-                                        .collect::<Vec<(String, String)>>();
-                                    (form_fields, Vec::new())
-                                }
-                                Err(_e) => (Vec::new(), Vec::new()),
+                    // Parse multipart/form-data using the same logic as the middleware
+                    let (fields, file_parts) = if let Some(boundary) = boundary {
+                        parse_multipart_form(&body_bytes, &boundary)
+                    } else {
+                        // If not multipart, try to parse as form data using the same method
+                        let body_string =
+                            std::str::from_utf8(&body_bytes).unwrap_or("").to_string();
+                        match FormData::from_query_string(&body_string) {
+                            Ok(fd) => {
+                                // Convert FormData to fields vector for consistency
+                                let form_fields = fd
+                                    .iter()
+                                    .map(|(k, v)| (k.to_string(), v.to_string()))
+                                    .collect::<Vec<(String, String)>>();
+                                (form_fields, Vec::new())
                             }
-                        };
-
-                        // Convert fields back to FormData
-                        let mut form_data = FormData::new();
-                        for (key, value) in fields {
-                            form_data.insert(key, value);
+                            Err(_e) => (Vec::new(), Vec::new()),
                         }
+                    };
 
-                        // INTELLIGENT DECISION:
-                        // - Always extract and make text fields accessible via form_data()
-                        // - If there are file parts, also preserve raw bytes as BINARY for middleware processing
-                        // - If no file parts, just use FORM content
-                        if !file_parts.is_empty() {
-                            // Has files: preserve raw bytes for middleware AND make text fields accessible
-                            // We'll set the body as BINARY but also insert the text fields into form_data
-                            // This way both the middleware can process files AND form fields are accessible
-                            RequestBody::new_binary_with_form_fields(bytes, form_data)
-                        } else {
-                            // No files: just use form data
-                            RequestBody::new_form(form_data)
-                        }
+                    // Convert fields back to FormData
+                    let mut form_data = FormData::new();
+                    for (key, value) in fields {
+                        form_data.insert(key, value);
                     }
-                    Err(err) => return Err(err),
+
+                    // INTELLIGENT DECISION:
+                    // - Always extract and make text fields accessible via form_data()
+                    // - If there are file parts, also preserve raw bytes as BINARY for middleware processing
+                    // - If no file parts, just use FORM content
+                    if !file_parts.is_empty() {
+                        // Has files: preserve raw bytes for middleware AND make text fields accessible
+                        // We'll set the body as BINARY but also insert the text fields into form_data
+                        // This way both the middleware can process files AND form fields are accessible
+                        RequestBody::new_binary_with_form_fields(body_bytes, form_data)
+                    } else {
+                        // No files: just use form data
+                        RequestBody::new_form(form_data)
+                    }
                 }
             }
             RequestBodyType::JSON => {
-                let body_bytes = to_bytes(req.body_mut()).await;
-                let body_json = match body_bytes {
-                    Ok(bytes) => {
-                        let s = match std::str::from_utf8(&bytes) {
-                            Ok(s) => s,
-                            Err(_) => "",
-                        };
-                        match serde_json::from_str::<serde_json::Value>(s) {
-                            Ok(json) => json,
-                            Err(_) => Value::Null,
-                        }
+                let collected = req.body_mut().collect().await?;
+                let body_bytes = collected.to_bytes();
+                let body_json = {
+                    let s = match std::str::from_utf8(&body_bytes) {
+                        Ok(s) => s,
+                        Err(_) => "",
+                    };
+                    match serde_json::from_str::<serde_json::Value>(s) {
+                        Ok(json) => json,
+                        Err(_) => Value::Null,
                     }
-                    Err(err) => return Err(err),
                 };
 
                 RequestBody::new_json(body_json)
             }
             RequestBodyType::TEXT => {
-                let body_bytes = to_bytes(req.body_mut()).await;
-                match body_bytes {
-                    Ok(bytes) => match TextData::from_bytes(bytes.as_ref().to_vec()) {
-                        Ok(text) => RequestBody::new_text(text),
-                        Err(_) => RequestBody::new_binary(bytes),
-                    },
-                    Err(err) => return Err(err),
+                let collected = req.body_mut().collect().await?;
+                let body_bytes = collected.to_bytes();
+                match TextData::from_bytes(body_bytes.as_ref().to_vec()) {
+                    Ok(text) => RequestBody::new_text(text),
+                    Err(_) => RequestBody::new_binary(body_bytes),
                 }
             }
             RequestBodyType::BINARY => {
-                let body_bytes = to_bytes(req.body_mut()).await;
-
-                match body_bytes {
-                    Ok(bytes) => RequestBody::new_binary(bytes),
-                    Err(err) => return Err(err),
-                }
+                let collected = req.body_mut().collect().await?;
+                let body_bytes = collected.to_bytes();
+                RequestBody::new_binary(body_bytes)
             }
             RequestBodyType::EMPTY => RequestBody {
                 content: RequestBodyContent::EMPTY,
@@ -1105,7 +1092,7 @@ impl HttpRequest {
     }
 
     #[cfg(feature = "with-wynd")]
-    pub fn to_hyper_request(&self) -> Result<Request<Body>, Box<dyn std::error::Error>> {
+    pub fn to_hyper_request(&self) -> Result<Request<Full<Bytes>>, Box<dyn std::error::Error>> {
         let path = if self.path.is_empty() {
             "/".to_string()
         } else if !self.path.starts_with('/') {
@@ -1166,28 +1153,28 @@ impl HttpRequest {
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "application/json".parse()?);
-                Body::from(serde_json::to_string(json)?)
+                Full::from(Bytes::from(serde_json::to_string(json)?))
             }
             RequestBodyContent::TEXT(text) => {
                 builder
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "text/plain".parse()?);
-                Body::from(text.as_bytes().to_vec())
+                Full::from(Bytes::from(text.as_bytes().to_vec()))
             }
             RequestBodyContent::FORM(form) => {
                 builder.headers_mut().unwrap().insert(
                     hyper::header::CONTENT_TYPE,
                     "application/x-www-form-urlencoded".parse()?,
                 );
-                Body::from(form.to_string().clone())
+                Full::from(Bytes::from(form.to_string().clone()))
             }
             RequestBodyContent::BINARY(bytes) => {
                 builder.headers_mut().unwrap().insert(
                     hyper::header::CONTENT_TYPE,
                     "application/octet-stream".parse()?,
                 );
-                Body::from(bytes.clone())
+                Full::from(bytes.clone())
             }
             RequestBodyContent::BinaryWithFields(bytes, _form_data) => {
                 // For multipart forms with files, we send the binary data
@@ -1196,15 +1183,17 @@ impl HttpRequest {
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "multipart/form-data".parse()?);
-                Body::from(bytes.clone())
+                Full::from(bytes.clone())
             }
-            RequestBodyContent::EMPTY => Body::empty(),
+            RequestBodyContent::EMPTY => Full::from(Bytes::new()),
         };
 
         Ok(builder.body(body)?)
     }
     #[cfg(not(feature = "with-wynd"))]
-    pub(crate) fn to_hyper_request(&self) -> Result<Request<Body>, Box<dyn std::error::Error>> {
+    pub(crate) fn to_hyper_request(
+        &self,
+    ) -> Result<Request<Full<Bytes>>, Box<dyn std::error::Error>> {
         let path = if self.path.is_empty() {
             "/".to_string()
         } else if !self.path.starts_with('/') {
@@ -1265,28 +1254,28 @@ impl HttpRequest {
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "application/json".parse()?);
-                Body::from(serde_json::to_string(json)?)
+                Full::from(Bytes::from(serde_json::to_string(json)?))
             }
             RequestBodyContent::TEXT(text) => {
                 builder
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "text/plain".parse()?);
-                Body::from(text.as_bytes().to_vec())
+                Full::from(Bytes::from(text.as_bytes().to_vec()))
             }
             RequestBodyContent::FORM(form) => {
                 builder.headers_mut().unwrap().insert(
                     hyper::header::CONTENT_TYPE,
                     "application/x-www-form-urlencoded".parse()?,
                 );
-                Body::from(form.to_string().clone())
+                Full::from(Bytes::from(form.to_string().clone()))
             }
             RequestBodyContent::BINARY(bytes) => {
                 builder.headers_mut().unwrap().insert(
                     hyper::header::CONTENT_TYPE,
                     "application/octet-stream".parse()?,
                 );
-                Body::from(bytes.clone())
+                Full::from(bytes.clone())
             }
             RequestBodyContent::BinaryWithFields(bytes, _form_data) => {
                 // For multipart forms with files, we send the binary data
@@ -1295,9 +1284,9 @@ impl HttpRequest {
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "multipart/form-data".parse()?);
-                Body::from(bytes.clone())
+                Full::from(bytes.clone())
             }
-            RequestBodyContent::EMPTY => Body::empty(),
+            RequestBodyContent::EMPTY => Full::from(Bytes::new()),
         };
 
         Ok(builder.body(body)?)

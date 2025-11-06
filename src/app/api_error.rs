@@ -31,8 +31,6 @@ impl From<hyper::Error> for ApiError {
 
         let status = if err.is_user() {
             400
-        } else if err.is_connect() {
-            502
         } else if err.is_canceled() {
             504
         } else {

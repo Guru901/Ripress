@@ -52,16 +52,20 @@ use crate::router::Router;
 #[cfg(feature = "with-wynd")]
 use crate::types::WyndMiddlewareHandler;
 use crate::types::{HandlerMiddleware, HttpMethods, RouterFns, Routes};
+use bytes::Bytes;
+use http_body_util::{BodyExt, Full};
 use hyper::http::StatusCode;
-use hyper::{Body, Request, Response, Server};
+use hyper::service::Service;
 use hyper::{Method, header};
+use hyper::{Request, Response};
 use hyper_staticfile::Static;
-use routerify::ext::RequestExt;
-use routerify::{Router as RouterifyRouter, RouterService};
+use routerify_ng::RouterService;
+use routerify_ng::ext::RequestExt;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
+use tokio::net::TcpListener;
 
 pub(crate) mod api_error;
 
@@ -954,11 +958,11 @@ impl App {
     /// - Configure reverse proxy (nginx, Apache) for production
     /// - Enable logging middleware to monitor requests
     pub async fn listen<F: FnOnce()>(&self, port: u16, cb: F) {
-        let mut router = RouterifyRouter::<Body, ApiError>::builder();
+        let mut router = routerify_ng::Router::<ApiError>::builder();
 
         #[cfg(feature = "with-wynd")]
         if let Some(middleware) = &self.wynd_middleware {
-            router = router.middleware(routerify::Middleware::pre({
+            router = router.middleware(routerify_ng::Middleware::pre({
                 use crate::helpers::exec_wynd_middleware;
 
                 let middleware = middleware.clone();
@@ -971,12 +975,12 @@ impl App {
             let middleware = middleware.clone();
 
             if middleware.middleware_type == MiddlewareType::Post {
-                router = router.middleware(routerify::Middleware::post_with_info({
+                router = router.middleware(routerify_ng::Middleware::post_with_info({
                     let middleware = middleware.clone();
                     move |res, info| exec_post_middleware(res, middleware.clone(), info)
                 }));
             } else {
-                router = router.middleware(routerify::Middleware::pre({
+                router = router.middleware(routerify_ng::Middleware::pre({
                     let middleware = middleware.clone();
                     move |req| exec_pre_middleware(req, middleware.clone())
                 }));
@@ -1068,20 +1072,51 @@ impl App {
         cb();
 
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
-        let service = RouterService::new(router).unwrap();
-        let server = Server::bind(&addr).serve(service);
+        let listener = TcpListener::bind(addr).await.unwrap();
+        let router_service = Arc::new(RouterService::new(router).unwrap());
 
         if self.graceful_shutdown {
-            let server = server.with_graceful_shutdown(async {
-                tokio::signal::ctrl_c().await.unwrap();
-            });
+            let mut shutdown = Box::pin(tokio::signal::ctrl_c());
 
-            if let Err(e) = server.await {
-                eprintln!("server error: {}", e);
+            loop {
+                tokio::select! {
+                    result = listener.accept() => {
+                        match result {
+                            Ok((stream, _)) => {
+                                let service = Arc::clone(&router_service);
+
+                                tokio::task::spawn(async move {
+                                    if let Err(err) = service.call(&stream).await {
+                                        eprintln!("Error serving connection: {:?}", err);
+                                    }
+                                });
+                            }
+                            Err(e) => {
+                                eprintln!("Error accepting connection: {}", e);
+                            }
+                        }
+                    }
+                    _ = shutdown.as_mut() => {
+                        break;
+                    }
+                }
             }
         } else {
-            if let Err(e) = server.await {
-                eprintln!("server error: {}", e);
+            loop {
+                match listener.accept().await {
+                    Ok((stream, _)) => {
+                        let service = Arc::clone(&router_service);
+
+                        tokio::task::spawn(async move {
+                            if let Err(err) = service.call(&stream).await {
+                                eprintln!("Error serving connection: {:?}", err);
+                            }
+                        });
+                    }
+                    Err(e) => {
+                        eprintln!("Error accepting connection: {}", e);
+                    }
+                }
             }
         }
     }
@@ -1090,7 +1125,9 @@ impl App {
     ///
     /// This method processes routing errors and converts them into appropriate HTTP responses.
     /// It handles both generic API errors and unexpected system errors.
-    pub(crate) async fn error_handler(err: routerify::RouteError) -> Response<Body> {
+    pub(crate) async fn error_handler(
+        err: routerify_ng::RouteError,
+    ) -> Response<Full<hyper::body::Bytes>> {
         let api_err = err.downcast::<ApiError>().unwrap_or_else(|_| {
             return Box::new(ApiError::Generic(
                 HttpResponse::new()
@@ -1125,11 +1162,15 @@ impl App {
     ///
     /// * `Ok(Response<Body>)` - Successfully served file or 304 Not Modified
     /// * `Err(std::io::Error)` - File not found or other I/O error
-    pub(crate) async fn serve_static_with_headers(
-        req: Request<Body>,
+    pub(crate) async fn serve_static_with_headers<B>(
+        req: Request<B>,
         mount_root: String,
         fs_root: String,
-    ) -> Result<Response<Body>, std::io::Error> {
+    ) -> Result<Response<Full<hyper::body::Bytes>>, std::io::Error>
+    where
+        B: hyper::body::Body<Data = hyper::body::Bytes> + Send + 'static,
+        B::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    {
         // Rewrite the request URI by stripping the mount_root prefix so that
         // "/static/index.html" maps to "fs_root/index.html" rather than
         // "fs_root/static/index.html".
@@ -1207,12 +1248,22 @@ impl App {
                                     }
                                     h.remove(header::CONTENT_LENGTH);
                                 }
-                                return Ok(builder.body(Body::empty()).unwrap());
+                                return Ok(builder.body(Full::from(Bytes::new())).unwrap());
                             }
                         }
                     }
                 }
-                Ok(response)
+                // Convert hyper_staticfile::Body to Full<Bytes>
+                let (parts, body) = response.into_parts();
+                let collected = body.collect().await.map_err(|e| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("Failed to collect body: {}", e),
+                    )
+                })?;
+                let body_bytes = collected.to_bytes();
+                let full_body = Full::from(body_bytes);
+                Ok(Response::from_parts(parts, full_body))
             }
             Err(e) => Err(e),
         }
@@ -1221,8 +1272,8 @@ impl App {
     /// Internal method for building a router instance.
     ///
     /// This is used internally for testing and development purposes.
-    pub(crate) fn _build_router(&self) -> routerify::Router<Body, ApiError> {
-        routerify::Router::builder()
+    pub(crate) fn _build_router(&self) -> routerify_ng::Router<ApiError> {
+        routerify_ng::Router::builder()
             .err_handler(Self::error_handler)
             .build()
             .unwrap()
