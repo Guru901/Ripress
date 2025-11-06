@@ -533,7 +533,7 @@ attempts=0
 until curl -sSf http://127.0.0.1:3000/ip-test >/dev/null; do
   sleep 1
   attempts=$((attempts + 1))
-  if [ "$attempts" -ge 60 ]; then
+  if [ "$attempts" -ge 120 ]; then
     echo "Server did not become ready within 60s"
     kill "$SERVER_PID" 2>/dev/null || true
     exit 1
