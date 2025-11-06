@@ -27,14 +27,22 @@ impl From<Infallible> for ApiError {
 
 impl From<hyper::Error> for ApiError {
     fn from(err: hyper::Error) -> Self {
-        // Log the internal error and return a generic 500
+        let message = err.to_string();
+
+        let status = if err.is_user() {
+            400
+        } else if err.is_connect() {
+            502
+        } else if err.is_canceled() {
+            504
+        } else {
+            500
+        };
+
+        // Log the error for debugging
         eprintln!("hyper error: {}", err);
 
-        ApiError::Generic(
-            HttpResponse::new()
-                .internal_server_error()
-                .text(err.to_string()),
-        )
+        ApiError::Generic(HttpResponse::new().status(status).text(message))
     }
 }
 

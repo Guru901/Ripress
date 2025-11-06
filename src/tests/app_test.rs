@@ -16,8 +16,8 @@ mod tests {
     use hyper::{Body, Request, Response, StatusCode, header};
     use reqwest;
     use routerify::RouteError;
-    use std::io::Write;
     use std::time::Duration;
+    use std::{convert::Infallible, io::Write};
     use std::{
         fs::File,
         sync::{Arc, Mutex},
@@ -546,5 +546,12 @@ mod tests {
         let mut app = App::new();
         let result = app.static_files("assets", "public");
         assert_eq!(result, Err("Mount path must start with '/'"));
+    }
+
+    fn assert_from_infallible<T: From<Infallible>>() {}
+
+    #[test]
+    fn test_from_infallible() {
+        assert_from_infallible::<ApiError>();
     }
 }
