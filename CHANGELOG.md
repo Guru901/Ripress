@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.10.0] - 2025-10-19
+
+- Upgraded to hyper 1.7.0
+- Removed `Routerify` for a custom version `Routerify-ng` that's built by me to work with hyper 1.7.0
+
 ## [1.9.12] - 2025-10-19
 
 - Deprecated `router.register(&mut app)` in favor of `app.router(router)`
