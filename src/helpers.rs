@@ -100,7 +100,7 @@ pub(crate) async fn exec_wynd_middleware(
 
         match response {
             Err(_e) => {
-                return Ok(our_req.to_hyper_request().unwrap());
+                return Ok(our_req.to_hyper_request()?);
             }
             Ok(mut res) => {
                 // If successful, return the response as an error to stop processing
