@@ -102,7 +102,6 @@ use crate::req::determine_content_type_response;
 use crate::res::response_status::StatusCode;
 use crate::types::{ResponseContentBody, ResponseContentType};
 use bytes::Bytes;
-use futures::executor::block_on;
 use futures::{Stream, StreamExt, stream};
 use http_body_util::BodyExt;
 #[cfg(feature = "with-wynd")]
@@ -110,7 +109,7 @@ use http_body_util::Full;
 #[cfg(not(feature = "with-wynd"))]
 use http_body_util::Full;
 use hyper::Response;
-use hyper::header::{HeaderName, HeaderValue, SET_COOKIE};
+use hyper::header::{CONTENT_LENGTH, HeaderName, HeaderValue, SET_COOKIE};
 use mime_guess::from_ext;
 use serde::Serialize;
 use std::convert::Infallible;
@@ -860,7 +859,7 @@ impl HttpResponse {
         })
     }
 
-    pub(crate) fn to_hyper_response(self) -> Result<Response<Full<Bytes>>, Infallible> {
+    pub(crate) async fn to_hyper_response(self) -> Result<Response<Full<Bytes>>, Infallible> {
         let body = self.body;
         if self.is_stream {
             let mut response = Response::builder().status(self.status_code.as_u16());
@@ -915,16 +914,29 @@ impl HttpResponse {
                 );
             }
 
-            // Collect the stream into a single Bytes value
-            let collected_results: Vec<Result<Bytes, ResponseError>> =
-                block_on(self.stream.collect());
+            // Collect the stream into a single Bytes value (async)
+            let collected_results: Vec<Result<Bytes, ResponseError>> = self.stream.collect().await;
             let bytes = collected_results
                 .into_iter()
                 .collect::<Result<Vec<Bytes>, _>>()
                 .map(|chunks| chunks.concat().into())
                 .unwrap_or_else(|_| Bytes::new());
 
-            return Ok(response.body(Full::from(bytes)).unwrap());
+            let mut hyper_response = response.body(Full::from(bytes)).unwrap();
+
+            // Ensure transfer-encoding header is set correctly
+            // Remove Content-Length if transfer-encoding is chunked (they're mutually exclusive)
+            hyper_response.headers_mut().remove(CONTENT_LENGTH);
+
+            // Explicitly set transfer-encoding header to ensure it's present
+            let header_name = HeaderName::from_static("transfer-encoding");
+            if let Ok(header_value) = HeaderValue::from_str("chunked") {
+                hyper_response
+                    .headers_mut()
+                    .insert(header_name, header_value);
+            }
+
+            return Ok(hyper_response);
         } else {
             let mut response = match body {
                 ResponseContentBody::JSON(json) => Response::builder()

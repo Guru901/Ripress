@@ -1024,14 +1024,9 @@ impl App {
 
                         let response = handler(our_req, HttpResponse::new()).await;
 
-                        match response.to_hyper_response() {
-                            Ok(r) => Ok(r),
-                            Err(_e) => Err(ApiError::Generic(
-                                HttpResponse::new()
-                                    .bad_request()
-                                    .text("Failed to create response"),
-                            )),
-                        }
+                        let hyper_response = response.to_hyper_response().await;
+                        // Infallible means this can never fail, so unwrap is safe
+                        Ok(hyper_response.unwrap())
                     }
                 });
             }
@@ -1169,10 +1164,14 @@ impl App {
         });
 
         match api_err.as_ref() {
-            ApiError::Generic(res) => <HttpResponse as Clone>::clone(res)
-                .to_hyper_response()
-                .map_err(ApiError::from)
-                .unwrap(),
+            ApiError::Generic(res) => {
+                let hyper_res = <HttpResponse as Clone>::clone(res)
+                    .to_hyper_response()
+                    .await
+                    .map_err(ApiError::from)
+                    .unwrap();
+                hyper_res
+            }
         }
     }
 

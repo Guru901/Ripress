@@ -82,18 +82,18 @@ mod tests {
             .set_header("X-Custom", "value")
             .set_cookie("session", "123", Some(CookieOptions::default()))
             .created()
-            .json(&data)
-            .to_hyper_response()
-            .unwrap();
+            .json(&data);
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let hyper_response = rt.block_on(response.to_hyper_response()).unwrap();
 
-        assert_eq!(response.status(), 201);
-        assert_eq!(response.headers().get("X-Custom").unwrap(), "value");
+        assert_eq!(hyper_response.status(), 201);
+        assert_eq!(hyper_response.headers().get("X-Custom").unwrap(), "value");
         assert_eq!(
-            response.headers().get("Set-Cookie").unwrap(),
+            hyper_response.headers().get("Set-Cookie").unwrap(),
             "session=123; HttpOnly; SameSite=None; Secure; Path=/"
         );
         assert_eq!(
-            response.headers().get("Content-Type").unwrap(),
+            hyper_response.headers().get("Content-Type").unwrap(),
             "application/json"
         );
     }
@@ -123,18 +123,18 @@ mod tests {
             .set_header("X-Custom", "value")
             .set_cookie("session", "123", Some(CookieOptions::default()))
             .ok()
-            .bytes(data)
-            .to_hyper_response()
-            .unwrap();
+            .bytes(data);
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let hyper_response = rt.block_on(response.to_hyper_response()).unwrap();
 
-        assert_eq!(response.status(), 200);
-        assert_eq!(response.headers().get("X-Custom").unwrap(), "value");
+        assert_eq!(hyper_response.status(), 200);
+        assert_eq!(hyper_response.headers().get("X-Custom").unwrap(), "value");
         assert_eq!(
-            response.headers().get("Set-Cookie").unwrap(),
+            hyper_response.headers().get("Set-Cookie").unwrap(),
             "session=123; HttpOnly; SameSite=None; Secure; Path=/"
         );
         assert_eq!(
-            response.headers().get("Content-Type").unwrap(),
+            hyper_response.headers().get("Content-Type").unwrap(),
             "application/octet-stream"
         );
     }
@@ -186,13 +186,13 @@ mod tests {
 
         let response = HttpResponse::new()
             .set_header("X-Custom", "value")
-            .html("<h1>Hello</h1>")
-            .to_hyper_response()
-            .unwrap();
+            .html("<h1>Hello</h1>");
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let hyper_response = rt.block_on(response.to_hyper_response()).unwrap();
 
-        assert_eq!(response.status(), 200);
-        assert_eq!(response.headers().get("content-type").unwrap(), "text/html");
-        assert_eq!(response.headers().get("x-custom").unwrap(), "value");
+        assert_eq!(hyper_response.status(), 200);
+        assert_eq!(hyper_response.headers().get("content-type").unwrap(), "text/html");
+        assert_eq!(hyper_response.headers().get("x-custom").unwrap(), "value");
     }
 
     #[test]
@@ -225,12 +225,14 @@ mod tests {
 
     #[test]
     fn test_to_responder() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        
         let response = HttpResponse::new().ok().text("OK");
-        let hyper_response = response.to_hyper_response().unwrap();
+        let hyper_response = rt.block_on(response.to_hyper_response()).unwrap();
         assert_eq!(hyper_response.status(), 200);
 
         let response = HttpResponse::new().internal_server_error().text("Invalid");
-        let hyper_response = response.to_hyper_response().unwrap();
+        let hyper_response = rt.block_on(response.to_hyper_response()).unwrap();
 
         assert_eq!(hyper_response.status(), 500);
     }

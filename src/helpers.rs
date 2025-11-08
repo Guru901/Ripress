@@ -81,7 +81,11 @@ pub(crate) async fn exec_post_middleware(
 
     match maybe_res {
         None => Ok(res),
-        Some(res) => return Ok(res.to_hyper_response()?),
+        Some(res) => {
+            // Infallible means this can never fail, so unwrap is safe
+            let hyper_res = res.to_hyper_response().await.unwrap();
+            return Ok(hyper_res);
+        }
     }
 }
 
