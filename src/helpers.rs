@@ -34,7 +34,7 @@ pub(crate) async fn exec_pre_middleware(
 
         match maybe_res {
             None => {
-                return Ok(modified_req.to_hyper_request().unwrap());
+                return Ok(modified_req.to_hyper_request()?);
             }
             Some(res) => {
                 return Err(ApiError::Generic(res));
