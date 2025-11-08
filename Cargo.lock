@@ -1170,9 +1170,9 @@ dependencies = [
 
 [[package]]
 name = "routerify_ng"
-version = "0.1.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81b4725434831b50f936b57a7903a25ec615f06e1bf993123813ad0626454dd3"
+checksum = "e72ff1204c26f9eee89ad88cf1404cef302536f7dfe672d649e5aeb4ccb26e00"
 dependencies = [
  "bytes",
  "http",

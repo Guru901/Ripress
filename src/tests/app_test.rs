@@ -14,7 +14,11 @@ mod tests {
         types::{HttpMethods, RouterFns},
     };
     use http_body_util::{BodyExt, Full};
-    use hyper::{Request, Response, StatusCode, body::Bytes, header};
+    use hyper::{
+        Request, Response, StatusCode,
+        body::{Bytes, Incoming},
+        header,
+    };
     use reqwest;
     use routerify_ng::RouteError;
     use std::time::Duration;

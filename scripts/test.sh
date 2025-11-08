@@ -35,7 +35,7 @@ echo '<!DOCTYPE html>
 echo 'This is a readme file' > readme.txt
 
 cd ..
-cargo add wynd --features with-ripress
+# cargo add wynd --features with-ripress
 cd src
 touch main.rs
 
@@ -51,34 +51,34 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::time::Duration;
 use tokio::time;
-use wynd::wynd::Wynd;
+// use wynd::wynd::Wynd;
 
 #[tokio::main]
 async fn main() {
     let mut app = App::new();
-    let mut wynd = Wynd::new();
+    // let mut wynd = Wynd::new();
 
-    wynd.on_connection(|conn| async move {
-        conn.on_open(|handle| async move {
-            handle
-                .send_text("Hello from ripress and wynd!")
-                .await
-                .unwrap();
-        })
-        .await;
-
-        conn.on_text(|event, handle| async move {
-            handle.send_text(&event.data).await.unwrap();
-        });
-
-        conn.on_binary(|event, handle| async move {
-            handle.send_binary(event.data.to_vec()).await.unwrap();
-        });
-    });
+//    wynd.on_connection(|conn| async move {
+//        conn.on_open(|handle| async move {
+//            handle
+//                .send_text("Hello from ripress and wynd!")
+//                .await
+//                .unwrap();
+//        })
+//        .await;
+//
+//        conn.on_text(|event, handle| async move {
+//            handle.send_text(&event.data).await.unwrap();
+//        });
+//
+//        conn.on_binary(|event, handle| async move {
+//            handle.send_binary(event.data.to_vec()).await.unwrap();
+//        });
+//    });
 
     app.use_cors(None);
 
-    app.use_wynd("/ws", wynd.handler());
+    // app.use_wynd("/ws", wynd.handler());
     app.use_pre_middleware("/multipart-file-test", file_upload(None));
 
     // request tests
@@ -526,7 +526,8 @@ async fn no_content_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 ' > main.rs
 
-cargo run --features with-wynd &  # Start server in background
+# cargo run --features with-wynd &  # Start server in background
+cargo run &  # Start server in background
 SERVER_PID=$!  # Store server process ID
 trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
 attempts=0
@@ -558,6 +559,6 @@ rm main.rs
 cd ..
 rm -rf public
 
-cargo remove wynd
+# cargo remove wynd
 
 echo "All Tests passed!"

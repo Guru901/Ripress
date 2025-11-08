@@ -3,11 +3,11 @@ use crate::helpers::box_future;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use bytes::Bytes;
-#[cfg(feature = "with-wynd")]
-use http_body_util::Full;
+// #[cfg(feature = "with-wynd")]
+// use http_body_util::Full;
 use hyper::Method;
-#[cfg(feature = "with-wynd")]
-use hyper::body::Incoming;
+// #[cfg(feature = "with-wynd")]
+// use hyper::body::Incoming;
 use mime_guess::MimeGuess;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -205,9 +205,9 @@ impl std::fmt::Display for _HttpResponseError {
     }
 }
 
-#[cfg(feature = "with-wynd")]
-pub type FutMiddleware =
-    Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
+// #[cfg(feature = "with-wynd")]
+// pub type FutMiddleware =
+//     Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
 
 #[cfg(not(feature = "with-wynd"))]
 pub(crate) type FutMiddleware =
@@ -216,18 +216,18 @@ pub(crate) type FutMiddleware =
 pub(crate) type HandlerMiddleware =
     Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>;
 
-#[cfg(feature = "with-wynd")]
-pub(crate) type WyndMiddlewareHandler = Arc<
-    dyn Fn(
-            hyper::Request<Incoming>,
-        ) -> Pin<
-            Box<
-                dyn Future<Output = hyper::Result<hyper::Response<Full<hyper::body::Bytes>>>>
-                    + Send,
-            >,
-        > + Send
-        + Sync,
->;
+// #[cfg(feature = "with-wynd")]
+// pub(crate) type WyndMiddlewareHandler = Arc<
+//     dyn Fn(
+//             hyper::Request<Incoming>,
+//         ) -> Pin<
+//             Box<
+//                 dyn Future<Output = hyper::Result<hyper::Response<Full<hyper::body::Bytes>>>>
+//                     + Send,
+//             >,
+//         > + Send
+//         + Sync,
+// >;
 
 /// Trait providing routing functionality for applications and routers.
 ///

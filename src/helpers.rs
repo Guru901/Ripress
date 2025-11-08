@@ -1,6 +1,6 @@
 #![warn(missing_docs)]
-#[cfg(feature = "with-wynd")]
-use crate::middlewares::WyndMiddleware;
+// #[cfg(feature = "with-wynd")]
+// use crate::middlewares::WyndMiddleware;
 use crate::{
     app::api_error::ApiError,
     middlewares::Middleware,
@@ -9,52 +9,44 @@ use crate::{
     types::{Fut, FutMiddleware},
 };
 use http_body_util::Full;
-use hyper::{
-    Request, Response,
-    body::{Bytes, Incoming},
-};
+// #[cfg(feature = "with-wynd")]
+// use hyper::body::Body;
+use hyper::{Request, Response, body::Bytes};
 use routerify_ng::RequestInfo;
 use url::form_urlencoded::Serializer;
 
 pub(crate) async fn exec_pre_middleware(
-    mut req: Request<Incoming>,
+    mut req: Request<Full<Bytes>>,
     middleware: Middleware,
-) -> Result<Request<Incoming>, ApiError> {
+) -> Result<Request<Full<Bytes>>, ApiError> {
     let mw_func = middleware.func;
 
-    let our_res = HttpResponse::new();
+    if path_matches(middleware.path.as_str(), req.uri().path()) {
+        let our_res = HttpResponse::new();
 
-    // Work with the original Incoming request directly
-    let mut our_req = HttpRequest::from_hyper_request(&mut req)
-        .await
-        .map_err(ApiError::from)?;
+        // Work with the original Incoming request directly
+        let mut our_req = HttpRequest::from_hyper_request(&mut req)
+            .await
+            .map_err(ApiError::from)?;
 
-    if let Some(params) = req.uri().query() {
-        for param in params.split('&') {
-            let (key, value) = param.split_once('=').unwrap_or((param, ""));
-            our_req.set_param(key, value);
+        if let Some(params) = req.uri().query() {
+            for param in params.split('&') {
+                let (key, value) = param.split_once('=').unwrap_or((param, ""));
+                our_req.set_param(key, value);
+            }
         }
-    }
 
-    if path_matches(middleware.path.as_str(), our_req.path.as_str()) {
         let (modified_req, maybe_res) = mw_func(our_req, our_res).await;
 
         match maybe_res {
             None => {
-                // The request body was consumed by from_hyper_request, so we can't return the original
-                // Since we can't create Incoming from Full<Bytes>, we'll need to reconstruct
-                // For now, return the original request (body modifications won't be preserved)
-                // This is a limitation of the Incoming type
-                // Note: modified_req is intentionally unused as we can't convert it back to Incoming
-                let _ = modified_req;
-                return Ok(req);
+                return Ok(modified_req.to_hyper_request().unwrap());
             }
             Some(res) => {
                 return Err(ApiError::Generic(res));
             }
         }
     } else {
-        // Return original request
         Ok(req)
     }
 }
@@ -93,49 +85,46 @@ pub(crate) async fn exec_post_middleware(
     }
 }
 
-#[cfg(feature = "with-wynd")]
-pub(crate) async fn exec_wynd_middleware(
-    mut req: Request<Incoming>,
-    middleware: WyndMiddleware,
-) -> Result<Request<Incoming>, ApiError> {
-    let mw_func = middleware.func;
+// #[cfg(feature = "with-wynd")]
+// pub(crate) async fn exec_wynd_middleware(
+//     mut req: Request<Incoming>,
+//     middleware: WyndMiddleware,
+// ) -> Result<Request<Bytes>, ApiError> {
+//     let mw_func = middleware.func;
 
-    let our_req = HttpRequest::from_hyper_request(&mut req)
-        .await
-        .map_err(ApiError::from)?;
+//     let our_req = HttpRequest::from_hyper_request(&mut req)
+//         .await
+//         .map_err(ApiError::from)?;
 
-    if path_matches(middleware.path.as_str(), our_req.path.as_str()) {
-        // Call the wynd middleware function with the original hyper request
-        let response = mw_func(req).await;
+//     if path_matches(middleware.path.as_str(), our_req.path.as_str()) {
+//         // Call the wynd middleware function with the original hyper request
+//         let response = mw_func(req).await;
+//         println!("here");
 
-        match response {
-            Err(_e) => {
-                // If there's an error, return the original request to continue processing
-                // Since we can't recreate Incoming, we'll return an error indicating
-                // the request was consumed
-                return Err(ApiError::Generic(
-                    HttpResponse::new()
-                        .internal_server_error()
-                        .text("Request body was consumed and cannot be reconstructed"),
-                ));
-            }
-            Ok(mut res) => {
-                // If successful, return the response as an error to stop processing
-                return Err(ApiError::Generic(
-                    HttpResponse::from_hyper_response(&mut res).await?,
-                ));
-            }
-        }
-    } else {
-        // Return original request - but it was consumed, so we can't return it
-        // This is a limitation of the Incoming type
-        Err(ApiError::Generic(
-            HttpResponse::new()
-                .internal_server_error()
-                .text("Request body was consumed"),
-        ))
-    }
-}
+//         match response {
+//             Err(_e) => {
+//                 // If there's an error, return the original request to continue processing
+//                 // Since we can't recreate Incoming, we'll return an error indicating
+//                 // the request was consumed
+//                 return Ok(our_req.to_hyper_request().unwrap());
+//             }
+//             Ok(mut res) => {
+//                 // If successful, return the response as an error to stop processing
+//                 return Err(ApiError::Generic(
+//                     HttpResponse::from_hyper_response(&mut res).await?,
+//                 ));
+//             }
+//         }
+//     } else {
+//         // Return original request - but it was consumed, so we can't return it
+//         // This is a limitation of the Incoming type
+//         Err(ApiError::Generic(
+//             HttpResponse::new()
+//                 .internal_server_error()
+//                 .text("Request body was consumed"),
+//         ))
+//     }
+// }
 
 pub(crate) fn path_matches(prefix: &str, path: &str) -> bool {
     let is_slash = prefix == "/" || prefix.ends_with('/');
