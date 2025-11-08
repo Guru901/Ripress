@@ -1252,8 +1252,8 @@ use crate::{
 };
 use std::sync::Arc;
 
-// #[cfg(feature = "with-wynd")]
-// use crate::types::WyndMiddlewareHandler;
+#[cfg(feature = "with-wynd")]
+use crate::types::WyndMiddlewareHandler;
 
 /// Represents a middleware in the Ripress application.
 ///
@@ -1300,15 +1300,15 @@ pub(crate) enum MiddlewareType {
     Post,
 }
 
-// #[cfg(feature = "with-wynd")]
-// /// WebSocket middleware container for the Wynd WebSocket implementation.
-// ///
-// /// This struct holds the WebSocket handler and the path it should be mounted on.
-// /// Only available when the `with-wynd` feature is enabled.
-// #[derive(Clone)]
-// pub(crate) struct WyndMiddleware {
-//     /// The WebSocket handler function.
-//     pub func: WyndMiddlewareHandler,
-//     /// The path where WebSocket connections should be accepted.
-//     pub path: String,
-// }
+#[cfg(feature = "with-wynd")]
+/// WebSocket middleware container for the Wynd WebSocket implementation.
+///
+/// This struct holds the WebSocket handler and the path it should be mounted on.
+/// Only available when the `with-wynd` feature is enabled.
+#[derive(Clone)]
+pub(crate) struct WyndMiddleware {
+    /// The WebSocket handler function.
+    pub func: WyndMiddlewareHandler,
+    /// The path where WebSocket connections should be accepted.
+    pub path: String,
+}

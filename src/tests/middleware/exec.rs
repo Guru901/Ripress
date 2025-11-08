@@ -17,14 +17,14 @@ mod tests {
     #[cfg(feature = "with-wynd")]
     use http_body_util::Full;
     #[cfg(feature = "with-wynd")]
-    use hyper::{Request, body::Incoming};
+    use hyper::Request;
 
     // Helper function to create a Request<Incoming> for testing
     // Note: This is a workaround since Incoming can't be created directly in tests.
     // The function creates a Request<Full<Bytes>> and uses unsafe to convert it.
     // This works for empty bodies in test contexts.
     #[cfg(feature = "with-wynd")]
-    fn make_request(path: &str) -> Request<Incoming> {
+    fn make_request(path: &str) -> Request<Full<Bytes>> {
         // Create a request with Full<Bytes> body
         let full_req: Request<Full<Bytes>> = Request::builder()
             .uri(path)
@@ -40,7 +40,7 @@ mod tests {
 
         // Convert using pointer manipulation - this is safe for empty bodies in tests
         // because both types represent the same conceptual structure
-        let ptr = Box::into_raw(Box::new(full_request)) as *mut Request<Incoming>;
+        let ptr = Box::into_raw(Box::new(full_request)) as *mut Request<Full<Bytes>>;
         unsafe { *Box::from_raw(ptr) }
     }
 
@@ -106,7 +106,7 @@ mod tests {
 
         let mw = WyndMiddleware {
             path: "/wynd".to_string(),
-            func: Arc::new(|_req: Request<Incoming>| {
+            func: Arc::new(|_req| {
                 Box::pin(async move {
                     // Instead of returning ApiError, return Ok with a response to match the expected type
 
@@ -130,7 +130,7 @@ mod tests {
 
         let mw = WyndMiddleware {
             path: "/wynd".to_string(),
-            func: Arc::new(|_req: Request<Incoming>| {
+            func: Arc::new(|_req| {
                 Box::pin(async move {
                     use hyper::Response;
                     Ok(Response::new(Full::new(Bytes::from("stopped"))))

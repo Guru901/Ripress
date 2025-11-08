@@ -37,8 +37,8 @@
 use crate::app::api_error::ApiError;
 
 use crate::helpers::{box_future_middleware, exec_post_middleware, exec_pre_middleware};
-// #[cfg(feature = "with-wynd")]
-// use crate::middlewares::WyndMiddleware;
+#[cfg(feature = "with-wynd")]
+use crate::middlewares::WyndMiddleware;
 use crate::middlewares::body_limit::body_limit;
 use crate::middlewares::compression::{CompressionConfig, compression};
 use crate::middlewares::cors::{CorsConfig, cors};
@@ -49,19 +49,18 @@ use crate::middlewares::{Middleware, MiddlewareType};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::router::Router;
-// #[cfg(feature = "with-wynd")]
-// use crate::types::WyndMiddlewareHandler;
+#[cfg(feature = "with-wynd")]
+use crate::types::WyndMiddlewareHandler;
 use crate::types::{HandlerMiddleware, HttpMethods, RouterFns, Routes};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
-use hyper::body::Incoming;
 use hyper::http::StatusCode;
+use hyper::server::conn::http1::Builder;
 use hyper::service::Service;
 use hyper::{Method, header};
 use hyper::{Request, Response};
 use hyper_staticfile::Static;
-use hyper_util::rt::{TokioExecutor, TokioIo};
-use hyper_util::server::conn::auto::Builder;
+use hyper_util::rt::TokioIo;
 use routerify_ng::RouterService;
 use routerify_ng::ext::RequestExt;
 use std::collections::HashMap;
@@ -127,9 +126,9 @@ pub struct App {
     pub(crate) static_files: HashMap<&'static str, &'static str>,
 
     pub(crate) graceful_shutdown: bool,
-    // #[cfg(feature = "with-wynd")]
-    // /// Optional WebSocket middleware (only available with `wynd` feature).
-    // pub(crate) wynd_middleware: Option<WyndMiddleware>,
+    #[cfg(feature = "with-wynd")]
+    /// Optional WebSocket middleware (only available with `wynd` feature).
+    pub(crate) wynd_middleware: Option<WyndMiddleware>,
 }
 
 impl RouterFns for App {
@@ -157,8 +156,8 @@ impl App {
             middlewares: Vec::new(),
             static_files: HashMap::new(),
             graceful_shutdown: false,
-            // #[cfg(feature = "with-wynd")]
-            // wynd_middleware: None,
+            #[cfg(feature = "with-wynd")]
+            wynd_middleware: None,
         }
     }
 
@@ -457,90 +456,91 @@ impl App {
         self
     }
 
-    // #[cfg(feature = "with-wynd")]
-    // /// Adds WebSocket middleware to the application using the Wynd WebSocket library.
-    // ///
-    // /// This method enables WebSocket support for your application by integrating with
-    // /// the Wynd WebSocket library. WebSocket connections will be handled at the specified path.
-    // ///
-    // /// ## Feature Requirement
-    // ///
-    // /// This method is only available when the `with-wynd` feature is enabled in your `Cargo.toml`:
-    // ///
-    // /// ```toml
-    // /// [dependencies]
-    // /// ripress = { version = "*", features = ["with-wynd"] }
-    // /// wynd = { version = "*", features = ["with-ripress"] }
-    // /// ```
-    // ///
-    // /// ## Arguments
-    // ///
-    // /// * `path` - The path where WebSocket connections should be accepted (e.g., "/ws", "/websocket")
-    // /// * `handler` - A Wynd WebSocket handler function that processes WebSocket connections
-    // ///
-    // /// ## Example
-    // ///
-    // /// ```no_run
-    // /// use ripress::{app::App, types::RouterFns};
-    // /// use wynd::wynd::Wynd;
-    // ///
-    // /// #[tokio::main]
-    // /// async fn main() {
-    // ///     let mut app = App::new();
-    // ///     let mut wynd = Wynd::new();
-    // ///
-    // ///     // Configure WebSocket event handlers
-    // ///     wynd.on_connection(|conn| async move {
-    // ///         println!("New WebSocket connection");
-    // ///
-    // ///         conn.on_text(|event, handle| async move {
-    // ///             println!("Received message: {}", event.data);
-    // ///             // Echo the message back
-    // ///             handle.send_text(event.data).await.ok();
-    // ///         });
-    // ///
-    // ///         conn.on_close(|_event| async move {
-    // ///             println!("WebSocket connection closed");
-    // ///         });
-    // ///     });
-    // ///
-    // ///     // Add regular HTTP routes
-    // ///     app.get("/", |_, res| async move {
-    // ///         res.ok().text("WebSocket server running")
-    // ///     });
-    // ///
-    // ///     // Add WebSocket support at /ws
-    // ///     app.use_wynd("/ws", wynd.handler());
-    // ///
-    // ///     app.listen(3000, || {
-    // ///         println!("Server with WebSocket support running on http://localhost:3000");
-    // ///         println!("WebSocket endpoint: ws://localhost:3000/ws");
-    // ///     }).await;
-    // /// }
-    // /// ```
-    // ///
-    // /// ## Client Connection
-    // ///
-    // /// Clients can connect to the WebSocket endpoint using:
-    // ///
-    // /// ```javascript
-    // /// const ws = new WebSocket('ws://localhost:3000/ws');
-    // /// ws.onmessage = (event) => console.log('Received:', event.data);
-    // /// ws.send('Hello WebSocket!');
-    // /// ```
-    // pub fn use_wynd<F, Fut>(&mut self, path: &'static str, handler: F) -> &mut Self
-    // where
-    //     F: Fn(hyper::Request<Incoming>) -> Fut + Send + Sync + 'static,
-    //     Fut: std::future::Future<Output = hyper::Result<hyper::Response<Full<hyper::body::Bytes>>>>
-    //         + Send
-    //         + 'static,
-    // {
-    //     self.wynd_middleware = Some(WyndMiddleware {
-    //         func: Self::wynd_middleware_from_closure(handler),
-    //         path: path.to_string(),
-    //     });
-    //     self
-    // }
+    #[cfg(feature = "with-wynd")]
+    /// Adds WebSocket middleware to the application using the Wynd WebSocket library.
+    ///
+    /// This method enables WebSocket support for your application by integrating with
+    /// the Wynd WebSocket library. WebSocket connections will be handled at the specified path.
+    ///
+    /// ## Feature Requirement
+    ///
+    /// This method is only available when the `with-wynd` feature is enabled in your `Cargo.toml`:
+    ///
+    /// ```toml
+    /// [dependencies]
+    /// ripress = { version = "*", features = ["with-wynd"] }
+    /// wynd = { version = "*", features = ["with-ripress"] }
+    /// ```
+    ///
+    /// ## Arguments
+    ///
+    /// * `path` - The path where WebSocket connections should be accepted (e.g., "/ws", "/websocket")
+    /// * `handler` - A Wynd WebSocket handler function that processes WebSocket connections
+    ///
+    /// ## Example
+    ///
+    /// ```no_run
+    /// use ripress::{app::App, types::RouterFns};
+    /// use wynd::wynd::Wynd;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let mut app = App::new();
+    ///     let mut wynd = Wynd::new();
+    ///
+    ///     // Configure WebSocket event handlers
+    ///     wynd.on_connection(|conn| async move {
+    ///         println!("New WebSocket connection");
+    ///
+    ///         conn.on_text(|event, handle| async move {
+    ///             println!("Received message: {}", event.data);
+    ///             // Echo the message back
+    ///             handle.send_text(event.data).await.ok();
+    ///         });
+    ///
+    ///         conn.on_close(|_event| async move {
+    ///             println!("WebSocket connection closed");
+    ///         });
+    ///     });
+    ///
+    ///     // Add regular HTTP routes
+    ///     app.get("/", |_, res| async move {
+    ///         res.ok().text("WebSocket server running")
+    ///     });
+    ///
+    ///     // Add WebSocket support at /ws
+    ///     app.use_wynd("/ws", wynd.handler());
+    ///
+    ///     app.listen(3000, || {
+    ///         println!("Server with WebSocket support running on http://localhost:3000");
+    ///         println!("WebSocket endpoint: ws://localhost:3000/ws");
+    ///     }).await;
+    /// }
+    /// ```
+    ///
+    /// ## Client Connection
+    ///
+    /// Clients can connect to the WebSocket endpoint using:
+    ///
+    /// ```javascript
+    /// const ws = new WebSocket('ws://localhost:3000/ws');
+    /// ws.onmessage = (event) => console.log('Received:', event.data);
+    /// ws.send('Hello WebSocket!');
+    /// ```
+
+    pub fn use_wynd<F, Fut>(&mut self, path: &'static str, handler: F) -> &mut Self
+    where
+        F: Fn(hyper::Request<Full<Bytes>>) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = hyper::Result<hyper::Response<Full<hyper::body::Bytes>>>>
+            + Send
+            + 'static,
+    {
+        self.wynd_middleware = Some(WyndMiddleware {
+            func: Self::wynd_middleware_from_closure(handler),
+            path: path.to_string(),
+        });
+        self
+    }
 
     /// Adds a rate limiting middleware to the application.
     ///
@@ -726,19 +726,19 @@ impl App {
         Arc::new(move |req, res| box_future_middleware(f(req, res)))
     }
 
-    // #[cfg(feature = "with-wynd")]
-    // /// Converts a WebSocket handler closure into a Wynd middleware handler.
-    // ///
-    // /// This is an internal helper method for the WebSocket functionality.
-    // fn wynd_middleware_from_closure<F, Fut>(f: F) -> WyndMiddlewareHandler
-    // where
-    //     F: Fn(hyper::Request<Incoming>) -> Fut + Send + Sync + 'static,
-    //     Fut: std::future::Future<Output = hyper::Result<hyper::Response<Full<hyper::body::Bytes>>>>
-    //         + Send
-    //         + 'static,
-    // {
-    //     Arc::new(move |req| Box::pin(f(req)))
-    // }
+    #[cfg(feature = "with-wynd")]
+    /// Converts a WebSocket handler closure into a Wynd middleware handler.
+    ///
+    /// This is an internal helper method for the WebSocket functionality.
+    fn wynd_middleware_from_closure<F, Fut>(f: F) -> WyndMiddlewareHandler
+    where
+        F: Fn(hyper::Request<Full<Bytes>>) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = hyper::Result<hyper::Response<Full<hyper::body::Bytes>>>>
+            + Send
+            + 'static,
+    {
+        Arc::new(move |req| Box::pin(f(req)))
+    }
 
     /// Mounts a [`Router`] at a specific base path, registering all of its routes onto the application.
     ///
@@ -962,15 +962,15 @@ impl App {
     pub async fn listen<F: FnOnce()>(&self, port: u16, cb: F) {
         let mut router = routerify_ng::Router::<ApiError>::builder();
 
-        // #[cfg(feature = "with-wynd")]
-        // if let Some(middleware) = &self.wynd_middleware {
-        //     router = router.middleware(routerify_ng::Middleware::pre({
-        //         use crate::helpers::exec_wynd_middleware;
+        #[cfg(feature = "with-wynd")]
+        if let Some(middleware) = &self.wynd_middleware {
+            router = router.middleware(routerify_ng::Middleware::pre({
+                use crate::helpers::exec_wynd_middleware;
 
-        //         let middleware = middleware.clone();
-        //         move |req| exec_wynd_middleware(req, middleware.clone())
-        //     }));
-        // }
+                let middleware = middleware.clone();
+                move |req| exec_wynd_middleware(req, middleware.clone())
+            }));
+        }
 
         // Apply middlewares first
         for middleware in self.middlewares.iter() {
@@ -1102,10 +1102,12 @@ impl App {
 
                                     // Wrap the stream in TokioIo for hyper
                                     let io = TokioIo::new(stream);
-                                    let builder = Builder::new(TokioExecutor::new());
+                                    let mut builder = Builder::new();
+                                    builder.keep_alive(true);
 
-                                    // Serve the connection
-                                    if let Err(err) = builder.serve_connection(io, request_service).await {
+                                    // Serve the connection with upgrades enabled for WebSocket support
+                                    let connection = builder.serve_connection(io, request_service).with_upgrades();
+                                    if let Err(err) = connection.await {
                                         eprintln!("Error serving connection: {:?}", err);
                                     }
                                 });
@@ -1131,10 +1133,14 @@ impl App {
 
                             // Wrap the stream in TokioIo for hyper
                             let io = TokioIo::new(stream);
-                            let builder = Builder::new(TokioExecutor::new());
+                            let mut builder = Builder::new();
+                            builder.keep_alive(true);
 
-                            // Serve the connection
-                            if let Err(err) = builder.serve_connection(io, request_service).await {
+                            // Serve the connection with upgrades enabled for WebSocket support
+                            let connection = builder
+                                .serve_connection(io, request_service)
+                                .with_upgrades();
+                            if let Err(err) = connection.await {
                                 eprintln!("Error serving connection: {:?}", err);
                             }
                         });

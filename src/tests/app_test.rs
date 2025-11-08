@@ -14,11 +14,7 @@ mod tests {
         types::{HttpMethods, RouterFns},
     };
     use http_body_util::{BodyExt, Full};
-    use hyper::{
-        Request, Response, StatusCode,
-        body::{Bytes, Incoming},
-        header,
-    };
+    use hyper::{Request, Response, StatusCode, body::Bytes, header};
     use reqwest;
     use routerify_ng::RouteError;
     use std::time::Duration;
@@ -503,14 +499,12 @@ mod tests {
     #[cfg(feature = "with-wynd")]
     #[test]
     fn test_use_wynd_adds_wynd_middleware() {
-        use hyper::body::Incoming;
-
         let mut app = App::new();
         app.use_wynd(
             "/ws",
-            Box::new(|_req: Request<Incoming>| async move {
-                Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
-            }),
+            Box::new(
+                |_req| async move { Ok(Response::new(Full::new(Bytes::from("Hello, World!")))) },
+            ),
         );
 
         assert!(app.wynd_middleware.is_some());
