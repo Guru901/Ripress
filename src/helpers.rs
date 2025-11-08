@@ -29,12 +29,6 @@ pub(crate) async fn exec_pre_middleware(
             .await
             .map_err(ApiError::from)?;
 
-        if let Some(params) = req.uri().query() {
-            for param in params.split('&') {
-                let (key, value) = param.split_once('=').unwrap_or((param, ""));
-                our_req.set_param(key, value);
-            }
-        }
 
         let (modified_req, maybe_res) = mw_func(our_req, our_res).await;
 
