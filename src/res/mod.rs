@@ -94,14 +94,22 @@
 
 #![warn(missing_docs)]
 
+#[cfg(feature = "with-wynd")]
+use crate::app::api_error::ApiError;
+#[cfg(not(feature = "with-wynd"))]
+use crate::app::api_error::ApiError;
 use crate::req::determine_content_type_response;
 use crate::res::response_status::StatusCode;
 use crate::types::{ResponseContentBody, ResponseContentType};
 use bytes::Bytes;
 use futures::{Stream, StreamExt, stream};
-use hyper::body::to_bytes;
-use hyper::header::{HeaderName, HeaderValue, SET_COOKIE};
-use hyper::{Body, Response};
+use http_body_util::BodyExt;
+#[cfg(feature = "with-wynd")]
+use http_body_util::Full;
+#[cfg(not(feature = "with-wynd"))]
+use http_body_util::Full;
+use hyper::Response;
+use hyper::header::{CONTENT_LENGTH, HeaderName, HeaderValue, SET_COOKIE};
 use mime_guess::from_ext;
 use serde::Serialize;
 use std::convert::Infallible;
@@ -707,8 +715,9 @@ impl HttpResponse {
     }
 
     #[cfg(feature = "with-wynd")]
-    pub async fn from_hyper_response(res: &mut Response<Body>) -> Result<Self, hyper::Error> {
-        let body_bytes = to_bytes(res.body_mut()).await?;
+    pub async fn from_hyper_response(res: &mut Response<Full<Bytes>>) -> Result<Self, ApiError> {
+        let collected = res.body_mut().collect().await?;
+        let body_bytes = collected.to_bytes();
 
         let content_type_hdr = res
             .headers()
@@ -778,9 +787,10 @@ impl HttpResponse {
     }
     #[cfg(not(feature = "with-wynd"))]
     pub(crate) async fn from_hyper_response(
-        res: &mut Response<Body>,
-    ) -> Result<Self, hyper::Error> {
-        let body_bytes = to_bytes(res.body_mut()).await?;
+        res: &mut Response<Full<Bytes>>,
+    ) -> Result<Self, ApiError> {
+        let collected = res.body_mut().collect().await?;
+        let body_bytes = collected.to_bytes();
 
         let content_type_hdr = res
             .headers()
@@ -849,7 +859,7 @@ impl HttpResponse {
         })
     }
 
-    pub(crate) fn to_hyper_response(self) -> Result<Response<Body>, Infallible> {
+    pub(crate) async fn to_hyper_response(self) -> Result<Response<Full<Bytes>>, Infallible> {
         let body = self.body;
         if self.is_stream {
             let mut response = Response::builder().status(self.status_code.as_u16());
@@ -904,25 +914,49 @@ impl HttpResponse {
                 );
             }
 
-            return Ok(response.body(Body::wrap_stream(self.stream)).unwrap());
+            // Collect the stream into a single Bytes value (async)
+            let collected_results: Vec<Result<Bytes, ResponseError>> = self.stream.collect().await;
+            let bytes = collected_results
+                .into_iter()
+                .collect::<Result<Vec<Bytes>, _>>()
+                .map(|chunks| chunks.concat().into())
+                .unwrap_or_else(|_| Bytes::new());
+
+            let mut hyper_response = response.body(Full::from(bytes)).unwrap();
+
+            // Ensure transfer-encoding header is set correctly
+            // Remove Content-Length if transfer-encoding is chunked (they're mutually exclusive)
+            hyper_response.headers_mut().remove(CONTENT_LENGTH);
+
+            // Explicitly set transfer-encoding header to ensure it's present
+            let header_name = HeaderName::from_static("transfer-encoding");
+            if let Ok(header_value) = HeaderValue::from_str("chunked") {
+                hyper_response
+                    .headers_mut()
+                    .insert(header_name, header_value);
+            }
+
+            return Ok(hyper_response);
         } else {
             let mut response = match body {
                 ResponseContentBody::JSON(json) => Response::builder()
                     .status(self.status_code.as_u16())
                     .header("Content-Type", self.content_type.as_str())
-                    .body(Body::from(serde_json::to_string(&json).unwrap())),
+                    .body(Full::from(Bytes::from(
+                        serde_json::to_string(&json).unwrap(),
+                    ))),
                 ResponseContentBody::TEXT(text) => Response::builder()
                     .status(self.status_code.as_u16())
                     .header("Content-Type", self.content_type.as_str())
-                    .body(Body::from(text)),
+                    .body(Full::from(Bytes::from(text))),
                 ResponseContentBody::HTML(html) => Response::builder()
                     .status(self.status_code.as_u16())
                     .header("Content-Type", self.content_type.as_str())
-                    .body(Body::from(html)),
+                    .body(Full::from(Bytes::from(html))),
                 ResponseContentBody::BINARY(bytes) => Response::builder()
                     .status(self.status_code.as_u16())
                     .header("Content-Type", self.content_type.as_str())
-                    .body(Body::from(bytes)),
+                    .body(Full::from(Bytes::from(bytes))),
             }
             .unwrap();
 

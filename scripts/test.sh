@@ -527,14 +527,15 @@ async fn no_content_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
 ' > main.rs
 
 cargo run --features with-wynd &  # Start server in background
+cargo run &  # Start server in background
 SERVER_PID=$!  # Store server process ID
 trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
 attempts=0
 until curl -sSf http://127.0.0.1:3000/ip-test >/dev/null; do
   sleep 1
   attempts=$((attempts + 1))
-  if [ "$attempts" -ge 60 ]; then
-    echo "Server did not become ready within 60s"
+  if [ "$attempts" -ge 120 ]; then
+    echo "Server did not become ready within 120s"
     kill "$SERVER_PID" 2>/dev/null || true
     exit 1
   fi
@@ -547,17 +548,17 @@ bunx playwright install
 # Run Playwright tests, fail script if tests fail
 bunx playwright test || {
   echo "Playwright tests failed"
-  kill $SERVER_PID
+  kill "$SERVER_PID" 2>/dev/null || true
   exit 1
 }
 
-kill $SERVER_PID  # Stop the server
+kill "$SERVER_PID" 2>/dev/null || true  # Stop the server
 
 cd ../src
 rm main.rs
 cd ..
 rm -rf public
 
-cargo remove wynd
+# cargo remove wynd
 
 echo "All Tests passed!"

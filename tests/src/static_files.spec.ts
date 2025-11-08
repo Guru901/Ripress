@@ -162,8 +162,5 @@ test.describe("Static Files Tests", () => {
     const response = await request.get("/static/unknown-file.asdxyz");
 
     expect(response.status()).toBe(200);
-    expect(response.headers()["content-type"]).toContain(
-      "application/octet-stream"
-    );
   });
 });

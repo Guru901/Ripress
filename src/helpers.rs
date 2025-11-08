@@ -8,55 +8,53 @@ use crate::{
     res::HttpResponse,
     types::{Fut, FutMiddleware},
 };
-use hyper::{Body, Request, Response};
-use routerify::RequestInfo;
+use http_body_util::Full;
+#[cfg(feature = "with-wynd")]
+use hyper::body::Body;
+use hyper::{Request, Response, body::Bytes};
+use routerify_ng::RequestInfo;
 use url::form_urlencoded::Serializer;
 
 pub(crate) async fn exec_pre_middleware(
-    mut req: Request<Body>,
+    mut req: Request<Full<Bytes>>,
     middleware: Middleware,
-) -> Result<Request<Body>, ApiError> {
+) -> Result<Request<Full<Bytes>>, ApiError> {
     let mw_func = middleware.func;
 
-    let our_res = HttpResponse::new();
+    if path_matches(middleware.path.as_str(), req.uri().path()) {
+        let our_res = HttpResponse::new();
 
-    let mut our_req = HttpRequest::from_hyper_request(&mut req)
-        .await
-        .map_err(ApiError::from)?;
+        // Work with the original Incoming request directly
+        let mut our_req = HttpRequest::from_hyper_request(&mut req)
+            .await
+            .map_err(ApiError::from)?;
 
-    if let Some(params) = req.uri().query() {
-        for param in params.split('&') {
-            let (key, value) = param.split_once('=').unwrap_or((param, ""));
-            our_req.set_param(key, value);
-        }
-    }
 
-    if path_matches(middleware.path.as_str(), our_req.path.as_str()) {
         let (modified_req, maybe_res) = mw_func(our_req, our_res).await;
 
         match maybe_res {
             None => {
-                return modified_req.to_hyper_request().map_err(ApiError::from);
+                return Ok(modified_req.to_hyper_request()?);
             }
             Some(res) => {
                 return Err(ApiError::Generic(res));
             }
         }
     } else {
-        our_req.to_hyper_request().map_err(ApiError::from)
+        Ok(req)
     }
 }
 
 pub(crate) async fn exec_post_middleware(
-    mut res: Response<Body>,
+    mut res: Response<Full<Bytes>>,
     middleware: Middleware,
     info: RequestInfo,
-) -> Result<Response<Body>, ApiError> {
+) -> Result<Response<Full<Bytes>>, ApiError> {
     let mw_func = middleware.func;
 
     let mut our_req = HttpRequest::from_request_info(&info);
 
-    if let Some(data) = info.data::<routerify::RouteParams>() {
+    if let Some(data) = info.data::<routerify_ng::RouteParams>() {
         data.iter().for_each(|(key, value)| {
             our_req.set_param(key, value);
         });
@@ -77,29 +75,32 @@ pub(crate) async fn exec_post_middleware(
 
     match maybe_res {
         None => Ok(res),
-        Some(res) => return Ok(res.to_hyper_response()?),
+        Some(res) => {
+            // Infallible means this can never fail, so unwrap is safe
+            let hyper_res = res.to_hyper_response().await.unwrap();
+            return Ok(hyper_res);
+        }
     }
 }
 
 #[cfg(feature = "with-wynd")]
 pub(crate) async fn exec_wynd_middleware(
-    mut req: Request<Body>,
+    mut req: Request<Full<Bytes>>,
     middleware: WyndMiddleware,
-) -> Result<Request<Body>, ApiError> {
-    let mw_func = middleware.func;
+) -> Result<Request<Full<Bytes>>, ApiError> {
+    if path_matches(middleware.path.as_str(), req.uri().path()) {
+        let mw_func = middleware.func;
 
-    let our_req = HttpRequest::from_hyper_request(&mut req)
-        .await
-        .map_err(ApiError::from)?;
+        let our_req = HttpRequest::from_hyper_request(&mut req)
+            .await
+            .map_err(ApiError::from)?;
 
-    if path_matches(middleware.path.as_str(), our_req.path.as_str()) {
         // Call the wynd middleware function with the original hyper request
         let response = mw_func(req).await;
 
         match response {
-            Err(e) => {
-                // If there's an error, return the original request to continue processing
-                return our_req.to_hyper_request().map_err(ApiError::from);
+            Err(_e) => {
+                return Ok(our_req.to_hyper_request()?);
             }
             Ok(mut res) => {
                 // If successful, return the response as an error to stop processing
@@ -109,7 +110,7 @@ pub(crate) async fn exec_wynd_middleware(
             }
         }
     } else {
-        our_req.to_hyper_request().map_err(ApiError::from)
+        Ok(req)
     }
 }
 
