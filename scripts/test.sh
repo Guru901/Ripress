@@ -548,11 +548,11 @@ bunx playwright install
 # Run Playwright tests, fail script if tests fail
 bunx playwright test || {
   echo "Playwright tests failed"
-  kill $SERVER_PID
+  kill "$SERVER_PID" 2>/dev/null || true
   exit 1
 }
 
-kill $SERVER_PID  # Stop the server
+kill "$SERVER_PID" 2>/dev/null || true  # Stop the server
 
 cd ../src
 rm main.rs
