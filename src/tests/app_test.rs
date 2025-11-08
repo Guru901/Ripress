@@ -109,9 +109,9 @@ mod tests {
         // Assert
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        // let body_bytes = result.into_body().bytes().await.unwrap();
-        // let body_str = String::from_utf8(body_bytes.to_vec()).unwrap();
-        // assert_eq!(body_str, "Bad request test");
+        let body_bytes = result.into_body().collect().await.unwrap().to_bytes();
+        let body_str = String::from_utf8(body_bytes.to_vec()).unwrap();
+        assert_eq!(body_str, "Bad request test");
     }
 
     #[tokio::test]

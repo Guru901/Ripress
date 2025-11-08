@@ -1093,7 +1093,14 @@ impl App {
 
                                 tokio::task::spawn(async move {
                                     // Now service is Arc<RouterService> and not moved
-                                    let request_service = service.call(&stream).await.unwrap();
+                                     let request_service = match service.call(&stream).await {
+                                             Ok(svc) => svc,
+                                             Err(err) => {
+                                                 eprintln!("Error creating per-connection service: {:?}", err);
+                                                 return;
+                                             }
+                                         };
+
 
                                     // Wrap the stream in TokioIo for hyper
                                     let io = TokioIo::new(stream);
@@ -1124,7 +1131,13 @@ impl App {
                         let service = Arc::clone(&router_service);
 
                         tokio::task::spawn(async move {
-                            let request_service = service.call(&stream).await.unwrap();
+                            let request_service = match service.call(&stream).await {
+                                Ok(svc) => svc,
+                                Err(err) => {
+                                    eprintln!("Error creating per-connection service: {:?}", err);
+                                    return;
+                                }
+                            };
 
                             // Wrap the stream in TokioIo for hyper
                             let io = TokioIo::new(stream);
