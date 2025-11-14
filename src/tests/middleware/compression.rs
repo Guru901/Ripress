@@ -1,13 +1,18 @@
 #[cfg(test)]
 mod test {
+    #[cfg(feature = "compression")]
     use crate::context::HttpResponse;
+    #[cfg(feature = "compression")]
     use crate::middlewares::compression::{
         CompressionConfig, accepts_gzip_encoding, compress_data, compression,
         get_response_body_bytes, set_response_body, should_compress_content_type,
     };
+    #[cfg(feature = "compression")]
     use crate::req::HttpRequest;
+    #[cfg(feature = "compression")]
     use crate::types::{ResponseContentBody, ResponseContentType};
 
+    #[cfg(feature = "compression")]
     fn make_response_with_body(body: ResponseContentBody, content_type: &str) -> HttpResponse {
         let mut res = HttpResponse::new();
         res.body = body;
@@ -22,6 +27,7 @@ mod test {
         res
     }
 
+    #[cfg(feature = "compression")]
     #[test]
     fn test_should_compress_content_type() {
         assert!(should_compress_content_type("text/plain"));
@@ -38,6 +44,7 @@ mod test {
         assert!(!should_compress_content_type("video/mp4"));
     }
 
+    #[cfg(feature = "compression")]
     #[test]
     fn test_compress_data_gzip_magic() {
         let data = b"hello world, hello world, hello world, hello world, hello world";
@@ -46,6 +53,7 @@ mod test {
         assert_eq!(&compressed[0..2], &[0x1f, 0x8b]);
     }
 
+    #[cfg(feature = "compression")]
     #[test]
     fn test_accepts_gzip_encoding() {
         assert!(accepts_gzip_encoding("gzip"));
@@ -58,6 +66,7 @@ mod test {
         assert!(!accepts_gzip_encoding("br"));
     }
 
+    #[cfg(feature = "compression")]
     #[test]
     fn test_get_response_body_bytes() {
         let text = "hello";
@@ -88,6 +97,7 @@ mod test {
         assert_eq!(get_response_body_bytes(&res), Some(bin));
     }
 
+    #[cfg(feature = "compression")]
     #[test]
     fn test_set_response_body_sets_binary() {
         let mut res = HttpResponse::new();
@@ -99,6 +109,7 @@ mod test {
         }
     }
 
+    #[cfg(feature = "compression")]
     #[tokio::test]
     async fn test_compression_middleware_compresses_when_appropriate() {
         let mw = compression(Some(CompressionConfig {
@@ -130,6 +141,7 @@ mod test {
         assert_eq!(res.headers.get("Vary"), Some("Accept-Encoding"));
     }
 
+    #[cfg(feature = "compression")]
     #[tokio::test]
     async fn test_compression_middleware_skips_if_no_gzip_accept() {
         let mw = compression(Some(CompressionConfig {
@@ -145,6 +157,7 @@ mod test {
         assert!(res_opt.is_none());
     }
 
+    #[cfg(feature = "compression")]
     #[tokio::test]
     async fn test_compression_middleware_skips_if_content_type_not_compressible() {
         let mw = compression(Some(CompressionConfig {
@@ -166,6 +179,7 @@ mod test {
         assert!(res_opt.is_none());
     }
 
+    #[cfg(feature = "compression")]
     #[tokio::test]
     async fn test_compression_middleware_skips_if_body_too_small() {
         let mw = compression(Some(CompressionConfig {
@@ -184,6 +198,7 @@ mod test {
         assert!(res_opt.is_none());
     }
 
+    #[cfg(feature = "compression")]
     #[tokio::test]
     async fn test_compression_middleware_skips_if_already_encoded() {
         let mw = compression(Some(CompressionConfig {
@@ -204,6 +219,7 @@ mod test {
         assert!(res_opt.is_none());
     }
 
+    #[cfg(feature = "compression")]
     #[test]
     fn test_compress_data() {
         let original = b"Hello, World! ".repeat(100);
@@ -216,6 +232,7 @@ mod test {
         assert_eq!(&compressed[0..2], &[0x1f, 0x8b]);
     }
 
+    #[cfg(feature = "compression")]
     #[test]
     fn test_compression_config_default() {
         let config = CompressionConfig::default();
