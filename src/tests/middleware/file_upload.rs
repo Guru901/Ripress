@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod test {
+    #[cfg(feature = "file-upload")]
     use tempfile::TempDir;
 
+    #[cfg(feature = "file-upload")]
     use crate::{
         middlewares::file_upload::{FileUploadConfiguration, file_upload},
         req::HttpRequest,
@@ -9,6 +11,7 @@ mod test {
     };
 
     #[tokio::test]
+    #[cfg(feature = "file-upload")]
     #[ignore = "abhi ke liye"]
     async fn test_file_upload_single_binary_file() {
         let temp_dir = TempDir::new().unwrap();
@@ -40,10 +43,7 @@ mod test {
 
         // Read the file content and verify it matches
         let file_content = std::fs::read(&uploaded_path).unwrap();
-        assert_eq!(
-            file_content, test_content,
-            "File content mismatch"
-        );
+        assert_eq!(file_content, test_content, "File content mismatch");
 
         // Check form data has the file reference
         let form_data = req.form_data().unwrap();
@@ -56,6 +56,7 @@ mod test {
         let _ = std::fs::remove_file(&uploaded_path);
     }
 
+    #[cfg(feature = "file-upload")]
     #[tokio::test]
     async fn test_file_upload_no_files() {
         let temp_dir = TempDir::new().unwrap();
@@ -111,6 +112,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[cfg(feature = "file-upload")]
     async fn test_file_upload_invalid_multipart() {
         let temp_dir = TempDir::new().unwrap();
         let upload_mw = file_upload(Some(FileUploadConfiguration {
@@ -139,6 +141,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[cfg(feature = "file-upload")]
     async fn test_file_upload_empty_multipart() {
         let temp_dir = TempDir::new().unwrap();
         let upload_mw = file_upload(Some(FileUploadConfiguration {
@@ -171,6 +174,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[cfg(feature = "file-upload")]
     async fn test_multipart_with_files_no_middleware() {
         // This test simulates what happens when a multipart form with files is uploaded
         // WITHOUT the file upload middleware. The system should:
@@ -256,6 +260,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[cfg(feature = "file-upload")]
     async fn test_multipart_with_files_request_building() {
         // This test simulates the actual HTTP request building process
         // to verify that our fix works end-to-end

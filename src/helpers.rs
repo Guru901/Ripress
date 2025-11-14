@@ -25,10 +25,9 @@ pub(crate) async fn exec_pre_middleware(
         let our_res = HttpResponse::new();
 
         // Work with the original Incoming request directly
-        let mut our_req = HttpRequest::from_hyper_request(&mut req)
+        let our_req = HttpRequest::from_hyper_request(&mut req)
             .await
             .map_err(ApiError::from)?;
-
 
         let (modified_req, maybe_res) = mw_func(our_req, our_res).await;
 

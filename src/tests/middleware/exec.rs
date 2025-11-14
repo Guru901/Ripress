@@ -3,6 +3,8 @@ mod tests {
     use std::sync::Arc;
 
     use crate::{
+        app::api_error::ApiError,
+        helpers::exec_pre_middleware,
         middlewares::{Middleware, MiddlewareType},
         req::HttpRequest,
         res::HttpResponse,
@@ -12,10 +14,13 @@ mod tests {
     use crate::helpers::exec_wynd_middleware;
     #[cfg(feature = "with-wynd")]
     use crate::middlewares::WyndMiddleware;
-    #[cfg(feature = "with-wynd")]
     use bytes::Bytes;
     #[cfg(feature = "with-wynd")]
+    use bytes::Bytes;
     use http_body_util::Full;
+    #[cfg(feature = "with-wynd")]
+    use http_body_util::Full;
+    use hyper::Request;
     #[cfg(feature = "with-wynd")]
     use hyper::Request;
 
@@ -23,7 +28,6 @@ mod tests {
     // Note: This is a workaround since Incoming can't be created directly in tests.
     // The function creates a Request<Full<Bytes>> and uses unsafe to convert it.
     // This works for empty bodies in test contexts.
-    #[cfg(feature = "with-wynd")]
     fn make_request(path: &str) -> Request<Full<Bytes>> {
         // Create a request with Full<Bytes> body
         let full_req: Request<Full<Bytes>> = Request::builder()
@@ -69,33 +73,33 @@ mod tests {
         }
     }
 
-    // #[tokio::test]
-    // async fn test_exec_pre_middleware_pass_through() {
-    //     let req = make_request("/foo");
-    //     let mw = passthrough_middleware();
+    #[tokio::test]
+    async fn test_exec_pre_middleware_pass_through() {
+        let req = make_request("/foo");
+        let mw = passthrough_middleware();
 
-    //     let res = exec_pre_middleware(req, mw).await;
-    //     assert!(res.is_ok());
-    //     let req = res.unwrap();
-    //     assert_eq!(req.uri(), "/foo");
-    // }
+        let res = exec_pre_middleware(req, mw).await;
+        assert!(res.is_ok());
+        let req = res.unwrap();
+        assert_eq!(req.uri(), "/foo");
+    }
 
-    // #[tokio::test]
-    // async fn test_exec_pre_middleware_blocking() {
-    //     let req = make_request("/block");
-    //     let mw = blocking_middleware();
+    #[tokio::test]
+    async fn test_exec_pre_middleware_blocking() {
+        let req = make_request("/block");
+        let mw = blocking_middleware();
 
-    //     let res = exec_pre_middleware(req, mw).await;
-    //     assert!(res.is_err());
+        let res = exec_pre_middleware(req, mw).await;
+        assert!(res.is_err());
 
-    //     match res {
-    //         Err(ApiError::Generic(resp)) => {
-    //             assert_eq!(resp.status_code.as_u16(), 200);
-    //             // Optional: read body string here if needed
-    //         }
-    //         _ => panic!("Expected ApiError::Generic"),
-    //     }
-    // }
+        match res {
+            Err(ApiError::Generic(resp)) => {
+                assert_eq!(resp.status_code.as_u16(), 200);
+                // Optional: read body string here if needed
+            }
+            _ => panic!("Expected ApiError::Generic"),
+        }
+    }
 
     #[cfg(feature = "with-wynd")]
     #[tokio::test]

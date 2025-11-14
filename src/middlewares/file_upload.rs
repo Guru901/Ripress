@@ -1,9 +1,15 @@
 #![warn(missing_docs)]
+#[cfg(feature = "file-upload")]
 use crate::helpers::{extract_boundary, parse_multipart_form};
+#[cfg(feature = "file-upload")]
 use crate::req::body::FormData;
+#[cfg(feature = "file-upload")]
 use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
+#[cfg(feature = "file-upload")]
 use tokio::fs::{File, create_dir_all};
+#[cfg(feature = "file-upload")]
 use tokio::io::AsyncWriteExt;
+#[cfg(feature = "file-upload")]
 use uuid::Uuid;
 
 /// Builtin File Upload Middleware
@@ -259,6 +265,7 @@ impl Default for FileUploadConfiguration {
 ///
 /// The returned middleware is `Send + Sync + Clone` and can be safely used
 /// across multiple threads and cloned for multiple routes.
+#[cfg(feature = "file-upload")]
 pub fn file_upload(
     config: Option<FileUploadConfiguration>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
@@ -444,6 +451,7 @@ pub fn file_upload(
 ///
 /// A URL-encoded string representation of the form data, or an empty string
 /// if the form data is empty.
+#[cfg(feature = "file-upload")]
 fn form_data_to_string(form_data: &FormData) -> String {
     if form_data.is_empty() {
         return String::new();

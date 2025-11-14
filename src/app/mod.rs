@@ -40,6 +40,7 @@ use crate::helpers::{box_future_middleware, exec_post_middleware, exec_pre_middl
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
 use crate::middlewares::body_limit::body_limit;
+#[cfg(feature = "compression")]
 use crate::middlewares::compression::{CompressionConfig, compression};
 use crate::middlewares::cors::{CorsConfig, cors};
 use crate::middlewares::logger::{LoggerConfig, logger};
@@ -705,6 +706,7 @@ impl App {
     /// - Skips binary content that's already compressed (images, videos, archives)
     /// - Respects the client's `Accept-Encoding` header preferences
     /// - Adds appropriate `Content-Encoding` headers to compressed responses
+    #[cfg(feature = "compression")]
     pub fn use_compression(&mut self, config: Option<CompressionConfig>) -> &mut Self {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(compression(config)),
