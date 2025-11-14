@@ -1,13 +1,17 @@
 #![warn(missing_docs)]
+#[cfg(feature = "compression")]
 use crate::{
     context::HttpResponse,
     req::HttpRequest,
     types::{FutMiddleware, ResponseContentBody},
 };
+#[cfg(feature = "compression")]
 use flate2::{Compression, write::GzEncoder};
+#[cfg(feature = "compression")]
 use std::io::Write;
 
 /// Configuration for the compression middleware
+#[cfg(feature = "compression")]
 #[derive(Clone)]
 pub struct CompressionConfig {
     /// Minimum response size threshold to trigger compression (in bytes)
@@ -16,6 +20,7 @@ pub struct CompressionConfig {
     pub level: u8,
 }
 
+#[cfg(feature = "compression")]
 impl Default for CompressionConfig {
     fn default() -> Self {
         Self {
@@ -35,6 +40,7 @@ impl Default for CompressionConfig {
 /// # Returns
 ///
 /// A middleware function that compresses HTTP responses
+#[cfg(feature = "compression")]
 pub(crate) fn compression(
     config: Option<CompressionConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
@@ -108,7 +114,7 @@ pub(crate) fn compression(
     }
 }
 
-/// Determines if content type should be compressed
+#[cfg(feature = "compression")]
 pub(crate) fn should_compress_content_type(content_type: &str) -> bool {
     let compressible_types = [
         "text/",
@@ -127,6 +133,7 @@ pub(crate) fn should_compress_content_type(content_type: &str) -> bool {
         .any(|&ct| content_type_lower.starts_with(ct))
 }
 
+#[cfg(feature = "compression")]
 /// Compresses data using gzip
 pub(crate) fn compress_data(data: &[u8], level: u8) -> Result<Vec<u8>, std::io::Error> {
     let mut encoder = GzEncoder::new(Vec::new(), Compression::new(level.min(9) as u32));
@@ -134,6 +141,7 @@ pub(crate) fn compress_data(data: &[u8], level: u8) -> Result<Vec<u8>, std::io::
     encoder.finish()
 }
 
+#[cfg(feature = "compression")]
 /// Extracts body bytes from HttpResponse for size checking
 pub(crate) fn get_response_body_bytes(response: &HttpResponse) -> Option<Vec<u8>> {
     match &response.body {
@@ -148,6 +156,7 @@ pub(crate) fn get_response_body_bytes(response: &HttpResponse) -> Option<Vec<u8>
 ///
 /// **Important**: For compressed content, we should always store as BINARY
 /// since the compressed data is no longer valid text/JSON/HTML
+#[cfg(feature = "compression")]
 pub(crate) fn set_response_body(
     response: &mut HttpResponse,
     compressed_body: Vec<u8>,
@@ -156,6 +165,7 @@ pub(crate) fn set_response_body(
     Ok(())
 }
 
+#[cfg(feature = "compression")]
 pub(crate) fn accepts_gzip_encoding(header: &str) -> bool {
     header
         .split(',')
