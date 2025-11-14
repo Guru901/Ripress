@@ -15,13 +15,7 @@ mod tests {
     #[cfg(feature = "with-wynd")]
     use crate::middlewares::WyndMiddleware;
     use bytes::Bytes;
-    #[cfg(feature = "with-wynd")]
-    use bytes::Bytes;
     use http_body_util::Full;
-    #[cfg(feature = "with-wynd")]
-    use http_body_util::Full;
-    use hyper::Request;
-    #[cfg(feature = "with-wynd")]
     use hyper::Request;
 
     // Helper function to create a Request<Incoming> for testing

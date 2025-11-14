@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e  # Exit on error
 
-cargo test --all  # Run Rust tests
+cargo test --features file-upload,compression,logger,with-wynd --all  # Run Rust tests
 
 mkdir -p public/assets public/scripts
 cd public

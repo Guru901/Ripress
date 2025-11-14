@@ -482,7 +482,7 @@ impl App {
     ///
     /// ## Example
     ///
-    /// ```no_run
+    /// ```ignore
     /// use ripress::{app::App, types::RouterFns};
     /// use wynd::wynd::Wynd;
     ///
