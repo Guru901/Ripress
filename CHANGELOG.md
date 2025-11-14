@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.0.0] - 2025-11-15
+
+- Feature-gated middleware: use_logger() and use_compression() now require their respective features to be enabled
+  - Enable with ripress = { version = "2.0.0", features = ["logger", "compression"] }
+
+- Added three new optional features for modular compilation:
+  - compression - Enables compression middleware (requires flate2)
+  - file-upload - Enables file upload middleware (requires uuid)
+  - logger - Enables logging middleware (requires tracing)
+
+- Updated hyper from 1.7.0 to 1.8.1
+- Fixed unnecessary mutability in exec_pre_middleware helper
+- Enhanced test coverage with server readiness checks
+- Added feature-gated test compilation for modular testing
+
 ## [1.10.0] - 2025-10-19
 
 - Upgraded to hyper 1.7.0
