@@ -294,6 +294,7 @@ pub mod cors;
 /// - **Grafana Loki**: For metrics and alerting
 /// - **DataDog**: Application performance monitoring
 /// - **New Relic**: Real-time monitoring and analytics
+#[cfg(feature = "logger")]
 pub mod logger;
 
 /// File Upload middleware
@@ -967,6 +968,7 @@ pub mod body_limit;
 ///     ..Default::default()
 /// }));
 /// ```
+#[cfg(feature = "compression")]
 pub mod compression;
 
 /// Comprehensive Security Headers (Shield) middleware

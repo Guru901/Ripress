@@ -1350,7 +1350,7 @@ impl HttpRequest {
         self.body.content_type = content_type;
     }
 
-    pub(crate) fn set_binary(&mut self, bytes: Vec<u8>) {
+    pub(crate) fn _set_binary(&mut self, bytes: Vec<u8>) {
         self.body.content_type = RequestBodyType::BINARY;
         self.body.content = RequestBodyContent::BINARY(bytes.into());
     }

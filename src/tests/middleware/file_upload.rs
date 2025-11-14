@@ -1,9 +1,8 @@
 #[cfg(test)]
+#[cfg(feature = "file-upload")]
 mod test {
-    #[cfg(feature = "file-upload")]
     use tempfile::TempDir;
 
-    #[cfg(feature = "file-upload")]
     use crate::{
         middlewares::file_upload::{FileUploadConfiguration, file_upload},
         req::HttpRequest,
@@ -11,7 +10,6 @@ mod test {
     };
 
     #[tokio::test]
-    #[cfg(feature = "file-upload")]
     #[ignore = "abhi ke liye"]
     async fn test_file_upload_single_binary_file() {
         let temp_dir = TempDir::new().unwrap();
@@ -24,7 +22,7 @@ mod test {
         let test_content = b"Hello, this is a test file content!";
 
         // Set binary content using test method
-        req.set_binary(test_content.to_vec());
+        req._set_binary(test_content.to_vec());
         req.set_header("content-type", "application/octet-stream");
 
         let res = HttpResponse::new();
@@ -56,7 +54,6 @@ mod test {
         let _ = std::fs::remove_file(&uploaded_path);
     }
 
-    #[cfg(feature = "file-upload")]
     #[tokio::test]
     async fn test_file_upload_no_files() {
         let temp_dir = TempDir::new().unwrap();
@@ -81,7 +78,7 @@ mod test {
             --{boundary}--\r\n"
         );
 
-        req.set_binary(multipart_data.into_bytes());
+        req._set_binary(multipart_data.into_bytes());
         req.set_header(
             "content-type",
             &format!("multipart/form-data; boundary={}", boundary),
@@ -112,7 +109,6 @@ mod test {
     }
 
     #[tokio::test]
-    #[cfg(feature = "file-upload")]
     async fn test_file_upload_invalid_multipart() {
         let temp_dir = TempDir::new().unwrap();
         let upload_mw = file_upload(Some(FileUploadConfiguration {
@@ -125,7 +121,7 @@ mod test {
         // Create invalid multipart data
         let invalid_data = "This is not valid multipart data";
 
-        req.set_binary(invalid_data.as_bytes().to_vec());
+        req._set_binary(invalid_data.as_bytes().to_vec());
         req.set_header("content-type", "multipart/form-data; boundary=invalid");
 
         let res = HttpResponse::new();
@@ -141,7 +137,6 @@ mod test {
     }
 
     #[tokio::test]
-    #[cfg(feature = "file-upload")]
     async fn test_file_upload_empty_multipart() {
         let temp_dir = TempDir::new().unwrap();
         let upload_mw = file_upload(Some(FileUploadConfiguration {
@@ -155,7 +150,7 @@ mod test {
         let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
         let empty_multipart = format!("--{boundary}--\r\n");
 
-        req.set_binary(empty_multipart.into_bytes());
+        req._set_binary(empty_multipart.into_bytes());
         req.set_header(
             "content-type",
             &format!("multipart/form-data; boundary={}", boundary),
@@ -174,7 +169,6 @@ mod test {
     }
 
     #[tokio::test]
-    #[cfg(feature = "file-upload")]
     async fn test_multipart_with_files_no_middleware() {
         // This test simulates what happens when a multipart form with files is uploaded
         // WITHOUT the file upload middleware. The system should:
@@ -260,7 +254,6 @@ mod test {
     }
 
     #[tokio::test]
-    #[cfg(feature = "file-upload")]
     async fn test_multipart_with_files_request_building() {
         // This test simulates the actual HTTP request building process
         // to verify that our fix works end-to-end

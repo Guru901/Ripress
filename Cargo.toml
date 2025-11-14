@@ -36,7 +36,7 @@ uuid = { version = "1.18.0", features = ["v4"], optional = true }
 infer = "0.19.0"
 flate2 = { version = "1.1.2", optional = true }
 mime_guess = "2.0.5"
-tracing = "0.1.41"
+tracing = { version = "0.1.41", optional = true }
 hyper = "1.8.1"
 hyper-util = { version = "0.1.3", features = ["full"] }
 http-body-util = "0.1.3"
@@ -55,3 +55,4 @@ default = []
 with-wynd = []
 compression = ["flate2"]
 file-upload = ["uuid"]
+logger = ["tracing"]

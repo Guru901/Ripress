@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[cfg(feature = "logger")]
 mod test {
     use crate::{
         middlewares::logger::{LoggerConfig, logger},

@@ -43,6 +43,7 @@ use crate::middlewares::body_limit::body_limit;
 #[cfg(feature = "compression")]
 use crate::middlewares::compression::{CompressionConfig, compression};
 use crate::middlewares::cors::{CorsConfig, cors};
+#[cfg(feature = "logger")]
 use crate::middlewares::logger::{LoggerConfig, logger};
 use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
 use crate::middlewares::shield::{ShieldConfig, shield};
@@ -358,6 +359,7 @@ impl App {
     /// - Includes HTTP method, path, and response status
     /// - Applied to all routes ("/")
     /// - Executed as post-middleware (after route handling)
+    #[cfg(feature = "logger")]
     pub fn use_logger(&mut self, config: Option<LoggerConfig>) -> &mut Self {
         self.middlewares.push(Middleware {
             func: Self::middleware_from_closure(logger(config)),
