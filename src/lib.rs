@@ -44,8 +44,17 @@
 //! - **Type Safety**: Full Rust type safety with compile-time error checking
 //! - **Built-in Middleware**: CORS, logging, compression, rate limiting, and more
 //! - **Request/Response Objects**: Rich APIs for handling HTTP data
-//! - **WebSocket Support**: Real-time communication via the `wynd` crate
+//! - **WebSocket Support**: Real-time communication via the `wynd` crate (optional `with-wynd` feature)
 //! - **Static File Serving**: Built-in support for serving static assets
+//!
+//! ## Optional Features
+//!
+//! Several features are optional and can be enabled to reduce compile time and binary size:
+//!
+//! - **`compression`**: Response compression middleware (gzip/deflate)
+//! - **`file-upload`**: File upload middleware for multipart form data
+//! - **`logger`**: Request/response logging middleware
+//! - **`with-wynd`**: WebSocket support via the `wynd` crate
 //!
 //! ## Advanced Examples
 //!
@@ -252,12 +261,12 @@ pub mod helpers;
 /// # Available Middleware
 ///
 /// - **CORS**: Cross-Origin Resource Sharing configuration
-/// - **Logger**: Request/response logging with customizable output
-/// - **Compression**: Response compression (gzip, deflate)
+/// - **Logger**: Request/response logging with customizable output (requires `logger` feature)
+/// - **Compression**: Response compression (gzip, deflate) (requires `compression` feature)
 /// - **Rate Limiter**: Request rate limiting and throttling
 /// - **Body Limit**: Request body size limiting
 /// - **Shield**: Security headers and protection
-/// - **File Upload**: Multipart form data and file upload handling
+/// - **File Upload**: Multipart form data and file upload handling (requires `file-upload` feature)
 ///
 /// # Examples
 ///

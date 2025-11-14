@@ -58,6 +58,22 @@ Ripress is a web framework inspired by Express.js, designed to bring the familia
 - **WebSocket support** via the `wynd` crate (with "with-wynd" feature)
 - **Extensible architecture** via custom middleware
 
+### Optional Features
+
+Ripress includes several optional features that can be enabled to reduce compile time and binary size:
+
+- **`compression`** - Enables response compression middleware (gzip/deflate) using `flate2`
+- **`file-upload`** - Enables file upload middleware for handling multipart form data using `uuid`
+- **`logger`** - Enables request/response logging middleware using `tracing`
+- **`with-wynd`** - Enables WebSocket support via the `wynd` crate
+
+To enable features, add them to your `Cargo.toml`:
+
+```toml
+[dependencies]
+ripress = { version = "*", features = ["compression", "file-upload", "logger", "with-wynd"] }
+```
+
 ## Goals
 
 - Provide an intuitive and simple API like Express.js
@@ -96,7 +112,13 @@ cargo add ripress
 cargo add tokio --features macros,rt-multi-thread
 ```
 
-This will create a new project with Ripress.
+To enable optional features (compression, file upload, logger, WebSocket support):
+
+```sh
+cargo add ripress --features compression,file-upload,logger,with-wynd
+```
+
+This will create a new project with Ripress and all optional features enabled.
 
 ## Basic Example
 
@@ -126,6 +148,8 @@ async fn handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 ```
 
 ### WebSocket Example
+
+**Note**: This example requires the `with-wynd` feature to be enabled. See [Optional Features](#optional-features) for details.
 
 ```rust
 use ripress::{app::App, types::RouterFns};
@@ -164,6 +188,8 @@ View full blown code examples [here](https://github.com/Guru901/ripress-examples
 
 ## Middleware Example
 
+**Note**: This example requires the `file-upload` feature to be enabled. See [Optional Features](#optional-features) for details.
+
 ```rust
 use ripress::{
     app::App,
@@ -177,7 +203,7 @@ async fn main() {
 
     // Add middleware (pre and post)
     app.use_cors(None)                                    // Pre-middleware
-        .use_pre_middleware("/upload", file_upload(None)) // Pre-middleware
+        .use_pre_middleware("/upload", file_upload(None)) // Pre-middleware (requires file-upload feature)
         .use_post_middleware("/api/", |req, res| async {  // Post-middleware
             println!("API response logged: {} {}", req.method, req.path);
             (req, None)
