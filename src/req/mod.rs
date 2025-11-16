@@ -832,8 +832,6 @@ impl HttpRequest {
             }
         }
 
-        let params = RouteParams::new();
-
         let mut data = RequestData::new();
 
         if let Some(ext_data) = req.extensions().get::<RequestData>() {
@@ -967,7 +965,7 @@ impl HttpRequest {
         let xhr = xhr_header == "XMLHttpRequest";
 
         Ok(HttpRequest {
-            params,
+            params: RouteParams::new(),
             query: query,
             origin_url,
             method,
@@ -1259,13 +1257,11 @@ impl HttpRequest {
                 Full::from(Bytes::from(text.as_bytes().to_vec()))
             }
             RequestBodyContent::FORM(form) => {
-                let form_str = form.to_string();
-
                 builder.headers_mut().unwrap().insert(
                     hyper::header::CONTENT_TYPE,
                     "application/x-www-form-urlencoded".parse()?,
                 );
-                Full::from(Bytes::from(form_str))
+                Full::from(Bytes::from(form.to_string()))
             }
             RequestBodyContent::BINARY(bytes) => {
                 builder.headers_mut().unwrap().insert(
