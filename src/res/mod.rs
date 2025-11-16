@@ -837,11 +837,14 @@ impl HttpResponse {
         let mut headers = ResponseHeaders::new();
 
         for (key, value) in res.headers().iter() {
-            if let Ok(v) = value.to_str() {
-                headers.insert(key.as_str(), v);
+            if key != &SET_COOKIE {
+                if let Ok(v) = value.to_str() {
+                    headers.insert(key.as_str(), v);
+                }
             }
         }
-        for value in res.headers().get_all(SET_COOKIE).iter() {
+
+        for value in res.headers().get_all(SET_COOKIE) {
             if let Ok(v) = value.to_str() {
                 headers.insert("Set-Cookie", v);
             }
