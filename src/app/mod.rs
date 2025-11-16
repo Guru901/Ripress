@@ -70,6 +70,7 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::net::TcpListener;
+use tokio::time::Instant;
 
 pub(crate) mod api_error;
 
@@ -998,6 +999,7 @@ impl App {
         for (path, methods) in &self.routes {
             for (method, handler) in methods {
                 let handler = Arc::clone(handler);
+                let route_path = path.clone();
 
                 let method = match method {
                     HttpMethods::GET => Method::GET,
@@ -1011,8 +1013,12 @@ impl App {
 
                 router = router.add(path, vec![method], move |mut req| {
                     let handler = Arc::clone(&handler);
+                    let route_path = route_path.clone();
 
                     async move {
+                        let route_start = std::time::Instant::now();
+                        
+                        let parse_start = std::time::Instant::now();
                         let mut our_req = match HttpRequest::from_hyper_request(&mut req).await {
                             Ok(r) => r,
                             Err(e) => {
@@ -1021,14 +1027,29 @@ impl App {
                                 ));
                             }
                         };
+                        let parse_duration = parse_start.elapsed();
+                        tracing::debug!(duration_us = parse_duration.as_micros(), path = ?route_path, "route_parse_request");
 
+                        let params_start = std::time::Instant::now();
                         req.params().iter().for_each(|(key, value)| {
                             our_req.set_param(key, value);
                         });
+                        let params_duration = params_start.elapsed();
+                        tracing::debug!(duration_us = params_duration.as_micros(), path = ?route_path, "route_extract_params");
 
+                        let handler_start = std::time::Instant::now();
                         let response = handler(our_req, HttpResponse::new()).await;
+                        let handler_duration = handler_start.elapsed();
+                        tracing::info!(duration_us = handler_duration.as_micros(), path = ?route_path, "route_handler_execution");
 
+                        let convert_start = std::time::Instant::now();
                         let hyper_response = response.to_hyper_response().await;
+                        let convert_duration = convert_start.elapsed();
+                        tracing::debug!(duration_us = convert_duration.as_micros(), path = ?route_path, "route_convert_response");
+                        
+                        let route_duration = route_start.elapsed();
+                        tracing::info!(duration_us = route_duration.as_micros(), path = ?route_path, "route_total");
+                        
                         // Infallible means this can never fail, so unwrap is safe
                         Ok(hyper_response.unwrap())
                     }
@@ -1069,7 +1090,6 @@ impl App {
 
         router = router.err_handler(Self::error_handler);
         let router = router.build().unwrap();
-
         cb();
 
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
@@ -1132,6 +1152,8 @@ impl App {
             loop {
                 match listener.accept().await {
                     Ok((stream, _)) => {
+                        let start: Instant = Instant::now();
+                        tracing::info!("Connection accepted at {:?}", start);
                         let service = Arc::clone(&router_service);
 
                         tokio::task::spawn(async move {
@@ -1152,8 +1174,9 @@ impl App {
                             let connection = builder
                                 .serve_connection(io, request_service)
                                 .with_upgrades();
+                            tracing::info!("Connection served at {:?}", Instant::now());
                             if let Err(err) = connection.await {
-                                eprintln!("Error serving connection: {:?}", err);
+                                tracing::error!("Error serving connection: {:?}", err);
                             }
                         });
                     }

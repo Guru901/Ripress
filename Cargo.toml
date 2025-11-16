@@ -36,17 +36,17 @@ uuid = { version = "1.18.0", features = ["v4"], optional = true }
 infer = "0.19.0"
 flate2 = { version = "1.1.2", optional = true }
 mime_guess = "2.0.5"
-tracing = { version = "0.1.41", optional = true }
+tracing = { version = "0.1.41" }
 hyper = "1.8.1"
 hyper-util = { version = "0.1.3", features = ["full"] }
 http-body-util = "0.1.3"
 hyper-staticfile = "0.10.1"
-wynd = { version = "0.9.6", features = ["with-ripress"] }
+tracing-subscriber = { version = "0.3", features = ["time"] }
+
 
 [dev-dependencies]
 reqwest = { version = "0.12.23", features = ["json"] }
 tempfile = "3.10.1"
-tracing-subscriber = "0.3"
 
 [package.metadata.docs.rs]
 readme = "README.md"
@@ -56,4 +56,7 @@ default = []
 with-wynd = []
 compression = ["flate2"]
 file-upload = ["uuid"]
-logger = ["tracing"]
+# logger = ["tracing"]
+
+[profile.release]
+debug = true

@@ -779,6 +779,9 @@ impl HttpRequest {
     pub(crate) async fn from_hyper_request(
         req: &mut Request<Full<Bytes>>,
     ) -> Result<Self, ApiError> {
+        let total_start = std::time::Instant::now();
+
+        let url_start = std::time::Instant::now();
         let origin_url = match req.uri().authority() {
             Some(authority) => {
                 let scheme = req.uri().scheme_str().unwrap_or("http");
@@ -799,14 +802,16 @@ impl HttpRequest {
                 Url::new(uri_string)
             }
         };
+        let url_duration = url_start.elapsed();
+        tracing::debug!(duration_us = url_duration.as_micros(), "parse_origin_url");
 
+        let query_start = std::time::Instant::now();
         let query_string = req.uri().query().unwrap_or("");
 
         let queries = url::form_urlencoded::parse(query_string.as_bytes())
-            .filter_map(|(key, value)| Some((key.to_string(), value.to_string())))
-            .collect::<HashMap<String, String>>();
+            .filter_map(|(key, value)| Some((key.to_string(), value.to_string())));
 
-        let query = QueryParams::from_map(queries);
+        let query = QueryParams::from_iterator(queries);
         let query_duration = query_start.elapsed();
         tracing::debug!(
             duration_us = query_duration.as_micros(),
@@ -869,10 +874,9 @@ impl HttpRequest {
             data = ext_data.clone();
         }
 
-        let content_type = req
-            .headers()
-            .get(hyper::header::CONTENT_TYPE)
-            .and_then(|val| val.to_str().ok())
+        let body_start = std::time::Instant::now();
+        let content_type = headers
+            .content_type()
             .map(determine_content_type_request)
             .unwrap_or(RequestBodyType::EMPTY);
 
@@ -883,10 +887,19 @@ impl HttpRequest {
             .unwrap_or("http")
             .to_string();
 
+        let body_parse_start = std::time::Instant::now();
         let request_body = match content_type {
             RequestBodyType::FORM => {
                 // Read the full body bytes first, then branch depending on content subtype
+                let collect_start = std::time::Instant::now();
                 let collected = req.body_mut().collect().await?;
+                let collect_duration = collect_start.elapsed();
+                tracing::debug!(
+                    duration_us = collect_duration.as_micros(),
+                    body_type = "FORM",
+                    "collect_body_bytes"
+                );
+
                 let body_bytes = collected.to_bytes();
                 let body_string = std::str::from_utf8(&body_bytes).unwrap_or("").to_string();
                 match FormData::from_query_string(&body_string) {
@@ -898,9 +911,18 @@ impl HttpRequest {
                 }
             }
             RequestBodyType::MultipartForm => {
+                let collect_start = std::time::Instant::now();
                 let collected = req.body_mut().collect().await?;
+                let collect_duration = collect_start.elapsed();
+                tracing::debug!(
+                    duration_us = collect_duration.as_micros(),
+                    body_type = "MultipartForm",
+                    "collect_body_bytes"
+                );
+
                 let body_bytes = collected.to_bytes();
-                {
+                let parse_start = std::time::Instant::now();
+                let request_body = {
                     // Get content type header to extract boundary
                     let content_type_header = req
                         .headers()
@@ -956,34 +978,67 @@ impl HttpRequest {
                         // No files: just use form data
                         RequestBody::new_form(form_data)
                     }
-                }
+                };
+                let parse_duration = parse_start.elapsed();
+                tracing::debug!(
+                    duration_us = parse_duration.as_micros(),
+                    "parse_multipart_form"
+                );
+                request_body
             }
             RequestBodyType::JSON => {
+                let collect_start = std::time::Instant::now();
                 let collected = req.body_mut().collect().await?;
+                let collect_duration = collect_start.elapsed();
+                tracing::debug!(
+                    duration_us = collect_duration.as_micros(),
+                    body_type = "JSON",
+                    "collect_body_bytes"
+                );
+
                 let body_bytes = collected.to_bytes();
+                let parse_start = std::time::Instant::now();
                 let body_json = {
-                    let s = match std::str::from_utf8(&body_bytes) {
-                        Ok(s) => s,
-                        Err(_) => "",
-                    };
-                    match serde_json::from_str::<serde_json::Value>(s) {
+                    match serde_json::from_slice::<serde_json::Value>(&body_bytes) {
                         Ok(json) => json,
                         Err(_) => Value::Null,
                     }
                 };
+                let parse_duration = parse_start.elapsed();
+                tracing::debug!(duration_us = parse_duration.as_micros(), "parse_json_body");
 
                 RequestBody::new_json(body_json)
             }
             RequestBodyType::TEXT => {
+                let collect_start = std::time::Instant::now();
                 let collected = req.body_mut().collect().await?;
+                let collect_duration = collect_start.elapsed();
+                tracing::debug!(
+                    duration_us = collect_duration.as_micros(),
+                    body_type = "TEXT",
+                    "collect_body_bytes"
+                );
+
                 let body_bytes = collected.to_bytes();
-                match TextData::from_bytes(body_bytes.as_ref().to_vec()) {
+                let parse_start = std::time::Instant::now();
+                let request_body = match TextData::from_bytes(body_bytes.as_ref().to_vec()) {
                     Ok(text) => RequestBody::new_text(text),
                     Err(_) => RequestBody::new_binary(body_bytes),
-                }
+                };
+                let parse_duration = parse_start.elapsed();
+                tracing::debug!(duration_us = parse_duration.as_micros(), "parse_text_body");
+                request_body
             }
             RequestBodyType::BINARY => {
+                let collect_start = std::time::Instant::now();
                 let collected = req.body_mut().collect().await?;
+                let collect_duration = collect_start.elapsed();
+                tracing::debug!(
+                    duration_us = collect_duration.as_micros(),
+                    body_type = "BINARY",
+                    "collect_body_bytes"
+                );
+
                 let body_bytes = collected.to_bytes();
                 RequestBody::new_binary(body_bytes)
             }
@@ -992,10 +1047,26 @@ impl HttpRequest {
                 content_type: RequestBodyType::EMPTY,
             },
         };
+        let body_parse_duration = body_parse_start.elapsed();
+        tracing::debug!(
+            duration_us = body_parse_duration.as_micros(),
+            "parse_request_body"
+        );
+        let body_duration = body_start.elapsed();
+        tracing::debug!(
+            duration_us = body_duration.as_micros(),
+            "total_body_processing"
+        );
 
         let is_secure = protocol == String::from("https");
         let xhr_header = headers.get("X-Requested-With").unwrap_or("");
         let xhr = xhr_header == "XMLHttpRequest";
+
+        let total_duration = total_start.elapsed();
+        tracing::info!(
+            duration_us = total_duration.as_micros(),
+            "HttpRequest::from_hyper_request"
+        );
 
         Ok(HttpRequest {
             params,

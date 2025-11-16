@@ -43,13 +43,20 @@ impl RequestHeaders {
         }
     }
 
+    /// Creates a `RequestHeaders` instance with pre-allocated capacity.
+    pub(crate) fn with_capacity(capacity: usize) -> Self {
+        Self {
+            inner: HashMap::with_capacity(capacity),
+        }
+    }
+
     /// Creates a `RequestHeaders` instance from a `HashMap<String, String>`.
     ///
     /// Each header in the map will be stored with a single value.
     /// Primarily intended for internal use.
 
     pub(crate) fn _from_map(map: HashMap<String, String>) -> Self {
-        let mut headers = Self::new();
+        let mut headers = Self::with_capacity(map.len());
         for (key, value) in map {
             headers.insert(key, value);
         }

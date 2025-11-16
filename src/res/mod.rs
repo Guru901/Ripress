@@ -860,8 +860,10 @@ impl HttpResponse {
     }
 
     pub(crate) async fn to_hyper_response(self) -> Result<Response<Full<Bytes>>, Infallible> {
+        let total_start = std::time::Instant::now();
         let body = self.body;
         if self.is_stream {
+            let stream_start = std::time::Instant::now();
             let mut response = Response::builder().status(self.status_code.as_u16());
             response = response.header("Content-Type", "text/event-stream");
 
@@ -915,7 +917,14 @@ impl HttpResponse {
             }
 
             // Collect the stream into a single Bytes value (async)
+            let collect_start = std::time::Instant::now();
             let collected_results: Vec<Result<Bytes, ResponseError>> = self.stream.collect().await;
+            let collect_duration = collect_start.elapsed();
+            tracing::debug!(
+                duration_us = collect_duration.as_micros(),
+                "response_collect_stream"
+            );
+
             let bytes = collected_results
                 .into_iter()
                 .collect::<Result<Vec<Bytes>, _>>()
@@ -935,16 +944,37 @@ impl HttpResponse {
                     .headers_mut()
                     .insert(header_name, header_value);
             }
+            let stream_duration = stream_start.elapsed();
+            tracing::debug!(
+                duration_us = stream_duration.as_micros(),
+                "response_build_stream"
+            );
+
+            let total_duration = total_start.elapsed();
+            tracing::debug!(
+                duration_us = total_duration.as_micros(),
+                response_type = "stream",
+                "HttpResponse::to_hyper_response"
+            );
 
             return Ok(hyper_response);
         } else {
+            let build_start = std::time::Instant::now();
             let mut response = match body {
-                ResponseContentBody::JSON(json) => Response::builder()
-                    .status(self.status_code.as_u16())
-                    .header("Content-Type", self.content_type.as_str())
-                    .body(Full::from(Bytes::from(
-                        serde_json::to_string(&json).unwrap(),
-                    ))),
+                ResponseContentBody::JSON(json) => {
+                    let serialize_start = std::time::Instant::now();
+                    let json_str = serde_json::to_string(&json).unwrap();
+                    let serialize_duration = serialize_start.elapsed();
+                    tracing::debug!(
+                        duration_us = serialize_duration.as_micros(),
+                        "response_serialize_json"
+                    );
+
+                    Response::builder()
+                        .status(self.status_code.as_u16())
+                        .header("Content-Type", self.content_type.as_str())
+                        .body(Full::from(Bytes::from(json_str)))
+                }
                 ResponseContentBody::TEXT(text) => Response::builder()
                     .status(self.status_code.as_u16())
                     .header("Content-Type", self.content_type.as_str())
@@ -960,6 +990,13 @@ impl HttpResponse {
             }
             .unwrap();
 
+            let build_duration = build_start.elapsed();
+            tracing::debug!(
+                duration_us = build_duration.as_micros(),
+                "response_build_base"
+            );
+
+            let headers_start = std::time::Instant::now();
             for (key, value) in self.headers.iter() {
                 if key.eq_ignore_ascii_case("content-type") {
                     // Already set via `.header("Content-Type", ...)` above; skip duplicates
@@ -971,7 +1008,13 @@ impl HttpResponse {
                     HeaderValue::from_str(value).unwrap(),
                 );
             }
+            let headers_duration = headers_start.elapsed();
+            tracing::debug!(
+                duration_us = headers_duration.as_micros(),
+                "response_set_headers"
+            );
 
+            let cookies_start = std::time::Instant::now();
             self.cookies.iter().for_each(|c| {
                 let mut cookie_builder = cookie::Cookie::build((c.name, c.value))
                     .http_only(c.options.http_only)
@@ -1003,6 +1046,11 @@ impl HttpResponse {
                     HeaderValue::from_str(&cookie.to_string()).unwrap(),
                 );
             });
+            let cookies_duration = cookies_start.elapsed();
+            tracing::debug!(
+                duration_us = cookies_duration.as_micros(),
+                "response_set_cookies"
+            );
 
             self.remove_cookies.iter().for_each(|key| {
                 let expired_cookie = cookie::Cookie::build((key.to_owned(), ""))
@@ -1014,6 +1062,13 @@ impl HttpResponse {
                     HeaderValue::from_str(&expired_cookie.to_string()).unwrap(),
                 );
             });
+
+            let total_duration = total_start.elapsed();
+            tracing::debug!(
+                duration_us = total_duration.as_micros(),
+                response_type = "regular",
+                "HttpResponse::to_hyper_response"
+            );
 
             return Ok(response);
         }

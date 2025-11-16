@@ -20,22 +20,41 @@ pub(crate) async fn exec_pre_middleware(
     middleware: Middleware,
 ) -> Result<Request<Full<Bytes>>, ApiError> {
     let mw_func = middleware.func;
+    let mw_path = middleware.path.clone();
 
     if path_matches(middleware.path.as_str(), req.uri().path()) {
+        let mw_start = std::time::Instant::now();
         let our_res = HttpResponse::new();
 
         // Work with the original Incoming request directly
+        let parse_start = std::time::Instant::now();
         let our_req = HttpRequest::from_hyper_request(&mut req)
             .await
             .map_err(ApiError::from)?;
+        let parse_duration = parse_start.elapsed();
+        tracing::debug!(duration_us = parse_duration.as_micros(), path = ?mw_path, "pre_middleware_parse_request");
 
+        let exec_start = std::time::Instant::now();
         let (modified_req, maybe_res) = mw_func(our_req, our_res).await;
+        let exec_duration = exec_start.elapsed();
+        tracing::info!(duration_us = exec_duration.as_micros(), path = ?mw_path, "pre_middleware_execution");
 
+        let convert_start = std::time::Instant::now();
         match maybe_res {
             None => {
-                return Ok(modified_req.to_hyper_request()?);
+                let hyper_req = modified_req.to_hyper_request()?;
+                let convert_duration = convert_start.elapsed();
+                tracing::debug!(duration_us = convert_duration.as_micros(), path = ?mw_path, "pre_middleware_convert_request");
+
+                let mw_duration = mw_start.elapsed();
+                tracing::info!(duration_us = mw_duration.as_micros(), path = ?mw_path, "pre_middleware_total");
+
+                return Ok(hyper_req);
             }
             Some(res) => {
+                let mw_duration = mw_start.elapsed();
+                tracing::info!(duration_us = mw_duration.as_micros(), path = ?mw_path, early_return = true, "pre_middleware_total");
+
                 return Err(ApiError::Generic(res));
             }
         }
@@ -50,7 +69,10 @@ pub(crate) async fn exec_post_middleware(
     info: RequestInfo,
 ) -> Result<Response<Full<Bytes>>, ApiError> {
     let mw_func = middleware.func;
+    let mw_path = middleware.path.clone();
+    let mw_start = std::time::Instant::now();
 
+    let parse_start = std::time::Instant::now();
     let mut our_req = HttpRequest::from_request_info(&info);
 
     if let Some(data) = info.data::<routerify_ng::RouteParams>() {
@@ -58,7 +80,10 @@ pub(crate) async fn exec_post_middleware(
             our_req.set_param(key, value);
         });
     }
+    let parse_duration = parse_start.elapsed();
+    tracing::debug!(duration_us = parse_duration.as_micros(), path = ?mw_path, "post_middleware_parse_request");
 
+    let convert_start = std::time::Instant::now();
     let our_res = match HttpResponse::from_hyper_response(&mut res).await {
         Ok(res) => res,
         Err(e) => {
@@ -69,14 +94,30 @@ pub(crate) async fn exec_post_middleware(
             ));
         }
     };
+    let convert_duration = convert_start.elapsed();
+    tracing::debug!(duration_us = convert_duration.as_micros(), path = ?mw_path, "post_middleware_convert_response");
 
+    let exec_start = std::time::Instant::now();
     let (_, maybe_res) = mw_func(our_req, our_res).await;
+    let exec_duration = exec_start.elapsed();
+    tracing::info!(duration_us = exec_duration.as_micros(), path = ?mw_path, "post_middleware_execution");
 
+    let convert_back_start = std::time::Instant::now();
     match maybe_res {
-        None => Ok(res),
+        None => {
+            let mw_duration = mw_start.elapsed();
+            tracing::info!(duration_us = mw_duration.as_micros(), path = ?mw_path, modified = false, "post_middleware_total");
+            Ok(res)
+        }
         Some(res) => {
             // Infallible means this can never fail, so unwrap is safe
             let hyper_res = res.to_hyper_response().await.unwrap();
+            let convert_back_duration = convert_back_start.elapsed();
+            tracing::debug!(duration_us = convert_back_duration.as_micros(), path = ?mw_path, "post_middleware_convert_back");
+
+            let mw_duration = mw_start.elapsed();
+            tracing::info!(duration_us = mw_duration.as_micros(), path = ?mw_path, modified = true, "post_middleware_total");
+
             return Ok(hyper_res);
         }
     }

@@ -122,6 +122,14 @@ impl QueryParams {
         Self { inner: params }
     }
 
+    pub fn from_iterator(iterator: impl Iterator<Item = (String, String)>) -> Self {
+        let mut params = HashMap::new();
+        for (key, value) in iterator {
+            params.insert(key, vec![value]);
+        }
+        Self { inner: params }
+    }
+
     /// Parse query parameters from a query string
     /// Example: "q=rust&tags=web&tags=backend&page=1&active=true"
     pub fn from_query_string(query_string: &str) -> Self {
