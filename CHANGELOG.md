@@ -1,5 +1,49 @@
 # Changelog
 
+## [2.0.2] - 2025-11-17
+
+- Performance Improvements
+  - Request Handling
+    - Optimized header parsing with pre-allocated capacity and single-pass construction (#133)
+      - Headers are now built in a single pass with no intermediate HashMap allocations
+      - Added RequestHeaders::with_capacity() for efficient pre-allocation
+
+    - Optimized cookie extraction with inline parsing
+      - Replaced private cookie extraction function with inline parsing directly from headers
+      - Eliminates unnecessary function calls and intermediate allocations
+
+    - Improved IP address extraction
+      - More robust single-pass parsing of X-Forwarded-For header
+      - Better fallback handling to 127.0.0.1
+  
+    - Optimized body handling across all content types
+      - Minimized allocations for FORM, MULTIPART_FORM, JSON, TEXT, and BINARY types
+      - Uses from_slice for JSON parsing
+      - Reuses pre-serialized strings where applicable
+
+  - Response Handling
+    - Optimized JSON response serialization
+      - JSON is now serialized once and reused, reducing duplicate serialization overhead
+
+    - Improved Set-Cookie header handling
+      - Set-Cookie headers are now processed separately and aggregated efficiently
+      - Prevents header overwrites and ensures all cookies are preserved
+
+    - Fixed streaming response handling
+      - Properly sets transfer-encoding: chunked header
+      - Removes Content-Length header for streamed responses
+      - Safe concatenation of stream chunks
+
+    - Query Parameters
+      - Pre-allocated HashMap in QueryParams::from_map() (#133)
+      - Allocates the internal HashMap with exact capacity, reducing reallocation overhead
+      
+- Internal Improvements
+  - Refactored middleware execution for clearer control flow (#133)
+  - Explicit request construction in exec_pre_middleware None branch
+  - Removed unnecessary blank line in exec_post_middleware
+
+
 ## [2.0.0] - 2025-11-15
 
 - Feature-gated middleware: use_logger() and use_compression() now require their respective features to be enabled
