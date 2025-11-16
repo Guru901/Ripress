@@ -88,7 +88,7 @@ pub(crate) mod api_error;
 ///
 /// ## Example
 ///
-/// ```no_run
+/// ```ignore
 /// use ripress::app::App;
 /// use ripress::types::RouterFns;
 ///

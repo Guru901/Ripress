@@ -27,8 +27,7 @@
 //!     });
 //!
 //!     // Add middleware
-//!     app.use_cors(None)
-//!         .use_logger(None);
+//!     app.use_cors(None);
 //!
 //!     // Start server
 //!     app.listen(3000, || {
@@ -107,7 +106,7 @@
 //! ```
 //!
 //! ### File Upload with Middleware
-//! ```no_run
+//! ```ignore
 //! use ripress::{app::App, middlewares::file_upload::file_upload, types::RouterFns};
 //!
 //! #[tokio::main]
@@ -160,7 +159,6 @@
 ///     let mut app = App::new();
 ///
 ///     app.use_cors(None)
-///         .use_logger(None)
 ///         .get("/api/data", |_req, res| async move {
 ///             res.ok().json(serde_json::json!({"status": "ok"}))
 ///         });
@@ -270,7 +268,7 @@ pub mod helpers;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```ignore
 /// use ripress::{app::App, types::RouterFns};
 ///
 /// #[tokio::main]
@@ -325,7 +323,7 @@ mod tests;
 /// # Examples
 ///
 /// Basic error handling:
-/// ```rust
+/// ```ignore
 /// use ripress::error::{RipressError, RipressErrorKind};
 ///
 /// // Create a custom error

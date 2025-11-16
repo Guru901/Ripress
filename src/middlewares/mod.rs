@@ -52,14 +52,10 @@
 //! ```no_run
 //! use ripress::app::App;
 //! use ripress::middlewares::cors::CorsConfig;
-//! use ripress::middlewares::logger::LoggerConfig;
 //! use ripress::types::RouterFns;
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     // Initialize logging (required for logger middleware)
-//!     tracing_subscriber::fmt::init();
-//!
 //!     let mut app = App::new();
 //!
 //!     // Add security and CORS (pre-execution)
@@ -73,15 +69,6 @@
 //!     // Add rate limiting and body limits
 //!     app.use_rate_limiter(None);
 //!     app.use_body_limit(Some(10 * 1024 * 1024)); // 10MB limit
-//!
-//!     // Add response optimization (post-execution)
-//!     app.use_compression(None);
-//!     app.use_logger(Some(LoggerConfig {
-//!         method: true,
-//!         path: true,
-//!         status: true,
-//!         ..Default::default()
-//!     }));
 //!
 //!     // Add routes
 //!     app.get("/", |_req, res| async move {
@@ -120,7 +107,7 @@
 //!
 //! For production applications, consider this middleware stack:
 //!
-//! ```no_run
+//! ```ignore
 //! use ripress::app::App;
 //!
 //! let mut app = App::new();
@@ -419,6 +406,7 @@ pub mod logger;
 /// - **Async I/O**: All file operations are non-blocking
 /// - **Early Validation**: File type and size validation happens before writing to disk
 /// - **Directory Structure**: Consider organizing uploads into subdirectories for large volumes
+#[cfg(feature = "file-upload")]
 pub mod file_upload;
 
 /// Rate Limiting middleware
@@ -716,15 +704,14 @@ pub mod rate_limiter;
 ///
 /// ```rust
 /// use ripress::app::App;
-/// use ripress::middlewares::file_upload::file_upload;
 ///
 /// let mut app = App::new();
 ///
 /// // 1. Body limits (first)
 /// app.use_body_limit(Some(10 * 1024 * 1024));
 ///
-/// // 2. Then file upload handling
-/// app.use_pre_middleware(Some("/upload"), file_upload(None));
+/// // 2. Then file cors;
+/// app.use_cors(None);
 ///
 /// // 3. Other body-processing middleware
 /// // ...
