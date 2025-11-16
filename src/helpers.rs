@@ -20,7 +20,6 @@ pub(crate) async fn exec_pre_middleware(
     middleware: Middleware,
 ) -> Result<Request<Full<Bytes>>, ApiError> {
     let mw_func = middleware.func;
-    let mw_path = middleware.path.clone();
 
     if path_matches(middleware.path.as_str(), req.uri().path()) {
         let our_res = HttpResponse::new();
@@ -52,7 +51,6 @@ pub(crate) async fn exec_post_middleware(
     info: RequestInfo,
 ) -> Result<Response<Full<Bytes>>, ApiError> {
     let mw_func = middleware.func;
-    let mw_path = middleware.path.clone();
 
     let mut our_req = HttpRequest::from_request_info(&info);
 

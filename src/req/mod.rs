@@ -300,7 +300,7 @@ use crate::{
 use bytes::Bytes;
 use cookie::Cookie;
 use http_body_util::{BodyExt, Full};
-use hyper::{Request, body::Body, header::HOST};
+use hyper::{Request, header::HOST};
 use mime::Mime;
 use routerify_ng::RequestInfo;
 use serde_json::Value;
@@ -742,22 +742,6 @@ impl HttpRequest {
 
     pub(crate) fn set_param(&mut self, key: &str, value: &str) {
         self.params.insert(key.to_string(), value.to_string());
-    }
-
-    fn get_cookies_from_req<T: Body + 'static>(req: &Request<T>) -> Vec<Cookie<'_>> {
-        let mut cookies = Vec::new();
-
-        if let Some(header_value) = req.headers().get("cookie") {
-            if let Ok(header_str) = header_value.to_str() {
-                for cookie_str in header_str.split(';') {
-                    if let Ok(cookie) = Cookie::parse(cookie_str.trim()) {
-                        cookies.push(cookie);
-                    }
-                }
-            }
-        }
-
-        cookies
     }
 
     fn get_cookies_from_req_info(req: &RequestInfo) -> Vec<Cookie<'_>> {

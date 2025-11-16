@@ -115,13 +115,14 @@ impl QueryParams {
 
     /// Create QueryParams from a single-value HashMap (for backward compatibility)
     pub fn from_map(map: HashMap<String, String>) -> Self {
-        let mut params = HashMap::new();
+        let mut params = HashMap::with_capacity(map.len());
         for (key, value) in map {
             params.insert(key, vec![value]);
         }
         Self { inner: params }
     }
 
+    /// Create QueryParams from an iterator of key-value pairs
     pub fn from_iterator(iterator: impl Iterator<Item = (String, String)>) -> Self {
         let mut params = HashMap::new();
         for (key, value) in iterator {

@@ -70,7 +70,6 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio::time::Instant;
 
 pub(crate) mod api_error;
 
@@ -1132,8 +1131,6 @@ impl App {
             loop {
                 match listener.accept().await {
                     Ok((stream, _)) => {
-                        let start: Instant = Instant::now();
-                        tracing::info!("Connection accepted at {:?}", start);
                         let service = Arc::clone(&router_service);
 
                         tokio::task::spawn(async move {
@@ -1154,9 +1151,8 @@ impl App {
                             let connection = builder
                                 .serve_connection(io, request_service)
                                 .with_upgrades();
-                            tracing::info!("Connection served at {:?}", Instant::now());
                             if let Err(err) = connection.await {
-                                tracing::error!("Error serving connection: {:?}", err);
+                                eprintln!("Error serving connection: {:?}", err);
                             }
                         });
                     }

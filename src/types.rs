@@ -28,6 +28,7 @@ impl ResponseContentBody {
     /// - JSON: returns the length of the compact serialized form
     /// - BINARY: returns `Bytes::len()`
 
+    #[cfg(feature = "logger")]
     pub fn len(&self) -> usize {
         match self {
             ResponseContentBody::TEXT(text) => text.len(),
