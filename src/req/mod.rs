@@ -807,40 +807,59 @@ impl HttpRequest {
             .collect::<HashMap<String, String>>();
 
         let query = QueryParams::from_map(queries);
+        let query_duration = query_start.elapsed();
+        tracing::debug!(
+            duration_us = query_duration.as_micros(),
+            "parse_query_params"
+        );
 
+        let headers_start = std::time::Instant::now();
         let method = HttpMethods::from(req.method());
 
         let ip = req
             .headers()
             .get("X-Forwarded-For")
             .and_then(|val| val.to_str().ok())
-            .map(|s| s.split(',').next().unwrap_or("").trim().to_string())
-            .unwrap_or(String::new());
-
-        let ip = match ip.parse::<IpAddr>() {
-            Ok(ip) => ip,
-            Err(_) => IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-        };
+            .and_then(|s| s.split(',').next().map(|s| s.trim()))
+            .and_then(|s| s.parse::<IpAddr>().ok())
+            .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
 
         let path = req.uri().path().to_string();
 
-        let mut cookies_map = HashMap::new();
-        let cookies = Self::get_cookies_from_req(&req);
+        // Optimize: Build RequestHeaders directly with pre-allocated capacity
+        let header_count = req.headers().len();
+        let mut headers = RequestHeaders::with_capacity(header_count);
 
-        cookies.iter().for_each(|cookie| {
-            let (name, value) = (cookie.name(), cookie.value());
-            cookies_map.insert(name.to_string(), value.to_string());
-        });
-
-        let mut headers: HashMap<String, String> = HashMap::new();
-
-        req.headers().iter().for_each(|(key, value)| {
+        // Single pass: build headers directly, no intermediate HashMap
+        for (key, value) in req.headers().iter() {
             if let Ok(header_value) = value.to_str() {
-                headers.insert(key.to_string(), header_value.to_string());
+                // Direct insert - avoids intermediate allocations
+                headers.insert(key.as_str(), header_value);
             }
-        });
+        }
 
-        let headers = RequestHeaders::_from_map(headers);
+        // Optimize: Parse cookies directly without intermediate Vec<Cookie>
+        let mut cookies_map = HashMap::new();
+        if let Some(cookie_header) = req.headers().get("cookie") {
+            if let Ok(cookie_str) = cookie_header.to_str() {
+                for cookie_part in cookie_str.split(';') {
+                    let trimmed = cookie_part.trim();
+                    if let Some(equal_pos) = trimmed.find('=') {
+                        let name = trimmed[..equal_pos].trim();
+                        let value = trimmed[equal_pos + 1..].trim();
+                        if !name.is_empty() {
+                            cookies_map.insert(name.to_string(), value.to_string());
+                        }
+                    }
+                }
+            }
+        }
+
+        let headers_duration = headers_start.elapsed();
+        tracing::debug!(
+            duration_us = headers_duration.as_micros(),
+            "parse_headers_and_cookies"
+        );
 
         let params = RouteParams::new();
 
