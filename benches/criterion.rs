@@ -1,7 +1,9 @@
 use std::{hint::black_box, process::Command};
 
+use bytes::Bytes;
 use criterion::{Criterion, criterion_group, criterion_main};
-use ripress::{app::App, types::RouterFns};
+use http_body_util::Full;
+use hyper::Request;
 
 async fn bench_once() {
     for _ in 1..5000000 {

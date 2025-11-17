@@ -60,3 +60,7 @@ logger = ["tracing"]
 
 [profile.release]
 debug = true
+
+[[bench]]
+name = "criterion"
+harness = false
