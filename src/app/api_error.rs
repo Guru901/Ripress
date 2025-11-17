@@ -3,7 +3,7 @@ use crate::res::HttpResponse;
 use std::convert::Infallible;
 
 #[derive(Debug)]
-pub(crate) enum ApiError {
+pub enum ApiError {
     Generic(HttpResponse),
 }
 
