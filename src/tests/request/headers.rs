@@ -1,27 +1,27 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use hyper::HeaderMap;
 
     use crate::req::request_headers::RequestHeaders;
 
     #[test]
     fn test_headers_from_map() {
-        let mut map = HashMap::new();
-        map.insert("id".to_string(), "123".to_string());
-        map.insert("name".to_string(), "test".to_string());
+        let mut map = HeaderMap::new();
+        map.insert("id", "123".parse().unwrap());
+        map.insert("name", "test".parse().unwrap());
 
-        let headers = RequestHeaders::_from_map(map);
+        let headers = RequestHeaders::from_header_map(map);
         assert_eq!(headers.get("id"), Some("123"));
         assert_eq!(headers.get("name"), Some("test"));
     }
 
     #[test]
     fn test_headers_remove() {
-        let mut map = HashMap::new();
-        map.insert("id".to_string(), "123".to_string());
-        map.insert("name".to_string(), "test".to_string());
+        let mut map = HeaderMap::new();
+        map.insert("id", "123".parse().unwrap());
+        map.insert("name", "test".parse().unwrap());
 
-        let mut headers = RequestHeaders::_from_map(map);
+        let mut headers = RequestHeaders::from_header_map(map);
 
         headers.remove("id");
 
@@ -30,11 +30,11 @@ mod tests {
 
     #[test]
     fn test_headers_contains_key() {
-        let mut map = HashMap::new();
-        map.insert("id".to_string(), "123".to_string());
-        map.insert("name".to_string(), "test".to_string());
+        let mut map = HeaderMap::new();
+        map.insert("id", "123".parse().unwrap());
+        map.insert("name", "test".parse().unwrap());
 
-        let headers = RequestHeaders::_from_map(map);
+        let headers = RequestHeaders::from_header_map(map);
 
         assert_eq!(headers.contains_key("id"), true);
         assert_eq!(headers.contains_key("name"), true);
@@ -57,7 +57,7 @@ mod tests {
         headers.insert("Accept", "text/html");
         headers.append("Accept", "application/json");
 
-        let all_values = headers.get_all("accept").unwrap();
+        let all_values: Vec<&str> = headers.get_all("accept").collect();
         assert_eq!(all_values.len(), 2);
         assert_eq!(headers.get("accept"), Some("text/html")); // First value
     }

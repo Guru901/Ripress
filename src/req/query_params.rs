@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
+use ahash::AHashMap;
+
 use crate::error::RipressError;
 
 /// Query parameters from URL query string with support for multiple values
@@ -11,7 +13,7 @@ use crate::error::RipressError;
 pub struct QueryParams {
     /// Internal storage: parameter name -> list of values
     /// Supports multiple values for the same parameter (e.g., multiple tags)
-    pub(crate) inner: HashMap<String, Vec<String>>,
+    pub(crate) inner: AHashMap<String, Vec<String>>,
 }
 
 /// Error type for query parameter parsing and retrieval failures.
@@ -109,13 +111,13 @@ impl QueryParams {
     /// Create a new empty QueryParams
     pub fn new() -> Self {
         Self {
-            inner: HashMap::new(),
+            inner: AHashMap::new(),
         }
     }
 
     /// Create QueryParams from a single-value HashMap (for backward compatibility)
     pub fn from_map(map: HashMap<String, String>) -> Self {
-        let mut params = HashMap::with_capacity(map.len());
+        let mut params = AHashMap::with_capacity(map.len());
         for (key, value) in map {
             params.insert(key, vec![value]);
         }
@@ -124,7 +126,7 @@ impl QueryParams {
 
     /// Create QueryParams from an iterator of key-value pairs
     pub fn from_iterator(iterator: impl Iterator<Item = (String, String)>) -> Self {
-        let mut params = HashMap::new();
+        let mut params = AHashMap::new();
         for (key, value) in iterator {
             params.insert(key, vec![value]);
         }
@@ -134,7 +136,7 @@ impl QueryParams {
     /// Parse query parameters from a query string
     /// Example: "q=rust&tags=web&tags=backend&page=1&active=true"
     pub fn from_query_string(query_string: &str) -> Self {
-        let mut params = HashMap::new();
+        let mut params = AHashMap::new();
 
         if query_string.is_empty() {
             return Self { inner: params };

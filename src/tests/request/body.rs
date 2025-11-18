@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
+    use ahash::AHashMap;
     use bytes::Bytes;
     use serde_json::json;
-    use std::collections::hash_map::HashMap;
 
     use crate::{
         error::{RipressError, RipressErrorKind},
@@ -647,12 +647,12 @@ mod tests {
 
     #[test]
     fn test_from_hashmap_and_into_hashmap() {
-        let mut map = HashMap::new();
+        let mut map = AHashMap::new();
         map.insert("k1".to_string(), "v1".to_string());
         map.insert("k2".to_string(), "v2".to_string());
 
         let form: FormData = map.clone().into();
-        let back: HashMap<String, String> = form.into();
+        let back: AHashMap<String, String> = form.into();
         assert_eq!(map, back);
     }
 

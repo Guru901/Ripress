@@ -1,5 +1,6 @@
 #![warn(missing_docs)]
-use std::{collections::HashMap, fmt::Display};
+use ahash::AHashMap;
+use std::fmt::Display;
 use urlencoding::decode;
 
 /// A convenient wrapper around `HashMap<String, String>` for handling form data.
@@ -27,7 +28,7 @@ use urlencoding::decode;
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FormData {
-    pub(crate) inner: HashMap<String, String>,
+    pub(crate) inner: AHashMap<String, String>,
 }
 
 impl FormData {
@@ -43,7 +44,7 @@ impl FormData {
     /// ```
     pub fn new() -> Self {
         FormData {
-            inner: HashMap::new(),
+            inner: AHashMap::new(),
         }
     }
 
@@ -59,7 +60,7 @@ impl FormData {
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
         FormData {
-            inner: HashMap::with_capacity(capacity),
+            inner: AHashMap::with_capacity(capacity),
         }
     }
 
@@ -147,7 +148,7 @@ impl FormData {
     /// let map = form.as_map();
     /// assert!(map.is_empty());
     /// ```
-    pub fn as_map(&self) -> &HashMap<String, String> {
+    pub fn as_map(&self) -> &AHashMap<String, String> {
         &self.inner
     }
 
@@ -270,7 +271,7 @@ impl FormData {
     /// let form = FormData::from_map(map);
     /// assert_eq!(form.get("key"), Some("value"));
     /// ```
-    pub fn from_map(map: HashMap<String, String>) -> Self {
+    pub fn from_map(map: AHashMap<String, String>) -> Self {
         Self { inner: map }
     }
 
@@ -545,13 +546,13 @@ impl Display for FormData {
     }
 }
 
-impl From<HashMap<String, String>> for FormData {
-    fn from(map: HashMap<String, String>) -> Self {
+impl From<AHashMap<String, String>> for FormData {
+    fn from(map: AHashMap<String, String>) -> Self {
         Self::from_map(map)
     }
 }
 
-impl From<FormData> for HashMap<String, String> {
+impl From<FormData> for AHashMap<String, String> {
     fn from(form_data: FormData) -> Self {
         form_data.inner
     }

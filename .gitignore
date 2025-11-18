@@ -8,3 +8,4 @@ tests/test-results/
 .idea/modules.xml
 .idea/ripress.iml
 .idea/vcs.xml
+profile.json.gz

@@ -297,6 +297,7 @@ use crate::{
     req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
     types::{HttpMethods, ResponseContentType},
 };
+use ahash::AHashMap;
 use bytes::Bytes;
 use cookie::Cookie;
 use http_body_util::{BodyExt, Full};
@@ -412,7 +413,7 @@ pub struct HttpRequest {
     pub headers: RequestHeaders,
 
     /// The request's cookies
-    pub(crate) cookies: HashMap<String, String>,
+    pub(crate) cookies: AHashMap<String, String>,
 
     /// The Data set by middleware in the request to be used in the route handler
     pub data: RequestData,
@@ -458,7 +459,7 @@ impl HttpRequest {
                 content: RequestBodyContent::EMPTY,
                 content_type: RequestBodyType::EMPTY,
             },
-            cookies: HashMap::new(),
+            cookies: AHashMap::new(),
             xhr: false,
             is_secure: false,
         }
@@ -789,47 +790,54 @@ impl HttpRequest {
         let method = HttpMethods::from(req.method());
         let path = req.uri().path().to_string();
 
-        // OPTIMIZATION: Single pass through headers - extract everything we need at once
-        let header_count = req.headers().len();
-        let mut headers = RequestHeaders::with_capacity(header_count);
+        // Extract header values BEFORE taking ownership
+        // These are just &str references that we'll copy to String
+        let cookie_str_opt = req
+            .headers()
+            .get(hyper::header::COOKIE)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string()); // Convert to owned String
 
-        // These will be populated during the single header iteration
-        // Use String instead of &str to avoid lifetime issues
-        let mut cookie_str_opt: Option<String> = None;
-        let mut x_forwarded_for_opt: Option<String> = Some("127.0.0.1".to_string());
-        let mut x_forwarded_proto_opt: Option<String> = Some("http".to_string());
-        let mut content_type_str_opt: Option<String> = None;
-        let mut xhr_header_opt: Option<String> = None;
+        let x_forwarded_for_str = req
+            .headers()
+            .get("x-forwarded-for")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("127.0.0.1")
+            .to_string(); // Convert to owned String
 
-        // Single pass: extract all header data at once
-        for (key, value) in req.headers().iter() {
-            if let Ok(header_value) = value.to_str() {
-                let key_str = key.as_str();
+        let x_forwarded_proto_str = req
+            .headers()
+            .get("x-forwarded-proto")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("http")
+            .to_string(); // Convert to owned String
 
-                // Cache specific headers we'll need later
-                match key_str.to_lowercase().as_str() {
-                    "cookie" => cookie_str_opt = Some(header_value.to_string()),
-                    "x-forwarded-for" => x_forwarded_for_opt = Some(header_value.to_string()),
-                    "x-forwarded-proto" => x_forwarded_proto_opt = Some(header_value.to_string()),
-                    "content-type" => content_type_str_opt = Some(header_value.to_string()),
-                    "x-requested-with" => xhr_header_opt = Some(header_value.to_string()),
-                    _ => {}
-                }
+        let content_type_str_opt = req
+            .headers()
+            .get(hyper::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string()); // Convert to owned String
 
-                headers.insert(key_str, header_value);
-            }
-        }
+        let xhr_header_opt = req
+            .headers()
+            .get("x-requested-with")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string()); // Convert to owned String
 
-        // Parse IP from cached header value
-        let ip = x_forwarded_for_opt
-            .as_deref()
-            .and_then(|s| s.split(',').next().map(|s| s.trim()))
+        // NOW we can take ownership of the HeaderMap
+        let headers = RequestHeaders::from_header_map(std::mem::take(req.headers_mut()));
+
+        // Parse IP
+        let ip = x_forwarded_for_str
+            .split(',')
+            .next()
+            .map(|s| s.trim())
             .and_then(|s| s.parse::<IpAddr>().ok())
             .unwrap();
 
         // Parse cookies from cached header value
-        let mut cookies_map = HashMap::new();
-        if let Some(cookie_str) = cookie_str_opt.as_deref() {
+        let mut cookies_map = AHashMap::new();
+        if let Some(cookie_str) = &cookie_str_opt {
             for cookie_part in cookie_str.split(';') {
                 let trimmed = cookie_part.trim();
                 if let Some(equal_pos) = trimmed.find('=') {
@@ -853,8 +861,6 @@ impl HttpRequest {
             .map(determine_content_type_request)
             .unwrap_or(RequestBodyType::EMPTY);
 
-        let protocol = x_forwarded_proto_opt.unwrap();
-
         let request_body = match content_type {
             RequestBodyType::FORM => {
                 let collected = req.body_mut().collect().await?;
@@ -871,6 +877,7 @@ impl HttpRequest {
 
                 // Use cached content-type instead of another header lookup
                 let boundary = content_type_str_opt
+                    .as_deref()
                     .filter(|ct| ct.to_lowercase().contains("multipart/form-data"))
                     .and_then(|ct| extract_boundary(&ct));
 
@@ -936,7 +943,7 @@ impl HttpRequest {
             },
         };
 
-        let is_secure = protocol == "https";
+        let is_secure = x_forwarded_proto_str == "https";
         let xhr = xhr_header_opt
             .as_deref()
             .map_or(false, |h| h == "XMLHttpRequest");
@@ -948,7 +955,7 @@ impl HttpRequest {
             method,
             ip,
             path,
-            protocol,
+            protocol: x_forwarded_proto_str,
             headers,
             data,
             body: request_body,
@@ -957,7 +964,6 @@ impl HttpRequest {
             is_secure,
         })
     }
-
     pub(crate) fn from_request_info(req_info: &RequestInfo) -> Self {
         let mut headers = RequestHeaders::new();
 
@@ -998,7 +1004,7 @@ impl HttpRequest {
         let query = QueryParams::from_map(queries);
         let params = RouteParams::new();
 
-        let mut cookies_map = HashMap::new();
+        let mut cookies_map = AHashMap::new();
         let cookies = Self::get_cookies_from_req_info(&req_info);
 
         cookies.iter().for_each(|cookie| {
@@ -1157,9 +1163,7 @@ impl HttpRequest {
     }
 
     #[cfg(not(feature = "with-wynd"))]
-    pub(crate) fn to_hyper_request(
-        &self,
-    ) -> Result<Request<Full<Bytes>>, Box<dyn std::error::Error>> {
+    pub fn to_hyper_request(&self) -> Result<Request<Full<Bytes>>, Box<dyn std::error::Error>> {
         let mut path = if self.path.is_empty() {
             "/".to_string()
         } else if !self.path.starts_with('/') {
@@ -1185,17 +1189,8 @@ impl HttpRequest {
             // Add all headers
             if !self.headers.is_empty() {
                 // If all header names and values are valid, batch convert and insert (to minimize branching)
-                let mut inserts = Vec::with_capacity(self.headers.len());
                 for (name, value) in self.headers.iter() {
-                    if let (Ok(hn), Ok(hv)) = (
-                        hyper::header::HeaderName::from_bytes(name.as_bytes()),
-                        hyper::header::HeaderValue::from_bytes(value.as_bytes()),
-                    ) {
-                        inserts.push((hn, hv));
-                    }
-                }
-                for (hn, hv) in inserts {
-                    headers.append(hn, hv);
+                    headers.append(name, value.clone());
                 }
             }
 
@@ -1262,6 +1257,10 @@ impl HttpRequest {
 
         Ok(request)
     }
+
+    pub fn set_cookie(&mut self, key: &str, value: &str) {
+        self.cookies.insert(key.to_string(), value.to_string());
+    }
 }
 
 #[cfg(test)]
@@ -1272,10 +1271,6 @@ impl HttpRequest {
 
     pub(crate) fn set_header(&mut self, key: &str, value: &str) {
         self.headers.insert(key.to_string(), value.to_string());
-    }
-
-    pub(crate) fn set_cookie(&mut self, key: &str, value: &str) {
-        self.cookies.insert(key.to_string(), value.to_string());
     }
 
     pub(crate) fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)

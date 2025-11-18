@@ -1,28 +1,69 @@
-use std::{hint::black_box, process::Command};
-
 use bytes::Bytes;
 use criterion::{Criterion, criterion_group, criterion_main};
 use http_body_util::Full;
 use hyper::Request;
+use std::{collections::HashMap, hint::black_box};
+use tokio::runtime::Runtime;
 
-async fn bench_once() {
-    for _ in 1..5000000 {
-        let mut hyper_req: Request<Full<Bytes>> = Request::default();
+fn create_test_request() -> Request<Full<Bytes>> {
+    let mut hyper_req: Request<Full<Bytes>> = Request::default();
 
-        assert!(
-            ripress::req::HttpRequest::from_hyper_request(&mut hyper_req)
-                .await
-                .is_ok()
-        );
+    {
+        let headers = hyper_req.headers_mut();
+        headers.insert("Foo", "Bar".parse().unwrap());
+        headers.insert("X-Test-1", "Value1".parse().unwrap());
+        headers.insert("X-Test-2", "Value2".parse().unwrap());
+        headers.insert("X-Test-3", "Value3".parse().unwrap());
+        headers.insert("X-Test-4", "Value4".parse().unwrap());
+        headers.insert("X-Test-5", "Value5".parse().unwrap());
+        headers.insert("X-Test-6", "Value6".parse().unwrap());
+        headers.insert("X-Test-7", "Value7".parse().unwrap());
+        headers.insert("X-Test-8", "Value8".parse().unwrap());
+        headers.insert("X-Test-9", "Value9".parse().unwrap());
+
+        let cookies = vec![
+            "Foo=Bar",
+            "Session=XYZ123",
+            "hello=cookie",
+            "Alpha=Beta",
+            "User=Admin",
+        ];
+        let cookies_str = cookies.join("; ");
+        headers.insert(hyper::header::COOKIE, cookies_str.parse().unwrap());
     }
+
+    {
+        let extensions = hyper_req.extensions_mut();
+        let mut hashmap1 = HashMap::new();
+        hashmap1.insert("Hello", "World");
+        extensions.insert(hashmap1);
+
+        let mut hashmap2 = HashMap::new();
+        hashmap2.insert("Foo", "Bar");
+        extensions.insert(hashmap2);
+
+        let mut hashmap3 = HashMap::new();
+        hashmap3.insert("Rust", "Lang");
+        hashmap3.insert("Test", "Value");
+        hashmap3.insert("One", "Two");
+        extensions.insert(hashmap3);
+    }
+
+    hyper_req
 }
 
 fn bench_from_hyper(c: &mut Criterion) {
+    let rt = Runtime::new().unwrap();
+
     c.bench_function("from_hyper_request", |b| {
-        b.iter(|| async {
-            for _ in 0..500_000 {
-                black_box(bench_once().await);
-            }
+        b.iter(|| {
+            let mut hyper_req = create_test_request();
+
+            rt.block_on(async {
+                let req =
+                    ripress::req::HttpRequest::from_hyper_request(black_box(&mut hyper_req)).await;
+                black_box(req)
+            })
         })
     });
 }

@@ -5,6 +5,8 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+use ahash::AHashMap;
+
 /// A high-performance wrapper around bytes that implements Hash and Eq
 /// by comparing the underlying byte content.
 ///
@@ -161,7 +163,7 @@ impl Display for ByteKey {
 
 #[derive(Clone, Debug, Default)]
 pub struct RequestData {
-    inner: HashMap<ByteKey, Vec<u8>>,
+    inner: AHashMap<ByteKey, Vec<u8>>,
 }
 
 impl Display for RequestData {
@@ -198,7 +200,7 @@ impl RequestData {
 
     pub fn new() -> Self {
         Self {
-            inner: HashMap::new(),
+            inner: AHashMap::new(),
         }
     }
 
@@ -218,7 +220,7 @@ impl RequestData {
 
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            inner: HashMap::with_capacity(capacity),
+            inner: AHashMap::with_capacity(capacity),
         }
     }
 

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use std::{collections::HashMap, net::IpAddr, str::FromStr, time::Duration};
+    use std::{net::IpAddr, str::FromStr, time::Duration};
 
     use tokio::time::sleep;
 
@@ -14,17 +14,6 @@ mod test {
         HttpRequest {
             ip: IpAddr::from_str(ip).unwrap(),
             headers: RequestHeaders::new(),
-            ..Default::default()
-        }
-    }
-
-    fn mock_req_with_header(ip: &str, header: (&str, &str)) -> HttpRequest {
-        let mut headers = HashMap::new();
-        headers.insert(header.0.to_string(), header.1.to_string());
-        let ip = IpAddr::from_str(ip).unwrap();
-        HttpRequest {
-            ip: ip,
-            headers: RequestHeaders::_from_map(headers),
             ..Default::default()
         }
     }
@@ -133,7 +122,8 @@ mod test {
             ..Default::default()
         }));
 
-        let req = mock_req_with_header("127.0.0.4", ("X-Forwarded-For", "8.8.8.8"));
+        let mut req = mock_req("127.0.0.4");
+        req.headers.insert("X-Forwarded-For", "8.8.8.8");
         let res = mock_res();
 
         // 1st request from 8.8.8.8

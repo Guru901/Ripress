@@ -2,6 +2,8 @@
 use std::collections::HashMap;
 use std::fmt;
 
+use ahash::AHashMap;
+
 /// HTTP Response Headers with support for dynamic values and response-specific features.
 ///
 /// `ResponseHeaders` provides a type-safe, case-insensitive way to manage HTTP response headers.
@@ -99,7 +101,7 @@ use std::fmt;
 pub struct ResponseHeaders {
     /// Store with lowercase keys for case-insensitive lookup.
     /// Values are Vec<String> to support multiple values for the same header.
-    inner: HashMap<String, Vec<String>>,
+    inner: AHashMap<String, Vec<String>>,
 }
 
 impl ResponseHeaders {
@@ -115,7 +117,7 @@ impl ResponseHeaders {
     /// ```
     pub fn new() -> Self {
         Self {
-            inner: HashMap::new(),
+            inner: AHashMap::new(),
         }
     }
 
