@@ -42,7 +42,6 @@ hyper-util = { version = "0.1.3", features = ["full"] }
 http-body-util = "0.1.3"
 hyper-staticfile = "0.10.1"
 ahash = "0.8.12"
-wynd = { path = "../wynd", features = ["with-ripress"] }
 
 [dev-dependencies]
 tracing-subscriber = "0.3.20"
