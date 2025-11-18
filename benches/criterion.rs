@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use criterion::{Criterion, criterion_group, criterion_main};
 use http_body_util::Full;
-use hyper::Request;
+use hyper::{Request, Response};
 use ripress::{req::HttpRequest, res::HttpResponse};
 use serde_json::json;
 use std::{collections::HashMap, hint::black_box};
@@ -115,6 +115,53 @@ fn create_test_custom_response() -> HttpResponse {
     our_res
 }
 
+fn create_test_hyper_response() -> Response<Full<Bytes>> {
+    let mut hyper_res: Response<Full<Bytes>> = Response::default();
+    // Fill it once
+    hyper_res
+        .headers_mut()
+        .insert("Foo", "Bar".parse().unwrap());
+    hyper_res
+        .headers_mut()
+        .insert("X-Test-1", "Value1".parse().unwrap());
+    hyper_res
+        .headers_mut()
+        .insert("X-Test-2", "Value2".parse().unwrap());
+    hyper_res
+        .headers_mut()
+        .insert("X-Test-3", "Value3".parse().unwrap());
+    hyper_res
+        .headers_mut()
+        .insert("X-Test-4", "Value4".parse().unwrap());
+    hyper_res
+        .headers_mut()
+        .insert("X-Test-5", "Value5".parse().unwrap());
+    hyper_res
+        .headers_mut()
+        .insert("X-Test-6", "Value6".parse().unwrap());
+    hyper_res
+        .headers_mut()
+        .insert("X-Test-7", "Value7".parse().unwrap());
+    hyper_res
+        .headers_mut()
+        .insert("X-Test-8", "Value8".parse().unwrap());
+    hyper_res
+        .headers_mut()
+        .insert("X-Test-9", "Value9".parse().unwrap());
+
+    hyper_res
+        .headers_mut()
+        .insert("set-cookie", "Cookie=Value".parse().unwrap());
+    hyper_res
+        .headers_mut()
+        .insert("set-cookie", "Value".parse().unwrap());
+    hyper_res
+        .headers_mut()
+        .insert("set-cookie", "Value".parse().unwrap());
+
+    hyper_res
+}
+
 fn bench_from_hyper(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
@@ -148,6 +195,19 @@ fn bench_from_hyper(c: &mut Criterion) {
             rt.block_on(async {
                 let hyper_res = black_box(our_res.to_hyper_response().await);
                 black_box(hyper_res)
+            })
+        })
+    });
+
+    c.bench_function("from_hyper_response", |b| {
+        b.iter(|| {
+            let mut hyper_res = create_test_hyper_response();
+
+            rt.block_on(async {
+                let res =
+                    ripress::res::HttpResponse::from_hyper_response(black_box(&mut hyper_res))
+                        .await;
+                black_box(res)
             })
         })
     });

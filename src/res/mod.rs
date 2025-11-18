@@ -786,9 +786,7 @@ impl HttpResponse {
         })
     }
     #[cfg(not(feature = "with-wynd"))]
-    pub(crate) async fn from_hyper_response(
-        res: &mut Response<Full<Bytes>>,
-    ) -> Result<Self, ApiError> {
+    pub async fn from_hyper_response(res: &mut Response<Full<Bytes>>) -> Result<Self, ApiError> {
         let collected = res.body_mut().collect().await?;
         let body_bytes = collected.to_bytes();
 
