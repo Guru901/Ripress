@@ -1199,21 +1199,32 @@ impl HttpRequest {
             }
 
             if !self.cookies.is_empty() && !headers.contains_key(hyper::header::COOKIE) {
-                let cookie_str: String =
-                    self.cookies
+                let cookie_str = {
+                    let cap = self
+                        .cookies
                         .iter()
-                        .fold(String::new(), |mut acc, (name, value)| {
-                            if !acc.is_empty() {
-                                acc.push_str("; ");
-                            }
-                            acc.push_str(name);
-                            acc.push('=');
-                            acc.push_str(value);
-                            acc
-                        });
+                        .map(|(k, v)| k.len() + v.len() + 2)
+                        .sum::<usize>()
+                        .saturating_sub(2);
+
+                    let mut s = String::with_capacity(cap);
+                    let mut first = true;
+
+                    for (name, value) in &self.cookies {
+                        if !first {
+                            s.push_str("; ");
+                        }
+                        first = false;
+                        s.push_str(name);
+                        s.push('=');
+                        s.push_str(value);
+                    }
+                    s
+                };
+                let cookie = cookie_str.as_bytes();
                 headers.insert(
                     hyper::header::COOKIE,
-                    hyper::header::HeaderValue::from_str(&cookie_str)?,
+                    hyper::header::HeaderValue::from_bytes(&cookie)?,
                 );
             }
         }
