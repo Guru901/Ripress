@@ -128,9 +128,9 @@ mod test {
         headers.insert("Set-Cookie", "session=abc123; HttpOnly");
         headers.append("Set-Cookie", "theme=dark; Path=/");
 
-        let all_cookies = headers.get_all("set-cookie").unwrap();
+        let all_cookies: Vec<&str> = headers.get_all("set-cookie").collect();
         assert_eq!(all_cookies.len(), 2);
-        assert!(all_cookies.contains(&"session=abc123; HttpOnly".to_string()));
-        assert!(all_cookies.contains(&"theme=dark; Path=/".to_string()));
+        assert!(all_cookies.contains(&"session=abc123; HttpOnly"));
+        assert!(all_cookies.contains(&"theme=dark; Path=/"));
     }
 }

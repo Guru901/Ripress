@@ -790,6 +790,7 @@ impl HttpResponse {
         let collected = res.body_mut().collect().await?;
         let body_bytes = collected.to_bytes();
 
+        // Extract what we need BEFORE taking the HeaderMap
         let content_type_hdr = res
             .headers()
             .get(hyper::header::CONTENT_TYPE)
@@ -807,7 +808,6 @@ impl HttpResponse {
                 ResponseContentBody::new_text(text)
             }
             ResponseContentType::JSON => {
-                // Avoid panic: if JSON parsing fails, fallback to empty object
                 let json_value =
                     serde_json::from_slice(&body_bytes).unwrap_or(serde_json::Value::Null);
                 ResponseContentBody::new_json(json_value)
@@ -819,34 +819,24 @@ impl HttpResponse {
             }
         };
 
-        // Heuristic for SSE streams: text/event-stream + keep-alive
+        // Check for SSE stream
         let is_event_stream = content_type_hdr
             .map(|ct| ct.eq_ignore_ascii_case("text/event-stream"))
             .unwrap_or(false);
+
         let is_keep_alive = res
             .headers()
             .get(hyper::header::CONNECTION)
             .and_then(|h| h.to_str().ok())
             .map(|v| v.eq_ignore_ascii_case("keep-alive"))
             .unwrap_or(false);
+
         let is_stream = is_event_stream && is_keep_alive;
 
         let status_code = StatusCode::from_u16(res.status().as_u16());
-        let mut headers = ResponseHeaders::new();
 
-        for (key, value) in res.headers().iter() {
-            if key != &SET_COOKIE {
-                if let Ok(v) = value.to_str() {
-                    headers.insert(key.as_str(), v);
-                }
-            }
-        }
-
-        for value in res.headers().get_all(SET_COOKIE) {
-            if let Ok(v) = value.to_str() {
-                headers.insert("Set-Cookie", v);
-            }
-        }
+        // OPTIMIZATION: Take the HeaderMap directly - ZERO parsing!
+        let headers = ResponseHeaders::from(std::mem::take(res.headers_mut()));
 
         Ok(HttpResponse {
             body,
@@ -862,18 +852,19 @@ impl HttpResponse {
 
     pub async fn to_hyper_response(self) -> Result<Response<Full<Bytes>>, Infallible> {
         let body = self.body;
+
         if self.is_stream {
-            let mut response = Response::builder().status(self.status_code.as_u16());
-            response = response.header("Content-Type", "text/event-stream");
+            let mut response = Response::builder()
+                .status(self.status_code.as_u16())
+                .header("Content-Type", "text/event-stream")
+                .header("Connection", "keep-alive");
 
-            for (key, value) in self.headers.iter() {
-                response = response.header(key.as_str(), value);
-            }
+            // OPTIMIZATION: Take the HeaderMap directly instead of iterating
+            let mut header_map = self.headers.into_header_map();
 
-            response = response.header("Connection", "keep-alive");
-
+            // Add cookies to the header map
             for c in self.cookies.iter() {
-                let mut cookie_builder = cookie::Cookie::build((c.name, c.value))
+                let mut cookie_builder = cookie::Cookie::build((c.name.clone(), c.value.clone()))
                     .http_only(c.options.http_only)
                     .same_site(match c.options.same_site {
                         crate::res::CookieSameSiteOptions::Lax => cookie::SameSite::Lax,
@@ -881,9 +872,9 @@ impl HttpResponse {
                         crate::res::CookieSameSiteOptions::None => cookie::SameSite::None,
                     })
                     .secure(c.options.secure)
-                    .path(c.options.path.unwrap_or("/"));
+                    .path(c.options.path.as_deref().unwrap_or("/"));
 
-                if let Some(domain) = c.options.domain {
+                if let Some(domain) = c.options.domain.as_deref() {
                     cookie_builder = cookie_builder.domain(domain);
                 }
                 if let Some(max_age_secs) = c.options.max_age {
@@ -897,15 +888,18 @@ impl HttpResponse {
                     }
                 }
 
-                let cookie = cookie_builder;
-                response = response.header(
-                    SET_COOKIE,
-                    HeaderValue::from_bytes(&cookie.to_string().as_bytes()).unwrap(),
-                );
+                if let Ok(cookie_value) =
+                    HeaderValue::from_bytes(cookie_builder.to_string().as_bytes())
+                {
+                    header_map.append(SET_COOKIE, cookie_value);
+                }
             }
 
+            // Remove cookies
             for key in self.remove_cookies {
-                response.headers_mut().unwrap().remove(key);
+                if let Ok(header_name) = HeaderName::from_bytes(key.as_bytes()) {
+                    header_map.remove(&header_name);
+                }
             }
 
             // Collect the stream into a single Bytes value (async)
@@ -919,24 +913,22 @@ impl HttpResponse {
 
             let mut hyper_response = response.body(Full::from(bytes)).unwrap();
 
-            // Ensure transfer-encoding header is set correctly
-            // Remove Content-Length if transfer-encoding is chunked (they're mutually exclusive)
-            hyper_response.headers_mut().remove(CONTENT_LENGTH);
+            // Merge our header map into the response
+            hyper_response.headers_mut().extend(header_map);
 
-            // Explicitly set transfer-encoding header to ensure it's present
-            let header_name = HeaderName::from_static("transfer-encoding");
-            if let Ok(header_value) = HeaderValue::from_str("chunked") {
-                hyper_response
-                    .headers_mut()
-                    .insert(header_name, header_value);
-            }
+            // Remove Content-Length and set transfer-encoding for streaming
+            hyper_response.headers_mut().remove(CONTENT_LENGTH);
+            let header_value = HeaderValue::from_static("chunked");
+            hyper_response
+                .headers_mut()
+                .insert(HeaderName::from_static("transfer-encoding"), header_value);
 
             return Ok(hyper_response);
         } else {
+            // Build the base response with content-type
             let mut response = match body {
                 ResponseContentBody::JSON(json) => {
                     let json_str = serde_json::to_vec(&json).unwrap();
-
                     Response::builder()
                         .status(self.status_code.as_u16())
                         .header("Content-Type", self.content_type.as_str())
@@ -957,15 +949,13 @@ impl HttpResponse {
             }
             .unwrap();
 
-            for (key, value) in self.headers.iter() {
-                if key.eq_ignore_ascii_case("content-type") {
-                    continue;
-                }
-                let header_name = HeaderName::from_bytes(key.as_bytes()).unwrap();
-                let header_value = HeaderValue::from_str(value).unwrap();
+            // OPTIMIZATION: Take the HeaderMap directly and merge it
+            let mut header_map = self.headers.into_header_map();
 
-                response.headers_mut().insert(header_name, header_value);
-            }
+            // Remove content-type from our headers if it exists (already set above)
+            header_map.remove(hyper::header::CONTENT_TYPE);
+
+            // Add cookies to the header map
             for c in self.cookies {
                 let mut cookie_builder = cookie::Cookie::build((c.name, c.value))
                     .http_only(c.options.http_only)
@@ -975,9 +965,9 @@ impl HttpResponse {
                         crate::res::CookieSameSiteOptions::None => cookie::SameSite::None,
                     })
                     .secure(c.options.secure)
-                    .path(c.options.path.unwrap_or("/"));
+                    .path(c.options.path.as_deref().unwrap_or("/"));
 
-                if let Some(domain) = c.options.domain {
+                if let Some(domain) = c.options.domain.as_deref() {
                     cookie_builder = cookie_builder.domain(domain);
                 }
                 if let Some(max_age_secs) = c.options.max_age {
@@ -991,15 +981,22 @@ impl HttpResponse {
                     }
                 }
 
-                response.headers_mut().append(
-                    SET_COOKIE,
-                    HeaderValue::from_bytes(&cookie_builder.to_string().as_bytes()).unwrap(),
-                );
+                if let Ok(cookie_value) =
+                    HeaderValue::from_bytes(cookie_builder.to_string().as_bytes())
+                {
+                    header_map.append(SET_COOKIE, cookie_value);
+                }
             }
 
+            // Remove cookies
             for c in self.remove_cookies {
-                response.headers_mut().remove(c);
+                if let Ok(header_name) = HeaderName::from_bytes(c.as_bytes()) {
+                    header_map.remove(&header_name);
+                }
             }
+
+            // Merge all headers at once
+            response.headers_mut().extend(header_map);
 
             return Ok(response);
         }

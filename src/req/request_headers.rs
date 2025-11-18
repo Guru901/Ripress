@@ -163,7 +163,7 @@ impl RequestHeaders {
     where
         K: AsRef<str>,
     {
-        let name = HeaderName::from_bytes(key.as_ref().as_bytes()).ok()?;
+        let name: HeaderName = HeaderName::from_bytes(key.as_ref().as_bytes()).ok()?;
         self.inner.remove(&name)?.to_str().ok().map(String::from)
     }
 
