@@ -67,11 +67,8 @@ fn create_test_custom_request() -> HttpRequest {
     our_req.headers.insert("X-Test-8", "Value8");
     our_req.headers.insert("X-Test-9", "Value9");
 
-    our_req.data.insert("Foo", "Bar");
-    our_req.data.insert("Hello", "World");
-    our_req.data.insert("Rust", "Lang");
-    our_req.data.insert("Test", "Value");
-    our_req.data.insert("One", "Two");
+    our_req.set_data("Test", "Value");
+    our_req.set_data("One", "Two");
 
     our_req.set_cookie("Foo", "Bar");
     our_req.set_cookie("Session", "XYZ123");

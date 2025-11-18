@@ -416,7 +416,7 @@ pub struct HttpRequest {
     pub(crate) cookies: AHashMap<String, String>,
 
     /// The Data set by middleware in the request to be used in the route handler
-    pub data: RequestData,
+    pub(crate) data: RequestData,
 
     /// The request body, which may contain JSON, text, or form data or binary data.
     pub(crate) body: RequestBody,
@@ -1190,17 +1190,27 @@ impl HttpRequest {
             if !self.headers.is_empty() {
                 // If all header names and values are valid, batch convert and insert (to minimize branching)
                 for (name, value) in self.headers.iter() {
-                    headers.append(name, value.clone());
+                    if headers.contains_key(name) {
+                        headers.append(name, value.clone());
+                    } else {
+                        headers.insert(name, value.clone());
+                    }
                 }
             }
 
             if !self.cookies.is_empty() && !headers.contains_key(hyper::header::COOKIE) {
-                let cookie_str: String = self
-                    .cookies
-                    .iter()
-                    .map(|(name, value)| format!("{}={}", name, value))
-                    .collect::<Vec<_>>()
-                    .join("; ");
+                let cookie_str: String =
+                    self.cookies
+                        .iter()
+                        .fold(String::new(), |mut acc, (name, value)| {
+                            if !acc.is_empty() {
+                                acc.push_str("; ");
+                            }
+                            acc.push_str(name);
+                            acc.push('=');
+                            acc.push_str(value);
+                            acc
+                        });
                 headers.insert(
                     hyper::header::COOKIE,
                     hyper::header::HeaderValue::from_str(&cookie_str)?,
