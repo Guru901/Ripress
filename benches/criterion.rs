@@ -2,7 +2,8 @@ use bytes::Bytes;
 use criterion::{Criterion, criterion_group, criterion_main};
 use http_body_util::Full;
 use hyper::Request;
-use ripress::req::HttpRequest;
+use ripress::{req::HttpRequest, res::HttpResponse};
+use serde_json::json;
 use std::{collections::HashMap, hint::black_box};
 use tokio::runtime::Runtime;
 
@@ -79,6 +80,41 @@ fn create_test_custom_request() -> HttpRequest {
     our_req
 }
 
+fn create_test_custom_response() -> HttpResponse {
+    let mut our_res = HttpResponse::new();
+    // Fill it once
+    our_res.headers.insert("Foo", "Bar");
+    our_res.headers.insert("X-Test-1", "Value1");
+    our_res.headers.insert("X-Test-2", "Value2");
+    our_res.headers.insert("X-Test-3", "Value3");
+    our_res.headers.insert("X-Test-4", "Value4");
+    our_res.headers.insert("X-Test-5", "Value5");
+    our_res.headers.insert("X-Test-6", "Value6");
+    our_res.headers.insert("X-Test-7", "Value7");
+    our_res.headers.insert("X-Test-8", "Value8");
+    our_res.headers.insert("X-Test-9", "Value9");
+
+    our_res = our_res.set_cookie("Test", "Value", None);
+    our_res = our_res.set_cookie("One", "Two", None);
+    our_res = our_res.set_cookie("Alpha", "Beta", None);
+    our_res = our_res.set_cookie("User", "Admin", None);
+
+    our_res = our_res.json(json!({
+        "name": "nice",
+        "name": "nice",
+        "name": "nice",
+        "name": "nice",
+        "name": "nice",
+        "name": "nice",
+        "name": "nice",
+    }));
+
+    our_res = our_res.text("noiceh");
+    our_res = our_res.bytes(Bytes::from("some data"));
+
+    our_res
+}
+
 fn bench_from_hyper(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
@@ -101,6 +137,17 @@ fn bench_from_hyper(c: &mut Criterion) {
                 let req =
                     ripress::req::HttpRequest::from_hyper_request(black_box(&mut hyper_req)).await;
                 black_box(req)
+            })
+        })
+    });
+
+    c.bench_function("to_hyper_response", |b| {
+        b.iter(|| {
+            let our_res = create_test_custom_response();
+
+            rt.block_on(async {
+                let hyper_res = black_box(our_res.to_hyper_response().await);
+                black_box(hyper_res)
             })
         })
     });

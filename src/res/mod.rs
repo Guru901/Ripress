@@ -862,7 +862,7 @@ impl HttpResponse {
         })
     }
 
-    pub(crate) async fn to_hyper_response(self) -> Result<Response<Full<Bytes>>, Infallible> {
+    pub async fn to_hyper_response(self) -> Result<Response<Full<Bytes>>, Infallible> {
         let body = self.body;
         if self.is_stream {
             let mut response = Response::builder().status(self.status_code.as_u16());
@@ -902,19 +902,12 @@ impl HttpResponse {
                 let cookie = cookie_builder;
                 response = response.header(
                     SET_COOKIE,
-                    HeaderValue::from_str(&cookie.to_string()).unwrap(),
+                    HeaderValue::from_bytes(&cookie.to_string().as_bytes()).unwrap(),
                 );
             }
 
-            for key in self.remove_cookies.iter() {
-                let expired_cookie = cookie::Cookie::build((key.to_owned(), ""))
-                    .path("/")
-                    .max_age(cookie::time::Duration::seconds(0));
-
-                response = response.header(
-                    SET_COOKIE,
-                    HeaderValue::from_str(&expired_cookie.to_string()).unwrap(),
-                );
+            for key in self.remove_cookies {
+                response.headers_mut().unwrap().remove(key);
             }
 
             // Collect the stream into a single Bytes value (async)
@@ -944,7 +937,7 @@ impl HttpResponse {
         } else {
             let mut response = match body {
                 ResponseContentBody::JSON(json) => {
-                    let json_str = serde_json::to_string(&json).unwrap();
+                    let json_str = serde_json::to_vec(&json).unwrap();
 
                     Response::builder()
                         .status(self.status_code.as_u16())
@@ -968,16 +961,14 @@ impl HttpResponse {
 
             for (key, value) in self.headers.iter() {
                 if key.eq_ignore_ascii_case("content-type") {
-                    // Already set via `.header("Content-Type", ...)` above; skip duplicates
                     continue;
                 }
+                let header_name = HeaderName::from_bytes(key.as_bytes()).unwrap();
+                let header_value = HeaderValue::from_str(value).unwrap();
 
-                response.headers_mut().append(
-                    HeaderName::from_bytes(key.as_bytes()).unwrap(),
-                    HeaderValue::from_str(value).unwrap(),
-                );
+                response.headers_mut().insert(header_name, header_value);
             }
-            self.cookies.iter().for_each(|c| {
+            for c in self.cookies {
                 let mut cookie_builder = cookie::Cookie::build((c.name, c.value))
                     .http_only(c.options.http_only)
                     .same_site(match c.options.same_site {
@@ -1002,23 +993,15 @@ impl HttpResponse {
                     }
                 }
 
-                let cookie = cookie_builder;
                 response.headers_mut().append(
                     SET_COOKIE,
-                    HeaderValue::from_str(&cookie.to_string()).unwrap(),
+                    HeaderValue::from_bytes(&cookie_builder.to_string().as_bytes()).unwrap(),
                 );
-            });
+            }
 
-            self.remove_cookies.iter().for_each(|key| {
-                let expired_cookie = cookie::Cookie::build((key.to_owned(), ""))
-                    .path("/")
-                    .max_age(cookie::time::Duration::seconds(0));
-
-                response.headers_mut().append(
-                    SET_COOKIE,
-                    HeaderValue::from_str(&expired_cookie.to_string()).unwrap(),
-                );
-            });
+            for c in self.remove_cookies {
+                response.headers_mut().remove(c);
+            }
 
             return Ok(response);
         }
