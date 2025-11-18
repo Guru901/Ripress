@@ -761,6 +761,7 @@ impl HttpRequest {
         cookies
     }
 
+    #[doc(hidden)]
     pub async fn from_hyper_request(req: &mut Request<Full<Bytes>>) -> Result<Self, ApiError> {
         let origin_url = match req.uri().authority() {
             Some(authority) => {
@@ -882,7 +883,7 @@ impl HttpRequest {
                     .and_then(|ct| extract_boundary(&ct));
 
                 let (fields, file_parts) = if let Some(boundary) = boundary {
-                    let (field_refs, files) = parse_multipart_form(&body_bytes, boundary);
+                    let (field_refs, files) = parse_multipart_form(&body_bytes, &boundary);
                     // Convert borrowed fields to owned strings
                     let owned_fields = field_refs
                         .into_iter()
@@ -1063,6 +1064,7 @@ impl HttpRequest {
     }
 
     #[cfg(feature = "with-wynd")]
+    #[doc(hidden)]
     pub fn to_hyper_request(&self) -> Result<Request<Full<Bytes>>, Box<dyn std::error::Error>> {
         let path = if self.path.is_empty() {
             "/".to_string()
@@ -1089,14 +1091,17 @@ impl HttpRequest {
         // Add headers
         if let Some(headers) = builder.headers_mut() {
             // Add all headers
-            for (name, value) in self.headers.iter() {
-                if let (Ok(hn), Ok(hv)) = (
-                    hyper::header::HeaderName::from_bytes(name.as_bytes()),
-                    hyper::header::HeaderValue::from_str(value),
-                ) {
-                    headers.append(hn, hv);
+            if !self.headers.is_empty() {
+                // If all header names and values are valid, batch convert and insert (to minimize branching)
+                for (name, value) in self.headers.iter() {
+                    if headers.contains_key(name) {
+                        headers.append(name, value.clone());
+                    } else {
+                        headers.insert(name, value.clone());
+                    }
                 }
             }
+
             if !self.cookies.is_empty() && !headers.contains_key(hyper::header::COOKIE) {
                 let cookie_str: String = self
                     .cookies
@@ -1163,6 +1168,7 @@ impl HttpRequest {
     }
 
     #[cfg(not(feature = "with-wynd"))]
+    #[doc(hidden)]
     pub fn to_hyper_request(&self) -> Result<Request<Full<Bytes>>, Box<dyn std::error::Error>> {
         let mut path = if self.path.is_empty() {
             "/".to_string()

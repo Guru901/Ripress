@@ -1,10 +1,14 @@
 #![warn(missing_docs)]
+use http_body_util::Full;
+use hyper::body::Bytes;
+
 use crate::res::HttpResponse;
 use std::convert::Infallible;
 
 #[derive(Debug)]
 pub enum ApiError {
     Generic(HttpResponse),
+    WebSocketUpgrade(hyper::Response<Full<Bytes>>),
 }
 
 unsafe impl Sync for ApiError {}
@@ -70,6 +74,9 @@ impl std::fmt::Display for ApiError {
         match self {
             ApiError::Generic(msg) => {
                 write!(f, "Middleware Error: {:?}", msg)
+            }
+            ApiError::WebSocketUpgrade(response) => {
+                write!(f, "WebSocket upgrade error: {:?}", response)
             }
         }
     }

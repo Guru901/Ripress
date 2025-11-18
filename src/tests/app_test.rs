@@ -448,6 +448,7 @@ mod tests {
         let err = ApiError::from(res);
         match err {
             ApiError::Generic(r) => assert_eq!(r.status_code.as_u16(), 404),
+            ApiError::WebSocketUpgrade(response) => {}
         }
     }
 
@@ -478,6 +479,7 @@ mod tests {
                 assert_eq!(r.status_code.as_u16(), 500);
                 assert_eq!(r.body.get_content_as_bytes(), ("some error").as_bytes());
             }
+            ApiError::WebSocketUpgrade(response) => {}
         }
     }
 

@@ -715,6 +715,7 @@ impl HttpResponse {
     }
 
     #[cfg(feature = "with-wynd")]
+    #[doc(hidden)]
     pub async fn from_hyper_response(res: &mut Response<Full<Bytes>>) -> Result<Self, ApiError> {
         let collected = res.body_mut().collect().await?;
         let body_bytes = collected.to_bytes();
@@ -786,6 +787,7 @@ impl HttpResponse {
         })
     }
     #[cfg(not(feature = "with-wynd"))]
+    #[doc(hidden)]
     pub async fn from_hyper_response(res: &mut Response<Full<Bytes>>) -> Result<Self, ApiError> {
         let collected = res.body_mut().collect().await?;
         let body_bytes = collected.to_bytes();
@@ -850,11 +852,12 @@ impl HttpResponse {
         })
     }
 
+    #[doc(hidden)]
     pub async fn to_hyper_response(self) -> Result<Response<Full<Bytes>>, Infallible> {
         let body = self.body;
 
         if self.is_stream {
-            let mut response = Response::builder()
+            let response = Response::builder()
                 .status(self.status_code.as_u16())
                 .header("Content-Type", "text/event-stream")
                 .header("Connection", "keep-alive");

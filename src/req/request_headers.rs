@@ -19,7 +19,7 @@ use hyper::header::{HeaderName, HeaderValue};
 /// headers.append("Set-Cookie", "theme=dark");
 ///
 /// assert_eq!(headers.content_type(), Some("application/json"));
-/// assert_eq!(headers.get_all("set-cookie").count(), 2);
+/// assert_eq!(headers.get_all("set-cookie").len(), 2);
 /// ```
 
 #[derive(Debug, Clone)]
@@ -91,7 +91,7 @@ impl RequestHeaders {
     /// let mut headers = RequestHeaders::new();
     /// headers.append("Set-Cookie", "id=1");
     /// headers.append("Set-Cookie", "theme=dark");
-    /// assert_eq!(headers.get_all("Set-Cookie").count(), 2);
+    /// assert_eq!(headers.get_all("Set-Cookie").len(), 2);
     /// ```
     pub fn append<K, V>(&mut self, key: K, value: V)
     where
@@ -134,17 +134,21 @@ impl RequestHeaders {
     /// let mut headers = RequestHeaders::new();
     /// headers.append("Accept", "application/json");
     /// headers.append("Accept", "text/html");
-    /// assert_eq!(headers.get_all("Accept").count(), 2);
+    /// assert_eq!(headers.get_all("Accept").len(), 2);
     /// ```
-    pub fn get_all<K>(&self, key: K) -> impl Iterator<Item = &str>
+    pub fn get_all<K>(&self, key: K) -> Vec<&str>
     where
         K: AsRef<str>,
     {
-        let name = HeaderName::from_bytes(key.as_ref().as_bytes()).ok();
-        self.inner
-            .get_all(name.as_ref().unwrap_or(&HeaderName::from_static("")))
-            .iter()
-            .filter_map(|v| v.to_str().ok())
+        if let Ok(name) = HeaderName::from_bytes(key.as_ref().as_bytes()) {
+            self.inner
+                .get_all(name)
+                .iter()
+                .filter_map(|v| v.to_str().ok())
+                .collect()
+        } else {
+            Vec::new()
+        }
     }
 
     /// Checks whether a header exists.

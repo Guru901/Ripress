@@ -342,7 +342,7 @@ pub fn file_upload(
                 Vec::new()
             } else {
                 // Single binary upload (backwards compatibility) - use "file" as default field name
-                vec![(bytes_vec, Some("file".to_string()))]
+                vec![(bytes_vec, Some("file"))]
             };
 
             if files_to_process.len() > config.max_files as usize {

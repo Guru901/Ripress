@@ -1179,13 +1179,22 @@ impl App {
             ));
         });
 
-        match api_err.as_ref() {
+        println!("api_err: {:?}", api_err);
+
+        // For WebSocket upgrades, we need to take ownership to avoid breaking the upgrade mechanism
+        // Cloning the response breaks the upgrade connection, so we must move it
+        match *api_err {
+            ApiError::WebSocketUpgrade(response) => {
+                // Return the response directly without cloning to preserve the upgrade mechanism
+                response
+            }
             ApiError::Generic(res) => {
-                let hyper_res = <HttpResponse as Clone>::clone(res)
+                let hyper_res = <HttpResponse as Clone>::clone(&res)
                     .to_hyper_response()
                     .await
                     .map_err(ApiError::from)
                     .unwrap();
+
                 hyper_res
             }
         }

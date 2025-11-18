@@ -57,7 +57,7 @@ mod tests {
         headers.insert("Accept", "text/html");
         headers.append("Accept", "application/json");
 
-        let all_values: Vec<&str> = headers.get_all("accept").collect();
+        let all_values = headers.get_all("accept");
         assert_eq!(all_values.len(), 2);
         assert_eq!(headers.get("accept"), Some("text/html")); // First value
     }

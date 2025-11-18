@@ -84,25 +84,33 @@ pub(crate) async fn exec_post_middleware(
 
 #[cfg(feature = "with-wynd")]
 pub(crate) async fn exec_wynd_middleware(
-    mut req: Request<Full<Bytes>>,
+    req: Request<Full<Bytes>>,
     middleware: WyndMiddleware,
 ) -> Result<Request<Full<Bytes>>, ApiError> {
     if path_matches(middleware.path.as_str(), req.uri().path()) {
         let mw_func = middleware.func;
-
-        let our_req = HttpRequest::from_hyper_request(&mut req)
-            .await
-            .map_err(ApiError::from)?;
-
-        // Call the wynd middleware function with the original hyper request
         let response = mw_func(req).await;
 
         match response {
             Err(_e) => {
-                return Ok(our_req.to_hyper_request()?);
+                // If the handler returns an error, we can't continue with the original request
+                // since it may have been consumed. Return an error response.
+                return Err(ApiError::Generic(
+                    HttpResponse::new()
+                        .internal_server_error()
+                        .text("WebSocket handler error"),
+                ));
             }
-            Ok(mut res) => {
-                // If successful, return the response as an error to stop processing
+            Ok(res) => {
+                // Check if this is a WebSocket upgrade response (status 101)
+                if res.status() == hyper::StatusCode::SWITCHING_PROTOCOLS {
+                    // For WebSocket upgrades, we need to return the response directly
+                    // WITHOUT converting it, to preserve hyper's upgrade mechanism
+                    return Err(ApiError::WebSocketUpgrade(res));
+                }
+
+                // For normal responses, do the conversion as before
+                let mut res = res;
                 return Err(ApiError::Generic(
                     HttpResponse::from_hyper_response(&mut res).await?,
                 ));
@@ -177,7 +185,7 @@ pub(crate) fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> 
 // Returns (fields, file_parts) where file_parts is Vec<(bytes, field_name)>
 pub(crate) fn parse_multipart_form<'a>(
     body: &'a [u8],
-    boundary: String,
+    boundary: &String,
 ) -> (Vec<(&'a str, &'a str)>, Vec<(Vec<u8>, Option<&'a str>)>) {
     let boundary_start = format!("--{}", boundary);
     let boundary_start_bytes = boundary_start.as_bytes();

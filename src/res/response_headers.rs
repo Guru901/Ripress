@@ -130,15 +130,19 @@ impl ResponseHeaders {
     }
 
     /// Gets all values for a header.
-    pub fn get_all<K>(&self, key: K) -> impl Iterator<Item = &str>
+    pub fn get_all<K>(&self, key: K) -> Vec<&str>
     where
-        K: AsRef<str>,
+        K: AsRef<str> + 'static,
     {
-        let name = HeaderName::from_bytes(key.as_ref().as_bytes()).ok();
-        self.inner
-            .get_all(name.as_ref().unwrap_or(&HeaderName::from_static("")))
-            .iter()
-            .filter_map(|v| v.to_str().ok())
+        if let Ok(name) = HeaderName::from_bytes(key.as_ref().as_bytes()) {
+            self.inner
+                .get_all(name)
+                .iter()
+                .filter_map(|v| v.to_str().ok())
+                .collect()
+        } else {
+            Vec::new()
+        }
     }
 
     /// Checks if a header exists.

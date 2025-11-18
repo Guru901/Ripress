@@ -11,7 +11,7 @@ use urlencoding::decode;
 /// # Examples
 ///
 /// ```rust
-/// use std::collections::HashMap;
+/// use ahash::AHashMap;
 /// use ripress::req::body::form_data::FormData;
 ///
 /// let mut form = FormData::new();
@@ -22,7 +22,7 @@ use urlencoding::decode;
 /// assert_eq!(&form["email"], "alice@example.com");
 ///
 /// // Convert from HashMap
-/// let mut map = HashMap::new();
+/// let mut map = AHashMap::new();
 /// map.insert("key".to_string(), "value".to_string());
 /// let form = FormData::from(map);
 /// ```
@@ -263,10 +263,10 @@ impl FormData {
     /// # Examples
     ///
     /// ```rust
-    /// use std::collections::HashMap;
+    /// use ahash::AHashMap;
     /// use ripress::req::body::form_data::FormData;
     ///
-    /// let mut map = HashMap::new();
+    /// let mut map = AHashMap::new();
     /// map.insert("key".to_string(), "value".to_string());
     /// let form = FormData::from_map(map);
     /// assert_eq!(form.get("key"), Some("value"));

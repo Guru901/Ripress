@@ -178,7 +178,7 @@ mod test {
         // 4. Ignore file parts (since no middleware is processing them)
 
         // Create multipart form data with both text fields and a file
-        let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
+        let boundary = String::from("----WebKitFormBoundary7MA4YWxkTrZu0gW");
         let multipart_data = format!(
             "--{boundary}\r\n\
             Content-Disposition: form-data; name=\"name\"\r\n\
@@ -209,21 +209,21 @@ mod test {
 
         // Parse the multipart data to extract fields and file parts
         let (fields, file_parts) =
-            crate::helpers::parse_multipart_form(multipart_data.as_bytes(), boundary);
+            crate::helpers::parse_multipart_form(multipart_data.as_bytes(), &boundary);
 
         // Verify that both text fields and file parts were parsed correctly
         assert_eq!(fields.len(), 2);
         assert_eq!(file_parts.len(), 1);
 
         // Check text fields
-        let name_field = fields.iter().find(|(k, _)| k == "name");
-        let age_field = fields.iter().find(|(k, _)| k == "age");
-        assert_eq!(name_field.map(|(_, v)| v), Some(&"John Doe".to_string()));
-        assert_eq!(age_field.map(|(_, v)| v), Some(&"30".to_string()));
+        let name_field = fields.iter().find(|(k, _)| *k == "name");
+        let age_field = fields.iter().find(|(k, _)| *k == "age");
+        assert_eq!(name_field.map(|(_, v)| v), Some(&"John Doe"));
+        assert_eq!(age_field.map(|(_, v)| v), Some(&"30"));
 
         // Check file part
         let file_part = &file_parts[0];
-        assert_eq!(file_part.1.as_ref().unwrap(), "file"); // field name
+        assert_eq!(file_part.1.unwrap(), "file"); // field name
 
         // Now simulate what happens in the request building logic:
         // Since there ARE file parts, the system should preserve raw bytes as BINARY
@@ -259,7 +259,7 @@ mod test {
         // to verify that our fix works end-to-end
 
         // Create multipart form data with both text fields and a file
-        let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
+        let boundary = String::from("----WebKitFormBoundary7MA4YWxkTrZu0gW");
         let multipart_data = format!(
             "--{boundary}\r\n\
             Content-Disposition: form-data; name=\"name\"\r\n\
@@ -291,7 +291,7 @@ mod test {
 
         // Step 2: Parse multipart data
         let (fields, file_parts) =
-            crate::helpers::parse_multipart_form(multipart_data.as_bytes(), boundary);
+            crate::helpers::parse_multipart_form(multipart_data.as_bytes(), &boundary);
 
         // Step 3: Verify parsing results
         assert_eq!(fields.len(), 2);
