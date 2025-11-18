@@ -2,10 +2,11 @@ use bytes::Bytes;
 use criterion::{Criterion, criterion_group, criterion_main};
 use http_body_util::Full;
 use hyper::Request;
+use ripress::req::HttpRequest;
 use std::{collections::HashMap, hint::black_box};
 use tokio::runtime::Runtime;
 
-fn create_test_request() -> Request<Full<Bytes>> {
+fn create_test_hyper_request() -> Request<Full<Bytes>> {
     let mut hyper_req: Request<Full<Bytes>> = Request::default();
 
     {
@@ -52,12 +53,52 @@ fn create_test_request() -> Request<Full<Bytes>> {
     hyper_req
 }
 
+fn create_test_custom_request() -> HttpRequest {
+    let mut our_req = HttpRequest::new();
+    // Fill it once
+    our_req.headers.insert("Foo", "Bar");
+    our_req.headers.insert("X-Test-1", "Value1");
+    our_req.headers.insert("X-Test-2", "Value2");
+    our_req.headers.insert("X-Test-3", "Value3");
+    our_req.headers.insert("X-Test-4", "Value4");
+    our_req.headers.insert("X-Test-5", "Value5");
+    our_req.headers.insert("X-Test-6", "Value6");
+    our_req.headers.insert("X-Test-7", "Value7");
+    our_req.headers.insert("X-Test-8", "Value8");
+    our_req.headers.insert("X-Test-9", "Value9");
+
+    our_req.data.insert("Foo", "Bar");
+    our_req.data.insert("Hello", "World");
+    our_req.data.insert("Rust", "Lang");
+    our_req.data.insert("Test", "Value");
+    our_req.data.insert("One", "Two");
+
+    our_req.set_cookie("Foo", "Bar");
+    our_req.set_cookie("Session", "XYZ123");
+    our_req.set_cookie("hello", "cookie");
+    our_req.set_cookie("Alpha", "Beta");
+    our_req.set_cookie("User", "Admin");
+
+    our_req
+}
+
 fn bench_from_hyper(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
+    c.bench_function("to_hyper_request", |b| {
+        b.iter(|| {
+            let our_req = create_test_custom_request();
+
+            rt.block_on(async {
+                let req = black_box(our_req.to_hyper_request());
+                black_box(req).unwrap()
+            })
+        })
+    });
+
     c.bench_function("from_hyper_request", |b| {
         b.iter(|| {
-            let mut hyper_req = create_test_request();
+            let mut hyper_req = create_test_hyper_request();
 
             rt.block_on(async {
                 let req =
