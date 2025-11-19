@@ -867,7 +867,7 @@ impl HttpResponse {
 
             // Add cookies to the header map
             for c in self.cookies.iter() {
-                let mut cookie_builder = cookie::Cookie::build((c.name.clone(), c.value.clone()))
+                let mut cookie_builder = cookie::Cookie::build((c.name, c.value))
                     .http_only(c.options.http_only)
                     .same_site(match c.options.same_site {
                         crate::res::CookieSameSiteOptions::Lax => cookie::SameSite::Lax,

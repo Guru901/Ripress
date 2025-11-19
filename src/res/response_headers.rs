@@ -168,6 +168,20 @@ impl ResponseHeaders {
 
     // === Content Headers ===
 
+    /// Sets the Content-Type header.
+    ///
+    /// This is one of the most commonly used HTTP headers, specifying the media type
+    /// of the response body.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.content_type("application/json");
+    /// assert_eq!(headers.get("content-type"), Some("application/json"));
+    /// ```
     #[inline]
     pub fn content_type<V>(&mut self, content_type: V)
     where
@@ -178,6 +192,20 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets the Content-Length header.
+    ///
+    /// Specifies the size of the response body in bytes. This is important for
+    /// HTTP/1.1 persistent connections and helps clients allocate appropriate buffers.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.content_length(1024);
+    /// assert_eq!(headers.get("content-length"), Some("1024"));
+    /// ```
     #[inline]
     pub fn content_length(&mut self, length: u64) {
         if let Ok(val) = HeaderValue::from_str(&length.to_string()) {
@@ -185,6 +213,20 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets the Location header for redirects.
+    ///
+    /// Used with 3xx status codes to indicate where the client should redirect.
+    /// The URL can be absolute or relative.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.location("https://example.com/new-path");
+    /// assert_eq!(headers.get("location"), Some("https://example.com/new-path"));
+    /// ```
     #[inline]
     pub fn location<V>(&mut self, url: V)
     where
@@ -195,6 +237,22 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets the Cache-Control header.
+    ///
+    /// Controls caching behavior for the response. Common values include:
+    /// - `"no-cache"` - Must revalidate
+    /// - `"max-age=3600"` - Cache for 1 hour
+    /// - `"private"` - Only cache in private caches
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.cache_control("max-age=3600");
+    /// assert_eq!(headers.get("cache-control"), Some("max-age=3600"));
+    /// ```
     #[inline]
     pub fn cache_control<V>(&mut self, value: V)
     where
@@ -205,6 +263,28 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets headers to prevent caching.
+    ///
+    /// This method sets multiple headers to ensure the response is not cached
+    /// by browsers, proxies, or CDNs. Useful for dynamic content or sensitive data.
+    ///
+    /// Headers set:
+    /// - `Cache-Control: no-cache, no-store, must-revalidate`
+    /// - `Pragma: no-cache` (for HTTP/1.0 compatibility)
+    /// - `Expires: 0` (for HTTP/1.0 compatibility)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.no_cache();
+    ///
+    /// assert_eq!(headers.get("cache-control"), Some("no-cache, no-store, must-revalidate"));
+    /// assert_eq!(headers.get("pragma"), Some("no-cache"));
+    /// assert_eq!(headers.get("expires"), Some("0"));
+    /// ```
     pub fn no_cache(&mut self) {
         let val = HeaderValue::from_static("no-cache, no-store, must-revalidate");
         self.inner.insert(hyper::header::CACHE_CONTROL, val);
@@ -216,6 +296,21 @@ impl ResponseHeaders {
         self.inner.insert(hyper::header::EXPIRES, val);
     }
 
+    /// Sets the ETag header.
+    ///
+    /// ETags are used for cache validation. When a client has a cached response
+    /// with an ETag, it can send an `If-None-Match` request header to check if
+    /// the resource has changed.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.etag("\"abc123\"");
+    /// assert_eq!(headers.get("etag"), Some("\"abc123\""));
+    /// ```
     #[inline]
     pub fn etag<V>(&mut self, etag: V)
     where
@@ -226,6 +321,20 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets the Last-Modified header.
+    ///
+    /// Indicates when the resource was last modified. Used for cache validation
+    /// with the `If-Modified-Since` request header.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.last_modified("Wed, 21 Oct 2015 07:28:00 GMT");
+    /// assert_eq!(headers.get("last-modified"), Some("Wed, 21 Oct 2015 07:28:00 GMT"));
+    /// ```
     #[inline]
     pub fn last_modified<V>(&mut self, date: V)
     where
@@ -236,6 +345,21 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets the Server header.
+    ///
+    /// Identifies the server software. While optional, it can be useful for
+    /// debugging and statistics. Consider security implications of revealing
+    /// server information.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.server("MyApp/1.0");
+    /// assert_eq!(headers.get("server"), Some("MyApp/1.0"));
+    /// ```
     #[inline]
     pub fn server<V>(&mut self, server: V)
     where
@@ -246,6 +370,21 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets the X-Powered-By header.
+    ///
+    /// Indicates the technology stack powering the application. Note that this
+    /// can be a security risk as it reveals information to potential attackers.
+    /// Consider using [`remove_powered_by()`](Self::remove_powered_by) instead.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.powered_by("Rust/Tokio");
+    /// assert_eq!(headers.get("x-powered-by"), Some("Rust/Tokio"));
+    /// ```
     pub fn powered_by<V>(&mut self, value: V)
     where
         V: AsRef<str>,
@@ -253,6 +392,22 @@ impl ResponseHeaders {
         self.insert("x-powered-by", value);
     }
 
+    /// Removes the X-Powered-By header (security best practice).
+    ///
+    /// Many frameworks automatically add this header, but it can be a security
+    /// risk as it reveals information about your technology stack to potential
+    /// attackers. This method removes it entirely.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.powered_by("Express");
+    /// headers.remove_powered_by();
+    /// assert!(!headers.contains_key("x-powered-by"));
+    /// ```
     pub fn remove_powered_by(&mut self) {
         let name = HeaderName::from_static("x-powered-by");
         self.inner.remove(&name);
@@ -260,6 +415,20 @@ impl ResponseHeaders {
 
     // === CORS Headers ===
 
+    /// Sets the Access-Control-Allow-Origin header.
+    ///
+    /// Specifies which origins are allowed to access the resource. Use `"*"` for
+    /// public APIs, or specify specific origins for better security.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.cors_allow_origin("https://example.com");
+    /// assert_eq!(headers.get("access-control-allow-origin"), Some("https://example.com"));
+    /// ```
     #[inline]
     pub fn cors_allow_origin<V>(&mut self, origin: V)
     where
@@ -271,6 +440,20 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets the Access-Control-Allow-Methods header.
+    ///
+    /// Specifies which HTTP methods are allowed for CORS requests.
+    /// Common values include combinations of GET, POST, PUT, DELETE, OPTIONS.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.cors_allow_methods("GET, POST, PUT");
+    /// assert_eq!(headers.get("access-control-allow-methods"), Some("GET, POST, PUT"));
+    /// ```
     #[inline]
     pub fn cors_allow_methods<V>(&mut self, methods: V)
     where
@@ -282,6 +465,20 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets the Access-Control-Allow-Headers header.
+    ///
+    /// Specifies which headers can be used in CORS requests. Commonly includes
+    /// Content-Type, Authorization, and custom headers.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.cors_allow_headers("Content-Type, Authorization");
+    /// assert_eq!(headers.get("access-control-allow-headers"), Some("Content-Type, Authorization"));
+    /// ```
     #[inline]
     pub fn cors_allow_headers<V>(&mut self, headers: V)
     where
@@ -293,6 +490,21 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets the Access-Control-Allow-Credentials header.
+    ///
+    /// Indicates whether credentials (cookies, authorization headers, TLS certificates)
+    /// can be included in CORS requests. When `true`, the Access-Control-Allow-Origin
+    /// cannot be `"*"`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.cors_allow_credentials(true);
+    /// assert_eq!(headers.get("access-control-allow-credentials"), Some("true"));
+    /// ```
     pub fn cors_allow_credentials(&mut self, allow: bool) {
         let value = if allow { "true" } else { "false" };
         let val = HeaderValue::from_static(value);
@@ -300,6 +512,28 @@ impl ResponseHeaders {
             .insert(hyper::header::ACCESS_CONTROL_ALLOW_CREDENTIALS, val);
     }
 
+    /// Sets basic CORS headers for simple requests.
+    ///
+    /// This is a convenience method that sets commonly used CORS headers:
+    /// - Access-Control-Allow-Origin (to specified origin or "*")
+    /// - Access-Control-Allow-Methods (GET, POST, PUT, DELETE, OPTIONS)
+    /// - Access-Control-Allow-Headers (Content-Type, Authorization)
+    ///
+    /// # Parameters
+    ///
+    /// - `origin`: Specific origin to allow, or `None` for wildcard ("*")
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.cors_simple(Some("https://example.com"));
+    ///
+    /// assert_eq!(headers.get("access-control-allow-origin"), Some("https://example.com"));
+    /// assert_eq!(headers.get("access-control-allow-methods"), Some("GET, POST, PUT, DELETE, OPTIONS"));
+    /// ```
     pub fn cors_simple(&mut self, origin: Option<&str>) {
         match origin {
             Some(origin) => self.cors_allow_origin(origin),
@@ -319,6 +553,22 @@ impl ResponseHeaders {
 
     // === Security Headers ===
 
+    /// Sets the X-Frame-Options header to prevent clickjacking.
+    ///
+    /// Common values:
+    /// - `"DENY"` - Never allow framing
+    /// - `"SAMEORIGIN"` - Allow framing from same origin
+    /// - `"ALLOW-FROM uri"` - Allow framing from specific URI
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.frame_options("DENY");
+    /// assert_eq!(headers.get("x-frame-options"), Some("DENY"));
+    /// ```
     pub fn frame_options<V>(&mut self, value: V)
     where
         V: AsRef<str>,
@@ -326,15 +576,68 @@ impl ResponseHeaders {
         self.insert("x-frame-options", value);
     }
 
+    /// Sets X-Content-Type-Options to prevent MIME type sniffing.
+    ///
+    /// This header prevents browsers from MIME-sniffing a response away from the
+    /// declared content-type. This helps prevent XSS attacks that rely on MIME
+    /// type confusion.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.no_sniff();
+    /// assert_eq!(headers.get("x-content-type-options"), Some("nosniff"));
+    /// ```
     pub fn no_sniff(&mut self) {
         self.insert("x-content-type-options", "nosniff");
     }
 
+    /// Sets the X-XSS-Protection header.
+    ///
+    /// Controls the browser's XSS filtering feature. When enabled, sets the value
+    /// to `"1; mode=block"` which enables XSS filtering and blocks the page if
+    /// an attack is detected.
+    ///
+    /// # Parameters
+    ///
+    /// - `enabled`: Whether to enable XSS protection
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.xss_protection(true);
+    /// assert_eq!(headers.get("x-xss-protection"), Some("1; mode=block"));
+    /// ```
     pub fn xss_protection(&mut self, enabled: bool) {
         let value = if enabled { "1; mode=block" } else { "0" };
         self.insert("x-xss-protection", value);
     }
 
+    /// Sets the Strict-Transport-Security header (HSTS).
+    ///
+    /// Forces clients to use HTTPS for future requests to the domain.
+    /// This helps prevent man-in-the-middle attacks and protocol downgrade attacks.
+    ///
+    /// # Parameters
+    ///
+    /// - `max_age`: Time in seconds that the browser should remember to use HTTPS
+    /// - `include_subdomains`: Whether to apply HSTS to all subdomains
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.hsts(31536000, true); // 1 year with subdomains
+    /// assert_eq!(headers.get("strict-transport-security"), Some("max-age=31536000; includeSubDomains"));
+    /// ```
     pub fn hsts(&mut self, max_age: u64, include_subdomains: bool) {
         let value = if include_subdomains {
             format!("max-age={}; includeSubDomains", max_age)
@@ -348,6 +651,23 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets the Content-Security-Policy header.
+    ///
+    /// CSP helps prevent XSS attacks by controlling which resources the browser
+    /// is allowed to load. Policies are specified as directives separated by semicolons.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.csp("default-src 'self'; script-src 'self' 'unsafe-inline'");
+    /// assert_eq!(
+    ///     headers.get("content-security-policy"),
+    ///     Some("default-src 'self'; script-src 'self' 'unsafe-inline'")
+    /// );
+    /// ```
     #[inline]
     pub fn csp<V>(&mut self, policy: V)
     where
@@ -359,6 +679,26 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets a collection of basic security headers.
+    ///
+    /// This convenience method sets multiple security headers at once:
+    /// - X-Content-Type-Options: nosniff
+    /// - X-XSS-Protection: 1; mode=block
+    /// - X-Frame-Options: DENY
+    /// - Removes X-Powered-By header
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.security_headers();
+    ///
+    /// assert_eq!(headers.get("x-content-type-options"), Some("nosniff"));
+    /// assert_eq!(headers.get("x-xss-protection"), Some("1; mode=block"));
+    /// assert_eq!(headers.get("x-frame-options"), Some("DENY"));
+    /// ```
     pub fn security_headers(&mut self) {
         self.no_sniff();
         self.xss_protection(true);
@@ -368,30 +708,102 @@ impl ResponseHeaders {
 
     // === Content Type Shortcuts ===
 
+    /// Sets content type to JSON (application/json).
+    ///
+    /// This is a convenience method for the most common API response format.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.json();
+    /// assert_eq!(headers.get("content-type"), Some("application/json"));
+    /// ```
     #[inline]
     pub fn json(&mut self) {
         let val = HeaderValue::from_static("application/json");
         self.inner.insert(hyper::header::CONTENT_TYPE, val);
     }
 
+    /// Sets content type to HTML with UTF-8 charset.
+    ///
+    /// Appropriate for HTML pages and includes charset specification for proper
+    /// character encoding handling.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.html();
+    /// assert_eq!(headers.get("content-type"), Some("text/html; charset=utf-8"));
+    /// ```
     #[inline]
     pub fn html(&mut self) {
         let val = HeaderValue::from_static("text/html; charset=utf-8");
         self.inner.insert(hyper::header::CONTENT_TYPE, val);
     }
 
+    /// Sets content type to plain text with UTF-8 charset.
+    ///
+    /// Appropriate for plain text responses, logs, or simple data formats.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.text();
+    /// assert_eq!(headers.get("content-type"), Some("text/plain; charset=utf-8"));
+    /// ```
     #[inline]
     pub fn text(&mut self) {
         let val = HeaderValue::from_static("text/plain; charset=utf-8");
         self.inner.insert(hyper::header::CONTENT_TYPE, val);
     }
 
+    /// Sets content type to XML (application/xml).
+    ///
+    /// Appropriate for XML data, RSS feeds, and XML-based APIs.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.xml();
+    /// assert_eq!(headers.get("content-type"), Some("application/xml"));
+    /// ```
     #[inline]
     pub fn xml(&mut self) {
         let val = HeaderValue::from_static("application/xml");
         self.inner.insert(hyper::header::CONTENT_TYPE, val);
     }
 
+    /// Sets the Content-Disposition header for file downloads.
+    ///
+    /// This header indicates that the response should be downloaded as a file
+    /// rather than displayed in the browser. The filename parameter specifies
+    /// the suggested filename for the download.
+    ///
+    /// # Parameters
+    ///
+    /// - `filename`: The suggested filename for the download
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.attachment("document.pdf");
+    /// assert_eq!(headers.get("content-disposition"), Some("attachment; filename=\"document.pdf\""));
+    /// ```
     pub fn attachment<V>(&mut self, filename: V)
     where
         V: Into<String>,
@@ -402,6 +814,21 @@ impl ResponseHeaders {
         }
     }
 
+    /// Sets the Content-Disposition header to inline.
+    ///
+    /// This header indicates that the response should be displayed inline
+    /// in the browser rather than downloaded as a file. This is the default
+    /// behavior for most content types, but can be explicitly set.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.inline();
+    /// assert_eq!(headers.get("content-disposition"), Some("inline"));
+    /// ```
     pub fn inline(&mut self) {
         let val = HeaderValue::from_static("inline");
         self.inner.insert(hyper::header::CONTENT_DISPOSITION, val);
@@ -409,26 +836,118 @@ impl ResponseHeaders {
 
     // === Utility Methods ===
 
+    /// Returns an iterator over all header names.
+    ///
+    /// This method provides access to all header names (keys) stored in the
+    /// ResponseHeaders collection. All names are returned in lowercase.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.insert("Content-Type", "application/json");
+    /// headers.insert("X-Custom", "value");
+    ///
+    /// let keys: Vec<&String> = headers.keys().collect();
+    /// assert_eq!(keys.len(), 2);
+    /// assert!(keys.contains(&&"content-type".to_string()));
+    /// assert!(keys.contains(&&"x-custom".to_string()));
+    /// ```
     pub fn keys(&self) -> Vec<&HeaderName> {
         self.inner.keys().collect()
     }
 
+    /// Returns the number of headers.
+    ///
+    /// This counts the number of unique header names, not the total number
+    /// of header values (since headers can have multiple values).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// assert_eq!(headers.len(), 0);
+    ///
+    /// headers.insert("Content-Type", "application/json");
+    /// headers.append("Set-Cookie", "session=abc");
+    /// headers.append("Set-Cookie", "theme=dark");
+    /// assert_eq!(headers.len(), 2); // 2 unique header names
+    /// ```
     #[inline]
     pub fn len(&self) -> usize {
         self.inner.keys().len()
     }
 
+    /// Returns `true` if the headers collection contains no headers.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// assert!(headers.is_empty());
+    ///
+    /// headers.insert("Content-Type", "application/json");
+    /// assert!(!headers.is_empty());
+    /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
 
+    /// Returns an iterator over header name-value pairs.
+    ///
+    /// For headers with multiple values, only the first value is included
+    /// in the iteration. Use [`iter_all()`](Self::iter_all) to access all values.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.insert("Content-Type", "application/json");
+    /// headers.append("Set-Cookie", "session=abc");
+    /// headers.append("Set-Cookie", "theme=dark");
+    ///
+    /// for (name, value) in headers.iter() {
+    ///     println!("{}: {}", name, value);
+    /// }
+    /// // Output:
+    /// // content-type: application/json
+    /// // set-cookie: session=abc
+    /// ```
     pub fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
         self.inner
             .iter()
             .filter_map(|(k, v)| v.to_str().ok().map(|val| (k.as_str(), val)))
     }
 
+    /// Converts headers to HTTP header lines format.
+    ///
+    /// Returns a vector of strings in the format "header-name: header-value",
+    /// suitable for HTTP protocol transmission. Headers with multiple values
+    /// will generate multiple lines.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let mut headers = ResponseHeaders::new();
+    /// headers.insert("Content-Type", "application/json");
+    /// headers.append("Set-Cookie", "session=abc");
+    /// headers.append("Set-Cookie", "theme=dark");
+    ///
+    /// let lines = headers.to_header_lines();
+    /// // lines will contain:
+    /// // ["content-type: application/json", "set-cookie: session=abc", "set-cookie: theme=dark"]
+    /// ```
     pub fn to_header_lines(&self) -> Vec<String> {
         self.inner
             .iter()
@@ -494,6 +1013,25 @@ impl From<ResponseHeaders> for HeaderMap {
 // === Builder Pattern ===
 
 impl ResponseHeaders {
+    /// Builder method to set a header and return self.
+    ///
+    /// This method allows for fluent, chainable header construction using
+    /// the builder pattern. It sets a single header value, replacing any
+    /// existing values for that header.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let headers = ResponseHeaders::new()
+    ///     .with_header("Content-Type", "application/json")
+    ///     .with_header("X-Custom", "value")
+    ///     .with_header("Cache-Control", "no-cache");
+    ///
+    /// assert_eq!(headers.get("content-type"), Some("application/json"));
+    /// assert_eq!(headers.get("x-custom"), Some("value"));
+    /// ```
     pub fn with_header<K, V>(mut self, key: K, value: V) -> Self
     where
         K: AsRef<str>,
@@ -503,6 +1041,22 @@ impl ResponseHeaders {
         self
     }
 
+    /// Builder method to set content type and return self.
+    ///
+    /// This is a convenience builder method for setting the Content-Type header
+    /// in a fluent, chainable manner.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let headers = ResponseHeaders::new()
+    ///     .with_content_type("application/json")
+    ///     .with_header("X-Custom", "value");
+    ///
+    /// assert_eq!(headers.get("content-type"), Some("application/json"));
+    /// ```
     pub fn with_content_type<V>(mut self, content_type: V) -> Self
     where
         V: AsRef<str>,
@@ -511,11 +1065,48 @@ impl ResponseHeaders {
         self
     }
 
+    /// Builder method to set CORS headers and return self.
+    ///
+    /// This convenience builder method sets basic CORS headers using
+    /// the [`cors_simple()`](Self::cors_simple) method in a chainable manner.
+    ///
+    /// # Parameters
+    ///
+    /// - `origin`: Specific origin to allow, or `None` for wildcard ("*")
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let headers = ResponseHeaders::new()
+    ///     .with_cors(Some("https://example.com"))
+    ///     .with_content_type("application/json");
+    ///
+    /// assert_eq!(headers.get("access-control-allow-origin"), Some("https://example.com"));
+    /// ```
     pub fn with_cors(mut self, origin: Option<&str>) -> Self {
         self.cors_simple(origin);
         self
     }
 
+    /// Builder method to set security headers and return self.
+    ///
+    /// This convenience builder method applies basic security headers using
+    /// the [`security_headers()`](Self::security_headers) method in a chainable manner.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use ripress::res::response_headers::ResponseHeaders;
+    ///
+    /// let headers = ResponseHeaders::new()
+    ///     .with_security()
+    ///     .with_content_type("application/json");
+    ///
+    /// assert_eq!(headers.get("x-content-type-options"), Some("nosniff"));
+    /// assert_eq!(headers.get("x-frame-options"), Some("DENY"));
+    /// ```
     pub fn with_security(mut self) -> Self {
         self.security_headers();
         self

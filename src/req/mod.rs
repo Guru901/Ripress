@@ -1285,6 +1285,7 @@ impl HttpRequest {
         Ok(request)
     }
 
+    #[doc(hidden)]
     pub fn set_cookie(&mut self, key: &str, value: &str) {
         self.cookies.insert(key.to_string(), value.to_string());
     }
