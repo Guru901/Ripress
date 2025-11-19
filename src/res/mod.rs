@@ -899,9 +899,15 @@ impl HttpResponse {
             }
 
             // Remove cookies
-            for key in self.remove_cookies {
-                if let Ok(header_name) = HeaderName::from_bytes(key.as_bytes()) {
-                    header_map.remove(&header_name);
+            for cookie_name in self.remove_cookies {
+                let expired_cookie = cookie::Cookie::build((cookie_name, ""))
+                    .path("/")
+                    .max_age(cookie::time::Duration::seconds(0));
+
+                if let Ok(cookie_value) =
+                    HeaderValue::from_bytes(expired_cookie.to_string().as_bytes())
+                {
+                    header_map.append(SET_COOKIE, cookie_value);
                 }
             }
 
@@ -931,11 +937,11 @@ impl HttpResponse {
             // Build the base response with content-type
             let mut response = match body {
                 ResponseContentBody::JSON(json) => {
-                    let json_str = serde_json::to_vec(&json).unwrap();
+                    let json_bytes = serde_json::to_vec(&json).unwrap();
                     Response::builder()
                         .status(self.status_code.as_u16())
                         .header("Content-Type", self.content_type.as_str())
-                        .body(Full::from(Bytes::from(json_str)))
+                        .body(Full::from(Bytes::from(json_bytes)))
                 }
                 ResponseContentBody::TEXT(text) => Response::builder()
                     .status(self.status_code.as_u16())
@@ -992,12 +998,18 @@ impl HttpResponse {
             }
 
             // Remove cookies
-            for c in self.remove_cookies {
-                if let Ok(header_name) = HeaderName::from_bytes(c.as_bytes()) {
-                    header_map.remove(&header_name);
+            // Remove cookies by sending expired Set-Cookie headers
+            for cookie_name in self.remove_cookies {
+                let expired_cookie = cookie::Cookie::build((cookie_name, ""))
+                    .path("/")
+                    .max_age(cookie::time::Duration::seconds(0));
+
+                if let Ok(cookie_value) =
+                    HeaderValue::from_bytes(expired_cookie.to_string().as_bytes())
+                {
+                    header_map.append(SET_COOKIE, cookie_value);
                 }
             }
-
             // Merge all headers at once
             response.headers_mut().extend(header_map);
 
