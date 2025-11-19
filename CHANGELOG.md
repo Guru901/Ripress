@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3] - 2025-11-20
+
+- Request parsing is 2x faster than before
+- Request conversion is 28% faster than before
+- Response headers is 57% faster than before
+- "/ Hello world" tests went from 147k requests/sec to 200k requests/sec
+  - Not a test that would mean much but just showing the difference
+
 ## [2.0.2] - 2025-11-17
 
 - Performance Improvements
