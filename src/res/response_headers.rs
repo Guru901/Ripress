@@ -849,11 +849,17 @@ impl ResponseHeaders {
     /// let mut headers = ResponseHeaders::new();
     /// headers.insert("Content-Type", "application/json");
     /// headers.insert("X-Custom", "value");
-    ///
-    /// let keys: Vec<&String> = headers.keys().collect();
+
+    /// let keys = headers.keys();
     /// assert_eq!(keys.len(), 2);
-    /// assert!(keys.contains(&&"content-type".to_string()));
-    /// assert!(keys.contains(&&"x-custom".to_string()));
+    /// assert!(
+    ///     keys.iter()
+    ///         .any(|k| k.as_str().eq_ignore_ascii_case("content-type"))
+    /// );
+    /// assert!(
+    ///     keys.iter()
+    ///         .any(|k| k.as_str().eq_ignore_ascii_case("x-custom"))
+    /// );
     /// ```
     pub fn keys(&self) -> Vec<&HeaderName> {
         self.inner.keys().collect()
