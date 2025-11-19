@@ -937,7 +937,11 @@ impl HttpResponse {
             // Build the base response with content-type
             let mut response = match body {
                 ResponseContentBody::JSON(json) => {
-                    let json_bytes = serde_json::to_vec(&json).unwrap();
+                    let json_bytes = serde_json::to_vec(&json).unwrap_or_else(|e| {
+                        println!("JSON serialization error: {:?}", e);
+                        Vec::from(b"{}")
+                    });
+
                     Response::builder()
                         .status(self.status_code.as_u16())
                         .header("Content-Type", self.content_type.as_str())
