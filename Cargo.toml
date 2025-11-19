@@ -41,11 +41,13 @@ hyper = "1.8.1"
 hyper-util = { version = "0.1.3", features = ["full"] }
 http-body-util = "0.1.3"
 hyper-staticfile = "0.10.1"
+ahash = "0.8.12"
 
 [dev-dependencies]
 tracing-subscriber = "0.3.20"
 reqwest = { version = "0.12.23", features = ["json"] }
 tempfile = "3.10.1"
+criterion = "0.7.0"
 
 [package.metadata.docs.rs]
 readme = "README.md"
@@ -59,3 +61,7 @@ logger = ["tracing"]
 
 [profile.release]
 debug = true
+
+[[bench]]
+name = "criterion"
+harness = false

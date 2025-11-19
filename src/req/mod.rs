@@ -297,6 +297,7 @@ use crate::{
     req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
     types::{HttpMethods, ResponseContentType},
 };
+use ahash::AHashMap;
 use bytes::Bytes;
 use cookie::Cookie;
 use http_body_util::{BodyExt, Full};
@@ -412,10 +413,10 @@ pub struct HttpRequest {
     pub headers: RequestHeaders,
 
     /// The request's cookies
-    pub(crate) cookies: HashMap<String, String>,
+    pub(crate) cookies: AHashMap<String, String>,
 
     /// The Data set by middleware in the request to be used in the route handler
-    pub data: RequestData,
+    pub(crate) data: RequestData,
 
     /// The request body, which may contain JSON, text, or form data or binary data.
     pub(crate) body: RequestBody,
@@ -458,7 +459,7 @@ impl HttpRequest {
                 content: RequestBodyContent::EMPTY,
                 content_type: RequestBodyType::EMPTY,
             },
-            cookies: HashMap::new(),
+            cookies: AHashMap::new(),
             xhr: false,
             is_secure: false,
         }
@@ -760,9 +761,8 @@ impl HttpRequest {
         cookies
     }
 
-    pub(crate) async fn from_hyper_request(
-        req: &mut Request<Full<Bytes>>,
-    ) -> Result<Self, ApiError> {
+    #[doc(hidden)]
+    pub async fn from_hyper_request(req: &mut Request<Full<Bytes>>) -> Result<Self, ApiError> {
         let origin_url = match req.uri().authority() {
             Some(authority) => {
                 let scheme = req.uri().scheme_str().unwrap_or("http");
@@ -774,8 +774,7 @@ impl HttpRequest {
                     .get(HOST)
                     .and_then(|host| host.to_str().ok())
                     .map(|host| {
-                        // Determine scheme (you might want to check for TLS context)
-                        let scheme = "http"; // or "https" if using TLS
+                        let scheme = "http";
                         format!("{}://{}", scheme, host)
                     })
                     .unwrap_or(String::new());
@@ -785,169 +784,154 @@ impl HttpRequest {
         };
 
         let query_string = req.uri().query().unwrap_or("");
-
         let queries = url::form_urlencoded::parse(query_string.as_bytes())
             .filter_map(|(key, value)| Some((key.to_string(), value.to_string())));
-
         let query = QueryParams::from_iterator(queries);
 
         let method = HttpMethods::from(req.method());
-
-        let ip = req
-            .headers()
-            .get("X-Forwarded-For")
-            .and_then(|val| val.to_str().ok())
-            .and_then(|s| s.split(',').next().map(|s| s.trim()))
-            .and_then(|s| s.parse::<IpAddr>().ok())
-            .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
-
         let path = req.uri().path().to_string();
 
-        // Optimize: Build RequestHeaders directly with pre-allocated capacity
-        let header_count = req.headers().len();
-        let mut headers = RequestHeaders::with_capacity(header_count);
+        // Extract header values BEFORE taking ownership
+        // These are just &str references that we'll copy to String
+        let cookie_str_opt = req
+            .headers()
+            .get(hyper::header::COOKIE)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string()); // Convert to owned String
 
-        // Single pass: build headers directly, no intermediate HashMap
-        for (key, value) in req.headers().iter() {
-            if let Ok(header_value) = value.to_str() {
-                // Direct insert - avoids intermediate allocations
-                headers.insert(key.as_str(), header_value);
-            }
-        }
+        let x_forwarded_for_str = req
+            .headers()
+            .get("x-forwarded-for")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("127.0.0.1")
+            .to_string(); // Convert to owned String
 
-        // Optimize: Parse cookies directly without intermediate Vec<Cookie>
-        let mut cookies_map = HashMap::new();
-        if let Some(cookie_header) = req.headers().get("cookie") {
-            if let Ok(cookie_str) = cookie_header.to_str() {
-                for cookie_part in cookie_str.split(';') {
-                    let trimmed = cookie_part.trim();
-                    if let Some(equal_pos) = trimmed.find('=') {
-                        let name = trimmed[..equal_pos].trim();
-                        let value = trimmed[equal_pos + 1..].trim();
-                        if !name.is_empty() {
-                            cookies_map.insert(name.to_string(), value.to_string());
-                        }
+        let x_forwarded_proto_str = req
+            .headers()
+            .get("x-forwarded-proto")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("http")
+            .to_string(); // Convert to owned String
+
+        let content_type_str_opt = req
+            .headers()
+            .get(hyper::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string()); // Convert to owned String
+
+        let xhr_header_opt = req
+            .headers()
+            .get("x-requested-with")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string()); // Convert to owned String
+
+        // NOW we can take ownership of the HeaderMap
+        let headers = RequestHeaders::from_header_map(std::mem::take(req.headers_mut()));
+
+        // Parse IP
+        let ip = x_forwarded_for_str
+            .split(',')
+            .next()
+            .map(|s| s.trim())
+            .and_then(|s| s.parse::<IpAddr>().ok())
+            .unwrap();
+
+        // Parse cookies from cached header value
+        let mut cookies_map = AHashMap::new();
+        if let Some(cookie_str) = &cookie_str_opt {
+            for cookie_part in cookie_str.split(';') {
+                let trimmed = cookie_part.trim();
+                if let Some(equal_pos) = trimmed.find('=') {
+                    let name = &trimmed[..equal_pos];
+                    let value = &trimmed[equal_pos + 1..];
+                    if !name.is_empty() {
+                        cookies_map.insert(name.to_string(), value.to_string());
                     }
                 }
             }
         }
 
         let mut data = RequestData::new();
-
         if let Some(ext_data) = req.extensions().get::<RequestData>() {
             data = ext_data.clone();
         }
 
-        let content_type = headers
-            .content_type()
+        // Use cached content-type header
+        let content_type = content_type_str_opt
+            .as_deref()
             .map(determine_content_type_request)
             .unwrap_or(RequestBodyType::EMPTY);
 
-        let protocol = req
-            .headers()
-            .get("x-forwarded-proto")
-            .and_then(|val| val.to_str().ok())
-            .unwrap_or("http")
-            .to_string();
-
         let request_body = match content_type {
             RequestBodyType::FORM => {
-                // Read the full body bytes first, then branch depending on content subtype
                 let collected = req.body_mut().collect().await?;
                 let body_bytes = collected.to_bytes();
                 let body_string = std::str::from_utf8(&body_bytes).unwrap_or("").to_string();
                 match FormData::from_query_string(&body_string) {
                     Ok(fd) => RequestBody::new_form(fd),
-                    Err(_e) => {
-                        // Prefer logging via `log`/`tracing` instead of printing.
-                        RequestBody::new_form(FormData::new())
-                    }
+                    Err(_e) => RequestBody::new_form(FormData::new()),
                 }
             }
             RequestBodyType::MultipartForm => {
                 let collected = req.body_mut().collect().await?;
                 let body_bytes = collected.to_bytes();
-                let request_body = {
-                    // Get content type header to extract boundary
-                    let content_type_header = req
-                        .headers()
-                        .get(hyper::header::CONTENT_TYPE)
-                        .and_then(|val| val.to_str().ok())
-                        .unwrap_or_default();
 
-                    let boundary = if content_type_header
-                        .to_lowercase()
-                        .contains("multipart/form-data")
-                    {
-                        extract_boundary(&content_type_header)
-                    } else {
-                        None
-                    };
+                // Use cached content-type instead of another header lookup
+                let boundary = content_type_str_opt
+                    .as_deref()
+                    .filter(|ct| ct.to_lowercase().contains("multipart/form-data"))
+                    .and_then(|ct| extract_boundary(&ct));
 
-                    // Parse multipart/form-data using the same logic as the middleware
-                    let (fields, file_parts) = if let Some(boundary) = boundary {
-                        parse_multipart_form(&body_bytes, &boundary)
-                    } else {
-                        // If not multipart, try to parse as form data using the same method
-                        let body_string =
-                            std::str::from_utf8(&body_bytes).unwrap_or("").to_string();
-                        match FormData::from_query_string(&body_string) {
-                            Ok(fd) => {
-                                // Convert FormData to fields vector for consistency
-                                let form_fields = fd
-                                    .iter()
-                                    .map(|(k, v)| (k.to_string(), v.to_string()))
-                                    .collect::<Vec<(String, String)>>();
-                                (form_fields, Vec::new())
-                            }
-                            Err(_e) => (Vec::new(), Vec::new()),
+                let (fields, file_parts) = if let Some(boundary) = boundary {
+                    let (field_refs, files) = parse_multipart_form(&body_bytes, &boundary);
+                    // Convert borrowed fields to owned strings
+                    let owned_fields = field_refs
+                        .into_iter()
+                        .map(|(k, v)| (k.to_string(), v.to_string()))
+                        .collect::<Vec<(String, String)>>();
+                    (owned_fields, files)
+                } else {
+                    let body_string = String::from_utf8_lossy(&body_bytes);
+                    match FormData::from_query_string(&body_string) {
+                        Ok(fd) => {
+                            // Extract owned strings instead of references
+                            let form_fields = fd
+                                .iter()
+                                .map(|(k, v)| (k.to_string(), v.to_string()))
+                                .collect::<Vec<(String, String)>>();
+                            (form_fields, Vec::new())
                         }
-                    };
-
-                    // Convert fields back to FormData
-                    let mut form_data = FormData::new();
-                    for (key, value) in fields {
-                        form_data.insert(key, value);
-                    }
-
-                    // INTELLIGENT DECISION:
-                    // - Always extract and make text fields accessible via form_data()
-                    // - If there are file parts, also preserve raw bytes as BINARY for middleware processing
-                    // - If no file parts, just use FORM content
-                    if !file_parts.is_empty() {
-                        // Has files: preserve raw bytes for middleware AND make text fields accessible
-                        // We'll set the body as BINARY but also insert the text fields into form_data
-                        // This way both the middleware can process files AND form fields are accessible
-                        RequestBody::new_binary_with_form_fields(body_bytes, form_data)
-                    } else {
-                        // No files: just use form data
-                        RequestBody::new_form(form_data)
+                        Err(_e) => (Vec::new(), Vec::new()),
                     }
                 };
-                request_body
+
+                let mut form_data = FormData::new();
+                for (key, value) in &fields {
+                    form_data.insert(key, value);
+                }
+
+                if !file_parts.is_empty() {
+                    RequestBody::new_binary_with_form_fields(body_bytes, form_data)
+                } else {
+                    RequestBody::new_form(form_data)
+                }
             }
             RequestBodyType::JSON => {
                 let collected = req.body_mut().collect().await?;
-
                 let body_bytes = collected.to_bytes();
-                let body_json = {
-                    match serde_json::from_slice::<serde_json::Value>(&body_bytes) {
-                        Ok(json) => json,
-                        Err(_) => Value::Null,
-                    }
+                let body_json = match serde_json::from_slice::<serde_json::Value>(&body_bytes) {
+                    Ok(json) => json,
+                    Err(_) => Value::Null,
                 };
-
                 RequestBody::new_json(body_json)
             }
             RequestBodyType::TEXT => {
                 let collected = req.body_mut().collect().await?;
-
                 let body_bytes = collected.to_bytes();
-                let request_body = match TextData::from_bytes(body_bytes.as_ref().to_vec()) {
+                match TextData::from_bytes(body_bytes.as_ref().to_vec()) {
                     Ok(text) => RequestBody::new_text(text),
                     Err(_) => RequestBody::new_binary(body_bytes),
-                };
-                request_body
+                }
             }
             RequestBodyType::BINARY => {
                 let collected = req.body_mut().collect().await?;
@@ -960,18 +944,19 @@ impl HttpRequest {
             },
         };
 
-        let is_secure = protocol == String::from("https");
-        let xhr_header = headers.get("X-Requested-With").unwrap_or("");
-        let xhr = xhr_header == "XMLHttpRequest";
+        let is_secure = x_forwarded_proto_str == "https";
+        let xhr = xhr_header_opt
+            .as_deref()
+            .map_or(false, |h| h == "XMLHttpRequest");
 
         Ok(HttpRequest {
             params: RouteParams::new(),
-            query: query,
+            query,
             origin_url,
             method,
             ip,
             path,
-            protocol,
+            protocol: x_forwarded_proto_str,
             headers,
             data,
             body: request_body,
@@ -980,7 +965,6 @@ impl HttpRequest {
             is_secure,
         })
     }
-
     pub(crate) fn from_request_info(req_info: &RequestInfo) -> Self {
         let mut headers = RequestHeaders::new();
 
@@ -1021,7 +1005,7 @@ impl HttpRequest {
         let query = QueryParams::from_map(queries);
         let params = RouteParams::new();
 
-        let mut cookies_map = HashMap::new();
+        let mut cookies_map = AHashMap::new();
         let cookies = Self::get_cookies_from_req_info(&req_info);
 
         cookies.iter().for_each(|cookie| {
@@ -1080,6 +1064,7 @@ impl HttpRequest {
     }
 
     #[cfg(feature = "with-wynd")]
+    #[doc(hidden)]
     pub fn to_hyper_request(&self) -> Result<Request<Full<Bytes>>, Box<dyn std::error::Error>> {
         let path = if self.path.is_empty() {
             "/".to_string()
@@ -1106,14 +1091,17 @@ impl HttpRequest {
         // Add headers
         if let Some(headers) = builder.headers_mut() {
             // Add all headers
-            for (name, value) in self.headers.iter() {
-                if let (Ok(hn), Ok(hv)) = (
-                    hyper::header::HeaderName::from_bytes(name.as_bytes()),
-                    hyper::header::HeaderValue::from_str(value),
-                ) {
-                    headers.append(hn, hv);
+            if !self.headers.is_empty() {
+                // If all header names and values are valid, batch convert and insert (to minimize branching)
+                for (name, value) in self.headers.iter() {
+                    if headers.contains_key(name) {
+                        headers.append(name, value.clone());
+                    } else {
+                        headers.insert(name, value.clone());
+                    }
                 }
             }
+
             if !self.cookies.is_empty() && !headers.contains_key(hyper::header::COOKIE) {
                 let cookie_str: String = self
                     .cookies
@@ -1180,9 +1168,8 @@ impl HttpRequest {
     }
 
     #[cfg(not(feature = "with-wynd"))]
-    pub(crate) fn to_hyper_request(
-        &self,
-    ) -> Result<Request<Full<Bytes>>, Box<dyn std::error::Error>> {
+    #[doc(hidden)]
+    pub fn to_hyper_request(&self) -> Result<Request<Full<Bytes>>, Box<dyn std::error::Error>> {
         let mut path = if self.path.is_empty() {
             "/".to_string()
         } else if !self.path.starts_with('/') {
@@ -1208,30 +1195,42 @@ impl HttpRequest {
             // Add all headers
             if !self.headers.is_empty() {
                 // If all header names and values are valid, batch convert and insert (to minimize branching)
-                let mut inserts = Vec::with_capacity(self.headers.len());
                 for (name, value) in self.headers.iter() {
-                    if let (Ok(hn), Ok(hv)) = (
-                        hyper::header::HeaderName::from_bytes(name.as_bytes()),
-                        hyper::header::HeaderValue::from_bytes(value.as_bytes()),
-                    ) {
-                        inserts.push((hn, hv));
+                    if headers.contains_key(name) {
+                        headers.append(name, value.clone());
+                    } else {
+                        headers.insert(name, value.clone());
                     }
-                }
-                for (hn, hv) in inserts {
-                    headers.append(hn, hv);
                 }
             }
 
             if !self.cookies.is_empty() && !headers.contains_key(hyper::header::COOKIE) {
-                let cookie_str: String = self
-                    .cookies
-                    .iter()
-                    .map(|(name, value)| format!("{}={}", name, value))
-                    .collect::<Vec<_>>()
-                    .join("; ");
+                let cookie_str = {
+                    let cap = self
+                        .cookies
+                        .iter()
+                        .map(|(k, v)| k.len() + v.len() + 2)
+                        .sum::<usize>()
+                        .saturating_sub(2);
+
+                    let mut s = String::with_capacity(cap);
+                    let mut first = true;
+
+                    for (name, value) in &self.cookies {
+                        if !first {
+                            s.push_str("; ");
+                        }
+                        first = false;
+                        s.push_str(name);
+                        s.push('=');
+                        s.push_str(value);
+                    }
+                    s
+                };
+                let cookie = cookie_str.as_bytes();
                 headers.insert(
                     hyper::header::COOKIE,
-                    hyper::header::HeaderValue::from_str(&cookie_str)?,
+                    hyper::header::HeaderValue::from_bytes(&cookie)?,
                 );
             }
         }
@@ -1285,6 +1284,11 @@ impl HttpRequest {
 
         Ok(request)
     }
+
+    #[doc(hidden)]
+    pub fn set_cookie(&mut self, key: &str, value: &str) {
+        self.cookies.insert(key.to_string(), value.to_string());
+    }
 }
 
 #[cfg(test)]
@@ -1295,10 +1299,6 @@ impl HttpRequest {
 
     pub(crate) fn set_header(&mut self, key: &str, value: &str) {
         self.headers.insert(key.to_string(), value.to_string());
-    }
-
-    pub(crate) fn set_cookie(&mut self, key: &str, value: &str) {
-        self.cookies.insert(key.to_string(), value.to_string());
     }
 
     pub(crate) fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)

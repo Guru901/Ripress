@@ -84,25 +84,33 @@ pub(crate) async fn exec_post_middleware(
 
 #[cfg(feature = "with-wynd")]
 pub(crate) async fn exec_wynd_middleware(
-    mut req: Request<Full<Bytes>>,
+    req: Request<Full<Bytes>>,
     middleware: WyndMiddleware,
 ) -> Result<Request<Full<Bytes>>, ApiError> {
     if path_matches(middleware.path.as_str(), req.uri().path()) {
         let mw_func = middleware.func;
-
-        let our_req = HttpRequest::from_hyper_request(&mut req)
-            .await
-            .map_err(ApiError::from)?;
-
-        // Call the wynd middleware function with the original hyper request
         let response = mw_func(req).await;
 
         match response {
             Err(_e) => {
-                return Ok(our_req.to_hyper_request()?);
+                // If the handler returns an error, we can't continue with the original request
+                // since it may have been consumed. Return an error response.
+                return Err(ApiError::Generic(
+                    HttpResponse::new()
+                        .internal_server_error()
+                        .text("WebSocket handler error"),
+                ));
             }
-            Ok(mut res) => {
-                // If successful, return the response as an error to stop processing
+            Ok(res) => {
+                // Check if this is a WebSocket upgrade response (status 101)
+                if res.status() == hyper::StatusCode::SWITCHING_PROTOCOLS {
+                    // For WebSocket upgrades, we need to return the response directly
+                    // WITHOUT converting it, to preserve hyper's upgrade mechanism
+                    return Err(ApiError::WebSocketUpgrade(res));
+                }
+
+                // For normal responses, do the conversion as before
+                let mut res = res;
                 return Err(ApiError::Generic(
                     HttpResponse::from_hyper_response(&mut res).await?,
                 ));
@@ -175,10 +183,10 @@ pub(crate) fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> 
 
 // Updated multipart parser that extracts text fields and ALL file parts
 // Returns (fields, file_parts) where file_parts is Vec<(bytes, field_name)>
-pub(crate) fn parse_multipart_form(
-    body: &[u8],
-    boundary: &str,
-) -> (Vec<(String, String)>, Vec<(Vec<u8>, Option<String>)>) {
+pub(crate) fn parse_multipart_form<'a>(
+    body: &'a [u8],
+    boundary: &String,
+) -> (Vec<(&'a str, &'a str)>, Vec<(Vec<u8>, Option<&'a str>)>) {
     let boundary_start = format!("--{}", boundary);
     let boundary_start_bytes = boundary_start.as_bytes();
     let boundary_next = format!("\r\n--{}", boundary);
@@ -197,8 +205,8 @@ pub(crate) fn parse_multipart_form(
         pos += 2;
     }
 
-    let mut fields: Vec<(String, String)> = Vec::new();
-    let mut file_parts: Vec<(Vec<u8>, Option<String>)> = Vec::new();
+    let mut fields: Vec<(&'a str, &'a str)> = Vec::new();
+    let mut file_parts: Vec<(Vec<u8>, Option<&'a str>)> = Vec::new();
 
     loop {
         // Find end of headers (CRLFCRLF)
@@ -207,7 +215,11 @@ pub(crate) fn parse_multipart_form(
             None => return (fields, file_parts),
         };
         let headers_bytes = &body[pos..pos + header_end_rel];
-        let headers_str = String::from_utf8_lossy(headers_bytes);
+        // SAFETY: headers_bytes is ASCII and safe as UTF-8
+        let headers_str = match std::str::from_utf8(headers_bytes) {
+            Ok(s) => s,
+            Err(_) => return (fields, file_parts),
+        };
         let content_start = pos + header_end_rel + 4;
 
         // Locate the next boundary (start of next part or closing)
@@ -226,7 +238,7 @@ pub(crate) fn parse_multipart_form(
 
         // Parse Content-Disposition to determine field name and if this is a file part
         let mut is_file_part = false;
-        let mut field_name: Option<String> = None;
+        let mut field_name: Option<&'a str> = None;
         for line in headers_str.lines() {
             let l = line.trim();
             if l.to_ascii_lowercase().starts_with("content-disposition:") {
@@ -239,11 +251,36 @@ pub(crate) fn parse_multipart_form(
                     };
                     let key = k.to_ascii_lowercase();
                     let val = extract_quoted_or_token(v);
-                    match key.as_str() {
-                        "name" if !val.is_empty() => {
-                            field_name = Some(val.to_string());
+
+                    // get &str out of v slice using header_str lifetime
+                    let v_offset = v.as_ptr() as usize - headers_str.as_ptr() as usize;
+                    let val_offset = if let Some(start) = v.find('"') {
+                        let val2 = &v[start + 1..];
+                        if let Some(_) = val2.find('"') {
+                            v_offset + start + 1
+                        } else {
+                            v_offset
                         }
-                        "filename" | "filename*" if !val.is_empty() => {
+                    } else {
+                        v_offset
+                    };
+                    let val_len = val.len();
+
+                    let val_str: &'a str =
+                        if val_len > 0 && val_offset + val_len <= headers_str.len() {
+                            // SAFETY: valid substring
+                            unsafe {
+                                std::str::from_utf8_unchecked(
+                                    &headers_str.as_bytes()[val_offset..val_offset + val_len],
+                                )
+                            }
+                        } else {
+                            continue;
+                        };
+
+                    match key.as_str() {
+                        "name" if !val_str.is_empty() => field_name = Some(val_str),
+                        "filename" | "filename*" if !val_str.is_empty() => {
                             is_file_part = true;
                         }
                         _ => {}
@@ -253,14 +290,13 @@ pub(crate) fn parse_multipart_form(
         }
 
         if is_file_part {
-            // Collect ALL file parts, not just the first one
             let file_bytes = trim_trailing_crlf(&body[content_start..content_end]).to_vec();
-            // Pass the field_name instead of original_filename for the mapping
             file_parts.push((file_bytes, field_name));
         } else if let Some(name) = field_name {
             let value_bytes = trim_trailing_crlf(&body[content_start..content_end]);
-            let value = String::from_utf8_lossy(value_bytes).to_string();
-            fields.push((name, value));
+            if let Ok(value_str) = std::str::from_utf8(value_bytes) {
+                fields.push((name, value_str));
+            }
         }
 
         // Move to the next part

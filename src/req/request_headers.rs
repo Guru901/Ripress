@@ -1,11 +1,12 @@
 #![warn(missing_docs)]
-use std::collections::HashMap;
+
+use hyper::HeaderMap;
+use hyper::header::{HeaderName, HeaderValue};
 
 /// A case-insensitive collection of HTTP request headers.
 ///
-/// `RequestHeaders` stores HTTP request header names and their values in a
-/// normalized (lowercased) form. It supports multiple values per header and
-/// provides helper methods for commonly used headers.
+/// `RequestHeaders` wraps Hyper's `HeaderMap` to provide a convenient API
+/// for working with HTTP headers without unnecessary allocations.
 ///
 /// ## Example
 ///
@@ -18,12 +19,12 @@ use std::collections::HashMap;
 /// headers.append("Set-Cookie", "theme=dark");
 ///
 /// assert_eq!(headers.content_type(), Some("application/json"));
-/// assert_eq!(headers.get_all("set-cookie").unwrap().len(), 2);
+/// assert_eq!(headers.get_all("set-cookie").len(), 2);
 /// ```
 
 #[derive(Debug, Clone)]
 pub struct RequestHeaders {
-    inner: HashMap<String, Vec<String>>,
+    inner: HeaderMap,
 }
 
 impl RequestHeaders {
@@ -36,36 +37,27 @@ impl RequestHeaders {
     /// let headers = RequestHeaders::new();
     /// assert!(headers.is_empty());
     /// ```
-
     pub fn new() -> Self {
         Self {
-            inner: HashMap::new(),
+            inner: HeaderMap::new(),
         }
     }
 
     /// Creates a `RequestHeaders` instance with pre-allocated capacity.
     pub(crate) fn with_capacity(capacity: usize) -> Self {
         Self {
-            inner: HashMap::with_capacity(capacity),
+            inner: HeaderMap::with_capacity(capacity),
         }
     }
 
-    /// Creates a `RequestHeaders` instance from a `HashMap<String, String>`.
-    ///
-    /// Each header in the map will be stored with a single value.
-    /// Primarily intended for internal use.
-
-    pub(crate) fn _from_map(map: HashMap<String, String>) -> Self {
-        let mut headers = Self::with_capacity(map.len());
-        for (key, value) in map {
-            headers.insert(key, value);
-        }
-        headers
+    /// Creates a `RequestHeaders` directly from Hyper's HeaderMap (zero-cost).
+    pub(crate) fn from_header_map(map: HeaderMap) -> Self {
+        Self { inner: map }
     }
 
     /// Inserts a header value, replacing any existing values for the header name.
     ///
-    /// Header names are stored in lowercase for case-insensitive matching.
+    /// Header names are case-insensitive.
     ///
     /// # Example
     /// ```
@@ -75,15 +67,17 @@ impl RequestHeaders {
     /// headers.insert("Content-Type", "application/json");
     /// assert_eq!(headers.content_type(), Some("application/json"));
     /// ```
-
     pub fn insert<K, V>(&mut self, key: K, value: V)
     where
         K: AsRef<str>,
         V: AsRef<str>,
     {
-        let key = key.as_ref().to_lowercase();
-        let value = value.as_ref().to_string();
-        self.inner.insert(key, vec![value]);
+        if let (Ok(name), Ok(val)) = (
+            HeaderName::from_bytes(key.as_ref().as_bytes()),
+            HeaderValue::from_bytes(value.as_ref().as_bytes()),
+        ) {
+            self.inner.insert(name, val);
+        }
     }
 
     /// Appends a value to an existing header or creates it if not present.
@@ -97,17 +91,19 @@ impl RequestHeaders {
     /// let mut headers = RequestHeaders::new();
     /// headers.append("Set-Cookie", "id=1");
     /// headers.append("Set-Cookie", "theme=dark");
-    /// assert_eq!(headers.get_all("Set-Cookie").unwrap().len(), 2);
+    /// assert_eq!(headers.get_all("Set-Cookie").len(), 2);
     /// ```
-
     pub fn append<K, V>(&mut self, key: K, value: V)
     where
         K: AsRef<str>,
         V: AsRef<str>,
     {
-        let key = key.as_ref().to_lowercase();
-        let value = value.as_ref().to_string();
-        self.inner.entry(key).or_default().push(value);
+        if let (Ok(name), Ok(val)) = (
+            HeaderName::from_bytes(key.as_ref().as_bytes()),
+            HeaderValue::from_bytes(value.as_ref().as_bytes()),
+        ) {
+            self.inner.append(name, val);
+        }
     }
 
     /// Returns the **first** value for the given header name, if present.
@@ -121,13 +117,12 @@ impl RequestHeaders {
     /// headers.append("Accept", "text/html");
     /// assert_eq!(headers.get("Accept"), Some("application/json"));
     /// ```
-
     pub fn get<K>(&self, key: K) -> Option<&str>
     where
         K: AsRef<str>,
     {
-        let key = key.as_ref().to_lowercase();
-        self.inner.get(&key)?.first().map(|s| s.as_str())
+        let name = HeaderName::from_bytes(key.as_ref().as_bytes()).ok()?;
+        self.inner.get(&name)?.to_str().ok()
     }
 
     /// Returns **all values** for the given header name.
@@ -139,15 +134,21 @@ impl RequestHeaders {
     /// let mut headers = RequestHeaders::new();
     /// headers.append("Accept", "application/json");
     /// headers.append("Accept", "text/html");
-    /// assert_eq!(headers.get_all("Accept").unwrap().len(), 2);
+    /// assert_eq!(headers.get_all("Accept").len(), 2);
     /// ```
-
-    pub fn get_all<K>(&self, key: K) -> Option<&Vec<String>>
+    pub fn get_all<K>(&self, key: K) -> Vec<&str>
     where
         K: AsRef<str>,
     {
-        let key = key.as_ref().to_lowercase();
-        self.inner.get(&key)
+        if let Ok(name) = HeaderName::from_bytes(key.as_ref().as_bytes()) {
+            self.inner
+                .get_all(name)
+                .iter()
+                .filter_map(|v| v.to_str().ok())
+                .collect()
+        } else {
+            Vec::new()
+        }
     }
 
     /// Checks whether a header exists.
@@ -155,17 +156,19 @@ impl RequestHeaders {
     where
         K: AsRef<str>,
     {
-        let key = key.as_ref().to_lowercase();
-        self.inner.contains_key(&key)
+        HeaderName::from_bytes(key.as_ref().as_bytes())
+            .ok()
+            .and_then(|name| self.inner.get(&name))
+            .is_some()
     }
 
-    /// Removes a header entirely, returning its values if present.
-    pub fn remove<K>(&mut self, key: K) -> Option<Vec<String>>
+    /// Removes a header entirely, returning its first value if present.
+    pub fn remove<K>(&mut self, key: K) -> Option<String>
     where
         K: AsRef<str>,
     {
-        let key = key.as_ref().to_lowercase();
-        self.inner.remove(&key)
+        let name: HeaderName = HeaderName::from_bytes(key.as_ref().as_bytes()).ok()?;
+        self.inner.remove(&name)?.to_str().ok().map(String::from)
     }
 
     /// Returns the value of the `Content-Type` header, if present.
@@ -197,7 +200,6 @@ impl RequestHeaders {
     ///
     /// This can be useful for retrieving the real IP address of a client
     /// behind proxies.
-
     pub fn x_forwarded_for(&self) -> Option<&str> {
         self.get("x-forwarded-for")
     }
@@ -205,7 +207,6 @@ impl RequestHeaders {
     /// Returns `true` if the `Accept` header indicates the client accepts JSON.
     ///
     /// Matches if the `Accept` header contains `application/json` or `*/*`.
-
     pub fn accepts_json(&self) -> bool {
         self.accept()
             .map(|accept| accept.contains("application/json") || accept.contains("*/*"))
@@ -215,7 +216,6 @@ impl RequestHeaders {
     /// Returns `true` if the `Accept` header indicates the client accepts HTML.
     ///
     /// Matches if the `Accept` header contains `text/html` or `*/*`.
-
     pub fn accepts_html(&self) -> bool {
         self.accept()
             .map(|accept| accept.contains("text/html") || accept.contains("*/*"))
@@ -234,19 +234,16 @@ impl RequestHeaders {
     ///     println!("{}", key);
     /// }
     /// ```
-
-    pub fn keys(&self) -> impl Iterator<Item = &String> {
+    pub fn keys(&self) -> impl Iterator<Item = &HeaderName> {
         self.inner.keys()
     }
 
     /// Returns the number of unique header names.
-
     pub fn len(&self) -> usize {
-        self.inner.len()
+        self.inner.keys().len()
     }
 
     /// Returns `true` if there are no headers.
-
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
@@ -254,16 +251,25 @@ impl RequestHeaders {
     /// Iterates over all headers as `(name, first_value)` pairs.
     ///
     /// Useful when you only need the first value for each header.
-
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &str)> {
-        self.inner
-            .iter()
-            .filter_map(|(k, v)| v.first().map(|first_val| (k, first_val.as_str())))
+    pub fn iter(&self) -> impl Iterator<Item = (&HeaderName, &HeaderValue)> {
+        self.inner.iter()
     }
 
-    /// Iterates over all headers as `(name, all_values)` pairs.
-    pub fn iter_all(&self) -> impl Iterator<Item = (&String, &Vec<String>)> {
-        self.inner.iter()
+    /// Iterates over all headers as `(name, value)` pairs, including duplicates.
+    pub fn iter_all(&self) -> impl Iterator<Item = (&HeaderName, &str)> {
+        self.inner
+            .iter()
+            .filter_map(|(k, v)| v.to_str().ok().map(|val| (k, val)))
+    }
+
+    /// Returns a reference to the inner HeaderMap for advanced usage.
+    pub fn as_header_map(&self) -> &HeaderMap {
+        &self.inner
+    }
+
+    /// Consumes self and returns the inner HeaderMap.
+    pub fn into_header_map(self) -> HeaderMap {
+        self.inner
     }
 }
 
@@ -284,12 +290,9 @@ impl std::fmt::Display for RequestHeaders {
     /// headers.insert("Content-Type", "application/json");
     /// println!("{}", headers);
     /// ```
-
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (key, values) in &self.inner {
-            for value in values {
-                writeln!(f, "{}: {}", key, value)?;
-            }
+        for (key, value) in self.iter() {
+            writeln!(f, "{}: {:?}", key, value)?;
         }
         Ok(())
     }
@@ -311,9 +314,20 @@ impl std::ops::Index<&str> for RequestHeaders {
     /// # Panics
     ///
     /// Panics if the header does not exist.
-
     fn index(&self, key: &str) -> &Self::Output {
         self.get(key)
             .unwrap_or_else(|| panic!("Header '{}' not found", key))
+    }
+}
+
+impl From<HeaderMap> for RequestHeaders {
+    fn from(map: HeaderMap) -> Self {
+        Self::from_header_map(map)
+    }
+}
+
+impl From<RequestHeaders> for HeaderMap {
+    fn from(headers: RequestHeaders) -> Self {
+        headers.into_header_map()
     }
 }
