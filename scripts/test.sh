@@ -527,7 +527,6 @@ async fn no_content_test(_: HttpRequest, res: HttpResponse) -> HttpResponse {
 ' > main.rs
 
 cargo run --features with-wynd,logger,compression,file-upload &  # Start server in background
-cargo run &  # Start server in background
 SERVER_PID=$!  # Store server process ID
 trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
 attempts=0
@@ -559,6 +558,6 @@ rm main.rs
 cd ..
 rm -rf public
 
-# cargo remove wynd
+cargo remove wynd
 
 echo "All Tests passed!"

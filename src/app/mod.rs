@@ -123,7 +123,7 @@ pub struct App {
     /// The collection of registered routes organized by path and HTTP method.
     routes: Routes,
     /// The list of middleware functions to be applied to requests.
-    pub(crate) middlewares: Vec<Middleware>,
+    pub(crate) middlewares: Vec<Arc<Middleware>>,
     /// Static file mappings from mount path to filesystem path.
     pub(crate) static_files: HashMap<&'static str, &'static str>,
 
@@ -196,11 +196,11 @@ impl App {
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
-        self.middlewares.push(Middleware {
+        self.middlewares.push(Arc::new(Middleware {
             func: Self::middleware_from_closure(middleware),
             path,
             middleware_type: MiddlewareType::Pre,
-        });
+        }));
         self
     }
 
@@ -264,11 +264,11 @@ impl App {
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
-        self.middlewares.push(Middleware {
+        self.middlewares.push(Arc::new(Middleware {
             func: Self::middleware_from_closure(middleware),
             path: path,
             middleware_type: MiddlewareType::Pre,
-        });
+        }));
         self
     }
 
@@ -311,11 +311,11 @@ impl App {
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
-        self.middlewares.push(Middleware {
+        self.middlewares.push(Arc::new(Middleware {
             func: Self::middleware_from_closure(middleware),
             path: path,
             middleware_type: MiddlewareType::Post,
-        });
+        }));
         self
     }
 
@@ -361,11 +361,11 @@ impl App {
     /// - Executed as post-middleware (after route handling)
     #[cfg(feature = "logger")]
     pub fn use_logger(&mut self, config: Option<LoggerConfig>) -> &mut Self {
-        self.middlewares.push(Middleware {
+        self.middlewares.push(Arc::new(Middleware {
             func: Self::middleware_from_closure(logger(config)),
             path: "/".to_string(),
             middleware_type: MiddlewareType::Post,
-        });
+        }));
         self
     }
 
@@ -408,11 +408,11 @@ impl App {
     /// - Executed as pre-middleware
     /// - Automatically handles OPTIONS preflight requests
     pub fn use_cors(&mut self, config: Option<CorsConfig>) -> &mut Self {
-        self.middlewares.push(Middleware {
+        self.middlewares.push(Arc::new(Middleware {
             func: Self::middleware_from_closure(cors(config)),
             path: "/".to_string(),
             middleware_type: MiddlewareType::Pre,
-        });
+        }));
         self
     }
 
@@ -451,11 +451,11 @@ impl App {
     /// - Returns 413 Payload Too Large for requests exceeding the limit
     /// - Does not affect GET requests or requests without bodies
     pub fn use_body_limit(&mut self, config: Option<usize>) -> &mut Self {
-        self.middlewares.push(Middleware {
+        self.middlewares.push(Arc::new(Middleware {
             func: Self::middleware_from_closure(body_limit(config)),
             path: "/".to_string(),
             middleware_type: MiddlewareType::Pre,
-        });
+        }));
         self
     }
 
@@ -593,11 +593,11 @@ impl App {
     /// - `X-RateLimit-Remaining`: Requests remaining in current window
     /// - `X-RateLimit-Reset`: Time when the rate limit window resets
     pub fn use_rate_limiter(&mut self, config: Option<RateLimiterConfig>) -> &mut Self {
-        self.middlewares.push(Middleware {
+        self.middlewares.push(Arc::new(Middleware {
             func: Self::middleware_from_closure(rate_limiter(config)),
             path: "/".to_string(),
             middleware_type: MiddlewareType::Pre,
-        });
+        }));
         self
     }
 
@@ -654,11 +654,11 @@ impl App {
     /// - Uses secure defaults suitable for most web applications
     /// - Can be customized per security requirements
     pub fn use_shield(&mut self, config: Option<ShieldConfig>) -> &mut Self {
-        self.middlewares.push(Middleware {
+        self.middlewares.push(Arc::new(Middleware {
             func: Self::middleware_from_closure(shield(config)),
             path: "/".to_string(),
             middleware_type: MiddlewareType::Pre,
-        });
+        }));
         self
     }
 
@@ -710,11 +710,11 @@ impl App {
     /// - Adds appropriate `Content-Encoding` headers to compressed responses
     #[cfg(feature = "compression")]
     pub fn use_compression(&mut self, config: Option<CompressionConfig>) -> &mut Self {
-        self.middlewares.push(Middleware {
+        self.middlewares.push(Arc::new(Middleware {
             func: Self::middleware_from_closure(compression(config)),
             path: "/".to_string(),
             middleware_type: MiddlewareType::Post,
-        });
+        }));
         self
     }
 
@@ -978,17 +978,17 @@ impl App {
 
         // Apply middlewares first
         for middleware in self.middlewares.iter() {
-            let middleware = middleware.clone();
+            let middleware = Arc::clone(middleware);
 
             if middleware.middleware_type == MiddlewareType::Post {
                 router = router.middleware(routerify_ng::Middleware::post_with_info({
-                    let middleware = middleware.clone();
-                    move |res, info| exec_post_middleware(res, middleware.clone(), info)
+                    let middleware = Arc::clone(&middleware);
+                    move |res, info| exec_post_middleware(res, Arc::clone(&middleware), info)
                 }));
             } else {
                 router = router.middleware(routerify_ng::Middleware::pre({
-                    let middleware = middleware.clone();
-                    move |req| exec_pre_middleware(req, middleware.clone())
+                    let middleware = Arc::clone(&middleware);
+                    move |req| exec_pre_middleware(req, Arc::clone(&middleware))
                 }));
             }
         }
@@ -1046,12 +1046,10 @@ impl App {
                 format!("{}/{}", mount_root, "*")
             };
 
-            let route_pattern: &'static str = Box::leak(route_pattern_owned.into_boxed_str());
-
             let serve_from_clone = serve_from.clone();
             let mount_root_clone = mount_root.clone();
 
-            router = router.get(route_pattern, move |req| {
+            router = router.get(route_pattern_owned, move |req| {
                 let serve_from = serve_from_clone.clone();
                 let mount_root = mount_root_clone.clone();
                 async move {
@@ -1178,8 +1176,6 @@ impl App {
                     .text("Unhandled error"),
             ));
         });
-
-        println!("api_err: {:?}", api_err);
 
         // For WebSocket upgrades, we need to take ownership to avoid breaking the upgrade mechanism
         // Cloning the response breaks the upgrade connection, so we must move it
