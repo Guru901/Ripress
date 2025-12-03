@@ -122,6 +122,8 @@ pub(crate) mod api_error;
 pub struct App {
     /// The collection of registered routes organized by path and HTTP method.
     routes: Routes,
+
+    host: String,
     /// The list of middleware functions to be applied to requests.
     pub(crate) middlewares: Vec<Arc<Middleware>>,
     /// Static file mappings from mount path to filesystem path.
@@ -158,9 +160,33 @@ impl App {
             middlewares: Vec::new(),
             static_files: HashMap::new(),
             graceful_shutdown: false,
+            host: String::from("0.0.0.0"),
             #[cfg(feature = "with-wynd")]
             wynd_middleware: None,
         }
+    }
+
+    /// Sets the host address for the server to bind to.
+    ///
+    /// This method allows you to specify the network interface (host) that the Ripress server will listen on.
+    /// By default, the server binds to `"0.0.0.0"` (all interfaces). You may want to bind to
+    /// `"127.0.0.1"` (localhost only) or an external IP for remote access, depending on your deployment requirements.
+    ///
+    /// **Note:** If you use an empty string (`""`), the server may not bind properly. Use valid IPv4 or IPv6 addresses.
+    ///
+    /// # Arguments
+    ///
+    /// * `host` - The host address (e.g., `"127.0.0.1"`, `"0.0.0.0"`, or an IPv6 address like `"::1"`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ripress::app::App;
+    /// let app = App::new().host("127.0.0.1");
+    /// ```
+    pub fn host(mut self, host: &str) -> Self {
+        self.host = host.to_string();
+        self
     }
 
     /// Adds a middleware to the application (deprecated).
@@ -1069,7 +1095,9 @@ impl App {
         let router = router.build().unwrap();
         cb();
 
-        let addr = SocketAddr::from(([127, 0, 0, 1], port));
+        let addr = format!("{}:{}", self.host, port)
+            .parse::<SocketAddr>()
+            .unwrap();
 
         let listener = TcpListener::bind(addr).await;
 
