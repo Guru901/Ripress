@@ -44,7 +44,7 @@ impl RequestHeaders {
     }
 
     /// Creates a `RequestHeaders` instance with pre-allocated capacity.
-    pub(crate) fn with_capacity(capacity: usize) -> Self {
+    pub(crate) fn _with_capacity(capacity: usize) -> Self {
         Self {
             inner: HeaderMap::with_capacity(capacity),
         }
