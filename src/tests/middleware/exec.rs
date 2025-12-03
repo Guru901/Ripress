@@ -43,19 +43,19 @@ mod tests {
     }
 
     // Dummy middleware function that just passes through
-    fn passthrough_middleware() -> Middleware {
-        Middleware {
+    fn passthrough_middleware() -> Arc<Middleware> {
+        Arc::new(Middleware {
             path: "/".to_string(),
             func: Arc::new(|req: HttpRequest, _: HttpResponse| {
                 Box::pin(async move { (req, None) })
             }),
             middleware_type: MiddlewareType::Pre,
-        }
+        })
     }
 
     // Dummy middleware that short-circuits with a response
-    fn blocking_middleware() -> Middleware {
-        Middleware {
+    fn blocking_middleware() -> Arc<Middleware> {
+        Arc::new(Middleware {
             path: "/block".to_string(),
             func: Arc::new(|req: HttpRequest, _res: HttpResponse| {
                 Box::pin(async move {
@@ -64,7 +64,7 @@ mod tests {
                 })
             }),
             middleware_type: MiddlewareType::Pre,
-        }
+        })
     }
 
     #[tokio::test]

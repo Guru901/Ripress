@@ -1,4 +1,6 @@
 #![warn(missing_docs)]
+use std::sync::Arc;
+
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
 use crate::{
@@ -17,9 +19,9 @@ use url::form_urlencoded::Serializer;
 
 pub(crate) async fn exec_pre_middleware(
     mut req: Request<Full<Bytes>>,
-    middleware: Middleware,
+    middleware: Arc<Middleware>,
 ) -> Result<Request<Full<Bytes>>, ApiError> {
-    let mw_func = middleware.func;
+    let mw_func = &middleware.func;
 
     if path_matches(middleware.path.as_str(), req.uri().path()) {
         let our_res = HttpResponse::new();
@@ -47,10 +49,10 @@ pub(crate) async fn exec_pre_middleware(
 
 pub(crate) async fn exec_post_middleware(
     mut res: Response<Full<Bytes>>,
-    middleware: Middleware,
+    middleware: Arc<Middleware>,
     info: RequestInfo,
 ) -> Result<Response<Full<Bytes>>, ApiError> {
-    let mw_func = middleware.func;
+    let mw_func = &middleware.func;
 
     let mut our_req = HttpRequest::from_request_info(&info);
 
