@@ -1003,19 +1003,20 @@ impl App {
         }
 
         // Apply middlewares first
-        for middleware in self.middlewares.iter() {
-            let middleware = Arc::clone(middleware);
-
-            if middleware.middleware_type == MiddlewareType::Post {
-                router = router.middleware(routerify_ng::Middleware::post_with_info({
-                    let middleware = Arc::clone(&middleware);
-                    move |res, info| exec_post_middleware(res, Arc::clone(&middleware), info)
-                }));
-            } else {
-                router = router.middleware(routerify_ng::Middleware::pre({
-                    let middleware = Arc::clone(&middleware);
-                    move |req| exec_pre_middleware(req, Arc::clone(&middleware))
-                }));
+        for middleware in &self.middlewares {
+            match middleware.middleware_type {
+                MiddlewareType::Post => {
+                    let middleware = Arc::clone(middleware);
+                    router = router.middleware(routerify_ng::Middleware::post_with_info(
+                        move |res, info| exec_post_middleware(res, Arc::clone(&middleware), info),
+                    ));
+                }
+                _ => {
+                    let middleware = Arc::clone(middleware);
+                    router = router.middleware(routerify_ng::Middleware::pre(move |req| {
+                        exec_pre_middleware(req, Arc::clone(&middleware))
+                    }));
+                }
             }
         }
 
