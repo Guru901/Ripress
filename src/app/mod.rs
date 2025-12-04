@@ -57,6 +57,8 @@ use crate::types::{HandlerMiddleware, HttpMethods, RouterFns, Routes};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
 use hyper::http::StatusCode;
+use hyper::server::conn::http1;
+use hyper::server::conn::http2;
 use hyper::service::Service;
 use hyper::{Method, header};
 use hyper::{Request, Response};
@@ -1244,12 +1246,13 @@ impl App {
 
                                     // Wrap the stream in TokioIo for hyper
                                     let io = TokioIo::new(stream);
+
                                     let mut builder = Builder::new(TokioExecutor::new());
                                     builder.http1().keep_alive(true);
 
                                     if http2_enabled {
-                                        // Enable HTTP/2 support in addition to HTTP/1.1.
-                                        // Hyper will negotiate the protocol with the client.
+                                        // HTTP/1.1 + HTTP/2 (negotiated by Hyper).
+                                        // Enable HTTP/2 support with optional advanced tuning.
                                         let mut h2 = builder.http2();
                                         if let Some(cfg) = http2_config {
                                             if let Some(v) = cfg.max_concurrent_streams {
@@ -1278,15 +1281,23 @@ impl App {
                                             }
                                         }
                                         h2.enable_connect_protocol();
-                                    }
-
-                                    // Serve the connection with upgrades enabled for WebSocket support
-                                    let connection =
+                                        let connection =
                                         builder.serve_connection_with_upgrades(io, request_service);
 
                                     if let Err(err) = connection.await {
                                         eprintln!("Error serving connection: {:?}", err);
                                     }
+                                    } else {
+                                        let mut builder = http1::Builder::new();
+                                        builder.keep_alive(true);
+                                        let connection =
+                                        builder.serve_connection(io, request_service).with_upgrades();
+
+                                    if let Err(err) = connection.await {
+                                        eprintln!("Error serving connection: {:?}", err);
+                                    }
+                                    }
+
                                 });
                             }
                             Err(e) => {
@@ -1318,13 +1329,11 @@ impl App {
 
                             // Wrap the stream in TokioIo for hyper
                             let io = TokioIo::new(stream);
-                            let mut builder = Builder::new(TokioExecutor::new());
-                            builder.http1().keep_alive(true);
 
                             if http2_enabled {
-                                // Enable HTTP/2 support in addition to HTTP/1.1.
-                                // Hyper will negotiate the protocol with the client.
-                                let mut h2 = builder.http2();
+                                // HTTP/1.1 + HTTP/2 (negotiated by Hyper).
+                                // Enable HTTP/2 support with optional advanced tuning.
+                                let mut h2 = http2::Builder::new(TokioExecutor::new());
                                 if let Some(cfg) = http2_config {
                                     if let Some(v) = cfg.max_concurrent_streams {
                                         h2.max_concurrent_streams(v);
@@ -1350,19 +1359,30 @@ impl App {
                                     if let Some(v) = cfg.keep_alive_timeout {
                                         h2.keep_alive_timeout(v);
                                     }
+
+                                    h2.enable_connect_protocol();
+
+                                    let connection = h2.serve_connection(io, request_service);
+                                    if let Err(err) = connection.await {
+                                        eprintln!("Error serving connection: {:?}", err);
+                                    }
                                     // Note: hyper 1.x `Http2Builder` does not currently expose
                                     // an explicit `keep_alive_while_idle` toggle; this flag is
                                     // reserved for future use or more advanced wiring.
                                 }
-                                h2.enable_connect_protocol();
+                            } else {
+                                let mut builder = http1::Builder::new();
+                                builder.keep_alive(true);
+                                let connection = builder
+                                    .serve_connection(io, request_service)
+                                    .with_upgrades();
+
+                                if let Err(err) = connection.await {
+                                    eprintln!("Error serving connection: {:?}", err);
+                                }
                             }
 
                             // Serve the connection with upgrades enabled for WebSocket support
-                            let connection =
-                                builder.serve_connection_with_upgrades(io, request_service);
-                            if let Err(err) = connection.await {
-                                eprintln!("Error serving connection: {:?}", err);
-                            }
                         });
                     }
                     Err(e) => {
