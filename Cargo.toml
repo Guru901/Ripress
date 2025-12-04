@@ -58,7 +58,6 @@ with-wynd = []
 compression = ["flate2"]
 file-upload = ["uuid"]
 logger = ["tracing"]
-bench = []
 
 [profile.release]
 debug = true
@@ -66,4 +65,3 @@ debug = true
 [[bench]]
 name = "ripress_benches"
 harness = false
-required-features = ["bench"]
