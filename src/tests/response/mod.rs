@@ -90,6 +90,28 @@ mod tests {
     }
 
     #[test]
+    fn test_binary_body() {
+        // Test 1 - Everything Is Correct
+
+        let mut req = HttpRequest::new();
+
+        req.set_binary(vec![1, 2, 3, 4, 5], RequestBodyType::BINARY);
+
+        assert_eq!(req.bytes().unwrap(), vec![1, 2, 3, 4, 5]);
+
+        // Test 2 - Invalid Body Type
+
+        req.set_binary(vec![1, 2, 3, 4, 5], RequestBodyType::FORM);
+
+        assert!(req.bytes().is_err());
+
+        // Test 3 - Invalid Text Content
+
+        req.set_binary(vec![1, 2, 3, 4, 5], RequestBodyType::TEXT);
+        assert!(req.bytes().is_err());
+    }
+
+    #[test]
     fn test_text_body() {
         // Test 1 - Everything Is Correct
 

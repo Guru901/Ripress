@@ -1322,6 +1322,11 @@ impl HttpRequest {
         self.body.content = RequestBodyContent::TEXT(text)
     }
 
+    pub(crate) fn set_binary(&mut self, bytes: Vec<u8>, content_type: RequestBodyType) {
+        self.body.content_type = content_type;
+        self.body.content = RequestBodyContent::BINARY(bytes.into());
+    }
+
     pub(crate) fn set_form(
         &mut self,
         key: &'static str,
