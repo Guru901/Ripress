@@ -1333,7 +1333,8 @@ impl App {
                             if http2_enabled {
                                 // HTTP/1.1 + HTTP/2 (negotiated by Hyper).
                                 // Enable HTTP/2 support with optional advanced tuning.
-                                let mut h2 = http2::Builder::new(TokioExecutor::new());
+                                let mut builder = Builder::new(TokioExecutor::new());
+                                let mut h2 = builder.http2();
                                 if let Some(cfg) = http2_config {
                                     if let Some(v) = cfg.max_concurrent_streams {
                                         h2.max_concurrent_streams(v);
