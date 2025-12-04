@@ -75,7 +75,7 @@ fn bench_request_from_hyper_json(c: &mut Criterion) {
     c.bench_function("request_from_hyper_json", |b| {
         b.iter(|| {
             rt.block_on(async {
-                let mut req = build_json_request();
+                let mut req = black_box(build_json_request());
                 let _rip = HttpRequest::from_hyper_request(black_box(&mut req))
                     .await
                     .unwrap();
