@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.5] - 2025-12-4
+
+- Optimized middleware application
+- Improve error handling for form and JSON data parsing in HttpRequest
+  - Added logging for parsing errors, defaulting to empty form data or null JSON as appropriate.
+  - Improved robustness of request body processing by ensuring errors are reported without crashing the application.
+- Added benchmarks
+
 ## [2.0.4] - 2025-12-3
 
 - Added `app.host` method to change the host, defaults to `0.0.0.0`
