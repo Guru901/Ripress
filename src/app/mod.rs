@@ -1067,8 +1067,8 @@ impl App {
     ///
     /// ## Network Configuration
     ///
-    /// - **Bind Address**: The server binds to `127.0.0.1:port` (localhost only)
-    /// - **Protocols**: HTTP/1.1 by default, with optional HTTP/2 support via Hyper
+    /// - **Bind Address**: By default, binds to `0.0.0.0:port` (all interfaces); configurable via [`App::host`]
+    /// - **Protocols**: HTTP/1.1 by default; when HTTP/2 is enabled, compatible clients can negotiate HTTP/2 via Hyper
     /// - **Concurrent Connections**: Handled asynchronously with Tokio
     ///
     /// ## Error Handling
