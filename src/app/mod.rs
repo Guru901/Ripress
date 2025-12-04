@@ -1314,7 +1314,9 @@ impl App {
                                                     h2.keep_alive_timeout(v);
                                                 }
                                                 h2.enable_connect_protocol();
-                                                let connection = h2.serve_connection(io, request_service);
+
+                                                let connection =
+                                                    builder.serve_connection_with_upgrades(io, request_service);
                                                 if let Err(err) = connection.await {
                                                     eprintln!("Error serving connection: {:?}", err);
                                                 }
@@ -1444,7 +1446,9 @@ impl App {
                                             h2.keep_alive_timeout(v);
                                         }
                                         h2.enable_connect_protocol();
-                                        let connection = h2.serve_connection(io, request_service);
+
+                                        let connection = builder
+                                            .serve_connection_with_upgrades(io, request_service);
                                         if let Err(err) = connection.await {
                                             eprintln!("Error serving connection: {:?}", err);
                                         }
