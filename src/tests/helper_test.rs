@@ -328,7 +328,7 @@ mod tests {
         let boundary = "binary";
         let file_content = b"\xF0\x90\x80\x80\xFF";
         let body = make_body(&[("file", "", Some(file_content))], boundary);
-        let (fields, files) = parse_multipart_form(&body, &boundary.to_string());
+        let (_, files) = parse_multipart_form(&body, &boundary.to_string());
         assert_eq!(files.len(), 1);
         assert_eq!(files[0].0, file_content);
     }
