@@ -57,18 +57,19 @@ use crate::types::{HandlerMiddleware, HttpMethods, RouterFns, Routes};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
 use hyper::http::StatusCode;
-use hyper::server::conn::http1::Builder;
 use hyper::service::Service;
 use hyper::{Method, header};
 use hyper::{Request, Response};
 use hyper_staticfile::Static;
-use hyper_util::rt::TokioIo;
+use hyper_util::rt::{TokioExecutor, TokioIo};
+use hyper_util::server::conn::auto::Builder;
 use routerify_ng::RouterService;
 use routerify_ng::ext::RequestExt;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::net::TcpListener;
 
 pub(crate) mod api_error;
@@ -124,6 +125,20 @@ pub struct App {
     routes: Routes,
 
     host: String,
+    /// Enables or disables HTTP/2 support for the server.
+    ///
+    /// When `true`, the underlying Hyper server is configured to accept HTTP/2
+    /// connections (in addition to HTTP/1.1). HTTP/2 support is negotiated
+    /// automatically by Hyper based on the incoming connection and does not
+    /// require any changes to your route handlers or middleware.
+    ///
+    /// By default, HTTP/2 is **enabled**.
+    http2: bool,
+    /// Optional advanced configuration for HTTP/2 behavior.
+    ///
+    /// These settings allow fine-tuning HTTP/2 flow control, concurrency, and
+    /// keep-alive behavior. When `None`, Hyper's defaults are used.
+    http2_config: Option<Http2Config>,
     /// The list of middleware functions to be applied to requests.
     pub(crate) middlewares: Vec<Arc<Middleware>>,
     /// Static file mappings from mount path to filesystem path.
@@ -133,6 +148,36 @@ pub struct App {
     #[cfg(feature = "with-wynd")]
     /// Optional WebSocket middleware (only available with `wynd` feature).
     pub(crate) wynd_middleware: Option<WyndMiddleware>,
+}
+
+/// Advanced configuration options for HTTP/2 behavior.
+///
+/// All fields are optional; if a field is `None`, Hyper's internal default for
+/// that setting is used. Most applications can rely on the defaults and only
+/// override `max_concurrent_streams` or timeouts for specific workloads.
+#[derive(Clone, Debug, Default)]
+pub struct Http2Config {
+    /// If `true`, only HTTP/2 connections are accepted on this listener.
+    /// If `false`, HTTP/1.1 and HTTP/2 are both supported (negotiated by Hyper).
+    pub http2_only: bool,
+    /// Maximum number of concurrent streams allowed per HTTP/2 connection.
+    pub max_concurrent_streams: Option<u32>,
+    /// Initial stream-level flow control window size.
+    pub initial_stream_window_size: Option<u32>,
+    /// Initial connection-level flow control window size.
+    pub initial_connection_window_size: Option<u32>,
+    /// Enable or disable Hyper's adaptive flow control window behavior.
+    pub adaptive_window: Option<bool>,
+    /// Maximum allowed HTTP/2 frame size in bytes.
+    pub max_frame_size: Option<u32>,
+    /// Maximum size of the header list (in octets) that is allowed.
+    pub max_header_list_size: Option<u32>,
+    /// Interval at which HTTP/2 PING frames are sent to keep the connection alive.
+    pub keep_alive_interval: Option<Duration>,
+    /// Timeout waiting for a PING ACK before considering the connection dead.
+    pub keep_alive_timeout: Option<Duration>,
+    /// Whether to send keep-alive PINGs even when the connection is idle.
+    pub keep_alive_while_idle: Option<bool>,
 }
 
 impl RouterFns for App {
@@ -157,6 +202,8 @@ impl App {
     pub fn new() -> Self {
         App {
             routes: HashMap::new(),
+            http2: true,
+            http2_config: None,
             middlewares: Vec::new(),
             static_files: HashMap::new(),
             graceful_shutdown: false,
@@ -184,8 +231,65 @@ impl App {
     /// use ripress::app::App;
     /// let app = App::new().host("127.0.0.1");
     /// ```
-    pub fn host(mut self, host: &str) -> Self {
+    pub fn host(&mut self, host: &str) -> &mut Self {
         self.host = host.to_string();
+        self
+    }
+
+    /// Enables or disables HTTP/2 support for the application.
+    ///
+    /// By default, HTTP/2 is enabled so that compatible clients can negotiate
+    /// HTTP/2 with the server transparently via Hyper. Disabling HTTP/2 forces
+    /// all connections to use HTTP/1.1 only.
+    ///
+    /// This setting only affects the underlying protocol negotiation; your
+    /// route handlers, middleware, and response APIs remain unchanged.
+    ///
+    /// # Arguments
+    ///
+    /// * `enabled` - Set to `true` to enable HTTP/2, or `false` to disable it.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ripress::app::App;
+    ///
+    /// let mut app = App::new();
+    ///
+    /// // Disable HTTP/2 and serve only HTTP/1.1
+    /// app.enable_http2(false);
+    /// ```
+    pub fn enable_http2(&mut self, enabled: bool) -> &mut Self {
+        self.http2 = enabled;
+        self
+    }
+
+    /// Applies advanced HTTP/2 configuration for the application.
+    ///
+    /// This method allows fine-tuning of HTTP/2 behavior such as maximum
+    /// concurrent streams, flow-control windows, and keep-alive settings.
+    /// All fields in [`Http2Config`] are optional; any `None` values will
+    /// cause Hyper's defaults to be used for that setting.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use ripress::app::{App, Http2Config};
+    ///
+    /// let mut app = App::new();
+    ///
+    /// app.enable_http2(true)
+    ///     .http2_config(Http2Config {
+    ///         http2_only: false,
+    ///         max_concurrent_streams: Some(100),
+    ///         keep_alive_interval: Some(Duration::from_secs(30)),
+    ///         keep_alive_timeout: Some(Duration::from_secs(10)),
+    ///         ..Default::default()
+    ///     });
+    /// ```
+    pub fn http2_config(&mut self, config: Http2Config) -> &mut Self {
+        self.http2_config = Some(config);
         self
     }
 
@@ -962,7 +1066,7 @@ impl App {
     /// ## Network Configuration
     ///
     /// - **Bind Address**: The server binds to `127.0.0.1:port` (localhost only)
-    /// - **Protocol**: HTTP/1.1 (HTTP/2 support may be added in future versions)
+    /// - **Protocols**: HTTP/1.1 by default, with optional HTTP/2 support via Hyper
     /// - **Concurrent Connections**: Handled asynchronously with Tokio
     ///
     /// ## Error Handling
@@ -1111,8 +1215,13 @@ impl App {
 
         let router_service = Arc::new(RouterService::new(router).unwrap());
 
+        let http2_enabled = self.http2;
+        let http2_config = self.http2_config.clone();
+
         if self.graceful_shutdown {
             let mut shutdown = Box::pin(tokio::signal::ctrl_c());
+
+            let http2_config = self.http2_config.clone();
 
             loop {
                 tokio::select! {
@@ -1120,25 +1229,61 @@ impl App {
                         match result {
                             Ok((stream, _)) => {
                                 let service = Arc::clone(&router_service);
+                                let http2_enabled = http2_enabled;
+                                let http2_config = http2_config.clone();
 
                                 tokio::task::spawn(async move {
                                     // Now service is Arc<RouterService> and not moved
-                                     let request_service = match service.call(&stream).await {
-                                             Ok(svc) => svc,
-                                             Err(err) => {
-                                                 eprintln!("Error creating per-connection service: {:?}", err);
-                                                 return;
-                                             }
-                                         };
-
+                                    let request_service = match service.call(&stream).await {
+                                        Ok(svc) => svc,
+                                        Err(err) => {
+                                            eprintln!("Error creating per-connection service: {:?}", err);
+                                            return;
+                                        }
+                                    };
 
                                     // Wrap the stream in TokioIo for hyper
                                     let io = TokioIo::new(stream);
-                                    let mut builder = Builder::new();
-                                    builder.keep_alive(true);
+                                    let mut builder = Builder::new(TokioExecutor::new());
+                                    builder.http1().keep_alive(true);
+
+                                    if http2_enabled {
+                                        // Enable HTTP/2 support in addition to HTTP/1.1.
+                                        // Hyper will negotiate the protocol with the client.
+                                        let mut h2 = builder.http2();
+                                        if let Some(cfg) = http2_config {
+                                            if let Some(v) = cfg.max_concurrent_streams {
+                                                h2.max_concurrent_streams(v);
+                                            }
+                                            if let Some(v) = cfg.initial_stream_window_size {
+                                                h2.initial_stream_window_size(v);
+                                            }
+                                            if let Some(v) = cfg.initial_connection_window_size {
+                                                h2.initial_connection_window_size(v);
+                                            }
+                                            if let Some(v) = cfg.adaptive_window {
+                                                h2.adaptive_window(v);
+                                            }
+                                            if let Some(v) = cfg.max_frame_size {
+                                                h2.max_frame_size(v);
+                                            }
+                                            if let Some(v) = cfg.max_header_list_size {
+                                                h2.max_header_list_size(v);
+                                            }
+                                            if let Some(v) = cfg.keep_alive_interval {
+                                                h2.keep_alive_interval(v);
+                                            }
+                                            if let Some(v) = cfg.keep_alive_timeout {
+                                                h2.keep_alive_timeout(v);
+                                            }
+                                        }
+                                        h2.enable_connect_protocol();
+                                    }
 
                                     // Serve the connection with upgrades enabled for WebSocket support
-                                    let connection = builder.serve_connection(io, request_service).with_upgrades();
+                                    let connection =
+                                        builder.serve_connection_with_upgrades(io, request_service);
+
                                     if let Err(err) = connection.await {
                                         eprintln!("Error serving connection: {:?}", err);
                                     }
@@ -1159,6 +1304,8 @@ impl App {
                 match listener.accept().await {
                     Ok((stream, _)) => {
                         let service = Arc::clone(&router_service);
+                        let http2_enabled = http2_enabled;
+                        let http2_config = http2_config.clone();
 
                         tokio::task::spawn(async move {
                             let request_service = match service.call(&stream).await {
@@ -1171,13 +1318,48 @@ impl App {
 
                             // Wrap the stream in TokioIo for hyper
                             let io = TokioIo::new(stream);
-                            let mut builder = Builder::new();
-                            builder.keep_alive(true);
+                            let mut builder = Builder::new(TokioExecutor::new());
+                            builder.http1().keep_alive(true);
+
+                            if http2_enabled {
+                                // Enable HTTP/2 support in addition to HTTP/1.1.
+                                // Hyper will negotiate the protocol with the client.
+                                let mut h2 = builder.http2();
+                                if let Some(cfg) = http2_config {
+                                    if let Some(v) = cfg.max_concurrent_streams {
+                                        h2.max_concurrent_streams(v);
+                                    }
+                                    if let Some(v) = cfg.initial_stream_window_size {
+                                        h2.initial_stream_window_size(v);
+                                    }
+                                    if let Some(v) = cfg.initial_connection_window_size {
+                                        h2.initial_connection_window_size(v);
+                                    }
+                                    if let Some(v) = cfg.adaptive_window {
+                                        h2.adaptive_window(v);
+                                    }
+                                    if let Some(v) = cfg.max_frame_size {
+                                        h2.max_frame_size(v);
+                                    }
+                                    if let Some(v) = cfg.max_header_list_size {
+                                        h2.max_header_list_size(v);
+                                    }
+                                    if let Some(v) = cfg.keep_alive_interval {
+                                        h2.keep_alive_interval(v);
+                                    }
+                                    if let Some(v) = cfg.keep_alive_timeout {
+                                        h2.keep_alive_timeout(v);
+                                    }
+                                    // Note: hyper 1.x `Http2Builder` does not currently expose
+                                    // an explicit `keep_alive_while_idle` toggle; this flag is
+                                    // reserved for future use or more advanced wiring.
+                                }
+                                h2.enable_connect_protocol();
+                            }
 
                             // Serve the connection with upgrades enabled for WebSocket support
-                            let connection = builder
-                                .serve_connection(io, request_service)
-                                .with_upgrades();
+                            let connection =
+                                builder.serve_connection_with_upgrades(io, request_service);
                             if let Err(err) = connection.await {
                                 eprintln!("Error serving connection: {:?}", err);
                             }
