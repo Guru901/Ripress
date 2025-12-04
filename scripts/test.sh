@@ -58,6 +58,8 @@ async fn main() {
     let mut app = App::new();
     let mut wynd = Wynd::new();
 
+    app.with_graceful_shutdown();
+
     wynd.on_connection(|conn| async move {
         conn.on_open(|handle| async move {
             handle
