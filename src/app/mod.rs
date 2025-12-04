@@ -1333,43 +1333,89 @@ impl App {
                             if http2_enabled {
                                 // HTTP/1.1 + HTTP/2 (negotiated by Hyper).
                                 // Enable HTTP/2 support with optional advanced tuning.
-                                let mut builder = Builder::new(TokioExecutor::new());
-                                let mut h2 = builder.http2();
                                 if let Some(cfg) = http2_config {
-                                    if let Some(v) = cfg.max_concurrent_streams {
-                                        h2.max_concurrent_streams(v);
-                                    }
-                                    if let Some(v) = cfg.initial_stream_window_size {
-                                        h2.initial_stream_window_size(v);
-                                    }
-                                    if let Some(v) = cfg.initial_connection_window_size {
-                                        h2.initial_connection_window_size(v);
-                                    }
-                                    if let Some(v) = cfg.adaptive_window {
-                                        h2.adaptive_window(v);
-                                    }
-                                    if let Some(v) = cfg.max_frame_size {
-                                        h2.max_frame_size(v);
-                                    }
-                                    if let Some(v) = cfg.max_header_list_size {
-                                        h2.max_header_list_size(v);
-                                    }
-                                    if let Some(v) = cfg.keep_alive_interval {
-                                        h2.keep_alive_interval(v);
-                                    }
-                                    if let Some(v) = cfg.keep_alive_timeout {
-                                        h2.keep_alive_timeout(v);
-                                    }
+                                    if cfg.http2_only {
+                                        let mut h2 = http2::Builder::new(TokioExecutor::new());
 
-                                    h2.enable_connect_protocol();
+                                        if let Some(v) = cfg.max_concurrent_streams {
+                                            h2.max_concurrent_streams(v);
+                                        }
+                                        if let Some(v) = cfg.initial_stream_window_size {
+                                            h2.initial_stream_window_size(v);
+                                        }
+                                        if let Some(v) = cfg.initial_connection_window_size {
+                                            h2.initial_connection_window_size(v);
+                                        }
+                                        if let Some(v) = cfg.adaptive_window {
+                                            h2.adaptive_window(v);
+                                        }
+                                        if let Some(v) = cfg.max_frame_size {
+                                            h2.max_frame_size(v);
+                                        }
+                                        if let Some(v) = cfg.max_header_list_size {
+                                            h2.max_header_list_size(v);
+                                        }
+                                        if let Some(v) = cfg.keep_alive_interval {
+                                            h2.keep_alive_interval(v);
+                                        }
+                                        if let Some(v) = cfg.keep_alive_timeout {
+                                            h2.keep_alive_timeout(v);
+                                        }
 
-                                    let connection = h2.serve_connection(io, request_service);
-                                    if let Err(err) = connection.await {
-                                        eprintln!("Error serving connection: {:?}", err);
-                                    }
+                                        h2.enable_connect_protocol();
+
+                                        let connection = h2.serve_connection(io, request_service);
+                                        if let Err(err) = connection.await {
+                                            eprintln!("Error serving connection: {:?}", err);
+                                        }
+                                    } else {
+                                        let mut builder = Builder::new(TokioExecutor::new());
+                                        builder.http1().keep_alive(true);
+                                        let mut h2 = builder.http2();
+                                        if let Some(v) = cfg.max_concurrent_streams {
+                                            h2.max_concurrent_streams(v);
+                                        }
+                                        if let Some(v) = cfg.initial_stream_window_size {
+                                            h2.initial_stream_window_size(v);
+                                        }
+                                        if let Some(v) = cfg.initial_connection_window_size {
+                                            h2.initial_connection_window_size(v);
+                                        }
+                                        if let Some(v) = cfg.adaptive_window {
+                                            h2.adaptive_window(v);
+                                        }
+                                        if let Some(v) = cfg.max_frame_size {
+                                            h2.max_frame_size(v);
+                                        }
+                                        if let Some(v) = cfg.max_header_list_size {
+                                            h2.max_header_list_size(v);
+                                        }
+                                        if let Some(v) = cfg.keep_alive_interval {
+                                            h2.keep_alive_interval(v);
+                                        }
+                                        if let Some(v) = cfg.keep_alive_timeout {
+                                            h2.keep_alive_timeout(v);
+                                        }
+                                        h2.enable_connect_protocol();
+                                        let connection = h2.serve_connection(io, request_service);
+                                        if let Err(err) = connection.await {
+                                            eprintln!("Error serving connection: {:?}", err);
+                                        }
+                                    };
+
                                     // Note: hyper 1.x `Http2Builder` does not currently expose
                                     // an explicit `keep_alive_while_idle` toggle; this flag is
                                     // reserved for future use or more advanced wiring.
+                                } else {
+                                    let mut builder = Builder::new(TokioExecutor::new());
+
+                                    builder.http1().keep_alive(true);
+
+                                    let connection =
+                                        builder.serve_connection_with_upgrades(io, request_service);
+                                    if let Err(err) = connection.await {
+                                        eprintln!("Error serving connection: {:?}", err);
+                                    }
                                 }
                             } else {
                                 let mut builder = http1::Builder::new();
