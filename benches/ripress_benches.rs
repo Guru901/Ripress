@@ -105,7 +105,7 @@ fn bench_request_to_hyper_json(c: &mut Criterion) {
     // Build a Ripress HttpRequest from a Hyper request once, then
     // benchmark only the conversion back to Hyper.
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let mut base_req = build_json_request();
+    let mut base_req = black_box(build_json_request());
     let http_req = rt
         .block_on(HttpRequest::from_hyper_request(&mut base_req))
         .unwrap();
@@ -126,7 +126,7 @@ fn bench_response_from_hyper_json(c: &mut Criterion) {
     c.bench_function("response_from_hyper_json", |b| {
         b.iter(|| {
             rt.block_on(async {
-                let mut res = build_json_response();
+                let mut res = black_box(build_json_response());
                 let rip_res = HttpResponse::from_hyper_response(black_box(&mut res))
                     .await
                     .unwrap();
@@ -142,7 +142,7 @@ fn bench_response_from_hyper_text(c: &mut Criterion) {
     c.bench_function("response_from_hyper_text", |b| {
         b.iter(|| {
             rt.block_on(async {
-                let mut res = build_text_response();
+                let mut res = black_box(build_text_response());
                 let rip_res = HttpResponse::from_hyper_response(black_box(&mut res))
                     .await
                     .unwrap();
@@ -154,7 +154,7 @@ fn bench_response_from_hyper_text(c: &mut Criterion) {
 
 fn bench_response_to_hyper_json(c: &mut Criterion) {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let mut base_res = build_json_response();
+    let mut base_res = black_box(build_json_response());
     let http_res = rt
         .block_on(HttpResponse::from_hyper_response(&mut base_res))
         .unwrap();
@@ -179,12 +179,12 @@ fn bench_roundtrip_full(c: &mut Criterion) {
         b.iter(|| {
             rt.block_on(async {
                 // Request roundtrip
-                let mut req = build_json_request();
+                let mut req = black_box(build_json_request());
                 let rip_req = HttpRequest::from_hyper_request(&mut req).await.unwrap();
                 let hyper_req_back = rip_req.to_hyper_request().unwrap();
 
                 // Response roundtrip
-                let mut res = build_json_response();
+                let mut res = black_box(build_json_response());
                 let rip_res = HttpResponse::from_hyper_response(&mut res).await.unwrap();
                 let hyper_res_back: Response<Full<Bytes>> =
                     rip_res.to_hyper_response().await.unwrap();
