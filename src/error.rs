@@ -4,27 +4,11 @@ use crate::req::{
     body::text_data::TextDataError, query_params::QueryParamError, route_params::ParamError,
 };
 
-/// Represents the category or type of error that can occurr in the Ripress.
-///
-/// This enum is used to classify errors for easier handling and reporting.
-/// Each variant corresponds to a broad class of errors that may arise during
-/// request processing, parsing, or application logic.
-///
-/// # Variants
-///
-/// - `IO`: An input/output error, typically from file or network operations.
-/// - `ParseError`: An error occurred while parsing data (e.g., query params, body).
-/// - `InvalidInput`: The input provided was invalid or malformed.
-/// - `NotFound`: The requested resource or parameter was not found.
 #[derive(Debug, PartialEq, Eq)]
 pub enum RipressErrorKind {
-    /// An input/output error, such as file or network failure.
     IO,
-    /// An error occurred while parsing data.
     ParseError,
-    /// The input provided was invalid or malformed.
     InvalidInput,
-    /// The requested resource or parameter was not found.
     NotFound,
 }
 
@@ -39,87 +23,21 @@ impl Display for RipressErrorKind {
     }
 }
 
-/// A structured error type for representing errors in the Ripress framework.
-///
-/// `RipressError` encapsulates both the kind of error (using [`RipressErrorKind`])
-/// and a human-readable message describing the error. This allows for consistent
-/// error handling and reporting throughout the framework.
-///
-/// # Fields
-///
-/// - `kind`: The broad category of the error (see [`RipressErrorKind`]).
-/// - `message`: A detailed, human-readable description of the error.
-///
-/// # Examples
-///
-/// ```rust
-/// use ripress::error::{RipressError, RipressErrorKind};
-///
-/// let err = RipressError {
-///     kind: RipressErrorKind::ParseError,
-///     message: "Failed to parse integer".to_string(),
-/// };
-/// assert_eq!(err.kind, RipressErrorKind::ParseError);
-/// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct RipressError {
-    /// The category or type of error.
     pub kind: RipressErrorKind,
-    /// A human-readable error message.
     pub message: String,
 }
 
 impl RipressError {
-    /// Creates a new `RipressError` with the specified kind and message.
-    ///
-    /// # Arguments
-    ///
-    /// * `kind` - The category or type of error (see [`RipressErrorKind`]).
-    /// * `message` - A human-readable error message describing the error.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use ripress::error::{RipressError, RipressErrorKind};
-    ///
-    /// let err = RipressError::new(RipressErrorKind::InvalidInput, "Invalid user ID".to_string());
-    /// assert_eq!(err.kind, RipressErrorKind::InvalidInput);
-    /// assert_eq!(err.message, "Invalid user ID");
-    /// ```
     pub fn new(kind: RipressErrorKind, message: String) -> Self {
         Self { kind, message }
     }
 
-    /// Returns a reference to the error message.
-    ///
-    /// # Returns
-    ///
-    /// A string slice containing the human-readable error message associated with this error.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use ripress::error::{RipressError, RipressErrorKind};
-    /// let err = RipressError::new(RipressErrorKind::InvalidInput, "Invalid user ID".to_string());
-    /// assert_eq!(err.message(), "Invalid user ID");
-    /// ```
     pub fn message(&self) -> &str {
         &self.message
     }
 
-    /// Returns a reference to the error kind.
-    ///
-    /// # Returns
-    ///
-    /// A reference to the [`RipressErrorKind`] indicating the category or type of this error.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use ripress::error::{RipressError, RipressErrorKind};
-    /// let err = RipressError::new(RipressErrorKind::ParseError, "Failed to parse".to_string());
-    /// assert_eq!(*err.kind(), RipressErrorKind::ParseError);
-    /// ```
     pub fn kind(&self) -> &RipressErrorKind {
         &self.kind
     }
