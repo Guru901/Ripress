@@ -95,7 +95,6 @@ mod tests {
         assert_eq!(headers.iter_all().count(), 0);
         assert_eq!(headers.as_header_map().is_empty(), true);
         assert_eq!(headers.keys().count(), 0);
-        assert_eq!(headers.keys().count(), 0);
         assert_eq!(headers.into_header_map().is_empty(), true);
     }
 

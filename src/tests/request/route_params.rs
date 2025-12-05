@@ -16,8 +16,8 @@ mod tests {
         assert_eq!(params.get("id"), Some("123"));
         assert_eq!(params.get("slug"), Some("hello-world"));
         assert_eq!(params.get("missing"), None);
-        assert_eq!(params.contains("id"), true);
-        assert_eq!(params.contains("missing"), false);
+        assert!(params.contains("id"));
+        assert!(!params.contains("missing"));
     }
 
     #[test]

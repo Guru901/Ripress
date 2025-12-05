@@ -57,8 +57,6 @@ mod tests {
         }
     }
 
-    struct DummyQueryParamError;
-
     #[test]
     fn test_from_query_param_error_not_found() {
         let qpe = QueryParamError::NotFound("foo".into());

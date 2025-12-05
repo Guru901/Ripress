@@ -7,10 +7,7 @@ pub mod route_params;
 #[cfg(test)]
 mod tests {
     use crate::{
-        req::{
-            body::RequestBodyType, determine_content_type_request, determine_content_type_response,
-            origin_url::Url,
-        },
+        req::{determine_content_type_response, origin_url::Url},
         res::{HttpResponse, response_cookie::CookieOptions},
         types::{_HttpResponseError, ResponseContentBody, ResponseContentType},
     };

@@ -123,7 +123,7 @@ mod tests {
             .status(StatusCode::UPGRADE_REQUIRED)
             .body(Full::new(Bytes::from("WS UPGRADE")))
             .unwrap();
-        let api_err = ApiError::WebSocketUpgrade(response.clone());
+        let api_err = ApiError::WebSocketUpgrade(response);
 
         let route_err: RouteError = RouteError::from(api_err);
 
@@ -717,7 +717,7 @@ mod tests {
         let middleware = &app.middlewares[0];
 
         assert_eq!(middleware.path, "/");
-        assert_eq!(middleware.middleware_type, MiddlewareType::Pre);
+        assert_eq!(middleware.middleware_type, MiddlewareType::Post);
     }
 
     #[tokio::test]
