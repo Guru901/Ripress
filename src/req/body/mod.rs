@@ -123,7 +123,7 @@ impl RequestBody {
         }
     }
 
-    pub(crate) fn new_empty() -> Self {
+    pub(crate) fn _new_empty() -> Self {
         Self {
             content_type: RequestBodyType::EMPTY,
             content: RequestBodyContent::EMPTY,

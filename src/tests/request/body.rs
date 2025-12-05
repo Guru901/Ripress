@@ -455,7 +455,7 @@ mod tests {
     fn test_request_body_type_to_string_empty() {
         let body_type = RequestBodyType::EMPTY;
         assert_eq!(body_type.to_string(), "");
-        let body = RequestBody::new_empty();
+        let body = RequestBody::_new_empty();
         assert_eq!(body.content.len(), 0)
     }
 

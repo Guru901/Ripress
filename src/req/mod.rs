@@ -1406,7 +1406,9 @@ pub(crate) fn determine_content_type_response(content_type: &str) -> ResponseCon
                     ResponseContentType::TEXT
                 }
             }
-            (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
+            (mime::APPLICATION, subtype)
+                if subtype.as_str().ends_with("+json") || subtype == "vnd.api" =>
+            {
                 ResponseContentType::JSON
             }
             (mime::APPLICATION, subtype)

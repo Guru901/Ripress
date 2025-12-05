@@ -4,7 +4,7 @@ mod tests {
 
     use crate::{
         app::api_error::ApiError,
-        helpers::{exec_post_middleware, exec_pre_middleware},
+        helpers::exec_pre_middleware,
         middlewares::{Middleware, MiddlewareType},
         req::HttpRequest,
         res::HttpResponse,
@@ -16,8 +16,7 @@ mod tests {
     use crate::middlewares::WyndMiddleware;
     use bytes::Bytes;
     use http_body_util::Full;
-    use hyper::{Request, Response};
-    use routerify_ng::RequestInfo;
+    use hyper::Request;
 
     // Helper function to create a Request<Incoming> for testing
     // Note: This is a workaround since Incoming can't be created directly in tests.
@@ -42,27 +41,6 @@ mod tests {
         let ptr = Box::into_raw(Box::new(full_request)) as *mut Request<Full<Bytes>>;
         unsafe { *Box::from_raw(ptr) }
     }
-
-    fn make_response() -> Response<Full<Bytes>> {
-        // Create a request with Full<Bytes> body
-        let full_req: Response<Full<Bytes>> = Response::builder()
-            .status(200)
-            .body(Full::from(Bytes::new()))
-            .unwrap();
-
-        // For testing, we'll use a pointer-based conversion since direct transmute
-        // doesn't work due to size differences. We create the request and then
-        // reinterpret it as Incoming using raw pointers.
-        let (parts, _) = full_req.into_parts();
-        let full_body: Full<Bytes> = Full::from(Bytes::new());
-        let full_request = Response::from_parts(parts, full_body);
-
-        // Convert using pointer manipulation - this is safe for empty bodies in tests
-        // because both types represent the same conceptual structure
-        let ptr = Box::into_raw(Box::new(full_request)) as *mut Response<Full<Bytes>>;
-        unsafe { *Box::from_raw(ptr) }
-    }
-
     // Dummy middleware function that just passes through
     fn passthrough_pre_middleware() -> Arc<Middleware> {
         Arc::new(Middleware {

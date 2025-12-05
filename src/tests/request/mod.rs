@@ -331,6 +331,7 @@ mod tests {
 
         let content_type_str = "application/vnd.api+json";
         let content_type = determine_content_type_response(content_type_str);
+        println!("{:?}", content_type);
         assert_eq!(content_type, ResponseContentType::JSON);
 
         let content_type_str = "application/xml";
