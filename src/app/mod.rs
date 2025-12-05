@@ -1072,7 +1072,7 @@ impl App {
     /// ## Network Configuration
     ///
     /// - **Bind Address**: By default, binds to `0.0.0.0:port` (all interfaces); configurable via [`App::host`]
-    /// - **Protocols**: HTTP/1.1 by default; when HTTP/2 is enabled, compatible clients can negotiate HTTP/2 via Hyper
+    /// - **Protocols**: HTTP/1.1 and HTTP/2 by default; HTTP/2 can be disabled via [`App::enable_http2`]
     /// - **Concurrent Connections**: Handled asynchronously with Tokio
     ///
     /// ## Error Handling

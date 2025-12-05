@@ -328,5 +328,17 @@ mod tests {
         let content_type_str = "text/html";
         let content_type = determine_content_type_response(content_type_str);
         assert_eq!(content_type, ResponseContentType::HTML);
+
+        let content_type_str = "application/vnd.api+json";
+        let content_type = determine_content_type_response(content_type_str);
+        assert_eq!(content_type, ResponseContentType::JSON);
+
+        let content_type_str = "application/xml";
+        let content_type = determine_content_type_response(content_type_str);
+        assert_eq!(content_type, ResponseContentType::TEXT);
+
+        let content_type_str = "not/a-mime";
+        let content_type = determine_content_type_response(content_type_str);
+        assert_eq!(content_type, ResponseContentType::BINARY);
     }
 }
