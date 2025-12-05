@@ -1399,7 +1399,13 @@ pub(crate) fn determine_content_type_response(content_type: &str) -> ResponseCon
     match content_type.parse::<Mime>() {
         Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
             (mime::APPLICATION, mime::JSON) => ResponseContentType::JSON,
-            (mime::TEXT, _) => ResponseContentType::TEXT,
+            (mime::TEXT, subtype) => {
+                if subtype == "html" {
+                    ResponseContentType::HTML
+                } else {
+                    ResponseContentType::TEXT
+                }
+            }
             (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
                 ResponseContentType::JSON
             }

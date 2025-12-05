@@ -7,9 +7,11 @@ pub mod route_params;
 #[cfg(test)]
 mod tests {
     use crate::{
-        req::origin_url::Url,
-        res::HttpResponse,
-        res::response_cookie::CookieOptions,
+        req::{
+            body::RequestBodyType, determine_content_type_request, determine_content_type_response,
+            origin_url::Url,
+        },
+        res::{HttpResponse, response_cookie::CookieOptions},
         types::{_HttpResponseError, ResponseContentBody, ResponseContentType},
     };
     use serde_json::json;
@@ -191,7 +193,10 @@ mod tests {
         let hyper_response = rt.block_on(response.to_hyper_response()).unwrap();
 
         assert_eq!(hyper_response.status(), 200);
-        assert_eq!(hyper_response.headers().get("content-type").unwrap(), "text/html");
+        assert_eq!(
+            hyper_response.headers().get("content-type").unwrap(),
+            "text/html"
+        );
         assert_eq!(hyper_response.headers().get("x-custom").unwrap(), "value");
     }
 
@@ -226,7 +231,7 @@ mod tests {
     #[test]
     fn test_to_responder() {
         let rt = tokio::runtime::Runtime::new().unwrap();
-        
+
         let response = HttpResponse::new().ok().text("OK");
         let hyper_response = rt.block_on(response.to_hyper_response()).unwrap();
         assert_eq!(hyper_response.status(), 200);
@@ -307,5 +312,24 @@ mod tests {
 
         let deserialized: Url = serde_json::from_str(&serialized).unwrap();
         assert_eq!(url, deserialized);
+    }
+
+    #[test]
+    fn test_determine_content_type() {
+        let content_type_str = "application/json";
+        let content_type = determine_content_type_response(content_type_str);
+        assert_eq!(content_type, ResponseContentType::JSON);
+
+        let content_type_str = "text/plain";
+        let content_type = determine_content_type_response(content_type_str);
+        assert_eq!(content_type, ResponseContentType::TEXT);
+
+        let content_type_str = "application/octet-stream";
+        let content_type = determine_content_type_response(content_type_str);
+        assert_eq!(content_type, ResponseContentType::BINARY);
+
+        let content_type_str = "text/html";
+        let content_type = determine_content_type_response(content_type_str);
+        assert_eq!(content_type, ResponseContentType::HTML);
     }
 }

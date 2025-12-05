@@ -120,6 +120,6 @@ mod tests {
         headers.insert("Content-Type", "application/json");
 
         assert_eq!(headers.to_string(), "content-type: \"application/json\"\n");
-        assert_eq!(headers["content-type"], *"application/json");
+        assert_eq!(&headers["content-type"], "application/json");
     }
 }

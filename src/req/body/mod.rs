@@ -123,6 +123,12 @@ impl RequestBody {
         }
     }
 
+    pub(crate) fn new_empty() -> Self {
+        Self {
+            content_type: RequestBodyType::EMPTY,
+            content: RequestBodyContent::EMPTY,
+        }
+    }
     /// Creates a new request body with binary content that also contains form fields.
     ///
     /// This constructor creates a request body containing binary data (typically multipart form data)

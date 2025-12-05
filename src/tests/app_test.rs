@@ -115,6 +115,26 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_error_handler_ws_error() {
+        // Arrange: create a custom HttpResponse inside ApiError
+        let response = Response::builder()
+            .status(StatusCode::UPGRADE_REQUIRED)
+            .body(Full::new(Bytes::from("WS UPGRADE")))
+            .unwrap();
+        let api_err = ApiError::WebSocketUpgrade(response.clone());
+
+        let route_err: RouteError = RouteError::from(api_err);
+
+        let result: Response<Full<Bytes>> = crate::app::App::error_handler(route_err).await;
+
+        assert_eq!(result.status(), StatusCode::UPGRADE_REQUIRED);
+
+        let body_bytes = result.into_body().collect().await.unwrap().to_bytes();
+        let body_str = String::from_utf8(body_bytes.to_vec()).unwrap();
+        assert_eq!(body_str, "WS UPGRADE");
+    }
+
+    #[tokio::test]
     async fn test_error_handler_with_non_api_error() {
         // Arrange: create a plain error (not ApiError)
         let route_err: RouteError = "some random error".into();
