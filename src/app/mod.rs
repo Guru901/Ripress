@@ -126,7 +126,7 @@ pub struct App {
     /// The collection of registered routes organized by path and HTTP method.
     routes: Routes,
 
-    host: String,
+    pub(crate) host: String,
     /// Enables or disables HTTP/2 support for the server.
     ///
     /// When `true`, the underlying Hyper server is configured to accept HTTP/2
@@ -135,12 +135,12 @@ pub struct App {
     /// require any changes to your route handlers or middleware.
     ///
     /// By default, HTTP/2 is **enabled**.
-    http2: bool,
+    pub(crate) http2: bool,
     /// Optional advanced configuration for HTTP/2 behavior.
     ///
     /// These settings allow fine-tuning HTTP/2 flow control, concurrency, and
     /// keep-alive behavior. When `None`, Hyper's defaults are used.
-    http2_config: Option<Http2Config>,
+    pub(crate) http2_config: Option<Http2Config>,
     /// The list of middleware functions to be applied to requests.
     pub(crate) middlewares: Vec<Arc<Middleware>>,
     /// Static file mappings from mount path to filesystem path.
@@ -157,7 +157,7 @@ pub struct App {
 /// All fields are optional; if a field is `None`, Hyper's internal default for
 /// that setting is used. Most applications can rely on the defaults and only
 /// override `max_concurrent_streams` or timeouts for specific workloads.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Http2Config {
     /// If `true`, only HTTP/2 connections are accepted on this listener.
     /// If `false`, HTTP/1.1 and HTTP/2 are both supported (negotiated by Hyper).
@@ -915,8 +915,12 @@ impl App {
         let base_path = router.base_path;
         for (path, methods) in router.routes() {
             for (method, handler) in methods.to_owned() {
-                let full_path = format!("{}{}", base_path, path);
-                self.add_route(method, &full_path, move |req, res| (handler)(req, res));
+                if path == "/" {
+                    self.add_route(method, &base_path, move |req, res| (handler)(req, res));
+                } else {
+                    let full_path = format!("{}{}", base_path, path);
+                    self.add_route(method, &full_path, move |req, res| (handler)(req, res));
+                }
             }
         }
     }
