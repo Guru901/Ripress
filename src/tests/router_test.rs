@@ -76,7 +76,7 @@ mod tests {
         let mut app = App::new();
         let mut router = Router::new("/");
         router.get("/user/{id}", _test_handler);
-        app.router(router);
+        router.register(&mut app);
 
         assert!(
             app.get_routes("//user/{id}", crate::types::HttpMethods::GET)

@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use std::iter;
+
     use ahash::AHashMap;
     use bytes::Bytes;
     use serde_json::json;
@@ -118,11 +120,71 @@ mod tests {
 
         form.insert("key", "value");
         assert_eq!(form.get("key"), Some("value"));
-        assert_eq!(form.len(), 1);
+        assert_eq!(form.get("missing"), None);
+        assert_eq!(form.get_or("missing", "default"), "default");
+        assert_eq!(form.keys().count(), 1);
+        assert_eq!(form.values().count(), 1);
+        assert_eq!(form.contains_key("key"), true);
+        assert_eq!(form.contains_key("missing"), false);
+
+        form.extend(iter::once(("key2", "value2")).chain(iter::once(("key3", "value3"))));
+
+        assert_eq!(form.len(), 3);
+        assert_eq!(form.get("key2"), Some("value2"));
+        assert_eq!(form.get("key3"), Some("value3"));
+        assert_eq!(form.contains_key("key2"), true);
+        assert_eq!(form.contains_key("key3"), true);
+        assert_eq!(form.keys().count(), 3);
+        assert_eq!(form.values().count(), 3);
+        assert_eq!(form.iter().count(), 3);
+
         assert!(!form.is_empty());
 
         assert_eq!(form.remove("key"), Some("value".to_string()));
+        form.clear();
         assert!(form.is_empty());
+    }
+
+    #[test]
+    fn test_empty_input() {
+        let form = FormData::from_comma_separated("").unwrap();
+        assert!(form.is_empty());
+    }
+
+    #[test]
+    fn test_comma_separated_basic() {
+        let form = FormData::from_comma_separated("name=Alice, age=30").unwrap();
+        assert_eq!(form.get("name"), Some("Alice"));
+        assert_eq!(form.get("age"), Some("30"));
+    }
+
+    #[test]
+    fn test_ampersand_separated_fallback() {
+        let form = FormData::from_comma_separated("foo=bar&baz=42").unwrap();
+        assert_eq!(form.get("foo"), Some("bar"));
+        assert_eq!(form.get("baz"), Some("42"));
+    }
+
+    #[test]
+    fn test_url_decoding() {
+        let form = FormData::from_comma_separated("name=John%20Smith, city=New%20York").unwrap();
+        assert_eq!(form.get("name"), Some("John Smith"));
+        assert_eq!(form.get("city"), Some("New York"));
+    }
+
+    #[test]
+    fn test_leading_and_trailing_whitespace() {
+        let form = FormData::from_comma_separated(" name=Bob , age = 27 ").unwrap();
+        assert_eq!(form.get("name"), Some("Bob"));
+        assert_eq!(form.get("age"), Some("27"));
+    }
+
+    #[test]
+    fn test_mixture_of_valid_and_invalid_pairs() {
+        let form = FormData::from_comma_separated("good=1, novalue, another=2").unwrap();
+        assert_eq!(form.get("good"), Some("1"));
+        assert_eq!(form.get("another"), Some("2"));
+        assert_eq!(form.get("novalue"), None);
     }
 
     #[test]
@@ -219,6 +281,29 @@ mod tests {
     }
 
     #[test]
+    fn test_new_binary_with_form_fields() {
+        let mut form_data = FormData::new();
+        form_data.insert("username", "alice");
+        form_data.insert("password", "secret123");
+        form_data.insert("remember_me", "on");
+
+        let body = RequestBody::new_binary_with_form_fields(Bytes::new(), form_data.clone());
+
+        assert_eq!(body.content_type, RequestBodyType::BINARY);
+        match body.content {
+            RequestBodyContent::BinaryWithFields(ref bytes, ref form) => {
+                assert_eq!(bytes.len(), 0);
+                assert_eq!(body.content.len(), 0);
+                assert_eq!(form.get("username"), Some("alice"));
+                assert_eq!(form.get("password"), Some("secret123"));
+                assert_eq!(form.get("remember_me"), Some("on"));
+                assert_eq!(form.len(), 3);
+            }
+            _ => panic!("Expected BinaryWithFields content"),
+        }
+    }
+
+    #[test]
     fn test_new_form_empty() {
         let form_data = FormData::new();
         let body = RequestBody::new_form(form_data);
@@ -259,6 +344,8 @@ mod tests {
             }
             _ => panic!("Expected JSON content"),
         }
+
+        assert_eq!(body.content.len(), 123);
     }
 
     #[test]
@@ -368,6 +455,8 @@ mod tests {
     fn test_request_body_type_to_string_empty() {
         let body_type = RequestBodyType::EMPTY;
         assert_eq!(body_type.to_string(), "");
+        let body = RequestBody::_new_empty();
+        assert_eq!(body.content.len(), 0)
     }
 
     #[test]
@@ -377,6 +466,7 @@ mod tests {
             (RequestBodyType::TEXT, "text/plain"),
             (RequestBodyType::FORM, "application/x-www-form-urlencoded"),
             (RequestBodyType::BINARY, "application/octet-stream"),
+            (RequestBodyType::MultipartForm, "multipart/form-data"),
             (RequestBodyType::EMPTY, ""),
         ];
 
@@ -393,6 +483,7 @@ mod tests {
         let body = RequestBody::new_text(text_data);
 
         assert_eq!(body.content_type, RequestBodyType::TEXT);
+        assert_eq!(body.content.len(), 12);
         assert_eq!(body.content_type.to_string(), "text/plain");
 
         match body.content {
@@ -426,6 +517,8 @@ mod tests {
             body.content_type.to_string(),
             "application/x-www-form-urlencoded"
         );
+
+        assert_eq!(body.content.len(), 9);
 
         match body.content {
             RequestBodyContent::FORM(_) => {} // Expected
@@ -571,6 +664,30 @@ mod tests {
         let s = String::from("Hello");
         let text = TextData::from(s.clone());
         assert_eq!(text.as_str_lossy(), s);
+    }
+
+    #[test]
+    fn test_from_string_empty() {
+        let s = String::from("");
+        let text = TextData::from(s.clone());
+        assert_eq!(text.as_str_lossy(), s);
+        assert_eq!(text.len_bytes(), 0);
+        assert_eq!(text.is_empty(), true);
+        assert_eq!(text.contains("Hello").unwrap(), false);
+    }
+
+    #[test]
+    fn test_into_string() {
+        let text = TextData::from("Hello, world!");
+        let s: String = text.into_string().unwrap();
+        assert_eq!(s, "Hello, world!");
+    }
+
+    #[test]
+    fn test_into_bytes() {
+        let text = TextData::from("Hello, world!");
+        let bytes: Vec<u8> = text.into_bytes();
+        assert_eq!(bytes, b"Hello, world!");
     }
 
     #[test]

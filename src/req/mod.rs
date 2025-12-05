@@ -1322,6 +1322,11 @@ impl HttpRequest {
         self.body.content = RequestBodyContent::TEXT(text)
     }
 
+    pub(crate) fn set_binary(&mut self, bytes: Vec<u8>, content_type: RequestBodyType) {
+        self.body.content_type = content_type;
+        self.body.content = RequestBodyContent::BINARY(bytes.into());
+    }
+
     pub(crate) fn set_form(
         &mut self,
         key: &'static str,
@@ -1394,8 +1399,16 @@ pub(crate) fn determine_content_type_response(content_type: &str) -> ResponseCon
     match content_type.parse::<Mime>() {
         Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
             (mime::APPLICATION, mime::JSON) => ResponseContentType::JSON,
-            (mime::TEXT, _) => ResponseContentType::TEXT,
-            (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
+            (mime::TEXT, subtype) => {
+                if subtype == "html" {
+                    ResponseContentType::HTML
+                } else {
+                    ResponseContentType::TEXT
+                }
+            }
+            (mime::APPLICATION, subtype)
+                if subtype.as_str().ends_with("+json") || subtype == "vnd.api" =>
+            {
                 ResponseContentType::JSON
             }
             (mime::APPLICATION, subtype)

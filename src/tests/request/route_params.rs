@@ -3,7 +3,7 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::{
-        error::RipressErrorKind,
+        error::{RipressError, RipressErrorKind},
         req::route_params::{ParamError, RouteParams},
     };
 
@@ -16,6 +16,8 @@ mod tests {
         assert_eq!(params.get("id"), Some("123"));
         assert_eq!(params.get("slug"), Some("hello-world"));
         assert_eq!(params.get("missing"), None);
+        assert!(params.contains("id"));
+        assert!(!params.contains("missing"));
     }
 
     #[test]
@@ -27,7 +29,7 @@ mod tests {
 
         assert_eq!(params.get_int("id").unwrap(), 123);
         assert!(params.get_int("invalid").is_err());
-        assert!(params.get_int("missing").is_err());
+        assert!(params.get_uint("missing").is_err());
     }
 
     #[test]
@@ -75,6 +77,13 @@ mod tests {
         assert_eq!(params.get_or_default("valid", 5), 10);
         assert_eq!(params.get_or_default("missing", 5), 5);
         assert_eq!(params.get_or_default("invalid", 5), 5);
+        assert_eq!(
+            params.get_or_parse_default("invalid", 5),
+            Err(RipressError {
+                kind: RipressErrorKind::NotFound,
+                message: format!("Route Param 'invalid' not found"),
+            })
+        );
     }
 
     #[test]
@@ -207,5 +216,20 @@ mod tests {
         let back: HashMap<String, String> = params.into();
 
         assert_eq!(original, back);
+    }
+
+    #[test]
+    fn test_everything_else() {
+        let mut params = RouteParams::new();
+
+        params.insert("id", "123");
+
+        assert_eq!(params.is_empty(), false);
+        assert_eq!(params.len(), 1);
+        assert_eq!(params.names().count(), 1);
+
+        let map = params.into_map();
+        assert_eq!(map.get("id"), Some(&"123".to_string()));
+        assert_eq!(map.len(), 1);
     }
 }

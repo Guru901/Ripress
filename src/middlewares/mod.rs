@@ -1281,7 +1281,7 @@ pub(crate) struct Middleware {
 }
 
 /// Defines when a middleware should be executed in the request lifecycle.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub(crate) enum MiddlewareType {
     /// Middleware executed before the route handler.
     Pre,

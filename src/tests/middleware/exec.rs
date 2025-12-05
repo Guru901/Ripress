@@ -41,9 +41,8 @@ mod tests {
         let ptr = Box::into_raw(Box::new(full_request)) as *mut Request<Full<Bytes>>;
         unsafe { *Box::from_raw(ptr) }
     }
-
     // Dummy middleware function that just passes through
-    fn passthrough_middleware() -> Arc<Middleware> {
+    fn passthrough_pre_middleware() -> Arc<Middleware> {
         Arc::new(Middleware {
             path: "/".to_string(),
             func: Arc::new(|req: HttpRequest, _: HttpResponse| {
@@ -54,7 +53,7 @@ mod tests {
     }
 
     // Dummy middleware that short-circuits with a response
-    fn blocking_middleware() -> Arc<Middleware> {
+    fn blocking_pre_middleware() -> Arc<Middleware> {
         Arc::new(Middleware {
             path: "/block".to_string(),
             func: Arc::new(|req: HttpRequest, _res: HttpResponse| {
@@ -70,7 +69,7 @@ mod tests {
     #[tokio::test]
     async fn test_exec_pre_middleware_pass_through() {
         let req = make_request("/foo");
-        let mw = passthrough_middleware();
+        let mw = passthrough_pre_middleware();
 
         let res = exec_pre_middleware(req, mw).await;
         assert!(res.is_ok());
@@ -81,7 +80,7 @@ mod tests {
     #[tokio::test]
     async fn test_exec_pre_middleware_blocking() {
         let req = make_request("/block");
-        let mw = blocking_middleware();
+        let mw = blocking_pre_middleware();
 
         let res = exec_pre_middleware(req, mw).await;
         assert!(res.is_err());

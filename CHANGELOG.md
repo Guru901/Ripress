@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.0] - 2025-12-5
+
+- Added http2 support by default for the server
+- Added `app.enable_http2` method
+- Added `app.http2_config` method
+- Added http2 config struct with sane defaults
+- Fixed a bug in content type detection
+- Added unit tests
+
 ## [2.0.5] - 2025-12-4
 
 - Optimized middleware application

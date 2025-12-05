@@ -7,10 +7,12 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 #[cfg(test)]
 mod tests {
     use crate::{
-        app::{App, api_error::ApiError},
+        app::{App, Http2Config, api_error::ApiError},
         context::HttpResponse,
         helpers::box_future,
+        middlewares::MiddlewareType,
         req::HttpRequest,
+        router::Router,
         types::{HttpMethods, RouterFns},
     };
     use http_body_util::{BodyExt, Full};
@@ -112,6 +114,26 @@ mod tests {
         let body_bytes = result.into_body().collect().await.unwrap().to_bytes();
         let body_str = String::from_utf8(body_bytes.to_vec()).unwrap();
         assert_eq!(body_str, "Bad request test");
+    }
+
+    #[tokio::test]
+    async fn test_error_handler_ws_error() {
+        // Arrange: create a custom HttpResponse inside ApiError
+        let response = Response::builder()
+            .status(StatusCode::UPGRADE_REQUIRED)
+            .body(Full::new(Bytes::from("WS UPGRADE")))
+            .unwrap();
+        let api_err = ApiError::WebSocketUpgrade(response);
+
+        let route_err: RouteError = RouteError::from(api_err);
+
+        let result: Response<Full<Bytes>> = crate::app::App::error_handler(route_err).await;
+
+        assert_eq!(result.status(), StatusCode::UPGRADE_REQUIRED);
+
+        let body_bytes = result.into_body().collect().await.unwrap().to_bytes();
+        let body_str = String::from_utf8(body_bytes.to_vec()).unwrap();
+        assert_eq!(body_str, "WS UPGRADE");
     }
 
     #[tokio::test]
@@ -236,6 +258,47 @@ mod tests {
         let mut app = App::new();
 
         app.use_pre_middleware(Some("/api"), |req, res| async move { (req, Some(res)) });
+        app.use_middleware(Some("/api"), |req, res| async move { (req, Some(res)) });
+
+        assert_eq!(app.middlewares.len(), 2);
+        assert_eq!(app.middlewares[0].path, "/api");
+        assert_eq!(app.middlewares[1].path, "/api");
+
+        // Run the middleware closure manually
+        let (req, res) = (dummy_request(), dummy_response());
+        let mw = app.middlewares[0].func.clone();
+        let (req, res) = mw(req, res).await;
+
+        assert!(res.is_some());
+        assert_eq!(
+            res.unwrap().status_code,
+            crate::res::response_status::StatusCode::Ok
+        );
+        assert_eq!(app.middlewares[0].middleware_type, MiddlewareType::Pre);
+        assert_eq!(app.middlewares[1].middleware_type, MiddlewareType::Pre);
+        drop(req); // suppress unused var warning
+    }
+
+    #[tokio::test]
+    async fn test_use_pre_middleware_with_default_path() {
+        let mut app = App::new();
+
+        app.use_pre_middleware(None, |req, res| async move { (req, Some(res)) });
+        app.use_middleware(None, |req, res| async move { (req, Some(res)) });
+
+        assert_eq!(app.middlewares.len(), 2);
+        assert_eq!(app.middlewares[0].path, "/");
+        assert_eq!(app.middlewares[0].middleware_type, MiddlewareType::Pre);
+
+        assert_eq!(app.middlewares[1].path, "/");
+        assert_eq!(app.middlewares[1].middleware_type, MiddlewareType::Pre);
+    }
+
+    #[tokio::test]
+    async fn test_use_post_middleware_with_path() {
+        let mut app = App::new();
+
+        app.use_post_middleware(Some("/api"), |req, res| async move { (req, Some(res)) });
 
         assert_eq!(app.middlewares.len(), 1);
         assert_eq!(app.middlewares[0].path, "/api");
@@ -250,17 +313,19 @@ mod tests {
             res.unwrap().status_code,
             crate::res::response_status::StatusCode::Ok
         );
+        assert_eq!(app.middlewares[0].middleware_type, MiddlewareType::Post);
         drop(req); // suppress unused var warning
     }
 
     #[tokio::test]
-    async fn test_use_pre_middleware_with_default_path() {
+    async fn test_use_post_middleware_with_default_path() {
         let mut app = App::new();
 
-        app.use_pre_middleware(None, |req, res| async move { (req, Some(res)) });
+        app.use_post_middleware(None, |req, res| async move { (req, Some(res)) });
 
         assert_eq!(app.middlewares.len(), 1);
         assert_eq!(app.middlewares[0].path, "/");
+        assert_eq!(app.middlewares[0].middleware_type, MiddlewareType::Post);
     }
 
     #[tokio::test]
@@ -557,5 +622,146 @@ mod tests {
     #[test]
     fn test_from_infallible() {
         assert_from_infallible::<ApiError>();
+    }
+
+    #[test]
+    fn test_host_set_and_get() {
+        let mut app = App::new();
+        assert_eq!(app.host, "0.0.0.0");
+        app.host("127.0.0.1");
+        assert_eq!(app.host, "127.0.0.1");
+        app.host("::1");
+        assert_eq!(app.host, "::1");
+        app.host("");
+        assert_eq!(app.host, "");
+    }
+
+    #[test]
+    fn test_http2() {
+        let mut app = App::new();
+        assert_eq!(app.http2, true);
+        app.enable_http2(false);
+        assert_eq!(app.http2, false);
+    }
+
+    #[test]
+    fn test_http2_config() {
+        let mut app = App::new();
+        assert_eq!(app.http2_config, None);
+        app.http2_config(Http2Config {
+            http2_only: false,
+            max_concurrent_streams: None,
+            initial_stream_window_size: None,
+            initial_connection_window_size: None,
+            adaptive_window: None,
+            max_frame_size: None,
+            max_header_list_size: None,
+            keep_alive_interval: None,
+            keep_alive_timeout: None,
+            ..Default::default()
+        });
+        assert_eq!(
+            app.http2_config,
+            Some(Http2Config {
+                http2_only: false,
+                max_concurrent_streams: None,
+                initial_stream_window_size: None,
+                initial_connection_window_size: None,
+                adaptive_window: None,
+                max_frame_size: None,
+                max_header_list_size: None,
+                keep_alive_interval: None,
+                keep_alive_timeout: None,
+                ..Default::default()
+            })
+        );
+    }
+
+    #[test]
+    fn test_use_shield() {
+        let mut app = App::new();
+        // Should be able to call without panic, and middleware count increases
+        let initial = app.middlewares.len();
+        app.use_shield(None);
+
+        assert_eq!(app.middlewares.len(), initial + 1);
+
+        let middleware = &app.middlewares[0];
+
+        assert_eq!(middleware.path, "/");
+        assert_eq!(middleware.middleware_type, MiddlewareType::Pre);
+    }
+
+    #[test]
+    fn test_use_cors() {
+        let mut app = App::new();
+        let initial = app.middlewares.len();
+        app.use_cors(None);
+
+        assert_eq!(app.middlewares.len(), initial + 1);
+
+        let middleware = &app.middlewares[0];
+
+        assert_eq!(middleware.path, "/");
+        assert_eq!(middleware.middleware_type, MiddlewareType::Pre);
+    }
+
+    #[test]
+    #[cfg(feature = "logger")]
+    fn test_use_logger() {
+        let mut app = App::new();
+        let initial = app.middlewares.len();
+        app.use_logger(None);
+        assert_eq!(app.middlewares.len(), initial + 1);
+
+        let middleware = &app.middlewares[0];
+
+        assert_eq!(middleware.path, "/");
+        assert_eq!(middleware.middleware_type, MiddlewareType::Post);
+    }
+
+    #[tokio::test]
+    async fn test_use_rate_middleware() {
+        let mut app = App::new();
+        let initial = app.middlewares.len();
+        app.use_rate_limiter(None);
+        assert_eq!(app.middlewares.len(), initial + 1);
+
+        let middleware = &app.middlewares[0];
+
+        assert_eq!(middleware.path, "/");
+        assert_eq!(middleware.middleware_type, MiddlewareType::Pre);
+    }
+
+    #[test]
+    fn test_multiple_use_middleware() {
+        let mut app = App::new();
+        let initial = app.middlewares.len();
+        app.use_shield(None);
+        app.use_cors(None);
+        app.use_body_limit(None);
+        assert_eq!(app.middlewares.len(), initial + 3);
+
+        let middleware = &app.middlewares[0];
+
+        assert_eq!(middleware.path, "/");
+        assert_eq!(middleware.middleware_type, MiddlewareType::Pre);
+    }
+
+    #[test]
+    fn test_router() {
+        let mut router = Router::new("/api");
+        router.get("/", |_, res| async move { res.ok().text("Hello, world!") });
+        router.get(
+            "/api",
+            |_, res| async move { res.ok().text("Hello, world!") },
+        );
+
+        let mut app = App::new();
+
+        app.router(router);
+
+        assert!(app.get_routes("/api", HttpMethods::GET).is_some());
+        assert!(app.get_routes("/api/api", HttpMethods::GET).is_some());
     }
 }

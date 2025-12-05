@@ -27,7 +27,7 @@ Ripress is an Express.js-inspired web framework for Rust that combines the famil
 **⚡ Modern Foundation**
 
 - Async/await support with Tokio
-- HTTP/2 support via Hyper
+- HTTP/2 support via Hyper (enabled by default, configurable via `App::enable_http2` and `App::http2_config`)
 
 ![Performance Benchmark](./benchmark.png)
 
@@ -124,7 +124,7 @@ This will create a new project with Ripress and all optional features enabled.
 
 ```rust
 use ripress::{
-    app::App,
+    app::{App, Http2Config},
     context::{HttpRequest, HttpResponse},
     types::RouterFns,
 };
@@ -134,6 +134,16 @@ async fn main() {
     let mut app = App::new();
 
     app.get("/", handler);
+
+    // Optional: disable HTTP/2 and serve only HTTP/1.1
+    // app.enable_http2(false);
+
+    // Optional: advanced HTTP/2 tuning
+    // app.http2_config(Http2Config {
+    //     http2_only: false,
+    //     max_concurrent_streams: Some(100),
+    //     ..Default::default()
+    // });
 
     app.listen(3000, || {
         println!("Server is running on port 3000");
