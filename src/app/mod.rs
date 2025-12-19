@@ -404,6 +404,83 @@ impl App {
         self
     }
 
+    /// Adds multiple pre-execution middlewares to the application at once.
+    ///
+    /// Each middleware can be registered with an optional path prefix; if `None`, defaults to "/".
+    /// Pre-middlewares run before the route handler and can modify the request, short-circuit with a response,
+    /// or continue the processing chain.
+    ///
+    /// # Arguments
+    ///
+    /// * `middlewares` - A vector of tuples, where each tuple contains an optional path prefix and a middleware closure.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::{app::App, types::Middlewares};
+    ///
+    /// let mut app = App::new();
+    ///
+    /// let pre: Middlewares = vec![
+    ///     ("/", Box::new(|req, res| Box::pin(async move { (req, None) }))),
+    ///     ("/admin", Box::new(|req, res| Box::pin(async move {
+    ///         // admin check logic
+    ///         (req, None)
+    ///     }))),
+    /// ];
+    ///
+    /// app.use_pre_middlewares(pre);
+    /// ```
+    pub fn use_pre_middlewares<F, Fut, P>(&mut self, middlewares: Vec<(P, F)>) -> &mut Self
+    where
+        P: Into<Option<&'static str>> + Copy,
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
+    {
+        for (path, middleware) in middlewares {
+            self.use_pre_middleware(path, middleware);
+        }
+        self
+    }
+
+    /// Adds multiple post-execution middlewares to the application at once.
+    ///
+    /// Each middleware can be registered with an optional path prefix; if `None`, defaults to "/".
+    /// Post-middlewares run after the route handler, can modify the response or perform cleanup.
+    ///
+    /// # Arguments
+    ///
+    /// * `middlewares` - A vector of tuples, where each tuple contains an optional path prefix and a middleware closure.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ripress::{app::App, types::Middlewares};
+    ///
+    /// let mut app = App::new();
+    ///
+    /// let post: Middlewares = vec![
+    ///     ("/", Box::new(|req, res| Box::pin(async move { (req, Some(res)) }))),
+    ///     ("/api", Box::new(|req, res| Box::pin(async move {
+    ///         // response logging
+    ///         (req, Some(res))
+    ///     }))),
+    /// ];
+    ///
+    /// app.use_post_middlewares(post);
+    /// ```
+    pub fn use_post_middlewares<F, Fut, P>(&mut self, middlewares: Vec<(P, F)>) -> &mut Self
+    where
+        P: Into<Option<&'static str>> + Copy,
+        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
+    {
+        for (path, middleware) in middlewares {
+            self.use_post_middleware(path, middleware);
+        }
+        self
+    }
+
     /// Adds a post-execution middleware to the application.
     ///
     /// Post-middlewares are executed after the route handler has processed the request.
