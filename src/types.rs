@@ -647,3 +647,29 @@ mod test {
         }
     }
 }
+
+/// A type alias for a vector of middlewares.
+///
+/// Each middleware is represented as a tuple consisting of:
+///   - a `&'static str` representing the path pattern for which the middleware is active,
+///   - and a boxed closure.
+///
+/// The closure has the following signature:
+///   - Accepts: `(HttpRequest, HttpResponse)`
+///   - Returns: a pinned, boxed future resolving to `(HttpRequest, Option<HttpResponse>)`
+///     - If `Some(HttpResponse)` is returned, the middleware chain is short-circuited and the response is sent.
+///     - If `None`, processing continues to the next middleware or handler.
+///
+/// Middlewares can be used in both pre- and post-processing chains.
+pub type Middlewares = Vec<(
+    &'static str,
+    Box<
+        dyn Fn(
+                HttpRequest,
+                HttpResponse,
+            )
+                -> Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send>>
+            + Send
+            + Sync,
+    >,
+)>;
