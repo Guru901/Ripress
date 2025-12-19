@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.1] - 2025-12-19
+
+- Added `app.use_pre_middlewares`
+- Added `app.use_post_middlewares`
+- Added `middlewares!` macro
+
 ## [2.1.0] - 2025-12-5
 
 - Added http2 support by default for the server
