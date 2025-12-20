@@ -1,11 +1,12 @@
 #![warn(missing_docs)]
 use std::collections::HashMap;
-use std::fmt;
+use std::fmt::{self, Debug};
 use std::str::FromStr;
 
 use serde::Serialize;
 
 use crate::error::RipressError;
+use crate::helpers::{FromParams, FromRequest};
 
 /// A collection of parameters extracted from a route's URL pattern.
 ///
@@ -855,5 +856,19 @@ impl From<HashMap<String, String>> for RouteParams {
 impl From<RouteParams> for HashMap<String, String> {
     fn from(params: RouteParams) -> Self {
         params.params
+    }
+}
+
+pub struct Params<T> {
+    pub params: T,
+}
+
+impl<T: FromParams> FromRequest for Params<T> {
+    type Error = String;
+
+    fn from_request(req: &super::HttpRequest) -> Result<Self, Self::Error> {
+        Ok(Self {
+            params: T::from_params(&req.params)?,
+        })
     }
 }

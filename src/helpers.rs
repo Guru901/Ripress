@@ -6,7 +6,7 @@ use crate::middlewares::WyndMiddleware;
 use crate::{
     app::api_error::ApiError,
     middlewares::Middleware,
-    req::{HttpRequest, query_params::QueryParams},
+    req::{HttpRequest, query_params::QueryParams, route_params::RouteParams},
     res::HttpResponse,
     types::{Fut, FutMiddleware},
 };
@@ -398,4 +398,18 @@ macro_rules! middlewares {
             vec
         }
     };
+}
+
+pub trait FromRequest: Sized {
+    type Error;
+
+    fn from_request(req: &HttpRequest) -> Result<Self, Self::Error>;
+}
+
+pub trait FromParams: Sized {
+    fn from_params(params: &RouteParams) -> Result<Self, String>;
+}
+
+pub trait FromRequestRef<'a>: Sized {
+    fn from_request_ref(req: &'a HttpRequest) -> Self;
 }

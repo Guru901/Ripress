@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-use crate::helpers::box_future;
+use crate::helpers::{FromRequest, box_future};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use bytes::Bytes;
@@ -318,13 +318,28 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.get("/hello", handler);
     /// ```
-    fn get<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn get<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
-        Self: Sized,
+        P: FromRequest + Send + 'static,
     {
-        self.add_route(HttpMethods::GET, path, handler);
+        let handler = std::sync::Arc::new(handler);
+
+        let wrapped = move |req: HttpRequest, res: HttpResponse| {
+            let handler = handler.clone();
+
+            async move {
+                let extracted = match P::from_request(&req) {
+                    Ok(v) => v,
+                    Err(e) => return res.bad_request(),
+                };
+
+                handler(extracted, res).await
+            }
+        };
+
+        self.add_route(HttpMethods::GET, path, wrapped);
         self
     }
 
