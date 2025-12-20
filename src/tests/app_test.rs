@@ -258,6 +258,7 @@ mod tests {
         let mut app = App::new();
 
         app.use_pre_middleware(Some("/api"), |req, res| async move { (req, Some(res)) });
+        #[allow(deprecated)]
         app.use_middleware(Some("/api"), |req, res| async move { (req, Some(res)) });
 
         assert_eq!(app.middlewares.len(), 2);
@@ -284,6 +285,7 @@ mod tests {
         let mut app = App::new();
 
         app.use_pre_middleware(None, |req, res| async move { (req, Some(res)) });
+        #[allow(deprecated)]
         app.use_middleware(None, |req, res| async move { (req, Some(res)) });
 
         assert_eq!(app.middlewares.len(), 2);
@@ -751,7 +753,7 @@ mod tests {
     #[test]
     fn test_router() {
         let mut router = Router::new("/api");
-        router.get("/", |req: HttpRequest, res| async move {
+        router.get("/", |_: HttpRequest, res| async move {
             res.ok().text("Hello, world!")
         });
         router.get("/api", |_: HttpRequest, res| async move {

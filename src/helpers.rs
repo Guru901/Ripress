@@ -6,7 +6,7 @@ use crate::middlewares::WyndMiddleware;
 use crate::{
     app::api_error::ApiError,
     middlewares::Middleware,
-    req::{HttpRequest, query_params::QueryParams, route_params::RouteParams},
+    req::{HttpRequest, query_params::QueryParams},
     res::HttpResponse,
     types::{Fut, FutMiddleware},
 };
@@ -360,9 +360,36 @@ where
     Box::pin(future)
 }
 
+/// Trait for extracting a type from an HTTP request reference.
+///
+/// Types that implement `FromRequest` can be constructed from a borrowed `HttpRequest`.
+/// This is commonly used to extract body data, headers, params, and other request-specific info
+/// into strongly-typed values for route handlers.
+///
+/// The associated `Error` type enables fallible extraction.  
+///
+/// # Example
+/// ```
+/// use ripress::req::HttpRequest;
+/// use ripress::helpers::FromRequest;
+///
+/// struct MyType;
+///
+/// impl FromRequest for MyType {
+///     type Error = ();
+///
+///     fn from_request(_req: &HttpRequest) -> Result<Self, Self::Error> {
+///         Ok(MyType)
+///     }
+/// }
+/// ```
 pub trait FromRequest: Sized {
+    /// The type of error returned when extraction fails.
     type Error: Debug;
 
+    /// Attempt to extract Self from the given HTTP request reference.
+    ///
+    /// Returns `Ok(Self)` if extraction is successful, or `Err(Self::Error)` if it fails.
     fn from_request(req: &HttpRequest) -> Result<Self, Self::Error>;
 }
 
@@ -390,6 +417,7 @@ pub trait FromRequest: Sized {
 /// });
 /// ```
 pub trait ExtractFromOwned: Sized {
+    /// The associated error type returned when extraction fails.
     type Error: Debug;
 
     /// Extract the parameter from an owned `HttpRequest`.
@@ -420,88 +448,55 @@ where
     }
 }
 
-// Implementation for tuples of 2 extractors
-impl<A, B> ExtractFromOwned for (A, B)
-where
-    A: ExtractFromOwned + Send + 'static,
-    B: ExtractFromOwned + Send + 'static,
-{
-    type Error = String;
+/// Macro to generate tuple implementations for ExtractFromOwned up to N.
+macro_rules! impl_extract_from_owned_tuples {
+    ($($len:literal: ($($T:ident),+)),+) => {
+        $(
+            impl<$($T),+> ExtractFromOwned for ($($T,)+)
+            where
+                $($T: ExtractFromOwned + Send + 'static),+
+            {
+                type Error = String;
 
-    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
-        let a = A::extract_from_owned(req.clone())
-            .map_err(|e| format!("Failed to extract first parameter: {:?}", e))?;
-        let b = B::extract_from_owned(req)
-            .map_err(|e| format!("Failed to extract second parameter: {:?}", e))?;
-        Ok((a, b))
-    }
+                fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
+                    // Clone the request for each extraction
+                    // This is necessary since each extractor needs its own copy
+                    $(
+                        #[allow(non_snake_case)]
+                        let $T = {
+                            $T::extract_from_owned(req.clone())
+                                .map_err(|e| format!(
+                                    concat!(
+                                        "Failed to extract ",
+                                        stringify!($T),
+                                        " parameter: {:?}"
+                                    ),
+                                    e
+                                ))?
+                        };
+                    )+
+
+                    Ok(($($T,)+))
+                }
+            }
+        )+
+    };
 }
 
-// Implementation for tuples of 3 extractors
-impl<A, B, C> ExtractFromOwned for (A, B, C)
-where
-    A: ExtractFromOwned + Send + 'static,
-    B: ExtractFromOwned + Send + 'static,
-    C: ExtractFromOwned + Send + 'static,
-{
-    type Error = String;
-
-    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
-        let a = A::extract_from_owned(req.clone())
-            .map_err(|e| format!("Failed to extract first parameter: {:?}", e))?;
-        let b = B::extract_from_owned(req.clone())
-            .map_err(|e| format!("Failed to extract second parameter: {:?}", e))?;
-        let c = C::extract_from_owned(req)
-            .map_err(|e| format!("Failed to extract third parameter: {:?}", e))?;
-        Ok((a, b, c))
-    }
-}
-
-// Implementation for tuples of 4 extractors
-impl<A, B, C, D> ExtractFromOwned for (A, B, C, D)
-where
-    A: ExtractFromOwned + Send + 'static,
-    B: ExtractFromOwned + Send + 'static,
-    C: ExtractFromOwned + Send + 'static,
-    D: ExtractFromOwned + Send + 'static,
-{
-    type Error = String;
-
-    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
-        let a = A::extract_from_owned(req.clone())
-            .map_err(|e| format!("Failed to extract first parameter: {:?}", e))?;
-        let b = B::extract_from_owned(req.clone())
-            .map_err(|e| format!("Failed to extract second parameter: {:?}", e))?;
-        let c = C::extract_from_owned(req.clone())
-            .map_err(|e| format!("Failed to extract third parameter: {:?}", e))?;
-        let d = D::extract_from_owned(req)
-            .map_err(|e| format!("Failed to extract fourth parameter: {:?}", e))?;
-        Ok((a, b, c, d))
-    }
-}
-
-// Implementation for tuples of 5 extractors
-impl<A, B, C, D, E> ExtractFromOwned for (A, B, C, D, E)
-where
-    A: ExtractFromOwned + Send + 'static,
-    B: ExtractFromOwned + Send + 'static,
-    C: ExtractFromOwned + Send + 'static,
-    D: ExtractFromOwned + Send + 'static,
-    E: ExtractFromOwned + Send + 'static,
-{
-    type Error = String;
-
-    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
-        let a = A::extract_from_owned(req.clone())
-            .map_err(|e| format!("Failed to extract first parameter: {:?}", e))?;
-        let b = B::extract_from_owned(req.clone())
-            .map_err(|e| format!("Failed to extract second parameter: {:?}", e))?;
-        let c = C::extract_from_owned(req.clone())
-            .map_err(|e| format!("Failed to extract third parameter: {:?}", e))?;
-        let d = D::extract_from_owned(req.clone())
-            .map_err(|e| format!("Failed to extract fourth parameter: {:?}", e))?;
-        let e = E::extract_from_owned(req)
-            .map_err(|e| format!("Failed to extract fifth parameter: {:?}", e))?;
-        Ok((a, b, c, d, e))
-    }
-}
+impl_extract_from_owned_tuples!(
+    2: (A, B),
+    3: (A, B, C),
+    4: (A, B, C, D),
+    5: (A, B, C, D, E),
+    6: (A, B, C, D, E, F),
+    7: (A, B, C, D, E, F, G),
+    8: (A, B, C, D, E, F, G, H),
+    9: (A, B, C, D, E, F, G, H, I),
+    10: (A, B, C, D, E, F, G, H, I, J),
+    11: (A, B, C, D, E, F, G, H, I, J, K),
+    12: (A, B, C, D, E, F, G, H, I, J, K, L),
+    13: (A, B, C, D, E, F, G, H, I, J, K, L, M),
+    14: (A, B, C, D, E, F, G, H, I, J, K, L, M, N),
+    15: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O),
+    16: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P)
+);

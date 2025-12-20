@@ -349,4 +349,16 @@ mod tests;
 /// See [`error::RipressError`] and [`error::RipressErrorKind`] for details.
 pub mod error;
 
+/// Procedural and attribute macros for the Ripress framework.
+///
+/// This module provides custom derive, attribute, and function-like macros to enhance
+/// ergonomics and reduce boilerplate in web applications using Ripress.
+///
+/// # Features
+///
+/// - Derivable traits for request extraction, response serialization, etc.
+/// - Route handler attribute macros (if any are defined in the framework)
+/// - Utility macros for simplifying common patterns (such as routes, guards, etc.)
+///
+/// See the documentation for individual macros for usage examples and detailed information.
 pub mod macros;

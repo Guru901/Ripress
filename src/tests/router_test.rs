@@ -76,6 +76,7 @@ mod tests {
         let mut app = App::new();
         let mut router = Router::new("/");
         router.get("/user/{id}", _test_handler);
+        #[allow(deprecated)]
         router.register(&mut app);
 
         assert!(

@@ -108,6 +108,7 @@ mod tests {
         // build a dummy error
         use std::str::from_utf8;
         let bytes = &[0xff, 0xff];
+        #[allow(invalid_from_utf8)]
         let utf8res = from_utf8(bytes);
         if let Err(e) = utf8res {
             let td = TextDataError::InvalidUtf8(e);

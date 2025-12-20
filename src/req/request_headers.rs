@@ -3,7 +3,6 @@
 use std::ops::Deref;
 
 use crate::helpers::FromRequest;
-use crate::req::route_params::{Params, RouteParams};
 use hyper::HeaderMap;
 use hyper::header::{HeaderName, HeaderValue};
 
@@ -336,6 +335,17 @@ impl From<RequestHeaders> for HeaderMap {
     }
 }
 
+/// A wrapper around [`RequestHeaders`] that allows extracting headers from an [`HttpRequest`] using the [`FromRequest`] trait.
+///
+/// This enables ergonomic extraction of headers as a parameter in route handlers:
+/// ```
+/// pub fn handler(headers: Headers) {
+///    for (key, value) in headers.iter() {
+///         println!("{}: {}", key, value);
+///     }
+/// }
+/// ```
+///
 pub struct Headers(RequestHeaders);
 
 impl FromRequest for Headers {
@@ -352,8 +362,4 @@ impl Deref for Headers {
     fn deref(&self) -> &Self::Target {
         &self.0
     }
-}
-
-pub trait FromParams: Sized {
-    fn from_params(params: &RouteParams) -> Result<Self, String>;
 }
