@@ -339,9 +339,11 @@ impl From<RequestHeaders> for HeaderMap {
 ///
 /// This enables ergonomic extraction of headers as a parameter in route handlers:
 /// ```
+/// use ripress::req::request_headers::Headers;
+///
 /// pub fn handler(headers: Headers) {
 ///    for (key, value) in headers.iter() {
-///         println!("{}: {}", key, value);
+///         println!("{}: {:?}", key, value);
 ///     }
 /// }
 /// ```

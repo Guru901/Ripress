@@ -388,7 +388,7 @@ impl Default for CorsConfig {
 pub(crate) fn cors(
     config: Option<CorsConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
-    move |req, mut res| {
+    move |req: HttpRequest, mut res| {
         let config = config.clone().unwrap_or_default();
         let req_clone = req.clone();
         Box::pin(async move {

@@ -9,18 +9,18 @@
 //! ## Quick Start
 //!
 //! ```no_run
-//! use ripress::{app::App, types::RouterFns};
+//! use ripress::{app::App, types::RouterFns, req::HttpRequest};
 //!
 //! #[tokio::main]
 //! async fn main() {
 //!     let mut app = App::new();
 //!
 //!     // Define routes
-//!     app.get("/", |_req, res| async move {
+//!     app.get("/", |_req: HttpRequest, res| async move {
 //!         res.ok().text("Hello, World!")
 //!     });
 //!
-//!     app.get("/api/users", |_req, res| async move {
+//!     app.get("/api/users", |_req: HttpRequest, res| async move {
 //!         res.ok().json(serde_json::json!({
 //!             "users": ["Alice", "Bob", "Charlie"]
 //!         }))
@@ -59,7 +59,7 @@
 //!
 //! ### RESTful API with JSON
 //! ```no_run
-//! use ripress::{app::App, types::RouterFns};
+//! use ripress::{app::App, types::RouterFns, req::HttpRequest};
 //! use serde::{Deserialize, Serialize};
 //!
 //! #[derive(Serialize, Deserialize)]
@@ -74,7 +74,7 @@
 //!     let mut app = App::new();
 //!
 //!     // GET /users - List all users
-//!     app.get("/users", |_req, res| async move {
+//!     app.get("/users", |_req: HttpRequest, res| async move {
 //!         let users = vec![
 //!             User { id: 1, name: "Alice".to_string(), email: "alice@example.com".to_string() },
 //!             User { id: 2, name: "Bob".to_string(), email: "bob@example.com".to_string() },
@@ -83,7 +83,7 @@
 //!     });
 //!
 //!     // POST /users - Create a new user
-//!     app.post("/users", |req, res| async move {
+//!     app.post("/users", |req: HttpRequest, res| async move {
 //!         match req.json::<User>() {
 //!             Ok(user) => res.created().json(user),
 //!             Err(_) => res.bad_request().text("Invalid JSON"),
@@ -91,7 +91,7 @@
 //!     });
 //!
 //!     // GET /users/:id - Get user by ID
-//!     app.get("/users/:id", |req, res| async move {
+//!     app.get("/users/:id", |req: HttpRequest, res| async move {
 //!         let user_id = req.params.get("id").unwrap_or("0");
 //!         res.ok().json(serde_json::json!({
 //!             "id": user_id,
@@ -107,7 +107,7 @@
 //!
 //! ### File Upload with Middleware
 //! ```ignore
-//! use ripress::{app::App, middlewares::file_upload::file_upload, types::RouterFns};
+//! use ripress::{app::App, middlewares::file_upload::file_upload, types::RouterFns, req::HttpRequest};
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -116,7 +116,7 @@
 //!     // Add file upload middleware
 //!     app.use_pre_middleware("/upload", file_upload(None));
 //!
-//!     app.post("/upload", |req, res| async move {
+//!     app.post("/upload", |req: HttpRequest, res| async move {
 //!         // Access uploaded files through request data
 //!         if let Some(file_data) = req.get_data("uploaded_file") {
 //!             res.ok().text(format!("File uploaded: {}", file_data))
@@ -141,25 +141,25 @@
 ///
 /// Basic server setup:
 /// ```rust
-/// use ripress::{app::App, types::RouterFns};
+/// use ripress::{app::App, types::RouterFns, req::HttpRequest};
 ///
 /// #[tokio::main]
 /// async fn main() {
 ///     let mut app = App::new();
-///     app.get("/", |_req, res| async move { res.ok().text("Hello, World!") } );
+///     app.get("/", |_req: HttpRequest, res| async move { res.ok().text("Hello, World!") } );
 /// }
 /// ```
 ///
 /// With middleware:
 /// ```rust
-/// use ripress::{app::App, types::RouterFns};
+/// use ripress::{app::App, types::RouterFns, req::HttpRequest};
 ///
 /// #[tokio::main]
 /// async fn main() {
 ///     let mut app = App::new();
 ///
 ///     app.use_cors(None)
-///         .get("/api/data", |_req, res| async move {
+///         .get("/api/data", |_req: HttpRequest, res| async move {
 ///             res.ok().json(serde_json::json!({"status": "ok"}))
 ///         });
 /// }

@@ -266,7 +266,8 @@ pub trait RouterFns {
         HFut: Future<Output = HttpResponse> + Send + 'static,
     {
         let routes = self.routes();
-        let wrapped_handler = Arc::new(move |req, res| box_future(handler(req, res))) as Handler;
+        let wrapped_handler =
+            Arc::new(move |req: HttpRequest, res| box_future(handler(req, res))) as Handler;
         use std::collections::hash_map::Entry;
         match routes.entry(path.to_string()) {
             Entry::Occupied(mut e) => {

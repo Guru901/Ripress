@@ -1143,7 +1143,7 @@ pub(crate) fn shield(
     config: Option<ShieldConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
     let config = std::sync::Arc::new(config.unwrap_or_default());
-    move |req, mut res| {
+    move |req: HttpRequest, mut res| {
         let config = std::sync::Arc::clone(&config);
 
         Box::pin(async move {

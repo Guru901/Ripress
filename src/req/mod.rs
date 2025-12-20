@@ -38,6 +38,7 @@
 //! ```no_run
 //! use ripress::app::App;
 //! use ripress::types::RouterFns;
+//! use ripress::req::HttpRequest;
 //! use serde::{Deserialize, Serialize};
 //!
 //! #[derive(Deserialize, Serialize)]
@@ -52,7 +53,7 @@
 //!     let mut app = App::new();
 //!
 //!     // GET request with query parameters
-//!     app.get("/users", |req, res| async move {
+//!     app.get("/users", |req: HttpRequest, res| async move {
 //!         let page = req.query.get("page").unwrap_or("1");
 //!         let limit = req.query.get("limit").unwrap_or("10");
 //!         
@@ -65,7 +66,7 @@
 //!     });
 //!
 //!     // POST request with JSON body
-//!     app.post("/users", |req, res| async move {
+//!     app.post("/users", |req: HttpRequest, res| async move {
 //!         match req.json::<CreateUserRequest>() {
 //!             Ok(user_data) => {
 //!                 println!("Creating user: {} ({})", user_data.name, user_data.email);
@@ -84,7 +85,7 @@
 //!     });
 //!
 //!     // Route with parameters
-//!     app.get("/users/:id", |req, res| async move {
+//!     app.get("/users/:id", |req: HttpRequest, res| async move {
 //!         let user_id = req.params.get("id").unwrap_or("0");
 //!         println!("Fetching user with ID: {}", user_id);
 //!         
@@ -183,10 +184,11 @@
 //! ```rust
 //! use ripress::app::App;
 //! use ripress::types::RouterFns;
+//! use ripress::req::HttpRequest;
 //!
 //! let mut app = App::new();
 //!
-//! app.get("/info", |req, res| async move {
+//! app.get("/info", |req: HttpRequest, res| async move {
 //!     // Client IP address (considers X-Forwarded-For for proxies)
 //!     println!("Client IP: {}", req.ip);
 //!     
@@ -217,6 +219,7 @@
 //! ```no_run
 //! use ripress::app::App;
 //! use ripress::types::RouterFns;
+//! use ripress::req::HttpRequest;
 //!
 //! let mut app = App::new();
 //!
@@ -229,7 +232,7 @@
 //! });
 //!
 //! // In route handler
-//! app.get("/dashboard", |req, res| async move {
+//! app.get("/dashboard", |req: HttpRequest, res| async move {
 //!     if let Some(user_id) = req.get_data("user_id") {
 //!         if let Some(role) = req.get_data("user_role") {
 //!             println!("User {} with role {} accessing dashboard", user_id, role);
@@ -243,10 +246,11 @@
 //! ```no_run
 //! use ripress::app::App;
 //! use ripress::types::RouterFns;
+//! use ripress::req::HttpRequest;
 //!
 //! let mut app = App::new();
 //!
-//! app.get("/profile", |req, res| async move {
+//! app.get("/profile", |req: HttpRequest, res| async move {
 //!     // Check for session cookie
 //!     match req.get_cookie("session_id") {
 //!         Some(session_id) => {
@@ -265,10 +269,11 @@
 //! use ripress::req::body::RequestBodyType;
 //! use ripress::app::App;
 //! use ripress::types::RouterFns;
+//! use ripress::req::HttpRequest;
 //!
 //! let mut app = App::new();
 //!
-//! app.post("/upload", |req, res| async move {
+//! app.post("/upload", |req: HttpRequest, res| async move {
 //!     if req.is(RequestBodyType::JSON) {
 //!         // Handle JSON upload
 //!         match req.json::<serde_json::Value>() {

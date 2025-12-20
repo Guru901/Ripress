@@ -507,7 +507,7 @@ pub(crate) fn rate_limiter(
         }
     });
 
-    move |req, mut res| {
+    move |req: HttpRequest, mut res| {
         let client_map = client_map.clone();
         let cfg = cfg.clone();
 
