@@ -1,5 +1,8 @@
 #![warn(missing_docs)]
-use std::{fmt::Debug, sync::Arc};
+use std::{
+    fmt::{Debug, Display},
+    sync::Arc,
+};
 
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
@@ -376,7 +379,7 @@ where
 /// struct MyType;
 ///
 /// impl FromRequest for MyType {
-///     type Error = ();
+///     type Error = String;
 ///
 ///     fn from_request(_req: &HttpRequest) -> Result<Self, Self::Error> {
 ///         Ok(MyType)
@@ -385,7 +388,7 @@ where
 /// ```
 pub trait FromRequest: Sized {
     /// The type of error returned when extraction fails.
-    type Error: Debug;
+    type Error: Display;
 
     /// Attempt to extract Self from the given HTTP request reference.
     ///
@@ -418,7 +421,7 @@ pub trait FromRequest: Sized {
 /// ```
 pub trait ExtractFromOwned: Sized {
     /// The associated error type returned when extraction fails.
-    type Error: Debug;
+    type Error: Display;
 
     /// Extract the parameter from an owned `HttpRequest`.
     ///
@@ -469,7 +472,7 @@ macro_rules! impl_extract_from_owned_tuples {
                                     concat!(
                                         "Failed to extract ",
                                         stringify!($T),
-                                        " parameter: {:?}"
+                                        " parameter: {}"
                                     ),
                                     e
                                 ))?

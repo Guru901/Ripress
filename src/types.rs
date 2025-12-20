@@ -391,9 +391,7 @@ pub trait RouterFns {
                 let extracted = match P::extract_from_owned(req) {
                     Ok(v) => v,
                     Err(e) => {
-                        return res
-                            .bad_request()
-                            .text(format!("Extraction failed: {:?}", e));
+                        return res.bad_request().text(format!("Extraction failed: {}", e));
                     }
                 };
 
