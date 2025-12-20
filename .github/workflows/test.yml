@@ -44,4 +44,4 @@ jobs:
           bun --version
 
       - name: Run Test Script
-        run: chmod +x scripts/test.sh && scripts/test.sh
+        run: chmod +x /ripress/scripts/test.sh && /ripress/scripts/test.sh

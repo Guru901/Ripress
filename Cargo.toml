@@ -1,8 +1,10 @@
 [workspace]
+resolver = "2"
 members = [
     "ripress",
     "ripress-derive"
 ]
+
 [workspace.package]
 edition = "2021"
 license = "MIT"
