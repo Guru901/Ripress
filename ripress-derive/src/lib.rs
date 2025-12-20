@@ -116,7 +116,7 @@ pub fn from_json_derive(input: TokenStream) -> TokenStream {
         impl ::ripress::req::body::json_data::FromJson for #struct_name {
             fn from_json(data: &::ripress::req::body::RequestBodyContent) -> Result<Self, String> {
                 if let ::ripress::req::body::RequestBodyContent::JSON(json_value) = data {
-                    serde_json::from_value::<Self>(json_value.clone())
+                    serde_json::from_value::<Self>(json_value.to_owned())
                         .map_err(|e| format!("Failed to deserialize JSON: {}", e))
                 } else {
                     Err("Request body is not JSON".to_string())
