@@ -1,5 +1,9 @@
 #![warn(missing_docs)]
 
+use std::ops::Deref;
+
+use crate::helpers::FromRequest;
+use crate::req::route_params::{Params, RouteParams};
 use hyper::HeaderMap;
 use hyper::header::{HeaderName, HeaderValue};
 
@@ -330,4 +334,26 @@ impl From<RequestHeaders> for HeaderMap {
     fn from(headers: RequestHeaders) -> Self {
         headers.into_header_map()
     }
+}
+
+pub struct Headers(RequestHeaders);
+
+impl FromRequest for Headers {
+    type Error = String;
+
+    fn from_request(req: &super::HttpRequest) -> Result<Self, Self::Error> {
+        Ok(Self(req.headers.clone()))
+    }
+}
+
+impl Deref for Headers {
+    type Target = RequestHeaders;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+pub trait FromParams: Sized {
+    fn from_params(params: &RouteParams) -> Result<Self, String>;
 }

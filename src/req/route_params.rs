@@ -1,6 +1,7 @@
 #![warn(missing_docs)]
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
+use std::ops::Deref;
 use std::str::FromStr;
 
 use serde::Serialize;
@@ -859,17 +860,21 @@ impl From<RouteParams> for HashMap<String, String> {
     }
 }
 
-pub struct Params<T> {
-    pub params: T,
-}
+pub struct Params<T>(T);
 
 impl<T: FromParams> FromRequest for Params<T> {
     type Error = String;
 
     fn from_request(req: &super::HttpRequest) -> Result<Self, Self::Error> {
-        Ok(Self {
-            params: T::from_params(&req.params)?,
-        })
+        Ok(Self(T::from_params(&req.params)?))
+    }
+}
+
+impl<T> Deref for Params<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
