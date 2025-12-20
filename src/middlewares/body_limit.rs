@@ -49,7 +49,7 @@ pub(crate) fn body_limit(
     config: Option<usize>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
     let config = config.unwrap_or(DEFAULT_BODY_LIMIT); // 1 MB default
-    move |req, res| {
+    move |req: HttpRequest, res| {
         Box::pin(async move {
             let body = req.clone().body.content;
 

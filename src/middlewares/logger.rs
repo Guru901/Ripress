@@ -362,7 +362,7 @@ pub(crate) fn logger(
     config: Option<LoggerConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
     let cfg = std::sync::Arc::new(config.unwrap_or_default());
-    move |req, res| {
+    move |req: HttpRequest, res| {
         let config = std::sync::Arc::clone(&cfg);
 
         // Treat entries as prefixes; excludes "/health" will also exclude "/health/live".

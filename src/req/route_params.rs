@@ -1,11 +1,13 @@
 #![warn(missing_docs)]
 use std::collections::HashMap;
-use std::fmt;
+use std::fmt::{self, Debug};
+use std::ops::Deref;
 use std::str::FromStr;
 
 use serde::Serialize;
 
 use crate::error::RipressError;
+use crate::helpers::FromRequest;
 
 /// A collection of parameters extracted from a route's URL pattern.
 ///
@@ -856,4 +858,80 @@ impl From<RouteParams> for HashMap<String, String> {
     fn from(params: RouteParams) -> Self {
         params.params
     }
+}
+
+/// Extracts types from route parameters in handler signatures.
+///
+/// The `Params<T>` struct enables ergonomic extraction of strongly-typed values from route parameters
+/// by implementing [`FromRequest`] for any type `T` that implements [`FromParams`]. This allows you to
+/// declare handler parameters as `Params<T>` and have the framework automatically parse and validate route parameters.
+///
+/// # Example
+/// ```
+/// use ripress::req::route_params::{Params, FromParams, RouteParams};
+///
+/// struct UserId(String);
+///
+/// impl FromParams for UserId {
+///     fn from_params(params: &RouteParams) -> Result<Self, String> {
+///         params.get("id").map(|id| UserId(id.to_string()))
+///             .ok_or_else(|| "Missing id".into())
+///     }
+/// }
+///
+/// // Handler signature
+/// fn get_user(params: Params<UserId>) {
+///     let user_id: &UserId = &*params;
+///     // ...
+/// }
+/// ```
+pub struct Params<T>(T);
+
+impl<T: FromParams> FromRequest for Params<T> {
+    type Error = String;
+
+    fn from_request(req: &super::HttpRequest) -> Result<Self, Self::Error> {
+        Ok(Self(T::from_params(&req.params)?))
+    }
+}
+
+impl<T> Deref for Params<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Trait for extracting a type from route parameters.
+///
+/// Types that implement `FromParams` can be constructed from a borrowed set of
+/// [`RouteParams`], which are parameters captured from the route path in an
+/// HTTP request handler.
+///
+/// This trait is used to enable deserializing and validating route parameters
+/// into strongly-typed handler arguments.
+///
+/// # Example
+/// ```
+/// use ripress::req::route_params::RouteParams;
+/// use ripress::req::route_params::FromParams;
+///
+/// struct UserId {
+///     id: String,
+/// }
+///
+/// impl FromParams for UserId {
+///     fn from_params(params: &RouteParams) -> Result<Self, String> {
+///         params.get("id")
+///             .map(|id| UserId { id: id.to_string() })
+///             .ok_or_else(|| "Missing route parameter: id".to_string())
+///     }
+/// }
+/// ```
+pub trait FromParams: Sized {
+    /// Attempt to extract `Self` from `params` (the parsed route parameters).
+    ///
+    /// Returns `Ok(Self)` if extraction is successful, or `Err(String)` if it fails.
+    fn from_params(params: &RouteParams) -> Result<Self, String>;
 }

@@ -1,5 +1,8 @@
 #![warn(missing_docs)]
 
+use std::ops::Deref;
+
+use crate::helpers::FromRequest;
 use hyper::HeaderMap;
 use hyper::header::{HeaderName, HeaderValue};
 
@@ -329,5 +332,36 @@ impl From<HeaderMap> for RequestHeaders {
 impl From<RequestHeaders> for HeaderMap {
     fn from(headers: RequestHeaders) -> Self {
         headers.into_header_map()
+    }
+}
+
+/// A wrapper around [`RequestHeaders`] that allows extracting headers from an [`HttpRequest`] using the [`FromRequest`] trait.
+///
+/// This enables ergonomic extraction of headers as a parameter in route handlers:
+/// ```
+/// use ripress::req::request_headers::Headers;
+///
+/// pub fn handler(headers: Headers) {
+///    for (key, value) in headers.iter() {
+///         println!("{}: {:?}", key, value);
+///     }
+/// }
+/// ```
+///
+pub struct Headers(RequestHeaders);
+
+impl FromRequest for Headers {
+    type Error = String;
+
+    fn from_request(req: &super::HttpRequest) -> Result<Self, Self::Error> {
+        Ok(Self(req.headers.clone()))
+    }
+}
+
+impl Deref for Headers {
+    type Target = RequestHeaders;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }

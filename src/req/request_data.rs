@@ -3,9 +3,12 @@ use std::{
     collections::HashMap,
     fmt::{Display, Formatter},
     hash::{Hash, Hasher},
+    ops::Deref,
 };
 
 use ahash::AHashMap;
+
+use crate::helpers::FromRequest;
 
 /// A high-performance wrapper around bytes that implements Hash and Eq
 /// by comparing the underlying byte content.
@@ -547,4 +550,63 @@ impl IntoIterator for RequestData {
     fn into_iter(self) -> Self::IntoIter {
         self.inner.into_iter().map(|(k, v)| (k.0, v))
     }
+}
+
+/// Extractor that pulls structured data from request data storage.
+///
+/// The `Data<T>` wrapper is used to extract strongly-typed application data
+/// from a [`RequestData`] instance based on the implementation of [`FromData`] for `T`.
+///
+/// This enables you to easily access parsed and validated request data directly in
+/// your route handlers:
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use ripress::req::request_data::{Data, FromData};
+///
+/// #[derive(FromData)]
+/// struct Token {
+///     token: String,
+/// }
+///
+/// app.get("/", |data: Data<Token>, res| async move {
+///     let token = &data.token;
+///     // ... Use token
+/// });
+/// ```
+///
+/// `Data<T>` implements [`Deref`], so you can access fields of `T` directly by dereferencing.
+///
+/// [`RequestData`]: crate::req::request_data::RequestData
+/// [`FromData`]: crate::req::request_data::FromData
+pub struct Data<T>(T);
+
+impl<T> Deref for Data<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T: FromData> FromRequest for Data<T> {
+    type Error = String;
+
+    /// Extract structured `Data<T>` from the request.
+    ///
+    /// This will invoke `T::from_data` on the request's data storage.
+    fn from_request(req: &super::HttpRequest) -> Result<Self, Self::Error> {
+        Ok(Self(T::from_data(&req.data)?))
+    }
+}
+
+/// Trait for extracting a type from [`RequestData`] storage.
+///
+/// You can implement this trait manually, or automatically derive it (see `ripress_derive`).
+pub trait FromData: Sized {
+    /// Attempt to extract `Self` from the given [`RequestData`].
+    ///
+    /// Returns `Ok(Self)` if extraction is successful, or `Err(String)` if it fails.
+    fn from_data(data: &RequestData) -> Result<Self, String>;
 }

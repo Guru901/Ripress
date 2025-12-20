@@ -53,6 +53,7 @@
 //! use ripress::app::App;
 //! use ripress::middlewares::cors::CorsConfig;
 //! use ripress::types::RouterFns;
+//! use ripress::req::HttpRequest;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -71,7 +72,7 @@
 //!     app.use_body_limit(Some(10 * 1024 * 1024)); // 10MB limit
 //!
 //!     // Add routes
-//!     app.get("/", |_req, res| async move {
+//!     app.get("/", |_req: HttpRequest, res| async move {
 //!         res.ok().text("Hello, World!")
 //!     });
 //!
@@ -85,11 +86,12 @@
 //!
 //! ```no_run
 //! use ripress::app::App;
+//! use ripress::req::HttpRequest;
 //!
 //! let mut app = App::new();
 //!
 //! // Custom authentication middleware
-//! app.use_pre_middleware(Some("/api"), |req, res| async move {
+//! app.use_pre_middleware(Some("/api"), |req: HttpRequest, res| async move {
 //!     if req.headers.get("authorization").is_none() {
 //!         return (req, Some(res.unauthorized().text("Missing auth header")));
 //!     }
@@ -97,7 +99,7 @@
 //! });
 //!
 //! // Custom response timing middleware
-//! app.use_post_middleware(None, |req, mut res| async move {
+//! app.use_post_middleware(None, |req: HttpRequest, mut res| async move {
 //!     res = res.set_header("X-Response-Time", "42ms");
 //!     (req, Some(res))
 //! });
@@ -357,12 +359,13 @@ pub mod logger;
 /// use ripress::types::RouterFns;
 /// use serde_json::Value;
 /// use ripress::middlewares::file_upload::file_upload;
+/// use ripress::req::HttpRequest;
 ///
 /// let mut app = App::new();
 ///
 /// app.use_pre_middleware(Some("/upload"), file_upload(None));
 ///
-/// app.post("/upload", |req, res| async move {
+/// app.post("/upload", |req: HttpRequest, res| async move {
 ///     if let Some(file_count) = req.get_data("uploaded_file_count") {
 ///         let count: usize = file_count.parse().unwrap_or(0);
 ///         
@@ -672,11 +675,12 @@ pub mod rate_limiter;
 ///
 /// ```rust
 /// use ripress::app::App;
+/// use ripress::req::HttpRequest;
 ///
 /// let mut app = App::new();
 ///
 /// // Custom body limit with better error handling
-/// app.use_pre_middleware(None, |req, res| async move {
+/// app.use_pre_middleware(None, |req: HttpRequest, res| async move {
 ///     const MAX_SIZE: usize = 1024 * 1024; // 1 MB
 ///     
 ///     if let Some(content_length) = req.headers.get("content-length") {
@@ -907,6 +911,7 @@ pub mod body_limit;
 /// ```rust
 /// use ripress::app::App;
 /// use ripress::middlewares::compression::CompressionConfig;
+/// use ripress::req::HttpRequest;
 ///
 /// let mut app = App::new();
 ///
@@ -914,7 +919,7 @@ pub mod body_limit;
 /// app.use_compression(Some(CompressionConfig { level: 6, threshold: 1024 }));
 ///
 /// // Route-specific skip example (identity)
-/// app.use_post_middleware(Some("/files"), |req, res| async move {
+/// app.use_post_middleware(Some("/files"), |req: HttpRequest, res| async move {
 ///     (req, Some(res.set_header("Content-Encoding", "identity")))
 /// });
 /// ```
@@ -1218,12 +1223,14 @@ pub mod compression;
 /// ## Monitoring and Compliance
 ///
 /// ### CSP Violation Reporting
+///
 /// ```rust
 /// use ripress::app::App;
 /// use ripress::types::RouterFns;
+/// use ripress::req::HttpRequest;
 ///
 /// let mut app = App::new();
-/// app.post("/csp-report", |req, res| async move {
+/// app.post("/csp-report", |req: HttpRequest, res| async move {
 ///     if let Ok(violation_report) = req.json::<serde_json::Value>() {
 ///         eprintln!("CSP Violation: {}", violation_report);
 ///     }

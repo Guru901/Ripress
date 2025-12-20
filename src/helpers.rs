@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
@@ -360,42 +360,143 @@ where
     Box::pin(future)
 }
 
-/// A macro for convenient construction of middleware vectors (`Middlewares`).
+/// Trait for extracting a type from an HTTP request reference.
 ///
-/// # Usage
+/// Types that implement `FromRequest` can be constructed from a borrowed `HttpRequest`.
+/// This is commonly used to extract body data, headers, params, and other request-specific info
+/// into strongly-typed values for route handlers.
 ///
-/// The `middlewares!` macro simplifies the creation of middleware lists by allowing you to specify
-/// route patterns and corresponding middleware closures in a concise and readable way.
-///
-/// Each element is a tuple in the form: `("/path", |req, res| { ... })`.
+/// The associated `Error` type enables fallible extraction.  
 ///
 /// # Example
-///
-/// ```rust
-/// use ripress::{app::App, types::Middlewares, middlewares};
-///
-/// let pre_middlewares: Middlewares = middlewares![
-///     ("/", |req, _res| Box::pin(async move { (req, None) })),
-///     ("/admin", |req, _res| Box::pin(async move { (req, None) })),
-/// ];
 /// ```
+/// use ripress::req::HttpRequest;
+/// use ripress::helpers::FromRequest;
 ///
-/// # Output
+/// struct MyType;
 ///
-/// Expands into a `Vec<(&'static str, Box<dyn Fn(...) -> ...>)>` ready for
-/// use with `App::use_pre_middlewares()` or `App::use_post_middlewares()`.
-#[macro_export]
-macro_rules! middlewares {
-    ( $( ($path:expr, $handler:expr) ),* $(,)? ) => {
-        {
-            let mut vec: $crate::types::Middlewares = Vec::new();
-            $(
-                vec.push((
-                    $path,
-                    Box::new($handler)
-                ));
-            )*
-            vec
-        }
+/// impl FromRequest for MyType {
+///     type Error = String;
+///
+///     fn from_request(_req: &HttpRequest) -> Result<Self, Self::Error> {
+///         Ok(MyType)
+///     }
+/// }
+/// ```
+pub trait FromRequest: Sized {
+    /// The type of error returned when extraction fails.
+    type Error: Display;
+
+    /// Attempt to extract Self from the given HTTP request reference.
+    ///
+    /// Returns `Ok(Self)` if extraction is successful, or `Err(Self::Error)` if it fails.
+    fn from_request(req: &HttpRequest) -> Result<Self, Self::Error>;
+}
+
+/// A helper trait for extracting parameters from an owned `HttpRequest`.
+///
+/// This trait allows `HttpRequest` to be passed directly without cloning,
+/// while other types can still use `FromRequest` for extraction.
+///
+/// ## Multiple Extractors
+///
+/// This trait is implemented for tuples of 2, 3, 4, and 5 extractors, allowing
+/// you to use multiple extractors in a single route handler:
+///
+/// ```rust,ignore
+/// use ripress::{app::App, req::{body::JsonBody, route_params::Params}};
+///
+/// // Two extractors
+/// app.get("/users/:id", |(body, params): (JsonBody<UserData>, Params<UserId>), res| async move {
+///     // ...
+/// });
+///
+/// // Up to 5 extractors are supported
+/// app.post("/", |(a, b, c, d, e): (Extractor1, Extractor2, Extractor3, Extractor4, Extractor5), res| async move {
+///     // ...
+/// });
+/// ```
+pub trait ExtractFromOwned: Sized {
+    /// The associated error type returned when extraction fails.
+    type Error: Display;
+
+    /// Extract the parameter from an owned `HttpRequest`.
+    ///
+    /// For `HttpRequest`, this simply moves the request (no clone).
+    /// For other types, this uses `FromRequest` which may clone the extracted type.
+    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error>;
+}
+
+// Implementation for HttpRequest: just move it, no clone needed
+impl ExtractFromOwned for HttpRequest {
+    type Error = std::convert::Infallible;
+
+    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
+        Ok(req)
+    }
+}
+
+// Implementation for all types that implement FromRequest
+impl<T> ExtractFromOwned for T
+where
+    T: FromRequest,
+{
+    type Error = <T as FromRequest>::Error;
+
+    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
+        T::from_request(&req)
+    }
+}
+
+/// Macro to generate tuple implementations for ExtractFromOwned up to N.
+macro_rules! impl_extract_from_owned_tuples {
+    ($($len:literal: ($($T:ident),+)),+) => {
+        $(
+            impl<$($T),+> ExtractFromOwned for ($($T,)+)
+            where
+                $($T: ExtractFromOwned + Send + 'static),+
+            {
+                type Error = String;
+
+                fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
+                    // Clone the request for each extraction
+                    // This is necessary since each extractor needs its own copy
+                    $(
+                        #[allow(non_snake_case)]
+                        let $T = {
+                            $T::extract_from_owned(req.clone())
+                                .map_err(|e| format!(
+                                    concat!(
+                                        "Failed to extract ",
+                                        stringify!($T),
+                                        " parameter: {}"
+                                    ),
+                                    e
+                                ))?
+                        };
+                    )+
+
+                    Ok(($($T,)+))
+                }
+            }
+        )+
     };
 }
+
+impl_extract_from_owned_tuples!(
+    2: (A, B),
+    3: (A, B, C),
+    4: (A, B, C, D),
+    5: (A, B, C, D, E),
+    6: (A, B, C, D, E, F),
+    7: (A, B, C, D, E, F, G),
+    8: (A, B, C, D, E, F, G, H),
+    9: (A, B, C, D, E, F, G, H, I),
+    10: (A, B, C, D, E, F, G, H, I, J),
+    11: (A, B, C, D, E, F, G, H, I, J, K),
+    12: (A, B, C, D, E, F, G, H, I, J, K, L),
+    13: (A, B, C, D, E, F, G, H, I, J, K, L, M),
+    14: (A, B, C, D, E, F, G, H, I, J, K, L, M, N),
+    15: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O),
+    16: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P)
+);

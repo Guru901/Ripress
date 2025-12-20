@@ -39,7 +39,7 @@ pub(crate) fn compression(
     config: Option<CompressionConfig>,
 ) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
     let config = config.unwrap_or_default();
-    move |req, mut res| {
+    move |req: HttpRequest, mut res| {
         let config = config.clone();
         Box::pin(async move {
             // Check if client accepts gzip encoding

@@ -17,12 +17,13 @@
 //! ```no_run
 //! use ripress::app::App;
 //! use ripress::types::RouterFns;
+//! use ripress::req::HttpRequest;
 //!
 //! #[tokio::main]
 //! async fn main() {
 //!     let mut app = App::new();
 //!
-//!     app.get("/", |_req, res| async move {
+//!     app.get("/", |_req: HttpRequest, res| async move {
 //!         res.ok().text("Hello, World!")
 //!     });
 //!
@@ -94,6 +95,7 @@ pub(crate) mod api_error;
 /// ```ignore
 /// use ripress::app::App;
 /// use ripress::types::RouterFns;
+/// use ripress::req::HttpRequest;
 ///
 /// #[tokio::main]
 /// async fn main() {
@@ -104,11 +106,11 @@ pub(crate) mod api_error;
 ///     app.use_logger(None);
 ///
 ///     // Add routes
-///     app.get("/", |_req, res| async move {
+///     app.get("/", |_req: HttpRequest, res| async move {
 ///         res.ok().text("Hello, World!")
 ///     });
 ///
-///     app.post("/api/users", |req, res| async move {
+///     app.post("/api/users", |req: HttpRequest, res| async move {
 ///         // Handle user creation
 ///         res.ok().json("User created")
 ///     });
@@ -311,11 +313,12 @@ impl App {
     ///
     /// ```
     /// use ripress::app::App;
+    /// use ripress::req::HttpRequest;
     ///
     /// let mut app = App::new();
     ///
     /// // This is deprecated - use use_pre_middleware instead
-    /// app.use_middleware(Some("/api"), |req, res| async move {
+    /// app.use_middleware(Some("/api"), |req: HttpRequest, res| async move {
     ///     println!("Processing API request");
     ///     (req, None)
     /// });
@@ -372,11 +375,12 @@ impl App {
     ///
     /// ```
     /// use ripress::app::App;
+    /// use ripress::req::HttpRequest;
     ///
     /// let mut app = App::new();
     ///
     /// // Authentication middleware for API routes
-    /// app.use_pre_middleware(Some("/api"), |req, res| async move {
+    /// app.use_pre_middleware(Some("/api"), |req: HttpRequest, res| async move {
     ///     if req.headers.get("authorization").is_none() {
     ///         return (req, Some(res.unauthorized().text("Missing authorization header")));
     ///     }
@@ -384,7 +388,7 @@ impl App {
     /// });
     ///
     /// // Logging middleware for all routes
-    /// app.use_pre_middleware(None, |req, res| async move {
+    /// app.use_pre_middleware(None, |req: HttpRequest, res| async move {
     ///     println!("Request: {} {}", req.method, req.path);
     ///     (req, None)
     /// });
@@ -417,13 +421,13 @@ impl App {
     /// # Example
     ///
     /// ```
-    /// use ripress::{app::App, types::Middlewares};
+    /// use ripress::{app::App, types::Middlewares, req::HttpRequest};
     ///
     /// let mut app = App::new();
     ///
     /// let pre: Middlewares = vec![
-    ///     ("/", Box::new(|req, res| Box::pin(async move { (req, None) }))),
-    ///     ("/admin", Box::new(|req, res| Box::pin(async move {
+    ///     ("/", Box::new(|req: HttpRequest, res| Box::pin(async move { (req, None) }))),
+    ///     ("/admin", Box::new(|req: HttpRequest, res| Box::pin(async move {
     ///         // admin check logic
     ///         (req, None)
     ///     }))),
@@ -455,13 +459,13 @@ impl App {
     /// # Example
     ///
     /// ```
-    /// use ripress::{app::App, types::Middlewares};
+    /// use ripress::{app::App, types::Middlewares, req::HttpRequest};
     ///
     /// let mut app = App::new();
     ///
     /// let post: Middlewares = vec![
-    ///     ("/", Box::new(|req, res| Box::pin(async move { (req, Some(res)) }))),
-    ///     ("/api", Box::new(|req, res| Box::pin(async move {
+    ///     ("/", Box::new(|req: HttpRequest, res| Box::pin(async move { (req, Some(res)) }))),
+    ///     ("/api", Box::new(|req: HttpRequest, res| Box::pin(async move {
     ///         // response logging
     ///         (req, Some(res))
     ///     }))),
@@ -497,18 +501,19 @@ impl App {
     ///
     /// ```
     /// use ripress::app::App;
+    /// use ripress::req::HttpRequest;
     ///
     /// let mut app = App::new();
     ///
     /// // Add security headers to all responses
-    /// app.use_post_middleware(None, |req, mut res| async move {
+    /// app.use_post_middleware(None, |req: HttpRequest, mut res| async move {
     ///     res = res.set_header("X-Frame-Options", "DENY")
     ///         .set_header("X-Content-Type-Options", "nosniff");
     ///     (req, Some(res))
     /// });
     ///
     /// // Log response status for API routes
-    /// app.use_post_middleware(Some("/api"), |req, res| async move {
+    /// app.use_post_middleware(Some("/api"), |req: HttpRequest, res| async move {
     ///     println!("API Response: {}", req.path);
     ///     (req, Some(res))
     /// });
@@ -936,7 +941,7 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
-        Arc::new(move |req, res| box_future_middleware(f(req, res)))
+        Arc::new(move |req: HttpRequest, res| box_future_middleware(f(req, res)))
     }
 
     #[cfg(feature = "with-wynd")]
@@ -993,10 +998,14 @@ impl App {
         for (path, methods) in router.routes() {
             for (method, handler) in methods.to_owned() {
                 if path == "/" {
-                    self.add_route(method, &base_path, move |req, res| (handler)(req, res));
+                    self.add_route(method, &base_path, move |req: HttpRequest, res| {
+                        (handler)(req, res)
+                    });
                 } else {
                     let full_path = format!("{}{}", base_path, path);
-                    self.add_route(method, &full_path, move |req, res| (handler)(req, res));
+                    self.add_route(method, &full_path, move |req: HttpRequest, res| {
+                        (handler)(req, res)
+                    });
                 }
             }
         }
@@ -1115,16 +1124,17 @@ impl App {
     /// ```no_run
     /// use ripress::app::App;
     /// use ripress::types::RouterFns;
+    /// use ripress::req::HttpRequest;
     ///
     /// #[tokio::main]
     /// async fn main() {
     ///     let mut app = App::new();
     ///
-    ///     app.get("/", |_req, res| async move {
+    ///     app.get("/", |_req: HttpRequest, res| async move {
     ///         res.ok().text("Hello, World!")
     ///     });
     ///
-    ///     app.get("/health", |_req, res| async move {
+    ///     app.get("/health", |_req: HttpRequest, res| async move {
     ///         res.ok().json(serde_json::json!({"status": "healthy"}))
     ///     });
     ///
