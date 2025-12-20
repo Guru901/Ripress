@@ -40,4 +40,4 @@ macro_rules! middlewares {
 
 // Re-export derive macros from ripress-derive for convenience
 #[doc(inline)]
-pub use ripress_derive::{FromJson, FromParams};
+pub use ripress_derive::{FromData, FromJson, FromParams, FromQueryParam};

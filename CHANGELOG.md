@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.2.0] - 2025-12-20
+
+- Added
+
+  - Type-Based Extraction System
+  - New derive macros via ripress-derive procedural macro crate:
+
+    - #[derive(FromParams)] - Extract route parameters into structs
+    - #[derive(FromJson)] - Deserialize JSON bodies into structs
+    - #[derive(FromData)] - Extract request data into structs
+    - #[derive(FromQueryParam)] - Extract query parameters into structs
+
+  - New traits for request extraction:
+
+    - FromRequest - Extract values from &HttpRequest with custom error types
+    - ExtractFromOwned - Extract values from owned HttpRequest
+    - FromParams - Extract route parameters with custom parsing
+    - FromJson - Extract and deserialize JSON bodies
+    - FromData - Extract structured data from RequestData
+    - FromQueryParam - Extract query parameters with custom parsing
+
+  - New extractor wrapper types:
+
+    - JsonBody<T> - Type-safe JSON body extraction with automatic deserialization
+    - Headers - Extract request headers
+    - Params<T> - Extract route parameters into custom types
+    - Data<T> - Extract request data into custom types
+    - QueryParam<T> - Extract query parameters into custom types
+
+  - Tuple extraction support - Extract multiple values in a single handler (supports 2-16 extractors)
+
 ## [2.1.1] - 2025-12-19
 
 - Added `app.use_pre_middlewares`
