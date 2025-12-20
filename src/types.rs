@@ -235,31 +235,26 @@ pub(crate) type WyndMiddlewareHandler = Arc<
 /// registered route handlers. Types that implement this trait must provide
 /// access to their internal route storage.
 pub trait RouterFns {
-    /// Returns a mutable reference to the internal `Routes` map.
+    /// Get a mutable reference to the internal routes map.
     ///
-    /// Types implementing this trait should use this method to expose
-    /// their underlying route storage for manipulation and registration.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to the internal `Routes` map.
+    /// This is used by trait default implementations to access or modify
+    /// the underlying route storage for this type.
     fn routes(&mut self) -> &mut Routes;
 
-    /// Adds a new route handler for a specific HTTP method and path.
-    ///
-    /// This method registers a handler function for the given HTTP method and path.
-    /// If a handler for the method and path already exists, it will be replaced.
+    /// Register a handler for a specific HTTP method/path.
     ///
     /// # Type Parameters
     ///
-    /// * `F` - The handler function type. Must accept a `HttpRequest` and `HttpResponse` and return a future.
-    /// * `HFut` - The future returned by the handler, which resolves to a `HttpResponse`.
+    /// * `F` - Function that handles the request, with the signature `(HttpRequest, HttpResponse) -> HFut`
+    /// * `HFut` - Future outputting the final `HttpResponse`
     ///
     /// # Arguments
     ///
-    /// * `method` - The HTTP method (e.g., GET, POST) for which the route is registered.
-    /// * `path` - The path string for the route (e.g., "/users").
-    /// * `handler` - The handler function to be called when the route is matched.
+    /// * `method` - HTTP method (GET, POST, etc.)
+    /// * `path` - Route pattern (e.g., "/users")
+    /// * `handler` - Handler function
+    ///
+    /// If a handler for a given method/path already exists, it is replaced.
     fn add_route<F, HFut>(&mut self, method: HttpMethods, path: &str, handler: F)
     where
         F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
@@ -281,22 +276,11 @@ pub trait RouterFns {
         }
     }
 
-    /// Registers a GET route handler.
+    /// Register a GET handler for a path, with extractor integration.
     ///
-    /// # Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to `self` for chaining.
-    ///
-    /// # Example (App)
-    ///
+    /// # Example
     /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
+    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}, types::RouterFns};
     ///
     /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
     ///     res.ok().text("Hello, World!")
@@ -305,423 +289,94 @@ pub trait RouterFns {
     /// let mut app = App::new();
     /// app.get("/hello", handler);
     /// ```
-    ///
-    /// # Example (Router)
-    ///
-    /// ```
-    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut router = Router::new("/api");
-    /// router.get("/hello", handler);
-    /// ```
     fn get<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        let handler = std::sync::Arc::new(handler);
-
-        let wrapped = move |req: HttpRequest, res: HttpResponse| {
-            let handler = handler.clone();
-
-            async move {
-                let extracted = match P::extract_from_owned(req) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        return res
-                            .bad_request()
-                            .text(format!("Extraction failed: {:?}", e));
-                    }
-                };
-
-                handler(extracted, res).await
-            }
-        };
-
-        self.add_route(HttpMethods::GET, path, wrapped);
+        self.add_route_with_extraction(HttpMethods::GET, path, handler);
         self
     }
 
-    /// Registers an OPTIONS route handler.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to `self` for chaining.
-    ///
-    /// # Example (App)
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.options("/hello", handler);
-    /// ```
-    ///
-    /// # Example (Router)
-    ///
-    /// ```
-    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut router = Router::new("/api");
-    /// router.options("/hello", handler);
-    /// ```
+    /// Register an OPTIONS handler for a path, with extractor integration.
     fn options<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        let handler = std::sync::Arc::new(handler);
-
-        let wrapped = move |req: HttpRequest, res: HttpResponse| {
-            let handler = handler.clone();
-
-            async move {
-                let extracted = match P::extract_from_owned(req) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        return res
-                            .bad_request()
-                            .text(format!("Extraction failed: {:?}", e));
-                    }
-                };
-
-                handler(extracted, res).await
-            }
-        };
-
-        self.add_route(HttpMethods::OPTIONS, path, wrapped);
+        self.add_route_with_extraction(HttpMethods::OPTIONS, path, handler);
         self
     }
 
-    /// Registers a POST route handler.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to `self` for chaining.
-    ///
-    /// # Example (App)
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.post("/hello", handler);
-    /// ```
-    ///
-    /// # Example (Router)
-    ///
-    /// ```
-    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut router = Router::new("/api");
-    /// router.post("/hello", handler);
-    /// ```
+    /// Register a POST handler for a path, with extractor integration.
     fn post<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        let handler = std::sync::Arc::new(handler);
-
-        let wrapped = move |req: HttpRequest, res: HttpResponse| {
-            let handler = handler.clone();
-
-            async move {
-                let extracted = match P::extract_from_owned(req) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        return res
-                            .bad_request()
-                            .text(format!("Extraction failed: {:?}", e));
-                    }
-                };
-
-                handler(extracted, res).await
-            }
-        };
-
-        self.add_route(HttpMethods::POST, path, wrapped);
+        self.add_route_with_extraction(HttpMethods::POST, path, handler);
         self
     }
 
-    /// Registers a PUT route handler.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to `self` for chaining.
-    ///
-    /// # Example (App)
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.put("/hello", handler);
-    /// ```
-    ///
-    /// # Example (Router)
-    ///
-    /// ```
-    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut router = Router::new("/api");
-    /// router.put("/hello", handler);
-    /// ```
+    /// Register a PUT handler for a path, with extractor integration.
     fn put<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        let handler = std::sync::Arc::new(handler);
-
-        let wrapped = move |req: HttpRequest, res: HttpResponse| {
-            let handler = handler.clone();
-
-            async move {
-                let extracted = match P::extract_from_owned(req) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        return res
-                            .bad_request()
-                            .text(format!("Extraction failed: {:?}", e));
-                    }
-                };
-
-                handler(extracted, res).await
-            }
-        };
-
-        self.add_route(HttpMethods::PUT, path, wrapped);
+        self.add_route_with_extraction(HttpMethods::PUT, path, handler);
         self
     }
 
-    /// Registers a DELETE route handler.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to `self` for chaining.
-    ///
-    /// # Example (App)
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.delete("/hello", handler);
-    /// ```
-    ///
-    /// # Example (Router)
-    ///
-    /// ```
-    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut router = Router::new("/api");
-    /// router.delete("/hello", handler);
-    /// ```
+    /// Register a DELETE handler for a path, with extractor integration.
     fn delete<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        let handler = std::sync::Arc::new(handler);
-
-        let wrapped = move |req: HttpRequest, res: HttpResponse| {
-            let handler = handler.clone();
-
-            async move {
-                let extracted = match P::extract_from_owned(req) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        return res
-                            .bad_request()
-                            .text(format!("Extraction failed: {:?}", e));
-                    }
-                };
-
-                handler(extracted, res).await
-            }
-        };
-
-        self.add_route(HttpMethods::DELETE, path, wrapped);
+        self.add_route_with_extraction(HttpMethods::DELETE, path, handler);
         self
     }
 
-    /// Registers a HEAD route handler.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to `self` for chaining.
-    ///
-    /// # Example (App)
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.head("/hello", handler);
-    /// ```
-    ///
-    /// # Example (Router)
-    ///
-    /// ```
-    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut router = Router::new("/api");
-    /// router.head("/hello", handler);
-    /// ```
+    /// Register a HEAD handler for a path, with extractor integration.
     fn head<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        let handler = std::sync::Arc::new(handler);
-
-        let wrapped = move |req: HttpRequest, res: HttpResponse| {
-            let handler = handler.clone();
-
-            async move {
-                let extracted = match P::extract_from_owned(req) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        return res
-                            .bad_request()
-                            .text(format!("Extraction failed: {:?}", e));
-                    }
-                };
-
-                handler(extracted, res).await
-            }
-        };
-
-        self.add_route(HttpMethods::HEAD, path, wrapped);
+        self.add_route_with_extraction(HttpMethods::HEAD, path, handler);
         self
     }
 
-    /// Registers a PATCH route handler.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `handler` - The handler function for the route.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to `self` for chaining.
-    ///
-    /// # Example (App)
-    ///
-    /// ```
-    /// use ripress::{app::App, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut app = App::new();
-    /// app.patch("/hello", handler);
-    /// ```
-    ///
-    /// # Example (Router)
-    ///
-    /// ```
-    /// use ripress::{router::Router, context::{HttpRequest, HttpResponse}};
-    /// use ripress::types::RouterFns;
-    ///
-    /// async fn handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    ///     res.ok().text("Hello, World!")
-    /// }
-    ///
-    /// let mut router = Router::new("/api");
-    /// router.patch("/hello", handler);
-    /// ```
+    /// Register a PATCH handler for a path, with extractor integration.
     fn patch<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
+    where
+        F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
+        HFut: Future<Output = HttpResponse> + Send + 'static,
+        P: ExtractFromOwned + Send + 'static,
+    {
+        self.add_route_with_extraction(HttpMethods::PATCH, path, handler);
+        self
+    }
+
+    /// Retrieve the route handler for a given path/method, if one is registered.
+    ///
+    /// Returns `Some(&Handler)` if a matching handler exists, else `None`.
+    fn get_routes(&mut self, path: &str, method: HttpMethods) -> Option<&Handler> {
+        let routes = self.routes();
+        routes.get(path).and_then(|handlers| handlers.get(&method))
+    }
+
+    /// Internal helper: Register a handler using extractor integration.
+    ///
+    /// This wraps the user's handler so the extractor type `P` is populated from the HttpRequest.
+    fn add_route_with_extraction<F, HFut, P>(&mut self, method: HttpMethods, path: &str, handler: F)
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
@@ -746,23 +401,7 @@ pub trait RouterFns {
             }
         };
 
-        self.add_route(HttpMethods::PATCH, path, wrapped);
-        self
-    }
-
-    /// Retrieves a reference to the handler for a given path and HTTP method, if it exists.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The path to the route.
-    /// * `method` - The HTTP method for the route.
-    ///
-    /// # Returns
-    ///
-    /// An `Option` containing a reference to the handler if found, or `None` if not found.
-    fn get_routes(&mut self, path: &str, method: HttpMethods) -> Option<&Handler> {
-        let routes = self.routes();
-        routes.get(path).and_then(|handlers| handlers.get(&method))
+        self.add_route(method, path, wrapped);
     }
 }
 
