@@ -1,19 +1,19 @@
 #![warn(missing_docs)]
-use std::{fmt::Display, sync::Arc};
+use std::{fmt::Display, future::Future, sync::Arc};
 
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
 use crate::{
     app::api_error::ApiError,
     middlewares::Middleware,
-    req::{HttpRequest, query_params::QueryParams},
+    req::{query_params::QueryParams, HttpRequest},
     res::HttpResponse,
     types::{Fut, FutMiddleware},
 };
 use http_body_util::Full;
 #[cfg(feature = "with-wynd")]
 use hyper::body::Body;
-use hyper::{Request, Response, body::Bytes};
+use hyper::{body::Bytes, Request, Response};
 use routerify_ng::RequestInfo;
 use url::form_urlencoded::Serializer;
 

@@ -1,11 +1,130 @@
-error: failed to load manifest for workspace member `/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress`
-referenced by workspace at `/Users/guru/Developer/hexstack/hexstack-components/ripress/Cargo.toml`
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/Cargo.toml
+workspace: /Users/guru/Developer/hexstack/hexstack-components/ripress/Cargo.toml
+warning: virtual workspace defaulting to `resolver = "1"` despite one or more workspace members being on edition 2021 which implies `resolver = "2"`
+  |
+  = note: to keep the current resolver, specify `workspace.resolver = "1"` in the workspace root's manifest
+  = note: to use the edition 2021 resolver, specify `workspace.resolver = "2"` in the workspace root's manifest
+  = note: for more details see https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions
+   0.083967500s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("ripress", ["lib"], "/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/lib.rs", Edition2021) }
+   0.083986708s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-1e237d8cfe7bee80/lib-ripress`
 
 Caused by:
-  failed to load manifest for dependency `ripress-derive`
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+   0.094848333s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("ripress", ["lib"], "/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/lib.rs", Edition2021) }
+   0.094866208s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-470c28c2a4e7f221/test-lib-ripress`
 
 Caused by:
-  failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/ripress-derive/Cargo.toml`
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+   0.098148375s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: false }/TargetInner { name: "ripress", doc: true, ..: with_path("/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/main.rs", Edition2021) }
+   0.098156417s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-2a5eae215edd9000/bin-ripress`
 
 Caused by:
-  No such file or directory (os error 2)
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+   0.098758208s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: true }/TargetInner { name: "ripress", doc: true, ..: with_path("/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/main.rs", Edition2021) }
+   0.098765125s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-d2da9eb0782551a3/test-bin-ripress`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+   0.099482167s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress_benches"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: true }/TargetInner { kind: "bench", name: "ripress_benches", tested: false, harness: false, ..: with_path("/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/benches/ripress_benches.rs", Edition2021) }
+   0.099490333s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress_benches"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-6439cebd055a5ca3/test-bench-ripress_benches`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: cargo_util::paths::read_bytes
+   2: cargo_util::paths::read
+   3: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   4: cargo::core::compiler::fingerprint::prepare_target
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: std::rt::lang_start_internal
+  16: _main
+    Checking ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.34s

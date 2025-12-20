@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-use crate::helpers::{ExtractFromOwned, box_future};
+use crate::helpers::{box_future, ExtractFromOwned};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use bytes::Bytes;
@@ -10,6 +10,7 @@ use mime_guess::MimeGuess;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Display;
+use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 

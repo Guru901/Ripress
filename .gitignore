@@ -1,5 +1,7 @@
 /target
-src/main.rs
+/ripress/target
+/ripress/src/main.rs
+/ripress-derive/target
 tarpaulin-report.html
 .DS_Store
 docs/.DS_Store
