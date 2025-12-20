@@ -381,13 +381,28 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.options("/hello", handler);
     /// ```
-    fn options<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn options<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
-        Self: Sized,
+        P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route(HttpMethods::OPTIONS, path, handler);
+        let handler = std::sync::Arc::new(handler);
+
+        let wrapped = move |req: HttpRequest, res: HttpResponse| {
+            let handler = handler.clone();
+
+            async move {
+                let extracted = match P::extract_from_owned(req) {
+                    Ok(v) => v,
+                    Err(_e) => return res.bad_request(),
+                };
+
+                handler(extracted, res).await
+            }
+        };
+
+        self.add_route(HttpMethods::OPTIONS, path, wrapped);
         self
     }
 
@@ -429,13 +444,28 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.post("/hello", handler);
     /// ```
-    fn post<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn post<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
-        Self: Sized,
+        P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route(HttpMethods::POST, path, handler);
+        let handler = std::sync::Arc::new(handler);
+
+        let wrapped = move |req: HttpRequest, res: HttpResponse| {
+            let handler = handler.clone();
+
+            async move {
+                let extracted = match P::extract_from_owned(req) {
+                    Ok(v) => v,
+                    Err(_e) => return res.bad_request(),
+                };
+
+                handler(extracted, res).await
+            }
+        };
+
+        self.add_route(HttpMethods::POST, path, wrapped);
         self
     }
 
@@ -477,13 +507,28 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.put("/hello", handler);
     /// ```
-    fn put<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn put<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
-        Self: Sized,
+        P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route(HttpMethods::PUT, path, handler);
+        let handler = std::sync::Arc::new(handler);
+
+        let wrapped = move |req: HttpRequest, res: HttpResponse| {
+            let handler = handler.clone();
+
+            async move {
+                let extracted = match P::extract_from_owned(req) {
+                    Ok(v) => v,
+                    Err(_e) => return res.bad_request(),
+                };
+
+                handler(extracted, res).await
+            }
+        };
+
+        self.add_route(HttpMethods::PUT, path, wrapped);
         self
     }
 
@@ -525,13 +570,28 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.delete("/hello", handler);
     /// ```
-    fn delete<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn delete<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
-        Self: Sized,
+        P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route(HttpMethods::DELETE, path, handler);
+        let handler = std::sync::Arc::new(handler);
+
+        let wrapped = move |req: HttpRequest, res: HttpResponse| {
+            let handler = handler.clone();
+
+            async move {
+                let extracted = match P::extract_from_owned(req) {
+                    Ok(v) => v,
+                    Err(_e) => return res.bad_request(),
+                };
+
+                handler(extracted, res).await
+            }
+        };
+
+        self.add_route(HttpMethods::DELETE, path, wrapped);
         self
     }
 
@@ -573,13 +633,28 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.head("/hello", handler);
     /// ```
-    fn head<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn head<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
-        Self: Sized,
+        P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route(HttpMethods::HEAD, path, handler);
+        let handler = std::sync::Arc::new(handler);
+
+        let wrapped = move |req: HttpRequest, res: HttpResponse| {
+            let handler = handler.clone();
+
+            async move {
+                let extracted = match P::extract_from_owned(req) {
+                    Ok(v) => v,
+                    Err(_e) => return res.bad_request(),
+                };
+
+                handler(extracted, res).await
+            }
+        };
+
+        self.add_route(HttpMethods::HEAD, path, wrapped);
         self
     }
 
@@ -621,13 +696,28 @@ pub trait RouterFns {
     /// let mut router = Router::new("/api");
     /// router.patch("/hello", handler);
     /// ```
-    fn patch<F, HFut>(&mut self, path: &str, handler: F) -> &mut Self
+    fn patch<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
     where
-        F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
+        F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
-        Self: Sized,
+        P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route(HttpMethods::PATCH, path, handler);
+        let handler = std::sync::Arc::new(handler);
+
+        let wrapped = move |req: HttpRequest, res: HttpResponse| {
+            let handler = handler.clone();
+
+            async move {
+                let extracted = match P::extract_from_owned(req) {
+                    Ok(v) => v,
+                    Err(_e) => return res.bad_request(),
+                };
+
+                handler(extracted, res).await
+            }
+        };
+
+        self.add_route(HttpMethods::PATCH, path, wrapped);
         self
     }
 

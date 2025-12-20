@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
@@ -360,66 +360,37 @@ where
     Box::pin(future)
 }
 
-/// A macro for convenient construction of middleware vectors (`Middlewares`).
-///
-/// # Usage
-///
-/// The `middlewares!` macro simplifies the creation of middleware lists by allowing you to specify
-/// route patterns and corresponding middleware closures in a concise and readable way.
-///
-/// Each element is a tuple in the form: `("/path", |req, res| { ... })`.
-///
-/// # Example
-///
-/// ```rust
-/// use ripress::{app::App, types::Middlewares, middlewares};
-///
-/// let pre_middlewares: Middlewares = middlewares![
-///     ("/", |req, _res| Box::pin(async move { (req, None) })),
-///     ("/admin", |req, _res| Box::pin(async move { (req, None) })),
-/// ];
-/// ```
-///
-/// # Output
-///
-/// Expands into a `Vec<(&'static str, Box<dyn Fn(...) -> ...>)>` ready for
-/// use with `App::use_pre_middlewares()` or `App::use_post_middlewares()`.
-#[macro_export]
-macro_rules! middlewares {
-    ( $( ($path:expr, $handler:expr) ),* $(,)? ) => {
-        {
-            let mut vec: $crate::types::Middlewares = Vec::new();
-            $(
-                vec.push((
-                    $path,
-                    Box::new($handler)
-                ));
-            )*
-            vec
-        }
-    };
-}
-
 pub trait FromRequest: Sized {
-    type Error;
+    type Error: Debug;
 
     fn from_request(req: &HttpRequest) -> Result<Self, Self::Error>;
-}
-
-pub trait FromParams: Sized {
-    fn from_params(params: &RouteParams) -> Result<Self, String>;
-}
-
-pub trait FromRequestRef<'a>: Sized {
-    fn from_request_ref(req: &'a HttpRequest) -> Self;
 }
 
 /// A helper trait for extracting parameters from an owned `HttpRequest`.
 ///
 /// This trait allows `HttpRequest` to be passed directly without cloning,
 /// while other types can still use `FromRequest` for extraction.
+///
+/// ## Multiple Extractors
+///
+/// This trait is implemented for tuples of 2, 3, 4, and 5 extractors, allowing
+/// you to use multiple extractors in a single route handler:
+///
+/// ```rust,ignore
+/// use ripress::{app::App, req::{body::JsonBody, route_params::Params}};
+///
+/// // Two extractors
+/// app.get("/users/:id", |(body, params): (JsonBody<UserData>, Params<UserId>), res| async move {
+///     // ...
+/// });
+///
+/// // Up to 5 extractors are supported
+/// app.post("/", |(a, b, c, d, e): (Extractor1, Extractor2, Extractor3, Extractor4, Extractor5), res| async move {
+///     // ...
+/// });
+/// ```
 pub trait ExtractFromOwned: Sized {
-    type Error;
+    type Error: Debug;
 
     /// Extract the parameter from an owned `HttpRequest`.
     ///
@@ -446,5 +417,91 @@ where
 
     fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
         T::from_request(&req)
+    }
+}
+
+// Implementation for tuples of 2 extractors
+impl<A, B> ExtractFromOwned for (A, B)
+where
+    A: ExtractFromOwned + Send + 'static,
+    B: ExtractFromOwned + Send + 'static,
+{
+    type Error = String;
+
+    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
+        let a = A::extract_from_owned(req.clone())
+            .map_err(|e| format!("Failed to extract first parameter: {:?}", e))?;
+        let b = B::extract_from_owned(req)
+            .map_err(|e| format!("Failed to extract second parameter: {:?}", e))?;
+        Ok((a, b))
+    }
+}
+
+// Implementation for tuples of 3 extractors
+impl<A, B, C> ExtractFromOwned for (A, B, C)
+where
+    A: ExtractFromOwned + Send + 'static,
+    B: ExtractFromOwned + Send + 'static,
+    C: ExtractFromOwned + Send + 'static,
+{
+    type Error = String;
+
+    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
+        let a = A::extract_from_owned(req.clone())
+            .map_err(|e| format!("Failed to extract first parameter: {:?}", e))?;
+        let b = B::extract_from_owned(req.clone())
+            .map_err(|e| format!("Failed to extract second parameter: {:?}", e))?;
+        let c = C::extract_from_owned(req)
+            .map_err(|e| format!("Failed to extract third parameter: {:?}", e))?;
+        Ok((a, b, c))
+    }
+}
+
+// Implementation for tuples of 4 extractors
+impl<A, B, C, D> ExtractFromOwned for (A, B, C, D)
+where
+    A: ExtractFromOwned + Send + 'static,
+    B: ExtractFromOwned + Send + 'static,
+    C: ExtractFromOwned + Send + 'static,
+    D: ExtractFromOwned + Send + 'static,
+{
+    type Error = String;
+
+    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
+        let a = A::extract_from_owned(req.clone())
+            .map_err(|e| format!("Failed to extract first parameter: {:?}", e))?;
+        let b = B::extract_from_owned(req.clone())
+            .map_err(|e| format!("Failed to extract second parameter: {:?}", e))?;
+        let c = C::extract_from_owned(req.clone())
+            .map_err(|e| format!("Failed to extract third parameter: {:?}", e))?;
+        let d = D::extract_from_owned(req)
+            .map_err(|e| format!("Failed to extract fourth parameter: {:?}", e))?;
+        Ok((a, b, c, d))
+    }
+}
+
+// Implementation for tuples of 5 extractors
+impl<A, B, C, D, E> ExtractFromOwned for (A, B, C, D, E)
+where
+    A: ExtractFromOwned + Send + 'static,
+    B: ExtractFromOwned + Send + 'static,
+    C: ExtractFromOwned + Send + 'static,
+    D: ExtractFromOwned + Send + 'static,
+    E: ExtractFromOwned + Send + 'static,
+{
+    type Error = String;
+
+    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
+        let a = A::extract_from_owned(req.clone())
+            .map_err(|e| format!("Failed to extract first parameter: {:?}", e))?;
+        let b = B::extract_from_owned(req.clone())
+            .map_err(|e| format!("Failed to extract second parameter: {:?}", e))?;
+        let c = C::extract_from_owned(req.clone())
+            .map_err(|e| format!("Failed to extract third parameter: {:?}", e))?;
+        let d = D::extract_from_owned(req.clone())
+            .map_err(|e| format!("Failed to extract fourth parameter: {:?}", e))?;
+        let e = E::extract_from_owned(req)
+            .map_err(|e| format!("Failed to extract fifth parameter: {:?}", e))?;
+        Ok((a, b, c, d, e))
     }
 }

@@ -348,3 +348,5 @@ mod tests;
 ///
 /// See [`error::RipressError`] and [`error::RipressErrorKind`] for details.
 pub mod error;
+
+pub mod macros;

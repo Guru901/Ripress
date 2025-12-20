@@ -293,7 +293,7 @@
 
 use crate::{
     app::api_error::ApiError,
-    helpers::{FromRequestRef, extract_boundary, get_all_query, parse_multipart_form},
+    helpers::{extract_boundary, get_all_query, parse_multipart_form},
     req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
     types::{HttpMethods, ResponseContentType},
 };
@@ -1612,11 +1612,5 @@ impl AsyncRead for HttpRequest {
 
         // Always return Ready since we're reading from memory
         std::task::Poll::Ready(Ok(()))
-    }
-}
-
-impl<'a> FromRequestRef<'a> for &'a HttpRequest {
-    fn from_request_ref(req: &'a HttpRequest) -> Self {
-        req
     }
 }

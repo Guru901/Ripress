@@ -56,6 +56,7 @@ impl RequestBodyContent {
 /// and URL-encoded data, with support for parsing and generating query strings.
 pub mod form_data;
 
+pub mod json_data;
 /// Module containing text data structures and utilities.
 ///
 /// This module provides the [`TextData`] type for handling plain text content

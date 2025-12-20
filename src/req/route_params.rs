@@ -6,7 +6,7 @@ use std::str::FromStr;
 use serde::Serialize;
 
 use crate::error::RipressError;
-use crate::helpers::{FromParams, FromRequest};
+use crate::helpers::FromRequest;
 
 /// A collection of parameters extracted from a route's URL pattern.
 ///
@@ -871,4 +871,8 @@ impl<T: FromParams> FromRequest for Params<T> {
             params: T::from_params(&req.params)?,
         })
     }
+}
+
+pub trait FromParams: Sized {
+    fn from_params(params: &RouteParams) -> Result<Self, String>;
 }
