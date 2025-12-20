@@ -333,7 +333,11 @@ pub trait RouterFns {
             async move {
                 let extracted = match P::extract_from_owned(req) {
                     Ok(v) => v,
-                    Err(_e) => return res.bad_request(),
+                    Err(e) => {
+                        return res
+                            .bad_request()
+                            .text(format!("Extraction failed: {:?}", e));
+                    }
                 };
 
                 handler(extracted, res).await
@@ -396,7 +400,11 @@ pub trait RouterFns {
             async move {
                 let extracted = match P::extract_from_owned(req) {
                     Ok(v) => v,
-                    Err(_e) => return res.bad_request(),
+                    Err(e) => {
+                        return res
+                            .bad_request()
+                            .text(format!("Extraction failed: {:?}", e));
+                    }
                 };
 
                 handler(extracted, res).await
@@ -459,7 +467,11 @@ pub trait RouterFns {
             async move {
                 let extracted = match P::extract_from_owned(req) {
                     Ok(v) => v,
-                    Err(_e) => return res.bad_request(),
+                    Err(e) => {
+                        return res
+                            .bad_request()
+                            .text(format!("Extraction failed: {:?}", e));
+                    }
                 };
 
                 handler(extracted, res).await
@@ -522,7 +534,11 @@ pub trait RouterFns {
             async move {
                 let extracted = match P::extract_from_owned(req) {
                     Ok(v) => v,
-                    Err(_e) => return res.bad_request(),
+                    Err(e) => {
+                        return res
+                            .bad_request()
+                            .text(format!("Extraction failed: {:?}", e));
+                    }
                 };
 
                 handler(extracted, res).await
@@ -585,7 +601,11 @@ pub trait RouterFns {
             async move {
                 let extracted = match P::extract_from_owned(req) {
                     Ok(v) => v,
-                    Err(_e) => return res.bad_request(),
+                    Err(e) => {
+                        return res
+                            .bad_request()
+                            .text(format!("Extraction failed: {:?}", e));
+                    }
                 };
 
                 handler(extracted, res).await
@@ -648,7 +668,11 @@ pub trait RouterFns {
             async move {
                 let extracted = match P::extract_from_owned(req) {
                     Ok(v) => v,
-                    Err(_e) => return res.bad_request(),
+                    Err(e) => {
+                        return res
+                            .bad_request()
+                            .text(format!("Extraction failed: {:?}", e));
+                    }
                 };
 
                 handler(extracted, res).await
@@ -711,7 +735,11 @@ pub trait RouterFns {
             async move {
                 let extracted = match P::extract_from_owned(req) {
                     Ok(v) => v,
-                    Err(_e) => return res.bad_request(),
+                    Err(e) => {
+                        return res
+                            .bad_request()
+                            .text(format!("Extraction failed: {:?}", e));
+                    }
                 };
 
                 handler(extracted, res).await
