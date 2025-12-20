@@ -209,3 +209,63 @@ pub fn from_data_derive(input: TokenStream) -> TokenStream {
 
     TokenStream::from(expanded)
 }
+
+#[proc_macro_derive(FromQueryParam)]
+pub fn from_query_param_derive(input: TokenStream) -> TokenStream {
+    let ast = syn::parse_macro_input!(input as syn::DeriveInput);
+
+    let struct_name = &ast.ident;
+
+    let fields = match ast.data {
+        syn::Data::Struct(ref s) => match &s.fields {
+            syn::Fields::Named(named) => &named.named,
+            _ => {
+                return syn::Error::new_spanned(
+                    struct_name,
+                    "QueryParam can only be derived for structs with named fields",
+                )
+                .to_compile_error()
+                .into();
+            }
+        },
+        _ => {
+            return syn::Error::new_spanned(
+                struct_name,
+                "QueryParam can only be derived for structs",
+            )
+            .to_compile_error()
+            .into();
+        }
+    };
+
+    let assigns = fields.iter().filter_map(|f| {
+        f.ident.as_ref().map(|ident| {
+            let ident_str = ident.to_string();
+            quote::quote! {
+                let #ident = params.get(#ident_str)
+                    .ok_or_else(|| format!("Missing query param field: {}", #ident_str))?
+                    .parse()
+                    .map_err(|e| format!("Failed to parse field '{}': {}", #ident_str, e))?;
+            }
+        })
+    });
+
+    let field_names = fields.iter().filter_map(|f| {
+        f.ident.as_ref().map(|ident| {
+            quote::quote! { #ident }
+        })
+    });
+
+    let expanded = quote::quote! {
+        impl ::ripress::req::query_params::FromQueryParam for #struct_name {
+            fn from_query_param(params: &QueryParams) -> Result<Self, String> {
+                #(#assigns)*
+                Ok(Self {
+                    #(#field_names,)*
+                })
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}

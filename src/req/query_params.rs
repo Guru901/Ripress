@@ -1,11 +1,13 @@
 #![warn(missing_docs)]
 use std::collections::HashMap;
 use std::fmt;
+use std::ops::Deref;
 use std::str::FromStr;
 
 use ahash::AHashMap;
 
 use crate::error::RipressError;
+use crate::helpers::FromRequest;
 
 /// Query parameters from URL query string with support for multiple values
 /// Handles URLs like: `/search?q=rust&tags=web&tags=backend&page=1&active=true`
@@ -463,5 +465,45 @@ impl std::ops::Index<&str> for QueryParams {
 impl From<HashMap<String, String>> for QueryParams {
     fn from(map: HashMap<String, String>) -> Self {
         Self::from_map(map)
+    }
+}
+
+/// Wrapper type for parameter values extracted from query parameters in a request.
+///
+/// Automatically dereferences to the contained inner value of type `T`.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct QueryParam<T>(pub T);
+
+impl<T> Deref for QueryParam<T> {
+    type Target = T;
+
+    /// Dereferences to the contained value.
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Trait for extracting typed values from query parameters.
+///
+/// Types that implement this trait can be constructed from a set of query parameters,
+/// facilitating type-safe parameter extraction from HTTP requests.
+pub trait FromQueryParam: Sized {
+    /// Attempt to extract `Self` from `params` (the parsed route parameters).
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Reference to the parsed query parameters.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(Self)` if extraction is successful, or `Err(String)` if it fails due to missing or malformed input.
+    fn from_query_param(params: &QueryParams) -> Result<Self, String>;
+}
+
+impl<T: FromQueryParam> FromRequest for QueryParam<T> {
+    type Error = String;
+
+    fn from_request(req: &super::HttpRequest) -> Result<Self, Self::Error> {
+        Ok(Self(T::from_query_param(&req.query)?))
     }
 }
