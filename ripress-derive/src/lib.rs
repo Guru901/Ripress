@@ -129,3 +129,83 @@ pub fn from_json_derive(input: TokenStream) -> TokenStream {
 
     TokenStream::from(expanded)
 }
+
+/// A derive macro for automatically implementing the `FromData` trait.
+///
+/// This macro can be applied to structs with named fields where each field is expected
+/// to have a corresponding key in the request data, and the value is parsed
+/// from the raw request data as a string.
+///
+/// # Usage
+///
+/// ```rust,ignore
+/// use ripress::req::request_data::FromData;
+/// use ripress_derive::FromData;
+///
+/// #[derive(FromData)]
+/// struct Token {
+///     token: String,
+/// }
+/// ```
+///
+/// This will generate an implementation of `FromData` where each field is expected to exist
+/// in the incoming request data map and is parsed using that field's type's `FromStr`.
+#[proc_macro_derive(FromData)]
+pub fn from_data_derive(input: TokenStream) -> TokenStream {
+    let ast = syn::parse_macro_input!(input as syn::DeriveInput);
+
+    let struct_name = &ast.ident;
+
+    let fields = match ast.data {
+        syn::Data::Struct(ref s) => match &s.fields {
+            syn::Fields::Named(named) => &named.named,
+            _ => {
+                return syn::Error::new_spanned(
+                    struct_name,
+                    "FromData can only be derived for structs with named fields",
+                )
+                .to_compile_error()
+                .into();
+            }
+        },
+        _ => {
+            return syn::Error::new_spanned(
+                struct_name,
+                "FromData can only be derived for structs",
+            )
+            .to_compile_error()
+            .into();
+        }
+    };
+
+    let assigns = fields.iter().filter_map(|f| {
+        f.ident.as_ref().map(|ident| {
+            let ident_str = ident.to_string();
+            quote::quote! {
+                let #ident = data.get(#ident_str)
+                    .ok_or_else(|| format!("Missing request data field: {}", #ident_str))?
+                    .parse()
+                    .map_err(|e| format!("Failed to parse field '{}': {}", #ident_str, e))?;
+            }
+        })
+    });
+
+    let field_names = fields.iter().filter_map(|f| {
+        f.ident.as_ref().map(|ident| {
+            quote::quote! { #ident }
+        })
+    });
+
+    let expanded = quote::quote! {
+        impl ::ripress::req::request_data::FromData for #struct_name {
+            fn from_data(data: &::ripress::req::request_data::RequestData) -> Result<Self, String> {
+                #(#assigns)*
+                Ok(Self {
+                    #(#field_names,)*
+                })
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}

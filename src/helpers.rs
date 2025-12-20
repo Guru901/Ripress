@@ -1,8 +1,5 @@
 #![warn(missing_docs)]
-use std::{
-    fmt::{Debug, Display},
-    sync::Arc,
-};
+use std::{fmt::Display, sync::Arc};
 
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
