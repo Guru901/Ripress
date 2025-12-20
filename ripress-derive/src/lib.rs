@@ -56,7 +56,9 @@ pub fn from_params_derive(input: TokenStream) -> TokenStream {
         f.ident.as_ref().map(|ident| {
             let ident_str = ident.to_string();
             quote::quote! {
-                let #ident = p[#ident_str].parse()
+                let #ident = p.get(#ident_str)
+                    .ok_or_else(|| format!("Missing route parameter: {}", #ident_str))?
+                    .parse()
                     .map_err(|e| format!("Failed to parse field '{}': {}", #ident_str, e))?;
             }
         })
