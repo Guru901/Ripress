@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-use crate::helpers::{FromRequest, box_future};
+use crate::helpers::{ExtractFromOwned, box_future};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use bytes::Bytes;
@@ -322,7 +322,7 @@ pub trait RouterFns {
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
-        P: FromRequest + Send + 'static,
+        P: ExtractFromOwned + Send + 'static,
     {
         let handler = std::sync::Arc::new(handler);
 
@@ -330,9 +330,9 @@ pub trait RouterFns {
             let handler = handler.clone();
 
             async move {
-                let extracted = match P::from_request(&req) {
+                let extracted = match P::extract_from_owned(req) {
                     Ok(v) => v,
-                    Err(e) => return res.bad_request(),
+                    Err(_e) => return res.bad_request(),
                 };
 
                 handler(extracted, res).await

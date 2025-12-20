@@ -413,3 +413,38 @@ pub trait FromParams: Sized {
 pub trait FromRequestRef<'a>: Sized {
     fn from_request_ref(req: &'a HttpRequest) -> Self;
 }
+
+/// A helper trait for extracting parameters from an owned `HttpRequest`.
+///
+/// This trait allows `HttpRequest` to be passed directly without cloning,
+/// while other types can still use `FromRequest` for extraction.
+pub trait ExtractFromOwned: Sized {
+    type Error;
+
+    /// Extract the parameter from an owned `HttpRequest`.
+    ///
+    /// For `HttpRequest`, this simply moves the request (no clone).
+    /// For other types, this uses `FromRequest` which may clone the extracted type.
+    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error>;
+}
+
+// Implementation for HttpRequest: just move it, no clone needed
+impl ExtractFromOwned for HttpRequest {
+    type Error = std::convert::Infallible;
+
+    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
+        Ok(req)
+    }
+}
+
+// Implementation for all types that implement FromRequest
+impl<T> ExtractFromOwned for T
+where
+    T: FromRequest,
+{
+    type Error = <T as FromRequest>::Error;
+
+    fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
+        T::from_request(&req)
+    }
+}

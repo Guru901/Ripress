@@ -754,10 +754,9 @@ mod tests {
         router.get("/", |req: HttpRequest, res| async move {
             res.ok().text("Hello, world!")
         });
-        router.get(
-            "/api",
-            |_, res| async move { res.ok().text("Hello, world!") },
-        );
+        router.get("/api", |_: HttpRequest, res| async move {
+            res.ok().text("Hello, world!")
+        });
 
         let mut app = App::new();
 
