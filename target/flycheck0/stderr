@@ -6,8 +6,8 @@ warning: virtual workspace defaulting to `resolver = "1"` despite one or more wo
   = note: to keep the current resolver, specify `workspace.resolver = "1"` in the workspace root's manifest
   = note: to use the edition 2021 resolver, specify `workspace.resolver = "2"` in the workspace root's manifest
   = note: for more details see https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions
-   0.202690834s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("ripress", ["lib"], "/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/lib.rs", Edition2021) }
-   0.202714959s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-aa554a94d6f9b167/lib-ripress`
+   0.095540583s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("ripress", ["lib"], "/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/lib.rs", Edition2021) }
+   0.095562500s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-a7658046954c165b/lib-ripress`
 
 Caused by:
     No such file or directory (os error 2)
@@ -30,8 +30,8 @@ Stack backtrace:
   14: std::rt::lang_start::<()>::{closure#0}
   15: std::rt::lang_start_internal
   16: _main
-   0.213934709s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("ripress", ["lib"], "/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/lib.rs", Edition2021) }
-   0.213948375s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-c8d5e8f40a7cdd17/test-lib-ripress`
+   0.108778708s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("ripress", ["lib"], "/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/lib.rs", Edition2021) }
+   0.108794375s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-95b2f96ca19ebc36/test-lib-ripress`
 
 Caused by:
     No such file or directory (os error 2)
@@ -54,8 +54,8 @@ Stack backtrace:
   14: std::rt::lang_start::<()>::{closure#0}
   15: std::rt::lang_start_internal
   16: _main
-   0.221766709s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: false }/TargetInner { name: "ripress", doc: true, ..: with_path("/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/main.rs", Edition2021) }
-   0.221794167s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-e18ab714e3cfb64a/bin-ripress`
+   0.112893666s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: false }/TargetInner { name: "ripress", doc: true, ..: with_path("/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/main.rs", Edition2021) }
+   0.112904208s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-30ea1f667eff1c5c/bin-ripress`
 
 Caused by:
     No such file or directory (os error 2)
@@ -78,8 +78,8 @@ Stack backtrace:
   14: std::rt::lang_start::<()>::{closure#0}
   15: std::rt::lang_start_internal
   16: _main
-   0.223323250s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: true }/TargetInner { name: "ripress", doc: true, ..: with_path("/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/main.rs", Edition2021) }
-   0.223333375s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-67015b87799c8afc/test-bin-ripress`
+   0.113576750s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: true }/TargetInner { name: "ripress", doc: true, ..: with_path("/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/src/main.rs", Edition2021) }
+   0.113599000s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-8b3dbf4ef7ac5223/test-bin-ripress`
 
 Caused by:
     No such file or directory (os error 2)
@@ -102,8 +102,8 @@ Stack backtrace:
   14: std::rt::lang_start::<()>::{closure#0}
   15: std::rt::lang_start_internal
   16: _main
-   0.224422667s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress_benches"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: true }/TargetInner { kind: "bench", name: "ripress_benches", tested: false, harness: false, ..: with_path("/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/benches/ripress_benches.rs", Edition2021) }
-   0.224431750s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress_benches"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-f778c4cfb2034d14/test-bench-ripress_benches`
+   0.115219833s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress_benches"}: cargo::core::compiler::fingerprint: fingerprint error for ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)/Check { test: true }/TargetInner { kind: "bench", name: "ripress_benches", tested: false, harness: false, ..: with_path("/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/benches/ripress_benches.rs", Edition2021) }
+   0.115228416s  INFO prepare_target{force=false package_id=ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress) target="ripress_benches"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/target/debug/.fingerprint/ripress-7ba8e1711394658d/test-bench-ripress_benches`
 
 Caused by:
     No such file or directory (os error 2)
@@ -127,4 +127,4 @@ Stack backtrace:
   15: std::rt::lang_start_internal
   16: _main
     Checking ripress v2.2.0 (/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.52s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.93s
