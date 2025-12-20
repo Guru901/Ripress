@@ -911,6 +911,7 @@ pub mod body_limit;
 /// ```rust
 /// use ripress::app::App;
 /// use ripress::middlewares::compression::CompressionConfig;
+/// use ripress::req::HttpRequest;
 ///
 /// let mut app = App::new();
 ///
