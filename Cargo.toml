@@ -1,68 +1,9 @@
-[package]
-name = "ripress"
-version = "2.2.0"
-edition = "2024"
-description = "An Express.js-inspired web framework for Rust"
-license = "MIT"
-authors = ["You guru911u@gmail.com"]
-keywords = ["http", "server", "framework", "web"]
-categories = ["web-programming::http-server"]
-repository = "https://github.com/guru901/ripress"
-exclude = [
-    "tests/*",
-    "CHANGELOG.md",
-    "CONTRIBUTING.md",
-    ".github",
-    "benchmark.png",
-    "scripts/*",
+[workspace]
+members = [
+    "ripress",
+    "ripress-derive"
 ]
-
-[dependencies]
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.141"
-tokio = { version = "1.46.1", features = [
-    "macros",
-    "rt-multi-thread",
-    "signal",
-] }
-url = "2.5.4"
-futures = "0.3.31"
-bytes = "1.10.1"
-routerify_ng = "0.3.0"
-cookie = "0.18.1"
-mime = "0.3.17"
-urlencoding = "2.1.3"
-uuid = { version = "1.18.0", features = ["v4"], optional = true }
-infer = "0.19.0"
-flate2 = { version = "1.1.2", optional = true }
-mime_guess = "2.0.5"
-tracing = { version = "0.1.41", optional = true }
-hyper = { version = "1.8.1", features = ["http2"] }
-hyper-util = { version = "0.1.3", features = ["full"] }
-http-body-util = "0.1.3"
-hyper-staticfile = "0.10.1"
-ahash = "0.8.12"
-ripress-derive = { path = "ripress-derive", version = "*" }
-
-[dev-dependencies]
-tracing-subscriber = "0.3.20"
-reqwest = { version = "0.12.23", features = ["json"] }
-tempfile = "3.10.1"
-criterion = "0.7.0"
-
-[package.metadata.docs.rs]
-readme = "README.md"
-
-[features]
-default = []
-with-wynd = []
-compression = ["flate2"]
-file-upload = ["uuid"]
-logger = ["tracing"]
-
-[profile.release]
-debug = true
-
-[[bench]]
-name = "ripress_benches"
-harness = false
+[workspace.package]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/guru901/ripress"

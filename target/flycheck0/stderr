@@ -1,0 +1,11 @@
+error: failed to load manifest for workspace member `/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress`
+referenced by workspace at `/Users/guru/Developer/hexstack/hexstack-components/ripress/Cargo.toml`
+
+Caused by:
+  failed to load manifest for dependency `ripress-derive`
+
+Caused by:
+  failed to read `/Users/guru/Developer/hexstack/hexstack-components/ripress/ripress/ripress-derive/Cargo.toml`
+
+Caused by:
+  No such file or directory (os error 2)
