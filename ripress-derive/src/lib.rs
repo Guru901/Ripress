@@ -258,7 +258,7 @@ pub fn from_query_param_derive(input: TokenStream) -> TokenStream {
 
     let expanded = quote::quote! {
         impl ::ripress::req::query_params::FromQueryParam for #struct_name {
-            fn from_query_param(params: &QueryParams) -> Result<Self, String> {
+            fn from_query_param(params: &::ripress::req::query_params::QueryParams) -> Result<Self, String> {
                 #(#assigns)*
                 Ok(Self {
                     #(#field_names,)*
