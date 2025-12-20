@@ -604,26 +604,6 @@ impl<T: FromData> FromRequest for Data<T> {
 /// Trait for extracting a type from [`RequestData`] storage.
 ///
 /// You can implement this trait manually, or automatically derive it (see `ripress_derive`).
-///
-/// # Example
-///
-/// ```rust
-/// # use ripress::req::request_data::{FromData, RequestData};
-/// struct UserId {
-///     id: String,
-/// }
-///
-/// impl FromData for UserId {
-///     fn from_data(data: &RequestData) -> Result<Self, String> {
-///         let id = data.get("id")
-///             .and_then(|bytes| std::str::from_utf8(bytes).ok())
-///             .ok_or("Missing id".to_string())?;
-///         Ok(UserId { id: id.to_owned() })
-///     }
-/// }
-/// ```
-///
-/// [`RequestData`]: crate::req::request_data::RequestData
 pub trait FromData: Sized {
     /// Attempt to extract `Self` from the given [`RequestData`].
     ///
