@@ -51,22 +51,29 @@ pub fn from_params_derive(input: TokenStream) -> TokenStream {
         }
     };
 
-    // Generate assignment for each struct field:
-    //     field_name: p["field_name"].parse().unwrap(),
+    // Generate parsing and assignment for each struct field
     let assigns = fields.iter().filter_map(|f| {
         f.ident.as_ref().map(|ident| {
             let ident_str = ident.to_string();
             quote::quote! {
-                #ident: p[#ident_str].parse().unwrap()
+                let #ident = p[#ident_str].parse()
+                    .map_err(|e| format!("Failed to parse field '{}': {}", #ident_str, e))?;
             }
+        })
+    });
+
+    let field_names = fields.iter().filter_map(|f| {
+        f.ident.as_ref().map(|ident| {
+            quote::quote! { #ident }
         })
     });
 
     let expanded = quote::quote! {
         impl ::ripress::req::route_params::FromParams for #struct_name {
             fn from_params(p: &::ripress::req::route_params::RouteParams) -> Result<Self, String> {
+                #(#assigns)*
                 Ok(Self {
-                    #(#assigns,)*
+                    #(#field_names,)*
                 })
             }
         }
