@@ -42,7 +42,7 @@ hyper-util = { version = "0.1.3", features = ["full"] }
 http-body-util = "0.1.3"
 hyper-staticfile = "0.10.1"
 ahash = "0.8.12"
-ripress-derive = { version = "*" }
+ripress-derive = { version = "0.0.1" }
 
 [dev-dependencies]
 tracing-subscriber = "0.3.20"
