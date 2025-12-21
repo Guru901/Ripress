@@ -1301,7 +1301,7 @@ dependencies = [
 
 [[package]]
 name = "ripress"
-version = "2.2.0"
+version = "2.3.0"
 dependencies = [
  "ahash",
  "bytes",
@@ -1317,7 +1317,7 @@ dependencies = [
  "mime",
  "mime_guess",
  "reqwest",
- "ripress-derive",
+ "ripress-derive 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "routerify_ng",
  "serde",
  "serde_json",
@@ -1334,6 +1334,17 @@ dependencies = [
 [[package]]
 name = "ripress-derive"
 version = "0.0.2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "ripress-derive"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "896b87509e26e611383b54fbad8a00c19976f705e1112c64af456ee41e4f48b6"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.3.0] - 2025-12-21
+
+- **JSON Validation Support**: Added optional validation feature using the `validator` crate
+- Added examples and tests
+
 ## [2.2.0] - 2025-12-20
 
 - Added
