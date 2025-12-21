@@ -1,5 +1,5 @@
-// #[cfg(feature = "validation")]
-// #[cfg(test)]
+#[cfg(feature = "validation")]
+#[cfg(test)]
 mod validation_tests {
     use crate::helpers::FromRequest;
     use crate::req::body::json_data::{FromJson, JsonBodyValidated};
@@ -344,11 +344,7 @@ mod validation_tests {
         assert!(result.is_err());
 
         let error = result.err().unwrap();
-        assert!(
-            error.contains("password") || error.contains("short"),
-            "Error message: {}",
-            error
-        );
+        assert!(error.contains("password"));
     }
 
     #[test]

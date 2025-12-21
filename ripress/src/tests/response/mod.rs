@@ -1,6 +1,9 @@
+mod cookies_test;
 mod headers;
 mod methods;
+mod redirects_test;
 mod status_code;
+mod streaming_test;
 
 #[cfg(test)]
 mod tests {
@@ -11,11 +14,11 @@ mod tests {
     use crate::req::body::TextData;
     use crate::req::determine_content_type_request;
     use crate::req::origin_url::Url;
-    use crate::res::HttpResponse;
-    use crate::res::ResponseError;
     use crate::res::response_cookie::{Cookie, CookieOptions};
     use crate::res::response_headers::ResponseHeaders;
     use crate::res::response_status::StatusCode;
+    use crate::res::HttpResponse;
+    use crate::res::ResponseError;
     use crate::types::HttpRequestError;
     use futures::stream;
     use serde_json::json;
