@@ -131,6 +131,119 @@
 //! }
 //! ```
 //!
+//! # Validation and Extraction based implementation
+//!
+//! Ripress provides a powerful and flexible way to handle request data extraction and validation. It supports various types of data extraction, including route parameters, query parameters, JSON bodies, and request meta data. The framework also provides a set of macros and traits for easily implementing custom extraction and validation logic.
+//!
+//! ## Example
+//!
+//! ```no_run
+//! use ripress::{
+//!     app::App,
+//!     req::{
+//!         body::json_data::{JsonBody, JsonBodyValidated},
+//!         query_params::QueryParam,
+//!         request_headers::Headers,
+//!         route_params::Params,
+//!     },
+//!     types::RouterFns,
+//! };
+//! use ripress_derive::{FromJson, FromParams, FromQueryParam};
+//! use serde::{Deserialize, Serialize};
+//! use validator::Validate;
+//!
+//! #[derive(FromJson, Deserialize, Debug, Serialize)]
+//! struct User {
+//!     username: String,
+//! }
+//!
+//! #[derive(FromJson, Deserialize, Validate, Debug)]
+//! struct Signup {
+//!     #[validate(length(min = 3))]
+//!     username: String,
+//!     #[validate(email)]
+//!     email: String,
+//! }
+//!
+//! #[derive(Deserialize, Debug, FromQueryParam)]
+//! struct PageQuery {
+//!     page: u32,
+//! }
+//!
+//! #[derive(Deserialize, Debug, FromParams)]
+//! struct PathParams {
+//!     id: String,
+//! }
+//!
+//! #[derive(FromParams)]
+//! struct OrgParams {
+//!     org_id: String,
+//!     user_id: String,
+//! }
+//!
+//! #[derive(FromQueryParam)]
+//! struct OrgQueryParams {
+//!     query: String,
+//! }
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     let mut app = App::new();
+//!
+//!     // Classic JsonBody extractor (not validated)
+//!     app.post("/json", |body: JsonBody<User>, res| async move {
+//!         let username = &body.username;
+//!         println!("Classic JsonBody: {}", username);
+//!         res.ok().json(body)
+//!     });
+//!
+//!     // ValidatedJson extractor - performs validation on deserialization
+//!     app.post(
+//!         "/signup",
+//!         |body: JsonBodyValidated<Signup>, res| async move {
+//!             println!("Email: {}, Username: {}", body.email, body.username);
+//!             res.ok().json(serde_json::json!({
+//!                 "msg": "Signup received",
+//!                 "user": &body.username,
+//!                 "email": &body.email
+//!             }))
+//!         },
+//!     );
+//!
+//!     // Query string extractor
+//!     app.get(
+//!         "/articles",
+//!         |query: QueryParam<PageQuery>, res| async move {
+//!             let page = query.page;
+//!             res.ok().json(serde_json::json!({ "page": page }))
+//!         },
+//!     );
+//!
+//!     // Path param extractor
+//!     app.get("/user/:id", |params: Params<PathParams>, res| async move {
+//!         println!("Path params: id: {:?}", params.id);
+//!         res.ok().json(serde_json::json!({ "id": params.id }))
+//!     });
+//!
+//!     // Mixing extractors: Path param, query param, standard request and response
+//!     app.get(
+//!         "/org/:org_id/user/:user_id",
+//!         |(path, query, _headers): (Params<OrgParams>, QueryParam<OrgQueryParams>, Headers), res| async move {
+//!             res.ok().json(serde_json::json!({
+//!                 "org_id": path.org_id,
+//!                 "user_id": path.user_id,
+//!                 "query": query.query,
+//!             }))
+//!         },
+//!     );
+//!
+//!     app.listen(3000, || {
+//!         println!("Ripress extractor demo listening on http://localhost:3000");
+//!     })
+//!     .await;
+//! }
+//! ```
+//!
 
 /// The main application struct and its methods for configuring and running your server.
 ///

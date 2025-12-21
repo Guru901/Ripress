@@ -3,6 +3,12 @@
 //! This module provides the [`JsonBody`] wrapper and [`FromJson`] trait
 //! for type-safe JSON extraction from HTTP requests.
 
+#[cfg(feature = "validation")]
+use serde::Deserialize;
+use serde::Serialize;
+#[cfg(feature = "validation")]
+use validator::Validate;
+
 use crate::{helpers::FromRequest, req::body::RequestBodyContent};
 use std::ops::Deref;
 
@@ -19,6 +25,7 @@ use std::ops::Deref;
 /// }
 /// ```
 
+#[derive(Serialize)]
 pub struct JsonBody<T>(T);
 
 impl<T: FromJson> FromRequest for JsonBody<T> {
@@ -54,4 +61,46 @@ pub trait FromJson: Sized {
     /// * `Ok(Self)` if deserialization succeeds.
     /// * `Err(String)` if deserialization fails (e.g., invalid/missing JSON).
     fn from_json(data: &RequestBodyContent) -> Result<Self, String>;
+}
+
+#[cfg(feature = "validation")]
+/// A wrapper around a validated deserialized JSON body.
+///
+/// Use this in handler signatures when you want to extract, deserialize, and validate
+/// JSON request bodies using the `validator` crate.
+///
+/// # Example
+/// ```ignore
+/// fn handler(body: JsonBodyValidated<MyStruct>) {
+///     // Access the validated inner value
+///     let data: &MyStruct = &*body;
+/// }
+/// ```
+#[derive(Serialize)]
+pub struct JsonBodyValidated<T: Validate>(T);
+
+#[cfg(feature = "validation")]
+impl<T: FromJson + Validate + for<'a> Deserialize<'a>> FromRequest for JsonBodyValidated<T> {
+    type Error = String;
+
+    fn from_request(req: &crate::req::HttpRequest) -> Result<Self, Self::Error> {
+        let body = &req.body.content;
+        if let RequestBodyContent::JSON(data) = body {
+            let parsed: T =
+                serde_json::from_value::<T>(data.to_owned()).map_err(|e| e.to_string())?;
+            parsed.validate().map_err(|err| err.to_string())?;
+            return Ok(Self(parsed));
+        } else {
+            return Err("Invalid request body".to_string());
+        }
+    }
+}
+
+#[cfg(feature = "validation")]
+impl<T: Validate> Deref for JsonBodyValidated<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }

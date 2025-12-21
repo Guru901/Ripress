@@ -15,6 +15,7 @@ exclude = [
     ".github",
     "benchmark.png",
     "scripts/*",
+    "examples/*",
 ]
 
 [dependencies]
@@ -42,7 +43,8 @@ hyper-util = { version = "0.1.3", features = ["full"] }
 http-body-util = "0.1.3"
 hyper-staticfile = "0.10.1"
 ahash = "0.8.12"
-ripress-derive = { version = "0.0.1" }
+ripress-derive = { version = "0.0.2"}
+validator = { version = "0.20.0", features = ["derive"], optional = true}
 
 [dev-dependencies]
 tracing-subscriber = "0.3.20"
@@ -54,11 +56,12 @@ criterion = "0.7.0"
 readme = "README.md"
 
 [features]
-default = []
+default = ['validation']
 with-wynd = []
 compression = ["flate2"]
 file-upload = ["uuid"]
 logger = ["tracing"]
+validation = ["validator"]
 
 [profile.release]
 debug = true
@@ -66,3 +69,44 @@ debug = true
 [[bench]]
 name = "ripress_benches"
 harness = false
+
+[[example]]
+name = "validation"
+path = "examples/validation.rs"
+required-features = ["validation"]
+
+[[example]]
+name = "extractors"
+path = "examples/extractors.rs"
+
+[[example]]
+name = "cookies"
+path = "examples/cookies.rs"
+
+[[example]]
+name = "forms"
+path = "examples/forms.rs"
+
+[[example]]
+name = "sse"
+path = "examples/sse.rs"
+
+[[example]]
+name = "crud_api"
+path = "examples/crud_api.rs"
+
+[[example]]
+name = "middleware_chain"
+path = "examples/middleware_chain.rs"
+
+[[example]]
+name = "error_handling"
+path = "examples/error_handling.rs"
+
+[[example]]
+name = "static_files"
+path = "examples/static_files.rs"
+
+[[example]]
+name = "router_versioning"
+path = "examples/router_versioning.rs"

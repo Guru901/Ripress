@@ -3,8 +3,8 @@ set -e  # Exit on error
 
 cargo test --features file-upload,compression,logger,with-wynd --all  # Run Rust tests
 
-mkdir -p public/assets public/scripts
-cd public
+mkdir -p ripress/public/assets ripress/public/scripts
+cd ripress/public
 touch index.html app.js config.json readme.txt unknown-file.asdxyz styles.css
 curl -sL https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png -o logo.png
 curl -sL https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png -o photo.jpg
@@ -35,7 +35,7 @@ echo '<!DOCTYPE html>
 echo 'This is a readme file' > readme.txt
 
 cd ..
-cargo add wynd --features with-ripress
+cargo add wynd --features with-ripress --package ripress
 cd src
 touch main.rs
 

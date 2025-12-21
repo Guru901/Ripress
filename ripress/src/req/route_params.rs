@@ -885,6 +885,7 @@ impl From<RouteParams> for HashMap<String, String> {
 ///     // ...
 /// }
 /// ```
+#[derive(Debug)]
 pub struct Params<T>(T);
 
 impl<T: FromParams> FromRequest for Params<T> {
