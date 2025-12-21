@@ -484,6 +484,7 @@ macro_rules! impl_extract_from_owned_tuples {
 }
 
 impl_extract_from_owned_tuples!(
+    1: (A),
     2: (A, B),
     3: (A, B, C),
     4: (A, B, C, D),

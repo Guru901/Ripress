@@ -5,6 +5,7 @@
 
 #[cfg(feature = "validation")]
 use serde::Deserialize;
+use serde::Serialize;
 #[cfg(feature = "validation")]
 use validator::Validate;
 
@@ -24,6 +25,7 @@ use std::ops::Deref;
 /// }
 /// ```
 
+#[derive(Serialize)]
 pub struct JsonBody<T>(T);
 
 impl<T: FromJson> FromRequest for JsonBody<T> {
