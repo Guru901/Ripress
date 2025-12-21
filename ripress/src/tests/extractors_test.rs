@@ -8,7 +8,7 @@ mod extractor_tests {
     use crate::req::request_headers::Headers;
     use crate::req::route_params::Params;
     use crate::req::HttpRequest;
-    use hyper::header::{HeaderName, HeaderValue};
+    use hyper::header::HeaderName;
     use serde_json::json;
 
     // Test structures
@@ -163,7 +163,7 @@ mod extractor_tests {
 
     impl FromQueryParam for String {
         fn from_query_param(
-            params: &crate::req::query_params::QueryParams,
+            _params: &crate::req::query_params::QueryParams,
         ) -> Result<Self, String> {
             Ok(String::new())
         }
@@ -179,7 +179,7 @@ mod extractor_tests {
 
     impl FromQueryParam for i32 {
         fn from_query_param(
-            params: &crate::req::query_params::QueryParams,
+            _params: &crate::req::query_params::QueryParams,
         ) -> Result<Self, String> {
             Ok(0)
         }
