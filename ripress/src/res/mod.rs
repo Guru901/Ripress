@@ -102,14 +102,14 @@ use crate::req::determine_content_type_response;
 use crate::res::response_status::StatusCode;
 use crate::types::{ResponseContentBody, ResponseContentType};
 use bytes::Bytes;
-use futures::{Stream, StreamExt, stream};
+use futures::{stream, Stream, StreamExt};
 use http_body_util::BodyExt;
 #[cfg(feature = "with-wynd")]
 use http_body_util::Full;
 #[cfg(not(feature = "with-wynd"))]
 use http_body_util::Full;
+use hyper::header::{HeaderName, HeaderValue, CONTENT_LENGTH, SET_COOKIE};
 use hyper::Response;
-use hyper::header::{CONTENT_LENGTH, HeaderName, HeaderValue, SET_COOKIE};
 use mime_guess::from_ext;
 use serde::Serialize;
 use std::convert::Infallible;
@@ -373,6 +373,11 @@ impl HttpResponse {
     pub fn status(mut self, status_code: u16) -> Self {
         self.status_code = StatusCode::from_u16(status_code);
         return self;
+    }
+
+    /// Returns the current HTTP status code as a `u16`.
+    pub fn status_code(&self) -> u16 {
+        self.status_code.as_u16()
     }
 
     /// Sets the response body to text.

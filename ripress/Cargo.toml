@@ -78,3 +78,35 @@ required-features = ["validation"]
 [[example]]
 name = "extractors"
 path = "examples/extractors.rs"
+
+[[example]]
+name = "cookies"
+path = "examples/cookies.rs"
+
+[[example]]
+name = "forms"
+path = "examples/forms.rs"
+
+[[example]]
+name = "sse"
+path = "examples/sse.rs"
+
+[[example]]
+name = "crud_api"
+path = "examples/crud_api.rs"
+
+[[example]]
+name = "middleware_chain"
+path = "examples/middleware_chain.rs"
+
+[[example]]
+name = "error_handling"
+path = "examples/error_handling.rs"
+
+[[example]]
+name = "static_files"
+path = "examples/static_files.rs"
+
+[[example]]
+name = "router_versioning"
+path = "examples/router_versioning.rs"
