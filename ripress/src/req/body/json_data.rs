@@ -76,6 +76,7 @@ pub trait FromJson: Sized {
 ///     let data: &MyStruct = &*body;
 /// }
 /// ```
+#[derive(Serialize)]
 pub struct JsonBodyValidated<T: Validate>(T);
 
 #[cfg(feature = "validation")]
