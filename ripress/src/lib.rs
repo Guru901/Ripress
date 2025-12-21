@@ -137,7 +137,7 @@
 //!
 //! ## Example
 //!
-//! ```rust
+//! ```no_run
 //! use ripress::{
 //!     app::App,
 //!     req::{
