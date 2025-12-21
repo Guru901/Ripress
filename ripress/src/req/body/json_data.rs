@@ -3,6 +3,9 @@
 //! This module provides the [`JsonBody`] wrapper and [`FromJson`] trait
 //! for type-safe JSON extraction from HTTP requests.
 
+use serde::Deserialize;
+use validator::Validate;
+
 use crate::{helpers::FromRequest, req::body::RequestBodyContent};
 use std::ops::Deref;
 
@@ -54,4 +57,29 @@ pub trait FromJson: Sized {
     /// * `Ok(Self)` if deserialization succeeds.
     /// * `Err(String)` if deserialization fails (e.g., invalid/missing JSON).
     fn from_json(data: &RequestBodyContent) -> Result<Self, String>;
+}
+
+pub struct JsonBodyValidated<T: Validate>(T);
+
+impl<T: FromJson + Validate + for<'a> Deserialize<'a>> FromRequest for JsonBodyValidated<T> {
+    type Error = String;
+
+    fn from_request(req: &crate::req::HttpRequest) -> Result<Self, Self::Error> {
+        let body = &req.body.content;
+        if let RequestBodyContent::JSON(data) = body {
+            let parsed: T =
+                serde_json::from_value::<T>(data.to_owned()).map_err(|e| e.to_string())?;
+            parsed.validate().map_err(|err| err.to_string())?;
+            return Ok(Self(parsed));
+        }
+        Ok(Self(T::from_json(body)?))
+    }
+}
+
+impl<T: Validate> Deref for JsonBodyValidated<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
