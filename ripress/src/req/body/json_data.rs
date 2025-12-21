@@ -3,7 +3,9 @@
 //! This module provides the [`JsonBody`] wrapper and [`FromJson`] trait
 //! for type-safe JSON extraction from HTTP requests.
 
+#[cfg(feature = "validation")]
 use serde::Deserialize;
+#[cfg(feature = "validation")]
 use validator::Validate;
 
 use crate::{helpers::FromRequest, req::body::RequestBodyContent};
@@ -59,8 +61,22 @@ pub trait FromJson: Sized {
     fn from_json(data: &RequestBodyContent) -> Result<Self, String>;
 }
 
+#[cfg(feature = "validation")]
+/// A wrapper around a validated deserialized JSON body.
+///
+/// Use this in handler signatures when you want to extract, deserialize, and validate
+/// JSON request bodies using the `validator` crate.
+///
+/// # Example
+/// ```ignore
+/// fn handler(body: JsonBodyValidated<MyStruct>) {
+///     // Access the validated inner value
+///     let data: &MyStruct = &*body;
+/// }
+/// ```
 pub struct JsonBodyValidated<T: Validate>(T);
 
+#[cfg(feature = "validation")]
 impl<T: FromJson + Validate + for<'a> Deserialize<'a>> FromRequest for JsonBodyValidated<T> {
     type Error = String;
 
@@ -71,11 +87,13 @@ impl<T: FromJson + Validate + for<'a> Deserialize<'a>> FromRequest for JsonBodyV
                 serde_json::from_value::<T>(data.to_owned()).map_err(|e| e.to_string())?;
             parsed.validate().map_err(|err| err.to_string())?;
             return Ok(Self(parsed));
+        } else {
+            return Err("Invalid request body".to_string());
         }
-        Ok(Self(T::from_json(body)?))
     }
 }
 
+#[cfg(feature = "validation")]
 impl<T: Validate> Deref for JsonBodyValidated<T> {
     type Target = T;
 
