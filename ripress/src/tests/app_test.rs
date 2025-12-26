@@ -7,7 +7,7 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 #[cfg(test)]
 mod tests {
     use crate::{
-        app::{App, Http2Config, api_error::ApiError},
+        app::{api_error::ApiError, App, Http2Config},
         context::HttpResponse,
         helpers::box_future,
         middlewares::MiddlewareType,
@@ -16,7 +16,7 @@ mod tests {
         types::{HttpMethods, RouterFns},
     };
     use http_body_util::{BodyExt, Full};
-    use hyper::{Request, Response, StatusCode, body::Bytes, header};
+    use hyper::{body::Bytes, header, Request, Response, StatusCode};
     use reqwest;
     use routerify_ng::RouteError;
     use std::time::Duration;
@@ -51,7 +51,7 @@ mod tests {
 
     fn build_test_app() -> App {
         let mut app = App::new();
-        app.add_route(HttpMethods::GET, "/", dummy_handler);
+        app.add_route(&HttpMethods::GET, "/", dummy_handler);
         app
     }
 
@@ -257,9 +257,13 @@ mod tests {
     async fn test_use_pre_middleware_with_path() {
         let mut app = App::new();
 
-        app.use_pre_middleware(Some("/api"), |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_pre_middleware(Some("/api"), |req: HttpRequest, res| async move {
+            (req, Some(res))
+        });
         #[allow(deprecated)]
-        app.use_middleware(Some("/api"), |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_middleware(Some("/api"), |req: HttpRequest, res| async move {
+            (req, Some(res))
+        });
 
         assert_eq!(app.middlewares.len(), 2);
         assert_eq!(app.middlewares[0].path, "/api");
@@ -284,9 +288,15 @@ mod tests {
     async fn test_use_pre_middleware_with_default_path() {
         let mut app = App::new();
 
-        app.use_pre_middleware(None, |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_pre_middleware(
+            None,
+            |req: HttpRequest, res| async move { (req, Some(res)) },
+        );
         #[allow(deprecated)]
-        app.use_middleware(None, |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_middleware(
+            None,
+            |req: HttpRequest, res| async move { (req, Some(res)) },
+        );
 
         assert_eq!(app.middlewares.len(), 2);
         assert_eq!(app.middlewares[0].path, "/");
@@ -300,7 +310,9 @@ mod tests {
     async fn test_use_post_middleware_with_path() {
         let mut app = App::new();
 
-        app.use_post_middleware(Some("/api"), |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_post_middleware(Some("/api"), |req: HttpRequest, res| async move {
+            (req, Some(res))
+        });
 
         assert_eq!(app.middlewares.len(), 1);
         assert_eq!(app.middlewares[0].path, "/api");
@@ -323,7 +335,10 @@ mod tests {
     async fn test_use_post_middleware_with_default_path() {
         let mut app = App::new();
 
-        app.use_post_middleware(None, |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_post_middleware(
+            None,
+            |req: HttpRequest, res| async move { (req, Some(res)) },
+        );
 
         assert_eq!(app.middlewares.len(), 1);
         assert_eq!(app.middlewares[0].path, "/");
@@ -376,7 +391,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_route_registration() {
         let mut app = App::new();
-        app.add_route(HttpMethods::GET, "/hello", |_, _| async {
+        app.add_route(&HttpMethods::GET, "/hello", |_, _| async {
             dummy_handler_listen(200)
         });
 
@@ -395,7 +410,7 @@ mod tests {
     #[tokio::test]
     async fn test_post_route_registration() {
         let mut app = App::new();
-        app.add_route(HttpMethods::POST, "/submit", |_, _| async {
+        app.add_route(&HttpMethods::POST, "/submit", |_, _| async {
             dummy_handler_listen(201)
         });
 
@@ -413,7 +428,7 @@ mod tests {
     #[tokio::test]
     async fn test_put_route() {
         let mut app = App::new();
-        app.add_route(HttpMethods::PUT, "/update", |_, _| async {
+        app.add_route(&HttpMethods::PUT, "/update", |_, _| async {
             dummy_handler_listen(202)
         });
 
@@ -429,7 +444,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_route() {
         let mut app = App::new();
-        app.add_route(HttpMethods::DELETE, "/update", |_, _| async {
+        app.add_route(&HttpMethods::DELETE, "/update", |_, _| async {
             dummy_handler_listen(204)
         });
 
@@ -445,7 +460,7 @@ mod tests {
     #[tokio::test]
     async fn test_patch_route() {
         let mut app = App::new();
-        app.add_route(HttpMethods::PATCH, "/update", |_, _| async {
+        app.add_route(&HttpMethods::PATCH, "/update", |_, _| async {
             dummy_handler_listen(200)
         });
 
@@ -461,7 +476,7 @@ mod tests {
     #[tokio::test]
     async fn test_head_route() {
         let mut app = App::new();
-        app.add_route(HttpMethods::HEAD, "/ping", |_, _| async {
+        app.add_route(&HttpMethods::HEAD, "/ping", |_, _| async {
             dummy_handler_listen(200)
         });
 
@@ -477,7 +492,7 @@ mod tests {
     #[tokio::test]
     async fn test_options_route() {
         let mut app = App::new();
-        app.add_route(HttpMethods::OPTIONS, "/opt", |_, _| async {
+        app.add_route(&HttpMethods::OPTIONS, "/opt", |_, _| async {
             dummy_handler_listen(200)
         });
 
@@ -493,7 +508,7 @@ mod tests {
     #[tokio::test]
     async fn test_bad_request_on_invalid_request() {
         let mut app = App::new();
-        app.add_route(HttpMethods::GET, "/fail", |_, res: HttpResponse| {
+        app.add_route(&HttpMethods::GET, "/fail", |_, res: HttpResponse| {
             Box::pin(async move { res.status(500) })
         });
 

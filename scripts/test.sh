@@ -1,10 +1,12 @@
 #!/bin/bash
 set -e  # Exit on error
 
+cd ripress
+
 cargo test --features file-upload,compression,logger,with-wynd --all  # Run Rust tests
 
-mkdir -p ripress/public/assets ripress/public/scripts
-cd ripress/public
+mkdir -p public/assets public/scripts
+cd public
 touch index.html app.js config.json readme.txt unknown-file.asdxyz styles.css
 curl -sL https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png -o logo.png
 curl -sL https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png -o photo.jpg

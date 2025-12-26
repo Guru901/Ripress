@@ -38,36 +38,36 @@
 use crate::app::api_error::ApiError;
 
 use crate::helpers::{box_future_middleware, exec_post_middleware, exec_pre_middleware};
-#[cfg(feature = "with-wynd")]
-use crate::middlewares::WyndMiddleware;
 use crate::middlewares::body_limit::body_limit;
 #[cfg(feature = "compression")]
-use crate::middlewares::compression::{CompressionConfig, compression};
-use crate::middlewares::cors::{CorsConfig, cors};
+use crate::middlewares::compression::{compression, CompressionConfig};
+use crate::middlewares::cors::{cors, CorsConfig};
 #[cfg(feature = "logger")]
-use crate::middlewares::logger::{LoggerConfig, logger};
-use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
-use crate::middlewares::shield::{ShieldConfig, shield};
+use crate::middlewares::logger::{logger, LoggerConfig};
+use crate::middlewares::rate_limiter::{rate_limiter, RateLimiterConfig};
+use crate::middlewares::shield::{shield, ShieldConfig};
+#[cfg(feature = "with-wynd")]
+use crate::middlewares::WyndMiddleware;
 use crate::middlewares::{Middleware, MiddlewareType};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::router::Router;
 #[cfg(feature = "with-wynd")]
 use crate::types::WyndMiddlewareHandler;
-use crate::types::{HandlerMiddleware, HttpMethods, RouterFns, Routes};
+use crate::types::{HandlerMiddleware, HttpMethods, RouteBuilder, RouterFns};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
 use hyper::http::StatusCode;
 use hyper::server::conn::http1;
 use hyper::server::conn::http2;
 use hyper::service::Service;
-use hyper::{Method, header};
+use hyper::{header, Method};
 use hyper::{Request, Response};
 use hyper_staticfile::Static;
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use hyper_util::server::conn::auto::Builder;
-use routerify_ng::RouterService;
 use routerify_ng::ext::RequestExt;
+use routerify_ng::RouterService;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -126,7 +126,7 @@ pub(crate) mod api_error;
 /// ```
 pub struct App {
     /// The collection of registered routes organized by path and HTTP method.
-    routes: Routes,
+    routes: Vec<Arc<RouteBuilder>>,
 
     pub(crate) host: String,
     /// Enables or disables HTTP/2 support for the server.
@@ -185,7 +185,7 @@ pub struct Http2Config {
 }
 
 impl RouterFns for App {
-    fn routes(&mut self) -> &mut Routes {
+    fn routes(&mut self) -> &mut Vec<Arc<RouteBuilder>> {
         &mut self.routes
     }
 }
@@ -205,7 +205,7 @@ impl App {
     /// ```
     pub fn new() -> Self {
         App {
-            routes: HashMap::new(),
+            routes: Vec::new(),
             http2: true,
             http2_config: None,
             middlewares: Vec::new(),
@@ -993,20 +993,24 @@ impl App {
     /// # Panics
     ///
     /// This method does not panic.
-    pub fn router(&mut self, mut router: Router) {
+    pub fn router(&mut self, router: Router) {
+        let routes = router.routes;
         let base_path = router.base_path;
-        for (path, methods) in router.routes() {
-            for (method, handler) in methods.to_owned() {
-                if path == "/" {
-                    self.add_route(method, &base_path, move |req: HttpRequest, res| {
-                        (handler)(req, res)
-                    });
-                } else {
-                    let full_path = format!("{}{}", base_path, path);
-                    self.add_route(method, &full_path, move |req: HttpRequest, res| {
-                        (handler)(req, res)
-                    });
-                }
+
+        for route in routes {
+            let path = &route.path;
+            let method = &route.method;
+            let handler = Arc::clone(&route.handler);
+
+            if path == "/" {
+                self.add_route(method, &base_path, move |req: HttpRequest, res| {
+                    (handler)(req, res)
+                });
+            } else {
+                let full_path = format!("{}{}", base_path, path);
+                self.add_route(method, &full_path, move |req: HttpRequest, res| {
+                    (handler)(req, res)
+                });
             }
         }
     }
@@ -1219,45 +1223,43 @@ impl App {
 
         // Register API routes FIRST (before static files)
         // This ensures API routes take precedence over static file serving
-        for (path, methods) in &self.routes {
-            for (method, handler) in methods {
-                let handler = Arc::clone(handler);
+        for route in &self.routes {
+            let handler = Arc::clone(&route.handler);
 
-                let method = match method {
-                    HttpMethods::GET => Method::GET,
-                    HttpMethods::POST => Method::POST,
-                    HttpMethods::PUT => Method::PUT,
-                    HttpMethods::DELETE => Method::DELETE,
-                    HttpMethods::PATCH => Method::PATCH,
-                    HttpMethods::HEAD => Method::HEAD,
-                    HttpMethods::OPTIONS => Method::OPTIONS,
-                };
+            let method = match route.method {
+                HttpMethods::GET => Method::GET,
+                HttpMethods::POST => Method::POST,
+                HttpMethods::PUT => Method::PUT,
+                HttpMethods::DELETE => Method::DELETE,
+                HttpMethods::PATCH => Method::PATCH,
+                HttpMethods::HEAD => Method::HEAD,
+                HttpMethods::OPTIONS => Method::OPTIONS,
+            };
 
-                router = router.add(path, vec![method], move |mut req| {
-                    let handler = Arc::clone(&handler);
+            router = router.add(&route.path, vec![method], move |mut req| {
+                let handler = Arc::clone(&handler);
 
-                    async move {
-                        let mut our_req = match HttpRequest::from_hyper_request(&mut req).await {
-                            Ok(r) => r,
-                            Err(e) => {
-                                return Err(ApiError::Generic(
-                                    HttpResponse::new().bad_request().text(e.to_string()),
-                                ));
-                            }
-                        };
+                async move {
+                    let mut our_req = match HttpRequest::from_hyper_request(&mut req).await {
+                        Ok(r) => r,
+                        Err(e) => {
+                            return Err(ApiError::Generic(
+                                HttpResponse::new().bad_request().text(e.to_string()),
+                            ));
+                        }
+                    };
 
-                        req.params().iter().for_each(|(key, value)| {
-                            our_req.set_param(key, value);
-                        });
+                    req.params().iter().for_each(|(key, value)| {
+                        our_req.set_param(key, value);
+                    });
 
-                        let response = handler(our_req, HttpResponse::new()).await;
+                    let response = handler(our_req, HttpResponse::new()).await;
 
-                        let hyper_response = response.to_hyper_response().await;
-                        // Infallible means this can never fail, so unwrap is safe
-                        Ok(hyper_response.unwrap())
-                    }
-                });
-            }
+                    let hyper_response = response.to_hyper_response().await;
+                    // Infallible means this can never fail, so unwrap is safe
+                    Ok(hyper_response.unwrap())
+                }
+            });
         }
 
         for (mount_path, serve_from) in self.static_files.iter() {
@@ -1661,7 +1663,11 @@ impl App {
         } else if original_path.starts_with(&mount_root) {
             // Strip the mount root prefix, but ensure we don't create an empty path
             let remaining = &original_path[mount_root.len()..];
-            if remaining.is_empty() { "/" } else { remaining }
+            if remaining.is_empty() {
+                "/"
+            } else {
+                remaining
+            }
         } else {
             // Path doesn't match mount root - this shouldn't happen in normal routing
             original_path
