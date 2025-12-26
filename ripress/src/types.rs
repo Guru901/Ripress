@@ -9,7 +9,6 @@ use http_body_util::Full;
 use hyper::Method;
 use mime_guess::MimeGuess;
 use serde::Serialize;
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::future::Future;
 use std::pin::Pin;
@@ -157,8 +156,6 @@ impl Display for HttpMethods {
     }
 }
 
-pub(crate) type Routes = HashMap<String, HashMap<HttpMethods, Handler>>;
-
 /// Represents possible errors that can occur when handling an HTTP request.
 #[derive(Debug, PartialEq)]
 pub enum HttpRequestError {
@@ -229,10 +226,22 @@ pub(crate) type WyndMiddlewareHandler = Arc<
         > + Send
         + Sync,
 >;
+
+/// Represents a single route registration (path/HTTP method mapping and route configuration).
+///
+/// This struct encapsulates the information needed for a given route:
+/// - The path pattern,
+/// - The associated HTTP method,
+/// - The handler function to invoke,
+/// - Any route-specific middleware attached.
 pub struct RouteBuilder {
+    /// The path pattern this route matches (e.g., "/users/{id}").
     pub(crate) path: String,
+    /// The HTTP method for this route (GET, POST, etc.).
     pub(crate) method: HttpMethods,
+    /// The handler function that processes requests to this route.
     pub(crate) handler: Handler,
+    /// Middleware specific to this route, processed in addition to global middleware.
     pub(crate) middlewares: Vec<Arc<Middleware>>,
 }
 
