@@ -1,5 +1,6 @@
 #![warn(missing_docs)]
 use crate::helpers::{box_future, ExtractFromOwned};
+use crate::middlewares::Middleware;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use bytes::Bytes;
@@ -228,6 +229,18 @@ pub(crate) type WyndMiddlewareHandler = Arc<
         > + Send
         + Sync,
 >;
+pub struct RouteBuilder {
+    pub(crate) path: String,
+    pub(crate) method: HttpMethods,
+    pub(crate) handler: Handler,
+    pub(crate) middlewares: Vec<Arc<Middleware>>,
+}
+
+impl RouteBuilder {
+    pub fn middleware(&self) {
+        println!("Middleware");
+    }
+}
 
 /// Trait providing routing functionality for applications and routers.
 ///
@@ -240,7 +253,7 @@ pub trait RouterFns {
     ///
     /// This is used by trait default implementations to access or modify
     /// the underlying route storage for this type.
-    fn routes(&mut self) -> &mut Routes;
+    fn routes(&mut self) -> &mut Vec<Arc<RouteBuilder>>;
 
     /// Register a handler for a specific HTTP method/path.
     ///
@@ -256,25 +269,31 @@ pub trait RouterFns {
     /// * `handler` - Handler function
     ///
     /// If a handler for a given method/path already exists, it is replaced.
-    fn add_route<F, HFut>(&mut self, method: HttpMethods, path: &str, handler: F)
+    fn add_route<F, HFut>(
+        &mut self,
+        method: &HttpMethods,
+        path: &str,
+        handler: F,
+    ) -> Arc<RouteBuilder>
     where
         F: Fn(HttpRequest, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
     {
-        let routes = self.routes();
         let wrapped_handler =
             Arc::new(move |req: HttpRequest, res| box_future(handler(req, res))) as Handler;
-        use std::collections::hash_map::Entry;
-        match routes.entry(path.to_string()) {
-            Entry::Occupied(mut e) => {
-                e.get_mut().insert(method, wrapped_handler);
-            }
-            Entry::Vacant(e) => {
-                let mut map = HashMap::new();
-                map.insert(method, wrapped_handler);
-                e.insert(map);
-            }
-        }
+
+        let routes = self.routes();
+
+        let route_builder = Arc::new(RouteBuilder {
+            path: path.to_string(),
+            method: method.clone(),
+            handler: wrapped_handler,
+            middlewares: Vec::new(),
+        });
+
+        routes.push(Arc::clone(&route_builder));
+
+        route_builder
     }
 
     /// Register a GET handler for a path, with extractor integration.
@@ -290,80 +309,73 @@ pub trait RouterFns {
     /// let mut app = App::new();
     /// app.get("/hello", handler);
     /// ```
-    fn get<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
+    fn get<F, HFut, P>(&mut self, path: &str, handler: F) -> Arc<RouteBuilder>
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route_with_extraction(HttpMethods::GET, path, handler);
-        self
+        self.add_route_with_extraction(HttpMethods::GET, path, handler)
     }
 
     /// Register an OPTIONS handler for a path, with extractor integration.
-    fn options<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
+    fn options<F, HFut, P>(&mut self, path: &str, handler: F) -> Arc<RouteBuilder>
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route_with_extraction(HttpMethods::OPTIONS, path, handler);
-        self
+        self.add_route_with_extraction(HttpMethods::OPTIONS, path, handler)
     }
 
     /// Register a POST handler for a path, with extractor integration.
-    fn post<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
+    fn post<F, HFut, P>(&mut self, path: &str, handler: F) -> Arc<RouteBuilder>
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route_with_extraction(HttpMethods::POST, path, handler);
-        self
+        self.add_route_with_extraction(HttpMethods::POST, path, handler)
     }
 
     /// Register a PUT handler for a path, with extractor integration.
-    fn put<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
+    fn put<F, HFut, P>(&mut self, path: &str, handler: F) -> Arc<RouteBuilder>
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route_with_extraction(HttpMethods::PUT, path, handler);
-        self
+        self.add_route_with_extraction(HttpMethods::PUT, path, handler)
     }
 
     /// Register a DELETE handler for a path, with extractor integration.
-    fn delete<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
+    fn delete<F, HFut, P>(&mut self, path: &str, handler: F) -> Arc<RouteBuilder>
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route_with_extraction(HttpMethods::DELETE, path, handler);
-        self
+        self.add_route_with_extraction(HttpMethods::DELETE, path, handler)
     }
 
     /// Register a HEAD handler for a path, with extractor integration.
-    fn head<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
+    fn head<F, HFut, P>(&mut self, path: &str, handler: F) -> Arc<RouteBuilder>
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route_with_extraction(HttpMethods::HEAD, path, handler);
-        self
+        self.add_route_with_extraction(HttpMethods::HEAD, path, handler)
     }
 
     /// Register a PATCH handler for a path, with extractor integration.
-    fn patch<F, HFut, P>(&mut self, path: &str, handler: F) -> &mut Self
+    fn patch<F, HFut, P>(&mut self, path: &str, handler: F) -> Arc<RouteBuilder>
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
         P: ExtractFromOwned + Send + 'static,
     {
-        self.add_route_with_extraction(HttpMethods::PATCH, path, handler);
-        self
+        self.add_route_with_extraction(HttpMethods::PATCH, path, handler)
     }
 
     /// Retrieve the route handler for a given path/method, if one is registered.
@@ -371,13 +383,25 @@ pub trait RouterFns {
     /// Returns `Some(&Handler)` if a matching handler exists, else `None`.
     fn get_routes(&mut self, path: &str, method: HttpMethods) -> Option<&Handler> {
         let routes = self.routes();
-        routes.get(path).and_then(|handlers| handlers.get(&method))
+
+        for route in routes {
+            if route.path == path && route.method == method {
+                return Some(&route.handler);
+            }
+        }
+
+        return None;
     }
 
     /// Internal helper: Register a handler using extractor integration.
     ///
     /// This wraps the user's handler so the extractor type `P` is populated from the HttpRequest.
-    fn add_route_with_extraction<F, HFut, P>(&mut self, method: HttpMethods, path: &str, handler: F)
+    fn add_route_with_extraction<F, HFut, P>(
+        &mut self,
+        method: HttpMethods,
+        path: &str,
+        handler: F,
+    ) -> Arc<RouteBuilder>
     where
         F: Fn(P, HttpResponse) -> HFut + Send + Sync + 'static,
         HFut: Future<Output = HttpResponse> + Send + 'static,
@@ -400,7 +424,7 @@ pub trait RouterFns {
             }
         };
 
-        self.add_route(method, path, wrapped);
+        self.add_route(&method, path, wrapped)
     }
 }
 

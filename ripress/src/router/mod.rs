@@ -48,11 +48,12 @@
 //! ```
 
 #![warn(missing_docs)]
+use std::sync::Arc;
+
 use crate::{
     app::App,
-    types::{RouterFns, Routes},
+    types::{RouteBuilder, RouterFns},
 };
-use std::collections::HashMap;
 
 /// A modular router for grouping and mounting routes under a common base path.
 ///
@@ -87,7 +88,7 @@ pub struct Router {
     ///
     /// This is a map from route paths (relative to the base path) to their
     /// associated HTTP method handlers.
-    routes: Routes,
+    pub(crate) routes: Vec<Arc<RouteBuilder>>,
 }
 
 impl Router {
@@ -113,7 +114,7 @@ impl Router {
     pub fn new(base_path: &'static str) -> Self {
         Router {
             base_path,
-            routes: HashMap::new(),
+            routes: Vec::new(),
         }
     }
 
@@ -142,17 +143,19 @@ impl Router {
 
     #[deprecated(since = "1.9.12", note = "use `app.router` instead")]
     pub fn register(self, app: &mut App) {
-        for (path, methods) in self.routes {
-            for (method, handler) in methods {
-                let full_path = format!("{}{}", self.base_path, path);
-                app.add_route(method, &full_path, move |req, res| (handler)(req, res));
-            }
+        for route in self.routes.iter() {
+            let path = route.path.clone();
+            let method = route.method.clone();
+            let handler = route.handler.clone();
+
+            let full_path = format!("{}{}", self.base_path, path);
+            app.add_route(&method, &full_path, move |req, res| (handler)(req, res));
         }
     }
 }
 
 impl RouterFns for Router {
-    fn routes(&mut self) -> &mut Routes {
+    fn routes(&mut self) -> &mut Vec<Arc<RouteBuilder>> {
         &mut self.routes
     }
 }
