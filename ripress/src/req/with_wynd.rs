@@ -108,7 +108,7 @@ impl AsyncRead for HttpRequest {
         buf: &mut tokio::io::ReadBuf<'_>,
     ) -> std::task::Poll<std::io::Result<()>> {
         // Get a mutable reference to self
-        let this = unsafe { self.get_unchecked_mut() };
+        let this = self.get_mut();
 
         // Convert the request body content to bytes
         let body_bytes = match &this.body.content {
