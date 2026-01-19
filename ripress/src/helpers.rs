@@ -13,8 +13,6 @@ use crate::{
     types::{Fut, FutMiddleware},
 };
 use http_body_util::Full;
-#[cfg(feature = "with-wynd")]
-use hyper::body::Body;
 use hyper::{body::Bytes, Request, Response};
 use mime::Mime;
 use routerify_ng::RequestInfo;

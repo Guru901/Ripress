@@ -98,7 +98,7 @@ impl HttpRequest {
             .next()
             .map(|s| s.trim())
             .and_then(|s| s.parse::<IpAddr>().ok())
-            .unwrap();
+            .unwrap_or(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
 
         // Parse cookies from cached header value
         let mut cookies_map = AHashMap::new();
@@ -435,7 +435,7 @@ impl HttpRequest {
             }
             RequestBodyContent::EMPTY => Full::from(Bytes::new()),
         };
-        let request = builder.body(body).unwrap();
+        let request = builder.body(body)?;
         Ok(request)
     }
 
