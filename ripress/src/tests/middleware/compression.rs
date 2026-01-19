@@ -17,12 +17,12 @@ mod test {
         let mut res = HttpResponse::new();
         res.body = body;
         res.content_type = match content_type {
-            "text/plain" => ResponseContentType::TEXT,
-            "application/json" => ResponseContentType::JSON,
-            "text/html" => ResponseContentType::HTML,
-            "application/javascript" => ResponseContentType::TEXT,
-            "application/octet-stream" => ResponseContentType::BINARY,
-            _ => ResponseContentType::TEXT,
+            "text/plain" => ResponseBodyType::TEXT,
+            "application/json" => ResponseBodyType::JSON,
+            "text/html" => ResponseBodyType::HTML,
+            "application/javascript" => ResponseBodyType::TEXT,
+            "application/octet-stream" => ResponseBodyType::BINARY,
+            _ => ResponseBodyType::TEXT,
         };
         res
     }

@@ -1,15 +1,11 @@
 #![warn(missing_docs)]
 
-use crate::{
-    context::HttpResponse,
-    middlewares::shield::config::{
-        ContentSecurityPolicy, CrossDomainPolicy, CrossOriginEmbedderPolicy,
-        CrossOriginOpenerPolicy, CrossOriginResourcePolicy, DnsPrefetchControl, Frameguard,
-        HidePoweredBy, Hsts, IENoOpen, NoSniff, OriginAgentCluster, PermissionsPolicy,
-        ReferrerPolicy, ShieldConfig, XssFilter,
-    },
-    req::HttpRequest,
-    types::FutMiddleware,
+use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
+
+pub use crate::middlewares::shield::config::{
+    ContentSecurityPolicy, CrossDomainPolicy, CrossOriginEmbedderPolicy, CrossOriginOpenerPolicy,
+    CrossOriginResourcePolicy, DnsPrefetchControl, Frameguard, HidePoweredBy, Hsts, IENoOpen,
+    NoSniff, OriginAgentCluster, PermissionsPolicy, ReferrerPolicy, ShieldConfig, XssFilter,
 };
 
 /// Builtin Shield Middleware

@@ -2,7 +2,7 @@ use crate::req::{
     body::{RequestBodyContent, RequestBodyType, TextData},
     HttpRequest,
 };
-use tokio::io::AsyncWrite;
+use tokio::io::{AsyncRead, AsyncWrite};
 
 impl AsyncWrite for HttpRequest {
     fn poll_write(
@@ -101,7 +101,6 @@ impl AsyncWrite for HttpRequest {
     }
 }
 
-#[cfg(feature = "with-wynd")]
 impl AsyncRead for HttpRequest {
     fn poll_read(
         self: std::pin::Pin<&mut Self>,

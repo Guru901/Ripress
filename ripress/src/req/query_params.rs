@@ -117,7 +117,7 @@ impl QueryParams {
         }
     }
 
-    /// Create QueryParams from a single-value HashMap (for backward compatibility)
+    /// Create QueryParams from a single-value AHashMap
     pub fn from_ahashmap(map: AHashMap<String, String>) -> Self {
         let mut params = AHashMap::with_capacity(map.len());
         for (key, value) in map {
@@ -126,6 +126,7 @@ impl QueryParams {
         Self { inner: params }
     }
 
+    /// Create QueryParams from a single-value HashMap (for backward compatibility)
     pub fn from_map(map: HashMap<String, String>) -> Self {
         let mut params = AHashMap::with_capacity(map.len());
         for (key, value) in map {

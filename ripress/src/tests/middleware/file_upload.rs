@@ -4,7 +4,7 @@ mod test {
     use tempfile::TempDir;
 
     use crate::{
-        middlewares::file_upload::{FileUploadConfiguration, file_upload},
+        middlewares::file_upload::{file_upload, FileUploadConfiguration},
         req::HttpRequest,
         res::HttpResponse,
     };
@@ -198,7 +198,7 @@ mod test {
 
         // Simulate the request building process that happens in from_hyper_request
         // First, determine the content type
-        let content_type = crate::req::determine_content_type_request(&format!(
+        let content_type = crate::helpers::determine_content_type_request(&format!(
             "multipart/form-data; boundary={}",
             boundary
         ));
@@ -280,7 +280,7 @@ mod test {
         // Simulate the request building process step by step
 
         // Step 1: Determine content type
-        let content_type = crate::req::determine_content_type_request(&format!(
+        let content_type = crate::helpers::determine_content_type_request(&format!(
             "multipart/form-data; boundary={}",
             boundary
         ));
