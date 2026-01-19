@@ -108,16 +108,26 @@ impl AsyncRead for HttpRequest {
         buf: &mut tokio::io::ReadBuf<'_>,
     ) -> std::task::Poll<std::io::Result<()>> {
         // Get a mutable reference to self
-        let this = unsafe { self.get_unchecked_mut() };
+        let this = self.get_mut();
 
         // Convert the request body content to bytes
         let body_bytes = match &this.body.content {
             RequestBodyContent::TEXT(text_data) => text_data.as_bytes().to_vec(),
-            RequestBodyContent::JSON(json_value) => {
-                serde_json::to_vec(json_value).unwrap_or_default()
-            }
+            RequestBodyContent::JSON(json_value) => serde_json::to_vec(json_value)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?,
             RequestBodyContent::FORM(form_data) => form_data.to_string().as_bytes().to_vec(),
-            RequestBodyContent::BINARY(bytes) => bytes.to_vec(),
+            RequestBodyContent::BINARY(bytes) => {
+                let bytes_to_copy = std::cmp::min(buf.remaining(), bytes.len());
+                buf.put_slice(&bytes[..bytes_to_copy]);
+
+                if bytes_to_copy == bytes.len() {
+                    this.body.content = RequestBodyContent::EMPTY;
+                    this.body.content_type = RequestBodyType::EMPTY;
+                } else {
+                    this.body.content = RequestBodyContent::BINARY(bytes.slice(bytes_to_copy..));
+                }
+                return std::task::Poll::Ready(Ok(()));
+            }
             RequestBodyContent::BinaryWithFields(bytes, _form_data) => bytes.to_vec(),
             RequestBodyContent::EMPTY => Vec::new(),
         };
