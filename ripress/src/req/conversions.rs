@@ -130,13 +130,11 @@ impl HttpRequest {
             RequestBodyType::FORM => {
                 let collected = req.body_mut().collect().await?;
                 let body_bytes = collected.to_bytes();
-                let body_string = std::str::from_utf8(&body_bytes);
-                if let Err(e) = body_string {
-                    eprintln!("Error parsing form data: {}", e);
-                    eprintln!("Defaulting to empty form data");
-                }
-                match FormData::from_query_string(&body_string.unwrap()) {
-                    Ok(fd) => RequestBody::new_form(fd),
+                match std::str::from_utf8(&body_bytes) {
+                    Ok(body_string) => match FormData::from_query_string(body_string) {
+                        Ok(fd) => RequestBody::new_form(fd),
+                        Err(_e) => RequestBody::new_form(FormData::new()),
+                    },
                     Err(_e) => RequestBody::new_form(FormData::new()),
                 }
             }
