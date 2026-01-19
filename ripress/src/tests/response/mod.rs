@@ -1,9 +1,37 @@
+#[cfg(test)]
+use crate::{
+    res::HttpResponse,
+    types::{ResponseBodyType, ResponseContentBody},
+};
+
 mod cookies_test;
 mod headers;
 mod methods;
 mod redirects_test;
 mod status_code;
 mod streaming_test;
+
+#[cfg(test)]
+impl HttpResponse {
+    pub(crate) fn get_status_code(&self) -> u16 {
+        self.status_code.as_u16()
+    }
+
+    pub(crate) fn get_content_type(&self) -> &ResponseBodyType {
+        &self.content_type
+    }
+
+    pub(crate) fn get_body(self) -> ResponseContentBody {
+        self.body
+    }
+
+    pub(crate) fn get_cookie(&self, key: &str) -> Option<&'static str> {
+        self.cookies
+            .iter()
+            .find(|cookie| cookie.name == key)
+            .map(|cookie| cookie.value)
+    }
+}
 
 #[cfg(test)]
 mod tests {
