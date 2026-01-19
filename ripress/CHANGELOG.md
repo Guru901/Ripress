@@ -2,7 +2,7 @@
 
 ## [2.3.2] - 2026-01-20
 
-- Removed unnecessary feature
+- Removed unnecessary feature flag
 
 ## [2.3.1] - 2026-01-19
 

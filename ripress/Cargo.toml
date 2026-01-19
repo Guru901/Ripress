@@ -1,6 +1,6 @@
 [package]
 name = "ripress"
-version = "2.3.1"
+version = "2.3.2"
 edition.workspace = true
 description = "An Express.js-inspired web framework for Rust"
 license.workspace = true
