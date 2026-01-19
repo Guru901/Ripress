@@ -435,7 +435,7 @@ impl HttpRequest {
             }
             RequestBodyContent::EMPTY => Full::from(Bytes::new()),
         };
-        let request = builder.body(body).unwrap();
+        let request = builder.body(body)?;
         Ok(request)
     }
 
