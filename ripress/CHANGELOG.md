@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.2.1] - 2026-01-19
+
+- Internal Improvements
+  - Code Organization
+    - Extracted large request/response conversion logic into dedicated conversions module (559 lines)
+    - Centralized middleware registration in app/middlewares.rs (675 lines)
+    - Improved connection handling with dedicated helpers: handle_connection(), serve_http2_only(), serve_http1_and_http2(), etc.
+    - Better separation of concerns across modules
+
+  - Performance & Maintainability
+    - Enhanced error handling in request parsing and response building
+    - Inhanced performance in binary body type when using wynd
+
+- Bug fixes
+  - Fixed shield middleware from being a pre middleware to being a post middleware.
+
+- Lots of refactor
+
 ## [2.2.0] - 2025-12-20
 
 - Added
