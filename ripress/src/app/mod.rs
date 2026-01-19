@@ -38,16 +38,16 @@
 use crate::app::api_error::ApiError;
 
 use crate::helpers::{box_future_middleware, exec_post_middleware, exec_pre_middleware};
-#[cfg(feature = "with-wynd")]
-use crate::middlewares::WyndMiddleware;
 use crate::middlewares::body_limit::body_limit;
 #[cfg(feature = "compression")]
-use crate::middlewares::compression::{CompressionConfig, compression};
-use crate::middlewares::cors::{CorsConfig, cors};
+use crate::middlewares::compression::{compression, CompressionConfig};
+use crate::middlewares::cors::{cors, CorsConfig};
 #[cfg(feature = "logger")]
-use crate::middlewares::logger::{LoggerConfig, logger};
-use crate::middlewares::rate_limiter::{RateLimiterConfig, rate_limiter};
-use crate::middlewares::shield::{ShieldConfig, shield};
+use crate::middlewares::logger::{logger, LoggerConfig};
+use crate::middlewares::rate_limiter::{rate_limiter, RateLimiterConfig};
+use crate::middlewares::shield::{config::ShieldConfig, shield};
+#[cfg(feature = "with-wynd")]
+use crate::middlewares::WyndMiddleware;
 use crate::middlewares::{Middleware, MiddlewareType};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
@@ -61,13 +61,13 @@ use hyper::http::StatusCode;
 use hyper::server::conn::http1;
 use hyper::server::conn::http2;
 use hyper::service::Service;
-use hyper::{Method, header};
+use hyper::{header, Method};
 use hyper::{Request, Response};
 use hyper_staticfile::Static;
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use hyper_util::server::conn::auto::Builder;
-use routerify_ng::RouterService;
 use routerify_ng::ext::RequestExt;
+use routerify_ng::RouterService;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -1661,7 +1661,11 @@ impl App {
         } else if original_path.starts_with(&mount_root) {
             // Strip the mount root prefix, but ensure we don't create an empty path
             let remaining = &original_path[mount_root.len()..];
-            if remaining.is_empty() { "/" } else { remaining }
+            if remaining.is_empty() {
+                "/"
+            } else {
+                remaining
+            }
         } else {
             // Path doesn't match mount root - this shouldn't happen in normal routing
             original_path

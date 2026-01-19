@@ -1,15 +1,18 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        middlewares::shield::{
+        middlewares::shield::config::{
             ContentSecurityPolicy, CrossDomainPolicy, CrossOriginEmbedderPolicy,
             CrossOriginOpenerPolicy, CrossOriginResourcePolicy, DnsPrefetchControl, Frameguard,
             HidePoweredBy, Hsts, IENoOpen, NoSniff, OriginAgentCluster, PermissionsPolicy,
-            ReferrerPolicy, XssFilter, set_content_security_policy, set_cross_domain_policy,
-            set_cross_origin_embedder_policy, set_cross_origin_opener_policy,
-            set_cross_origin_resource_policy, set_dns_prefetch_control, set_frameguard,
-            set_hide_powered_by, set_hsts, set_ie_no_open, set_no_sniff, set_origin_agent_cluster,
-            set_permissions_policy, set_referrer_policy, set_xss_filter,
+            ReferrerPolicy, XssFilter,
+        },
+        middlewares::shield::{
+            set_content_security_policy, set_cross_domain_policy, set_cross_origin_embedder_policy,
+            set_cross_origin_opener_policy, set_cross_origin_resource_policy,
+            set_dns_prefetch_control, set_frameguard, set_hide_powered_by, set_hsts,
+            set_ie_no_open, set_no_sniff, set_origin_agent_cluster, set_permissions_policy,
+            set_referrer_policy, set_xss_filter,
         },
         res::HttpResponse,
     };
@@ -44,11 +47,10 @@ mod tests {
             report_only: true,
         };
         set_content_security_policy(&mut res, &csp);
-        assert!(
-            res.headers
-                .get("content-security-policy-report-only")
-                .is_some()
-        );
+        assert!(res
+            .headers
+            .get("content-security-policy-report-only")
+            .is_some());
     }
 
     #[test]
@@ -422,10 +424,9 @@ mod tests {
             policy: "none".to_string(),
         };
         set_cross_domain_policy(&mut res, &cdp);
-        assert!(
-            res.headers
-                .get("x-permitted-cross-domain-policies")
-                .is_none()
-        );
+        assert!(res
+            .headers
+            .get("x-permitted-cross-domain-policies")
+            .is_none());
     }
 }
