@@ -63,33 +63,33 @@ impl ResponseContentBody {
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub(crate) enum ResponseContentType {
+pub(crate) enum ResponseBodyType {
     TEXT,
     JSON,
     HTML,
     BINARY,
 }
 
-impl From<MimeGuess> for ResponseContentType {
+impl From<MimeGuess> for ResponseBodyType {
     fn from(guess: MimeGuess) -> Self {
         let mime = guess.first_or_octet_stream();
 
         match (mime.type_(), mime.subtype()) {
-            (mime::TEXT, mime::HTML) => ResponseContentType::HTML,
-            (mime::TEXT, _) => ResponseContentType::TEXT,
-            (mime::APPLICATION, mime::JSON) => ResponseContentType::JSON,
-            _ => ResponseContentType::BINARY,
+            (mime::TEXT, mime::HTML) => ResponseBodyType::HTML,
+            (mime::TEXT, _) => ResponseBodyType::TEXT,
+            (mime::APPLICATION, mime::JSON) => ResponseBodyType::JSON,
+            _ => ResponseBodyType::BINARY,
         }
     }
 }
 
-impl ResponseContentType {
+impl ResponseBodyType {
     pub fn as_str(&self) -> &'static str {
         match self {
-            ResponseContentType::TEXT => "text/plain",
-            ResponseContentType::JSON => "application/json",
-            ResponseContentType::HTML => "text/html",
-            ResponseContentType::BINARY => "application/octet-stream",
+            ResponseBodyType::TEXT => "text/plain",
+            ResponseBodyType::JSON => "application/json",
+            ResponseBodyType::HTML => "text/html",
+            ResponseBodyType::BINARY => "application/octet-stream",
         }
     }
 }

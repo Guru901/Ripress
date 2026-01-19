@@ -98,9 +98,9 @@
 use crate::app::api_error::ApiError;
 #[cfg(not(feature = "with-wynd"))]
 use crate::app::api_error::ApiError;
-use crate::req::determine_content_type_response;
+use crate::helpers::determine_content_type_response;
 use crate::res::response_status::StatusCode;
-use crate::types::{ResponseContentBody, ResponseContentType};
+use crate::types::{ResponseBodyType, ResponseContentBody};
 use bytes::Bytes;
 use futures::{stream, Stream, StreamExt};
 use http_body_util::BodyExt;
@@ -205,7 +205,7 @@ pub struct HttpResponse {
     pub(crate) body: ResponseContentBody,
 
     // Content type of the response
-    pub(crate) content_type: ResponseContentType,
+    pub(crate) content_type: ResponseBodyType,
 
     // Status code specified by the developer
     pub(crate) status_code: StatusCode,
@@ -276,7 +276,7 @@ impl HttpResponse {
         Self {
             status_code: StatusCode::Ok,
             body: ResponseContentBody::TEXT(String::new()),
-            content_type: ResponseContentType::TEXT,
+            content_type: ResponseBodyType::TEXT,
             headers: ResponseHeaders::new(),
             cookies: Vec::new(),
             remove_cookies: Vec::new(),
@@ -406,7 +406,7 @@ impl HttpResponse {
 
     pub fn text<T: Into<String>>(mut self, text: T) -> Self {
         self.body = ResponseContentBody::new_text(text);
-        self.content_type = ResponseContentType::TEXT;
+        self.content_type = ResponseBodyType::TEXT;
         return self;
     }
 
@@ -443,7 +443,7 @@ impl HttpResponse {
 
     pub fn json<T: Serialize>(mut self, json: T) -> Self {
         self.body = ResponseContentBody::new_json(json);
-        self.content_type = ResponseContentType::JSON;
+        self.content_type = ResponseBodyType::JSON;
         return self;
     }
 
@@ -476,7 +476,7 @@ impl HttpResponse {
 
     pub fn bytes<T: Into<Bytes>>(mut self, bytes: T) -> Self {
         self.body = ResponseContentBody::new_binary(bytes.into());
-        self.content_type = ResponseContentType::BINARY;
+        self.content_type = ResponseBodyType::BINARY;
         return self;
     }
 
@@ -636,7 +636,7 @@ impl HttpResponse {
 
     pub fn html(mut self, html: &str) -> Self {
         self.body = ResponseContentBody::new_html(html);
-        self.content_type = ResponseContentType::HTML;
+        self.content_type = ResponseBodyType::HTML;
         self
     }
 
@@ -673,7 +673,7 @@ impl HttpResponse {
                     .unwrap_or("bin");
 
                 let mime_type = from_ext(file_extension);
-                self.content_type = ResponseContentType::from(mime_type);
+                self.content_type = ResponseBodyType::from(mime_type);
                 self.body = ResponseContentBody::new_binary(file);
             }
             Err(e) => {
@@ -732,22 +732,22 @@ impl HttpResponse {
 
         let content_type = content_type_hdr
             .map(determine_content_type_response)
-            .unwrap_or(ResponseContentType::BINARY);
+            .unwrap_or(ResponseBodyType::BINARY);
 
         let body = match content_type {
-            ResponseContentType::BINARY => ResponseContentBody::new_binary(body_bytes),
-            ResponseContentType::TEXT => {
+            ResponseBodyType::BINARY => ResponseContentBody::new_binary(body_bytes),
+            ResponseBodyType::TEXT => {
                 let text = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
                 ResponseContentBody::new_text(text)
             }
-            ResponseContentType::JSON => {
+            ResponseBodyType::JSON => {
                 // Avoid panic: if JSON parsing fails, fallback to empty object
                 let json_value =
                     serde_json::from_slice(&body_bytes).unwrap_or(serde_json::Value::Null);
                 ResponseContentBody::new_json(json_value)
             }
-            ResponseContentType::HTML => {
+            ResponseBodyType::HTML => {
                 let html = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
                 ResponseContentBody::new_html(html)
@@ -805,21 +805,21 @@ impl HttpResponse {
 
         let content_type = content_type_hdr
             .map(determine_content_type_response)
-            .unwrap_or(ResponseContentType::BINARY);
+            .unwrap_or(ResponseBodyType::BINARY);
 
         let body = match content_type {
-            ResponseContentType::BINARY => ResponseContentBody::new_binary(body_bytes),
-            ResponseContentType::TEXT => {
+            ResponseBodyType::BINARY => ResponseContentBody::new_binary(body_bytes),
+            ResponseBodyType::TEXT => {
                 let text = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
                 ResponseContentBody::new_text(text)
             }
-            ResponseContentType::JSON => {
+            ResponseBodyType::JSON => {
                 let json_value =
                     serde_json::from_slice(&body_bytes).unwrap_or(serde_json::Value::Null);
                 ResponseContentBody::new_json(json_value)
             }
-            ResponseContentType::HTML => {
+            ResponseBodyType::HTML => {
                 let html = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
                 ResponseContentBody::new_html(html)
@@ -1033,7 +1033,7 @@ impl HttpResponse {
         self.status_code.as_u16()
     }
 
-    pub(crate) fn get_content_type(&self) -> &ResponseContentType {
+    pub(crate) fn get_content_type(&self) -> &ResponseBodyType {
         &self.content_type
     }
 

@@ -3,6 +3,8 @@ use std::{fmt::Display, future::Future, sync::Arc};
 
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
+use crate::req::body::RequestBodyType;
+use crate::types::ResponseBodyType;
 use crate::{
     app::api_error::ApiError,
     middlewares::Middleware,
@@ -14,6 +16,7 @@ use http_body_util::Full;
 #[cfg(feature = "with-wynd")]
 use hyper::body::Body;
 use hyper::{body::Bytes, Request, Response};
+use mime::Mime;
 use routerify_ng::RequestInfo;
 use url::form_urlencoded::Serializer;
 
@@ -501,3 +504,55 @@ impl_extract_from_owned_tuples!(
     15: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O),
     16: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P)
 );
+
+pub(crate) fn determine_content_type_request(content_type: &str) -> RequestBodyType {
+    match content_type.parse::<Mime>() {
+        Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
+            (mime::APPLICATION, mime::JSON) => RequestBodyType::JSON,
+            (mime::APPLICATION, subtype) if subtype == "x-www-form-urlencoded" => {
+                RequestBodyType::FORM
+            }
+            // Remove the incorrect line that was matching application/form-data as multipart
+            (mime::MULTIPART, subtype) if subtype == "form-data" => RequestBodyType::MultipartForm,
+            (mime::TEXT, _) => RequestBodyType::TEXT,
+            // Handle JSON variants
+            (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
+                RequestBodyType::JSON
+            }
+            (mime::APPLICATION, subtype)
+                if subtype == "xml" || subtype.as_str().ends_with("+xml") =>
+            {
+                RequestBodyType::TEXT
+            }
+            _ => RequestBodyType::BINARY,
+        },
+        Err(_) => RequestBodyType::BINARY, // Fallback for invalid MIME types
+    }
+}
+
+pub(crate) fn determine_content_type_response(content_type: &str) -> ResponseBodyType {
+    match content_type.parse::<Mime>() {
+        Ok(mime_type) => match (mime_type.type_(), mime_type.subtype()) {
+            (mime::APPLICATION, mime::JSON) => ResponseBodyType::JSON,
+            (mime::TEXT, subtype) => {
+                if subtype == "html" {
+                    ResponseBodyType::HTML
+                } else {
+                    ResponseBodyType::TEXT
+                }
+            }
+            (mime::APPLICATION, subtype)
+                if subtype.as_str().ends_with("+json") || subtype == "vnd.api" =>
+            {
+                ResponseBodyType::JSON
+            }
+            (mime::APPLICATION, subtype)
+                if subtype == "xml" || subtype.as_str().ends_with("+xml") =>
+            {
+                ResponseBodyType::TEXT
+            }
+            _ => ResponseBodyType::BINARY,
+        },
+        Err(_) => ResponseBodyType::BINARY, // Fallback for invalid MIME types
+    }
+}

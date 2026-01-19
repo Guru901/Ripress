@@ -4,13 +4,13 @@ mod test {
     use crate::context::HttpResponse;
     #[cfg(feature = "compression")]
     use crate::middlewares::compression::{
-        CompressionConfig, accepts_gzip_encoding, compress_data, compression,
-        get_response_body_bytes, set_response_body, should_compress_content_type,
+        accepts_gzip_encoding, compress_data, compression, get_response_body_bytes,
+        set_response_body, should_compress_content_type, CompressionConfig,
     };
     #[cfg(feature = "compression")]
     use crate::req::HttpRequest;
     #[cfg(feature = "compression")]
-    use crate::types::{ResponseContentBody, ResponseContentType};
+    use crate::types::{ResponseBodyType, ResponseContentBody};
 
     #[cfg(feature = "compression")]
     fn make_response_with_body(body: ResponseContentBody, content_type: &str) -> HttpResponse {

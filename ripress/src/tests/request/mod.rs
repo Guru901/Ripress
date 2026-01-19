@@ -1,3 +1,11 @@
+use crate::req::body::FormData;
+use crate::req::body::TextData;
+use crate::req::body::{RequestBodyContent, RequestBodyType};
+#[cfg(test)]
+use crate::req::origin_url::Url;
+use crate::req::HttpRequest;
+use crate::types::HttpMethods;
+
 mod body;
 mod data;
 mod form_data_test;
@@ -6,11 +14,83 @@ mod query_param;
 mod route_params;
 
 #[cfg(test)]
+impl HttpRequest {
+    pub(crate) fn set_query(&mut self, key: &str, value: &str) {
+        self.query.insert(key.to_string(), value.to_string());
+    }
+
+    pub(crate) fn set_header(&mut self, key: &str, value: &str) {
+        self.headers.insert(key.to_string(), value.to_string());
+    }
+
+    pub(crate) fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)
+    where
+        J: serde::de::DeserializeOwned + serde::Serialize,
+    {
+        self.body.content_type = content_type;
+        self.body.content = RequestBodyContent::JSON(serde_json::to_value(json).unwrap());
+    }
+
+    pub(crate) fn set_text(&mut self, text: TextData, content_type: RequestBodyType) {
+        self.body.content_type = content_type;
+        self.body.content = RequestBodyContent::TEXT(text)
+    }
+
+    pub(crate) fn set_binary(&mut self, bytes: Vec<u8>, content_type: RequestBodyType) {
+        self.body.content_type = content_type;
+        self.body.content = RequestBodyContent::BINARY(bytes.into());
+    }
+
+    pub(crate) fn set_form(
+        &mut self,
+        key: &'static str,
+        value: &'static str,
+        content_type: RequestBodyType,
+    ) {
+        self.body.content_type = content_type;
+
+        match &mut self.body.content {
+            RequestBodyContent::FORM(existing) => {
+                existing.insert(key, value);
+            }
+            _ => {
+                let mut form_data = FormData::new();
+                form_data.insert(key, value);
+
+                self.body.content = RequestBodyContent::FORM(form_data)
+            }
+        }
+    }
+
+    pub(crate) fn set_content_type(&mut self, content_type: RequestBodyType) {
+        self.body.content_type = content_type;
+    }
+
+    pub(crate) fn _set_binary(&mut self, bytes: Vec<u8>) {
+        self.body.content_type = RequestBodyType::BINARY;
+        self.body.content = RequestBodyContent::BINARY(bytes.into());
+    }
+
+    pub(crate) fn set_method(&mut self, method: HttpMethods) {
+        self.method = method;
+    }
+
+    pub(crate) fn set_path(&mut self, path: String) {
+        self.path = path;
+    }
+
+    pub(crate) fn set_origin_url(&mut self, origin_url: Url) {
+        self.origin_url = origin_url;
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use crate::{
-        req::{determine_content_type_response, origin_url::Url},
+        helpers::determine_content_type_response,
+        req::origin_url::Url,
         res::{response_cookie::CookieOptions, HttpResponse},
-        types::{ResponseContentBody, ResponseContentType, _HttpResponseError},
+        types::{ResponseBodyType, ResponseContentBody, _HttpResponseError},
     };
     use serde_json::json;
 
@@ -61,7 +141,7 @@ mod tests {
     fn test_json_response() {
         let json_body = json!({"key": "value"});
         let response = HttpResponse::new().json(json_body.clone());
-        assert_eq!(response.get_content_type(), &ResponseContentType::JSON);
+        assert_eq!(response.get_content_type(), &ResponseBodyType::JSON);
         if let ResponseContentBody::JSON(body) = response.get_body() {
             assert_eq!(body, json_body);
         } else {
@@ -102,7 +182,7 @@ mod tests {
     fn test_binary_response() {
         let bytes = vec![1, 2, 3, 4, 5];
         let response = HttpResponse::new().bytes(bytes.clone());
-        assert_eq!(response.get_content_type(), &ResponseContentType::BINARY);
+        assert_eq!(response.get_content_type(), &ResponseBodyType::BINARY);
         if let ResponseContentBody::BINARY(body) = response.get_body() {
             assert_eq!(body, bytes);
         } else {
@@ -144,7 +224,7 @@ mod tests {
         let text_body = "Hello, World!";
         let response = HttpResponse::new().text(text_body);
 
-        assert_eq!(response.get_content_type(), &ResponseContentType::TEXT);
+        assert_eq!(response.get_content_type(), &ResponseBodyType::TEXT);
         let response_2 = HttpResponse::new().text(text_body);
 
         if let ResponseContentBody::TEXT(body) = response_2.get_body() {
@@ -154,7 +234,7 @@ mod tests {
         }
 
         assert_eq!(response.get_status_code(), 200);
-        assert_eq!(response.get_content_type(), &ResponseContentType::TEXT);
+        assert_eq!(response.get_content_type(), &ResponseBodyType::TEXT);
 
         // Edge case: Empty text body
         let response = HttpResponse::new().text("");
@@ -169,7 +249,7 @@ mod tests {
     fn test_html_response() {
         let text_body = "<h1>Hello, World!</h1>";
         let response = HttpResponse::new().html(text_body);
-        assert_eq!(response.get_content_type(), &ResponseContentType::HTML);
+        assert_eq!(response.get_content_type(), &ResponseBodyType::HTML);
         if let ResponseContentBody::HTML(body) = response.get_body() {
             assert_eq!(body, text_body);
         } else {
@@ -316,31 +396,31 @@ mod tests {
     fn test_determine_content_type() {
         let content_type_str = "application/json";
         let content_type = determine_content_type_response(content_type_str);
-        assert_eq!(content_type, ResponseContentType::JSON);
+        assert_eq!(content_type, ResponseBodyType::JSON);
 
         let content_type_str = "text/plain";
         let content_type = determine_content_type_response(content_type_str);
-        assert_eq!(content_type, ResponseContentType::TEXT);
+        assert_eq!(content_type, ResponseBodyType::TEXT);
 
         let content_type_str = "application/octet-stream";
         let content_type = determine_content_type_response(content_type_str);
-        assert_eq!(content_type, ResponseContentType::BINARY);
+        assert_eq!(content_type, ResponseBodyType::BINARY);
 
         let content_type_str = "text/html";
         let content_type = determine_content_type_response(content_type_str);
-        assert_eq!(content_type, ResponseContentType::HTML);
+        assert_eq!(content_type, ResponseBodyType::HTML);
 
         let content_type_str = "application/vnd.api+json";
         let content_type = determine_content_type_response(content_type_str);
         println!("{:?}", content_type);
-        assert_eq!(content_type, ResponseContentType::JSON);
+        assert_eq!(content_type, ResponseBodyType::JSON);
 
         let content_type_str = "application/xml";
         let content_type = determine_content_type_response(content_type_str);
-        assert_eq!(content_type, ResponseContentType::TEXT);
+        assert_eq!(content_type, ResponseBodyType::TEXT);
 
         let content_type_str = "not/a-mime";
         let content_type = determine_content_type_response(content_type_str);
-        assert_eq!(content_type, ResponseContentType::BINARY);
+        assert_eq!(content_type, ResponseBodyType::BINARY);
     }
 }

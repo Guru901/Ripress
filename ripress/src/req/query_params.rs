@@ -118,6 +118,14 @@ impl QueryParams {
     }
 
     /// Create QueryParams from a single-value HashMap (for backward compatibility)
+    pub fn from_ahashmap(map: AHashMap<String, String>) -> Self {
+        let mut params = AHashMap::with_capacity(map.len());
+        for (key, value) in map {
+            params.insert(key, vec![value]);
+        }
+        Self { inner: params }
+    }
+
     pub fn from_map(map: HashMap<String, String>) -> Self {
         let mut params = AHashMap::with_capacity(map.len());
         for (key, value) in map {
@@ -462,6 +470,12 @@ impl std::ops::Index<&str> for QueryParams {
 }
 
 // Convert from single-value HashMap for backward compatibility
+impl From<AHashMap<String, String>> for QueryParams {
+    fn from(map: AHashMap<String, String>) -> Self {
+        Self::from_ahashmap(map)
+    }
+}
+
 impl From<HashMap<String, String>> for QueryParams {
     fn from(map: HashMap<String, String>) -> Self {
         Self::from_map(map)

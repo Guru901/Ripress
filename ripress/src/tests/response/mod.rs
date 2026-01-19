@@ -10,9 +10,9 @@ mod tests {
     use std::error::Error;
 
     use crate::context::HttpRequest;
+    use crate::helpers::determine_content_type_request;
     use crate::req::body::RequestBodyType;
     use crate::req::body::TextData;
-    use crate::req::determine_content_type_request;
     use crate::req::origin_url::Url;
     use crate::res::response_cookie::{Cookie, CookieOptions};
     use crate::res::response_headers::ResponseHeaders;
@@ -312,7 +312,7 @@ mod tests {
             body: crate::types::ResponseContentBody::new_binary(bytes::Bytes::from_static(
                 b"hello world",
             )),
-            content_type: crate::types::ResponseContentType::BINARY,
+            content_type: crate::types::ResponseBodyType::BINARY,
             cookies: vec![cookies],
             headers,
             remove_cookies: vec!["old_cookie".into()],
