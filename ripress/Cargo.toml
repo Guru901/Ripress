@@ -62,7 +62,6 @@ compression = ["flate2"]
 file-upload = ["uuid"]
 logger = ["tracing"]
 validation = ["validator"]
-validator = ["dep:validator"]
 
 [profile.release]
 debug = true

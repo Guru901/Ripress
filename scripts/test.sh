@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e  # Exit on error
 
-# cargo test --features file-upload,compression,logger,with-wynd --all  # Run Rust tests
+cargo test --features file-upload,compression,logger,with-wynd --all
 
 mkdir -p ripress/public/assets ripress/public/scripts
 cd ripress/public

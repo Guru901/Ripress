@@ -1,6 +1,10 @@
 # Changelog
 
-## [2.2.1] - 2026-01-19
+## [2.3.2] - 2026-01-20
+
+- Removed unnecessary feature
+
+## [2.3.1] - 2026-01-19
 
 - Internal Improvements
   - Code Organization
@@ -18,7 +22,7 @@
 
 - Lots of refactor
 
-## [2.2.0] - 2025-12-20
+## [2.3.0] - 2025-12-20
 
 - Added
 

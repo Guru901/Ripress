@@ -7,7 +7,7 @@ async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
 #[cfg(test)]
 mod tests {
     use crate::{
-        app::{App, Http2Config, api_error::ApiError},
+        app::{api_error::ApiError, App, Http2Config},
         context::HttpResponse,
         helpers::box_future,
         middlewares::MiddlewareType,
@@ -16,7 +16,7 @@ mod tests {
         types::{HttpMethods, RouterFns},
     };
     use http_body_util::{BodyExt, Full};
-    use hyper::{Request, Response, StatusCode, body::Bytes, header};
+    use hyper::{body::Bytes, header, Request, Response, StatusCode};
     use reqwest;
     use routerify_ng::RouteError;
     use std::time::Duration;
@@ -257,9 +257,13 @@ mod tests {
     async fn test_use_pre_middleware_with_path() {
         let mut app = App::new();
 
-        app.use_pre_middleware(Some("/api"), |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_pre_middleware(Some("/api"), |req: HttpRequest, res| async move {
+            (req, Some(res))
+        });
         #[allow(deprecated)]
-        app.use_middleware(Some("/api"), |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_middleware(Some("/api"), |req: HttpRequest, res| async move {
+            (req, Some(res))
+        });
 
         assert_eq!(app.middlewares.len(), 2);
         assert_eq!(app.middlewares[0].path, "/api");
@@ -284,9 +288,15 @@ mod tests {
     async fn test_use_pre_middleware_with_default_path() {
         let mut app = App::new();
 
-        app.use_pre_middleware(None, |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_pre_middleware(
+            None,
+            |req: HttpRequest, res| async move { (req, Some(res)) },
+        );
         #[allow(deprecated)]
-        app.use_middleware(None, |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_middleware(
+            None,
+            |req: HttpRequest, res| async move { (req, Some(res)) },
+        );
 
         assert_eq!(app.middlewares.len(), 2);
         assert_eq!(app.middlewares[0].path, "/");
@@ -300,7 +310,9 @@ mod tests {
     async fn test_use_post_middleware_with_path() {
         let mut app = App::new();
 
-        app.use_post_middleware(Some("/api"), |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_post_middleware(Some("/api"), |req: HttpRequest, res| async move {
+            (req, Some(res))
+        });
 
         assert_eq!(app.middlewares.len(), 1);
         assert_eq!(app.middlewares[0].path, "/api");
@@ -323,7 +335,10 @@ mod tests {
     async fn test_use_post_middleware_with_default_path() {
         let mut app = App::new();
 
-        app.use_post_middleware(None, |req: HttpRequest, res| async move { (req, Some(res)) });
+        app.use_post_middleware(
+            None,
+            |req: HttpRequest, res| async move { (req, Some(res)) },
+        );
 
         assert_eq!(app.middlewares.len(), 1);
         assert_eq!(app.middlewares[0].path, "/");
@@ -691,7 +706,7 @@ mod tests {
         let middleware = &app.middlewares[0];
 
         assert_eq!(middleware.path, "/");
-        assert_eq!(middleware.middleware_type, MiddlewareType::Pre);
+        assert_eq!(middleware.middleware_type, MiddlewareType::Post);
     }
 
     #[test]
@@ -747,7 +762,7 @@ mod tests {
         let middleware = &app.middlewares[0];
 
         assert_eq!(middleware.path, "/");
-        assert_eq!(middleware.middleware_type, MiddlewareType::Pre);
+        assert_eq!(middleware.middleware_type, MiddlewareType::Post);
     }
 
     #[test]
