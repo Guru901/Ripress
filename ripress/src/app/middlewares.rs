@@ -584,7 +584,7 @@ impl App {
         self.middlewares.push(Arc::new(Middleware {
             func: Self::middleware_from_closure(shield(config)),
             path: "/".to_string(),
-            middleware_type: MiddlewareType::Pre,
+            middleware_type: MiddlewareType::Post,
         }));
         self
     }
