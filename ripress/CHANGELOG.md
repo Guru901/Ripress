@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.3.3] - 2026-01-20
+
+- Internal Refactor
+
 ## [2.3.2] - 2026-01-20
 
 - Removed unnecessary feature flag
