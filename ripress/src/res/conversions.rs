@@ -173,10 +173,11 @@ impl HttpResponse {
                 .header("Content-Type", "text/event-stream")
                 .header("Connection", "keep-alive");
 
-            // OPTIMIZATION: Take the HeaderMap directly instead of iterating
             let mut header_map = self.headers.into_header_map();
 
-            // Add cookies to the header map
+            header_map.remove(hyper::header::CONTENT_TYPE);
+            header_map.remove(hyper::header::CONNECTION);
+
             for c in self.cookies.iter() {
                 let mut cookie_builder = cookie::Cookie::build((c.name, c.value))
                     .http_only(c.options.http_only)
