@@ -18,30 +18,19 @@ mod tests {
     use http_body_util::Full;
     use hyper::Request;
 
-    // Helper function to create a Request<Incoming> for testing
-    // Note: This is a workaround since Incoming can't be created directly in tests.
-    // The function creates a Request<Full<Bytes>> and uses unsafe to convert it.
-    // This works for empty bodies in test contexts.
     fn make_request(path: &str) -> Request<Full<Bytes>> {
-        // Create a request with Full<Bytes> body
         let full_req: Request<Full<Bytes>> = Request::builder()
             .uri(path)
             .body(Full::from(Bytes::new()))
             .unwrap();
 
-        // For testing, we'll use a pointer-based conversion since direct transmute
-        // doesn't work due to size differences. We create the request and then
-        // reinterpret it as Incoming using raw pointers.
         let (parts, _) = full_req.into_parts();
         let full_body: Full<Bytes> = Full::from(Bytes::new());
         let full_request = Request::from_parts(parts, full_body);
 
-        // Convert using pointer manipulation - this is safe for empty bodies in tests
-        // because both types represent the same conceptual structure
         let ptr = Box::into_raw(Box::new(full_request)) as *mut Request<Full<Bytes>>;
         unsafe { *Box::from_raw(ptr) }
     }
-    // Dummy middleware function that just passes through
     fn passthrough_pre_middleware() -> Arc<Middleware> {
         Arc::new(Middleware {
             path: "/".to_string(),
@@ -52,7 +41,6 @@ mod tests {
         })
     }
 
-    // Dummy middleware that short-circuits with a response
     fn blocking_pre_middleware() -> Arc<Middleware> {
         Arc::new(Middleware {
             path: "/block".to_string(),
@@ -88,7 +76,6 @@ mod tests {
         match res {
             Err(ApiError::Generic(resp)) => {
                 assert_eq!(resp.status_code.as_u16(), 200);
-                // Optional: read body string here if needed
             }
             _ => panic!("Expected ApiError::Generic"),
         }
@@ -101,12 +88,10 @@ mod tests {
 
         let req = make_request("/wynd");
 
-        let mw = WyndMiddleware {
+        let mw = Arc::new(WyndMiddleware {
             path: "/wynd".to_string(),
             func: Arc::new(|_req| {
                 Box::pin(async move {
-                    // Instead of returning ApiError, return Ok with a response to match the expected type
-
                     use hyper::Response;
                     Ok(Response::builder()
                         .status(400)
@@ -114,10 +99,10 @@ mod tests {
                         .unwrap())
                 })
             }),
-        };
+        });
 
         let res = exec_wynd_middleware(req, mw).await;
-        assert!(!res.is_ok()); // request should continue
+        assert!(!res.is_ok());
     }
 
     #[cfg(feature = "with-wynd")]
@@ -125,7 +110,7 @@ mod tests {
     async fn test_exec_wynd_middleware_success_blocks() {
         let req = make_request("/wynd");
 
-        let mw = WyndMiddleware {
+        let mw = Arc::new(WyndMiddleware {
             path: "/wynd".to_string(),
             func: Arc::new(|_req| {
                 Box::pin(async move {
@@ -133,9 +118,9 @@ mod tests {
                     Ok(Response::new(Full::new(Bytes::from("stopped"))))
                 })
             }),
-        };
+        });
 
         let res = exec_wynd_middleware(req, mw).await;
-        assert!(res.is_err()); // should block
+        assert!(res.is_err());
     }
 }

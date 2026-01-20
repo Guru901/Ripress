@@ -16,8 +16,6 @@ mod test {
         req.method = HttpMethods::POST;
         let res = HttpResponse::new();
 
-        // Test that the middleware runs without panicking
-        // and returns the expected values
         let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone()).await;
 
         assert_eq!(returned_req.path, "/test");
@@ -55,7 +53,6 @@ mod test {
 
         let (returned_req, _) = logger_mw(req.clone(), res.clone()).await;
 
-        // Verify the middleware preserves all request data
         assert_eq!(returned_req.path, req.path);
         assert_eq!(returned_req.method, req.method);
     }

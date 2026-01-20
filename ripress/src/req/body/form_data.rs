@@ -443,7 +443,6 @@ impl FormData {
 
                 form_data.insert(decoded_key.into_owned(), decoded_value.into_owned());
             } else {
-                // Handle key without value
                 let decoded_key =
                     decode(pair).map_err(|e| format!("Failed to decode key '{}': {}", pair, e))?;
                 form_data.insert(decoded_key.into_owned(), String::new());
@@ -495,11 +494,10 @@ impl FormData {
             return Ok(form_data);
         }
 
-        // Try comma separation first, then fall back to ampersand
         let separator = if query.contains(", ") { ", " } else { "&" };
 
         for pair in query.split(separator) {
-            let pair = pair.trim(); // Remove any extra whitespace
+            let pair = pair.trim(); 
             if let Some((key, value)) = pair.split_once('=') {
                 let decoded_key = decode(key.trim())
                     .map_err(|e| format!("Failed to decode key '{}': {}", key, e))?;

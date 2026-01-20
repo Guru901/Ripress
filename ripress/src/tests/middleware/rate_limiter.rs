@@ -33,15 +33,12 @@ mod test {
         let req = mock_req("127.0.0.1");
         let res = mock_res();
 
-        // 1st request
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_none());
 
-        // 2nd request
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_none());
 
-        // 3rd request
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_none());
     }
@@ -58,15 +55,12 @@ mod test {
         let req = mock_req("127.0.0.2");
         let res = mock_res();
 
-        // 1st request
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_none());
 
-        // 2nd request
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_none());
 
-        // 3rd request should be blocked
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_some());
         let resp = resp.unwrap();
@@ -97,18 +91,14 @@ mod test {
         let req = mock_req("127.0.0.3");
         let res = mock_res();
 
-        // 1st request
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_none());
 
-        // 2nd request should be blocked
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_some());
 
-        // Wait for window to expire
         sleep(Duration::from_millis(120)).await;
 
-        // 3rd request should be allowed again
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_none());
     }
@@ -126,11 +116,9 @@ mod test {
         req.headers.insert("X-Forwarded-For", "8.8.8.8");
         let res = mock_res();
 
-        // 1st request from 8.8.8.8
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_none());
 
-        // 2nd request from 8.8.8.8 should be blocked
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_some());
     }
@@ -146,15 +134,12 @@ mod test {
         let req = mock_req("127.0.0.5");
         let res = mock_res();
 
-        // 1st request
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_none());
 
-        // 2nd request
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         assert!(resp.is_none());
 
-        // 3rd request should be blocked and have headers
         let (_req, resp) = mw(req.clone(), res.clone()).await;
         let resp = resp.unwrap();
         assert_eq!(

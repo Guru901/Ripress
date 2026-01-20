@@ -1,10 +1,8 @@
 #![warn(missing_docs)]
 use crate::{
-    context::HttpResponse,
-    req::HttpRequest,
-    types::{FutMiddleware, ResponseContentBody},
+    context::HttpResponse, req::HttpRequest, res::ResponseBodyContent, types::MiddlewareOutput,
 };
-use flate2::{Compression, write::GzEncoder};
+use flate2::{write::GzEncoder, Compression};
 use std::io::Write;
 
 /// Configuration for the compression middleware
@@ -19,7 +17,7 @@ pub struct CompressionConfig {
 impl Default for CompressionConfig {
     fn default() -> Self {
         Self {
-            threshold: 1024, // 1 KB - more reasonable than 1 MB for compression
+            threshold: 1024,
             level: 6,
         }
     }
@@ -37,12 +35,11 @@ impl Default for CompressionConfig {
 /// A middleware function that compresses HTTP responses
 pub(crate) fn compression(
     config: Option<CompressionConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
+) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static {
     let config = config.unwrap_or_default();
     move |req: HttpRequest, mut res| {
         let config = config.clone();
         Box::pin(async move {
-            // Check if client accepts gzip encoding
             let accepts_gzip = req
                 .headers
                 .get("Accept-Encoding")
@@ -52,7 +49,6 @@ pub(crate) fn compression(
             if !accepts_gzip {
                 return (req, None);
             }
-            // Prevent double-encoding if an upstream already encoded the body
             if res
                 .headers
                 .get("Content-Encoding")
@@ -61,48 +57,36 @@ pub(crate) fn compression(
             {
                 return (req, None);
             }
-            // Get response body content for size check
             let body_bytes = match get_response_body_bytes(&res) {
                 Some(bytes) => bytes,
                 None => return (req, None),
             };
 
-            // Check if body meets minimum size threshold
             if body_bytes.len() < config.threshold {
                 return (req, None);
             }
 
-            // Get content type
             let content_type = res.content_type.as_str();
-
-            // Check if content type should be compressed
 
             if !should_compress_content_type(content_type) {
                 return (req, None);
             }
 
-            // Compress the body
             match compress_data(&body_bytes, config.level) {
                 Ok(compressed_body) => {
-                    // Update response with compressed body
                     if let Err(_) = set_response_body(&mut res, compressed_body) {
                         return (req, None);
                     }
 
-                    // Set compression headers
                     res = res
                         .set_header("Content-Encoding", "gzip")
                         .set_header("Vary", "Accept-Encoding");
 
-                    // Remove original content-length as it's no longer valid
                     res.headers.remove("Content-Length");
 
                     (req, Some(res))
                 }
-                Err(_) => {
-                    // Compression failed, return original response
-                    (req, None)
-                }
+                Err(_) => (req, None),
             }
         })
     }
@@ -136,10 +120,10 @@ pub(crate) fn compress_data(data: &[u8], level: u8) -> Result<Vec<u8>, std::io::
 /// Extracts body bytes from HttpResponse for size checking
 pub(crate) fn get_response_body_bytes(response: &HttpResponse) -> Option<Vec<u8>> {
     match &response.body {
-        ResponseContentBody::TEXT(text) => Some(text.as_bytes().to_vec()),
-        ResponseContentBody::JSON(json) => serde_json::to_vec(json).ok(),
-        ResponseContentBody::HTML(html) => Some(html.as_bytes().to_vec()),
-        ResponseContentBody::BINARY(bytes) => Some(bytes.to_vec()),
+        ResponseBodyContent::TEXT(text) => Some(text.as_bytes().to_vec()),
+        ResponseBodyContent::JSON(json) => serde_json::to_vec(json).ok(),
+        ResponseBodyContent::HTML(html) => Some(html.as_bytes().to_vec()),
+        ResponseBodyContent::BINARY(bytes) => Some(bytes.to_vec()),
     }
 }
 
@@ -151,7 +135,7 @@ pub(crate) fn set_response_body(
     response: &mut HttpResponse,
     compressed_body: Vec<u8>,
 ) -> Result<(), ()> {
-    response.body = ResponseContentBody::BINARY(compressed_body.into());
+    response.body = ResponseBodyContent::BINARY(compressed_body.into());
     Ok(())
 }
 
@@ -169,6 +153,5 @@ pub(crate) fn accepts_gzip_encoding(header: &str) -> bool {
             }
             Some((enc, q))
         })
-        // gzip explicitly allowed with q>0 OR wildcard with q>0
         .any(|(enc, q)| q > 0.0 && (enc == "gzip" || enc == "*"))
 }

@@ -99,7 +99,7 @@ impl Default for Hsts {
     fn default() -> Self {
         Self {
             enabled: true,
-            max_age: 31536000, // 1 year in seconds
+            max_age: 31536000, 
             include_subdomains: true,
             preload: false,
         }
@@ -321,7 +321,7 @@ impl Default for DnsPrefetchControl {
     fn default() -> Self {
         Self {
             enabled: true,
-            allow: false, // Prioritize privacy over performance
+            allow: false, 
         }
     }
 }
@@ -470,10 +470,10 @@ pub struct PermissionsPolicy {
 impl Default for PermissionsPolicy {
     fn default() -> Self {
         let mut features = HashMap::new();
-        features.insert("camera".to_string(), vec![]); // Disabled
-        features.insert("microphone".to_string(), vec![]); // Disabled
-        features.insert("geolocation".to_string(), vec!["self".to_string()]); // Same origin only
-        features.insert("payment".to_string(), vec![]); // Disabled
+        features.insert("camera".to_string(), vec![]); 
+        features.insert("microphone".to_string(), vec![]); 
+        features.insert("geolocation".to_string(), vec!["self".to_string()]); 
+        features.insert("payment".to_string(), vec![]); 
 
         Self {
             enabled: true,
@@ -525,7 +525,7 @@ pub enum CrossOriginOpenerPolicy {
 
 impl Default for CrossOriginOpenerPolicy {
     fn default() -> Self {
-        Self::SameOrigin // Most secure option
+        Self::SameOrigin 
     }
 }
 
@@ -573,7 +573,7 @@ pub enum CrossOriginResourcePolicy {
 
 impl Default for CrossOriginResourcePolicy {
     fn default() -> Self {
-        Self::SameOrigin // Most secure and simple default
+        Self::SameOrigin 
     }
 }
 
@@ -721,7 +721,7 @@ pub enum CrossOriginEmbedderPolicy {
 
 impl Default for CrossOriginEmbedderPolicy {
     fn default() -> Self {
-        Self::UnsafeNone // Maintain compatibility by default
+        Self::UnsafeNone 
     }
 }
 
@@ -770,7 +770,7 @@ pub struct OriginAgentCluster {
 
 impl Default for OriginAgentCluster {
     fn default() -> Self {
-        Self { enabled: true } // Enable by default for better security
+        Self { enabled: true } 
     }
 }
 
@@ -825,7 +825,7 @@ impl Default for CrossDomainPolicy {
     fn default() -> Self {
         Self {
             enabled: true,
-            policy: "none".to_string(), // Most secure: prohibit all cross-domain policies
+            policy: "none".to_string(), 
         }
     }
 }

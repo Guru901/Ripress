@@ -5,17 +5,13 @@ use hyper::Response;
 
 #[cfg(not(feature = "with-wynd"))]
 use crate::app::api_error::ApiError;
-use crate::{
-    res::{HttpResponse, ResponseError},
-    types::ResponseContentBody,
-};
+use crate::res::{HttpResponse, HttpResponseError, ResponseBodyContent};
 
 #[cfg(feature = "with-wynd")]
 use crate::app::api_error::ApiError;
 use crate::helpers::determine_content_type_response;
-use crate::{
-    res::{response_headers::ResponseHeaders, response_status::StatusCode},
-    types::ResponseBodyType,
+use crate::res::{
+    response_headers::ResponseHeaders, response_status::StatusCode, ResponseBodyType,
 };
 use futures::{stream, StreamExt};
 use http_body_util::BodyExt;
@@ -41,26 +37,24 @@ impl HttpResponse {
             .unwrap_or(ResponseBodyType::BINARY);
 
         let body = match content_type {
-            ResponseBodyType::BINARY => ResponseContentBody::new_binary(body_bytes),
+            ResponseBodyType::BINARY => ResponseBodyContent::new_binary(body_bytes),
             ResponseBodyType::TEXT => {
                 let text = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
-                ResponseContentBody::new_text(text)
+                ResponseBodyContent::new_text(text)
             }
             ResponseBodyType::JSON => {
-                // Avoid panic: if JSON parsing fails, fallback to empty object
                 let json_value =
                     serde_json::from_slice(&body_bytes).unwrap_or(serde_json::Value::Null);
-                ResponseContentBody::new_json(json_value)
+                ResponseBodyContent::new_json(json_value)
             }
             ResponseBodyType::HTML => {
                 let html = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
-                ResponseContentBody::new_html(html)
+                ResponseBodyContent::new_html(html)
             }
         };
 
-        // Heuristic for SSE streams: text/event-stream + keep-alive
         let is_event_stream = content_type_hdr
             .map(|ct| ct.eq_ignore_ascii_case("text/event-stream"))
             .unwrap_or(false);
@@ -94,7 +88,7 @@ impl HttpResponse {
             cookies: Vec::new(),
             remove_cookies: Vec::new(),
             is_stream,
-            stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
+            stream: Box::pin(stream::empty::<Result<Bytes, HttpResponseError>>()),
         })
     }
     #[cfg(not(feature = "with-wynd"))]
@@ -103,7 +97,6 @@ impl HttpResponse {
         let collected = res.body_mut().collect().await?;
         let body_bytes = collected.to_bytes();
 
-        // Extract what we need BEFORE taking the HeaderMap
         let content_type_hdr = res
             .headers()
             .get(hyper::header::CONTENT_TYPE)
@@ -114,25 +107,24 @@ impl HttpResponse {
             .unwrap_or(ResponseBodyType::BINARY);
 
         let body = match content_type {
-            ResponseBodyType::BINARY => ResponseContentBody::new_binary(body_bytes),
+            ResponseBodyType::BINARY => ResponseBodyContent::new_binary(body_bytes),
             ResponseBodyType::TEXT => {
                 let text = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
-                ResponseContentBody::new_text(text)
+                ResponseBodyContent::new_text(text)
             }
             ResponseBodyType::JSON => {
                 let json_value =
                     serde_json::from_slice(&body_bytes).unwrap_or(serde_json::Value::Null);
-                ResponseContentBody::new_json(json_value)
+                ResponseBodyContent::new_json(json_value)
             }
             ResponseBodyType::HTML => {
                 let html = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
-                ResponseContentBody::new_html(html)
+                ResponseBodyContent::new_html(html)
             }
         };
 
-        // Check for SSE stream
         let is_event_stream = content_type_hdr
             .map(|ct| ct.eq_ignore_ascii_case("text/event-stream"))
             .unwrap_or(false);
@@ -148,7 +140,6 @@ impl HttpResponse {
 
         let status_code = StatusCode::from_u16(res.status().as_u16());
 
-        // OPTIMIZATION: Take the HeaderMap directly - ZERO parsing!
         let headers = ResponseHeaders::from(std::mem::take(res.headers_mut()));
 
         Ok(HttpResponse {
@@ -159,7 +150,7 @@ impl HttpResponse {
             cookies: Vec::new(),
             remove_cookies: Vec::new(),
             is_stream,
-            stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
+            stream: Box::pin(stream::empty::<Result<Bytes, HttpResponseError>>()),
         })
     }
 
@@ -210,7 +201,6 @@ impl HttpResponse {
                 }
             }
 
-            // Remove cookies
             for cookie_name in self.remove_cookies {
                 let expired_cookie = cookie::Cookie::build((cookie_name, ""))
                     .path("/")
@@ -223,8 +213,8 @@ impl HttpResponse {
                 }
             }
 
-            // Collect the stream into a single Bytes value (async)
-            let collected_results: Vec<Result<Bytes, ResponseError>> = self.stream.collect().await;
+            let collected_results: Vec<Result<Bytes, HttpResponseError>> =
+                self.stream.collect().await;
 
             let bytes = collected_results
                 .into_iter()
@@ -234,10 +224,8 @@ impl HttpResponse {
 
             let mut hyper_response = response.body(Full::from(bytes)).unwrap();
 
-            // Merge our header map into the response
             hyper_response.headers_mut().extend(header_map);
 
-            // Remove Content-Length and set transfer-encoding for streaming
             hyper_response.headers_mut().remove(CONTENT_LENGTH);
             let header_value = HeaderValue::from_static("chunked");
             hyper_response
@@ -246,9 +234,8 @@ impl HttpResponse {
 
             return Ok(hyper_response);
         } else {
-            // Build the base response with content-type
             let mut response = match body {
-                ResponseContentBody::JSON(json) => {
+                ResponseBodyContent::JSON(json) => {
                     let json_bytes = serde_json::to_vec(&json).unwrap_or_else(|e| {
                         println!("JSON serialization error: {:?}", e);
                         Vec::from(b"{}")
@@ -259,28 +246,25 @@ impl HttpResponse {
                         .header("Content-Type", self.content_type.as_str())
                         .body(Full::from(Bytes::from(json_bytes)))
                 }
-                ResponseContentBody::TEXT(text) => Response::builder()
+                ResponseBodyContent::TEXT(text) => Response::builder()
                     .status(self.status_code.as_u16())
                     .header("Content-Type", self.content_type.as_str())
                     .body(Full::from(Bytes::from(text))),
-                ResponseContentBody::HTML(html) => Response::builder()
+                ResponseBodyContent::HTML(html) => Response::builder()
                     .status(self.status_code.as_u16())
                     .header("Content-Type", self.content_type.as_str())
                     .body(Full::from(Bytes::from(html))),
-                ResponseContentBody::BINARY(bytes) => Response::builder()
+                ResponseBodyContent::BINARY(bytes) => Response::builder()
                     .status(self.status_code.as_u16())
                     .header("Content-Type", self.content_type.as_str())
                     .body(Full::from(Bytes::from(bytes))),
             }
             .unwrap();
 
-            // OPTIMIZATION: Take the HeaderMap directly and merge it
             let mut header_map = self.headers.into_header_map();
 
-            // Remove content-type from our headers if it exists (already set above)
             header_map.remove(hyper::header::CONTENT_TYPE);
 
-            // Add cookies to the header map
             for c in self.cookies {
                 let mut cookie_builder = cookie::Cookie::build((c.name, c.value))
                     .http_only(c.options.http_only)
@@ -313,8 +297,6 @@ impl HttpResponse {
                 }
             }
 
-            // Remove cookies
-            // Remove cookies by sending expired Set-Cookie headers
             for cookie_name in self.remove_cookies {
                 let expired_cookie = cookie::Cookie::build((cookie_name, ""))
                     .path("/")
@@ -326,7 +308,6 @@ impl HttpResponse {
                     header_map.append(SET_COOKIE, cookie_value);
                 }
             }
-            // Merge all headers at once
             response.headers_mut().extend(header_map);
 
             return Ok(response);

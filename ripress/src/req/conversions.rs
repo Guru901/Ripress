@@ -55,44 +55,40 @@ impl HttpRequest {
         let method = HttpMethods::from(req.method());
         let path = req.uri().path().to_string();
 
-        // Extract header values BEFORE taking ownership
-        // These are just &str references that we'll copy to String
         let cookie_str_opt = req
             .headers()
             .get(hyper::header::COOKIE)
             .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string()); // Convert to owned String
+            .map(|s| s.to_string()); 
 
         let x_forwarded_for_str = req
             .headers()
             .get("x-forwarded-for")
             .and_then(|v| v.to_str().ok())
             .unwrap_or("127.0.0.1")
-            .to_string(); // Convert to owned String
+            .to_string(); 
 
         let x_forwarded_proto_str = req
             .headers()
             .get("x-forwarded-proto")
             .and_then(|v| v.to_str().ok())
             .unwrap_or("http")
-            .to_string(); // Convert to owned String
+            .to_string(); 
 
         let content_type_str_opt = req
             .headers()
             .get(hyper::header::CONTENT_TYPE)
             .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string()); // Convert to owned String
+            .map(|s| s.to_string()); 
 
         let xhr_header_opt = req
             .headers()
             .get("x-requested-with")
             .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string()); // Convert to owned String
+            .map(|s| s.to_string()); 
 
-        // NOW we can take ownership of the HeaderMap
         let headers = RequestHeaders::from_header_map(std::mem::take(req.headers_mut()));
 
-        // Parse IP
         let ip = x_forwarded_for_str
             .split(',')
             .next()
@@ -100,7 +96,6 @@ impl HttpRequest {
             .and_then(|s| s.parse::<IpAddr>().ok())
             .unwrap_or(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
 
-        // Parse cookies from cached header value
         let mut cookies_map = AHashMap::new();
         if let Some(cookie_str) = &cookie_str_opt {
             for cookie_part in cookie_str.split(';') {
@@ -120,7 +115,6 @@ impl HttpRequest {
             data = ext_data.clone();
         }
 
-        // Use cached content-type header
         let content_type = content_type_str_opt
             .as_deref()
             .map(determine_content_type_request)
@@ -142,7 +136,6 @@ impl HttpRequest {
                 let collected = req.body_mut().collect().await?;
                 let body_bytes = collected.to_bytes();
 
-                // Use cached content-type instead of another header lookup
                 let boundary = content_type_str_opt
                     .as_deref()
                     .filter(|ct| ct.to_lowercase().contains("multipart/form-data"))
@@ -150,7 +143,6 @@ impl HttpRequest {
 
                 let (fields, file_parts) = if let Some(boundary) = boundary {
                     let (field_refs, files) = parse_multipart_form(&body_bytes, &boundary);
-                    // Convert borrowed fields to owned strings
                     let owned_fields = field_refs
                         .into_iter()
                         .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -160,7 +152,6 @@ impl HttpRequest {
                     let body_string = String::from_utf8_lossy(&body_bytes);
                     match FormData::from_query_string(&body_string) {
                         Ok(fd) => {
-                            // Extract owned strings instead of references
                             let form_fields = fd
                                 .iter()
                                 .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -256,8 +247,7 @@ impl HttpRequest {
                     .get(HOST)
                     .and_then(|host: &hyper::header::HeaderValue| host.to_str().ok())
                     .map(|host| {
-                        // Determine scheme (you might want to check for TLS context)
-                        let scheme = "http"; // or "https" if using TLS
+                        let scheme = "http"; 
                         format!("{}://{}", scheme, host)
                     })
                     .unwrap_or(String::new());
@@ -307,7 +297,6 @@ impl HttpRequest {
         let xhr_header = headers.get("x-requested-with").unwrap_or("");
         let xhr = xhr_header == "XMLHttpRequest";
 
-        // Try to get RequestData from the request info
         let mut data = RequestData::new();
         if let Some(ext_data) = req_info.data::<RequestData>() {
             data = ext_data.clone();
@@ -358,11 +347,8 @@ impl HttpRequest {
             .method(self.method.to_string().as_str())
             .uri(uri);
 
-        // Add headers
         if let Some(headers) = builder.headers_mut() {
-            // Add all headers
             if !self.headers.is_empty() {
-                // If all header names and values are valid, batch convert and insert (to minimize branching)
                 for (name, value) in self.headers.iter() {
                     if headers.contains_key(name) {
                         headers.append(name, value.clone());
@@ -423,8 +409,6 @@ impl HttpRequest {
                 Full::from(bytes.clone())
             }
             RequestBodyContent::BinaryWithFields(bytes, _form_data) => {
-                // For multipart forms with files, we send the binary data
-                // but the form fields are accessible via form_data()
                 builder
                     .headers_mut()
                     .unwrap()
@@ -460,11 +444,8 @@ impl HttpRequest {
             .method(self.method.to_string().as_str())
             .uri(uri);
 
-        // Add headers
         if let Some(headers) = builder.headers_mut() {
-            // Add all headers
             if !self.headers.is_empty() {
-                // If all header names and values are valid, batch convert and insert (to minimize branching)
                 for (name, value) in self.headers.iter() {
                     if headers.contains_key(name) {
                         headers.append(name, value.clone());
@@ -540,8 +521,6 @@ impl HttpRequest {
                 Full::from(bytes.clone())
             }
             RequestBodyContent::BinaryWithFields(bytes, _form_data) => {
-                // For multipart forms with files, we send the binary data
-                // but the form fields are accessible via form_data()
                 builder
                     .headers_mut()
                     .unwrap()

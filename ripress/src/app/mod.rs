@@ -37,16 +37,8 @@
 
 use crate::app::api_error::ApiError;
 
-#[cfg(feature = "compression")]
-use crate::middlewares::compression::{compression, CompressionConfig};
-
-#[cfg(feature = "logger")]
-use crate::middlewares::logger::{logger, LoggerConfig};
-
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
-#[cfg(feature = "with-wynd")]
-use crate::types::WyndMiddlewareHandler;
 
 use crate::{
     helpers::{exec_post_middleware, exec_pre_middleware},
@@ -61,11 +53,13 @@ use http_body_util::{BodyExt, Full};
 use hyper::{header, http::StatusCode, Method, Request, Response};
 use hyper_staticfile::Static;
 use routerify_ng::{ext::RequestExt, RouterService};
-use std::{collections::HashMap, net::SocketAddr, path::Path, sync::Arc, time::Duration};
+use std::{collections::HashMap, net::SocketAddr, path::Path, sync::Arc};
 use tokio::net::TcpListener;
 
 pub(crate) mod api_error;
 
+mod h2;
+pub use h2::Http2Config;
 /// Handler module for managing server connections, HTTP/2/1 serving logic, and connection-level configuration.
 pub mod handler;
 /// Middleware support for the App struct, including common and user-defined middleware functionality.
@@ -144,37 +138,7 @@ pub struct App {
 
     #[cfg(feature = "with-wynd")]
     /// Optional WebSocket middleware (only available with `wynd` feature).
-    pub(crate) wynd_middleware: Option<WyndMiddleware>,
-}
-
-/// Advanced configuration options for HTTP/2 behavior.
-///
-/// All fields are optional; if a field is `None`, Hyper's internal default for
-/// that setting is used. Most applications can rely on the defaults and only
-/// override `max_concurrent_streams` or timeouts for specific workloads.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Http2Config {
-    /// If `true`, only HTTP/2 connections are accepted on this listener.
-    /// If `false`, HTTP/1.1 and HTTP/2 are both supported (negotiated by Hyper).
-    pub http2_only: bool,
-    /// Maximum number of concurrent streams allowed per HTTP/2 connection.
-    pub max_concurrent_streams: Option<u32>,
-    /// Initial stream-level flow control window size.
-    pub initial_stream_window_size: Option<u32>,
-    /// Initial connection-level flow control window size.
-    pub initial_connection_window_size: Option<u32>,
-    /// Enable or disable Hyper's adaptive flow control window behavior.
-    pub adaptive_window: Option<bool>,
-    /// Maximum allowed HTTP/2 frame size in bytes.
-    pub max_frame_size: Option<u32>,
-    /// Maximum size of the header list (in octets) that is allowed.
-    pub max_header_list_size: Option<u32>,
-    /// Interval at which HTTP/2 PING frames are sent to keep the connection alive.
-    pub keep_alive_interval: Option<Duration>,
-    /// Timeout waiting for a PING ACK before considering the connection dead.
-    pub keep_alive_timeout: Option<Duration>,
-    /// Whether to send keep-alive PINGs even when the connection is idle.
-    pub keep_alive_while_idle: Option<bool>,
+    pub(crate) wynd_middleware: Option<Arc<WyndMiddleware>>,
 }
 
 impl RouterFns for App {
@@ -441,7 +405,6 @@ impl App {
         path: &'static str,
         file: &'static str,
     ) -> Result<(), &'static str> {
-        // Validate inputs
         if file == "/" {
             return Err("Serving from filesystem root '/' is not allowed for security reasons");
         }
@@ -451,7 +414,6 @@ impl App {
         if file.is_empty() {
             return Err("File path cannot be empty");
         }
-        // Require paths to start with '/'
         if !path.starts_with('/') {
             return Err("Mount path must start with '/'");
         }
@@ -499,7 +461,7 @@ impl App {
     ///
     /// ## Server Initialization Order
     ///
-    /// 1. **WebSocket Middleware**: Applied first (if `wynd` feature is enabled)
+    /// 1. **WebSocket Middleware**: Applied first (if `with-wynd` feature is enabled)
     /// 2. **Application Middleware**: Applied in registration order
     ///    - Pre-middleware (before route handlers)
     ///    - Post-middleware (after route handlers)
@@ -545,12 +507,11 @@ impl App {
             router = router.middleware(routerify_ng::Middleware::pre({
                 use crate::helpers::exec_wynd_middleware;
 
-                let middleware = middleware.clone();
-                move |req| exec_wynd_middleware(req, middleware.clone())
+                let middleware = Arc::clone(middleware);
+                move |req| exec_wynd_middleware(req, Arc::clone(&middleware))
             }));
         }
 
-        // Apply middlewares first
         for middleware in &self.middlewares {
             match middleware.middleware_type {
                 MiddlewareType::Post => {
@@ -568,8 +529,6 @@ impl App {
             }
         }
 
-        // Register API routes FIRST (before static files)
-        // This ensures API routes take precedence over static file serving
         for (path, methods) in &self.routes {
             for (method, handler) in methods {
                 let handler = Arc::clone(handler);
@@ -604,7 +563,6 @@ impl App {
                         let response = handler(our_req, HttpResponse::new()).await;
 
                         let hyper_response = response.to_hyper_response().await;
-                        // Infallible means this can never fail, so unwrap is safe
                         Ok(hyper_response.unwrap())
                     }
                 });
@@ -692,7 +650,6 @@ impl App {
                     eprintln!("Error accepting connection: {}", e);
                 }
                 None => {
-                    // Shutdown signal received
                     break;
                 }
             }
@@ -714,13 +671,8 @@ impl App {
             ));
         });
 
-        // For WebSocket upgrades, we need to take ownership to avoid breaking the upgrade mechanism
-        // Cloning the response breaks the upgrade connection, so we must move it
         match *api_err {
-            ApiError::WebSocketUpgrade(response) => {
-                // Return the response directly without cloning to preserve the upgrade mechanism
-                response
-            }
+            ApiError::WebSocketUpgrade(response) => response,
             ApiError::Generic(res) => {
                 let hyper_res = <HttpResponse as Clone>::clone(&res)
                     .to_hyper_response()
@@ -760,9 +712,6 @@ impl App {
         B: hyper::body::Body<Data = hyper::body::Bytes> + Send + 'static,
         B::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     {
-        // Rewrite the request URI by stripping the mount_root prefix so that
-        // "/static/index.html" maps to "fs_root/index.html" rather than
-        // "fs_root/static/index.html".
         let (mut parts, body) = req.into_parts();
         let original_uri = parts.uri.clone();
         let original_path = original_uri.path();
@@ -773,10 +722,8 @@ impl App {
             .map(|s| s.to_string());
 
         let trimmed_path = if mount_root == "/" {
-            // If mounting at root, serve the path as-is
             original_path
         } else if original_path.starts_with(&mount_root) {
-            // Strip the mount root prefix, but ensure we don't create an empty path
             let remaining = &original_path[mount_root.len()..];
             if remaining.is_empty() {
                 "/"
@@ -784,7 +731,6 @@ impl App {
                 remaining
             }
         } else {
-            // Path doesn't match mount root - this shouldn't happen in normal routing
             original_path
         };
 
@@ -826,8 +772,6 @@ impl App {
                 response
                     .headers_mut()
                     .insert("X-Served-By", "hyper-staticfile".parse().unwrap());
-                // Handle conditional request with If-None-Match since hyper-staticfile 0.9
-                // does not evaluate it. If ETag matches, return 304 with empty body.
                 if let Some(if_none_match_value) = if_none_match {
                     if let Some(etag) = response.headers().get(header::ETAG) {
                         if let Ok(etag_value) = etag.to_str() {
@@ -835,7 +779,6 @@ impl App {
                                 let mut builder =
                                     Response::builder().status(StatusCode::NOT_MODIFIED);
                                 if let Some(h) = builder.headers_mut() {
-                                    // carry forward ETag, Cache-Control, Last-Modified, etc.
                                     for (k, v) in response.headers().iter() {
                                         h.insert(k.clone(), v.clone());
                                     }
@@ -846,7 +789,6 @@ impl App {
                         }
                     }
                 }
-                // Convert hyper_staticfile::Body to Full<Bytes>
                 let (parts, body) = response.into_parts();
                 let collected = body.collect().await.map_err(|e| {
                     std::io::Error::new(

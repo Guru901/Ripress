@@ -4,7 +4,6 @@ use std::sync::Arc;
 use http_body_util::Full;
 
 use crate::app::App;
-use crate::helpers::box_future_middleware;
 #[cfg(feature = "compression")]
 use crate::middlewares::compression::CompressionConfig;
 #[cfg(feature = "logger")]
@@ -20,7 +19,7 @@ use crate::middlewares::{
 };
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
-use crate::types::HandlerMiddleware;
+use crate::types::MiddlewareHandler;
 
 #[cfg(feature = "with-wynd")]
 use crate::types::WyndMiddlewareHandler;
@@ -465,10 +464,10 @@ impl App {
             + Send
             + 'static,
     {
-        self.wynd_middleware = Some(WyndMiddleware {
+        self.wynd_middleware = Some(Arc::new(WyndMiddleware {
             func: Self::wynd_middleware_from_closure(handler),
             path: path.to_string(),
-        });
+        }));
         self
     }
 
@@ -651,12 +650,12 @@ impl App {
     ///
     /// This is an internal helper method that wraps user-provided middleware functions
     /// into the expected format for the middleware system.
-    fn middleware_from_closure<F, Fut>(f: F) -> HandlerMiddleware
+    fn middleware_from_closure<F, Fut>(f: F) -> MiddlewareHandler
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
-        Arc::new(move |req: HttpRequest, res| box_future_middleware(f(req, res)))
+        Arc::new(move |req: HttpRequest, res| Box::pin(f(req, res)))
     }
 
     #[cfg(feature = "with-wynd")]

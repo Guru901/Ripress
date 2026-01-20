@@ -43,10 +43,9 @@ mod tests {
 
     #[test]
     fn test_trailing_slash_in_prefix() {
-        // "/api/" as prefix should match "/api/" and "/api/foo"
         assert!(path_matches("/api/", "/api/"));
         assert!(path_matches("/api/", "/api/foo"));
-        assert!(!path_matches("/api/", "/api")); // "/api" does not start with "/api//"
+        assert!(!path_matches("/api/", "/api")); 
     }
 
     #[test]
@@ -70,7 +69,6 @@ mod tests {
         queries.insert("foo", "bar");
         queries.insert("baz", "qux");
         let result = get_all_query(&queries);
-        // Order is not guaranteed, so check both possibilities
         let expected1 = "foo=bar&baz=qux";
         let expected2 = "baz=qux&foo=bar";
         assert!(result == expected1 || result == expected2);
@@ -81,7 +79,6 @@ mod tests {
         let mut queries = QueryParams::new();
         queries.insert("sp ce", "v@lue+1");
         let result = get_all_query(&queries);
-        // "sp ce" -> "sp+ce", "v@lue+1" -> "v%40lue%2B1"
         assert!(result.contains("sp+ce="));
         assert!(result.contains("v%40lue%2B1"));
     }
@@ -289,7 +286,6 @@ mod tests {
 
     #[test]
     fn handles_file_name_variants() {
-        // filename*
         let boundary = "multistar";
         let body = format!(
             "--multistar\r\nContent-Disposition: form-data; name=\"file\"; filename*=\"myfile.txt\"\r\n\r\nabc\r\n--multistar--"

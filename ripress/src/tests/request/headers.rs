@@ -59,7 +59,7 @@ mod tests {
 
         let all_values = headers.get_all("accept");
         assert_eq!(all_values.len(), 2);
-        assert_eq!(headers.get("accept"), Some("text/html")); // First value
+        assert_eq!(headers.get("accept"), Some("text/html")); 
     }
 
     #[test]

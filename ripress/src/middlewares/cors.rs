@@ -2,7 +2,7 @@
 use crate::{
     context::HttpResponse,
     req::HttpRequest,
-    types::{FutMiddleware, HttpMethods},
+    types::{MiddlewareOutput, HttpMethods},
 };
 
 /// Builtin CORS (Cross-Origin Resource Sharing) Middleware
@@ -387,12 +387,11 @@ impl Default for CorsConfig {
 /// * **Configuration cloning**: Lightweight operation due to `&'static str` usage
 pub(crate) fn cors(
     config: Option<CorsConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + Clone + 'static {
     move |req: HttpRequest, mut res| {
         let config = config.clone().unwrap_or_default();
         let req_clone = req.clone();
         Box::pin(async move {
-            // Always add CORS headers
             let origin = req.headers.get("Origin");
             let allowed_methods = req.headers.get("Access-Control-Request-Method");
             let requested_headers = req.headers.get("Access-Control-Request-Headers");
@@ -414,16 +413,13 @@ pub(crate) fn cors(
                     .set_header("Access-Control-Allow-Methods", config.allowed_methods)
                     .set_header("Access-Control-Allow-Headers", config.allowed_headers)
             }
-            // Note: when not reflecting, Vary is not strictly required; keep defaults minimal.
             if config.allow_credentials {
                 res = res.set_header("Access-Control-Allow-Credentials", "true");
             }
-            // Handle preflight OPTIONS requests - terminate here with 200
             if req_clone.method == HttpMethods::OPTIONS {
                 return (req_clone, Some(res.ok()));
             }
-            // For all other requests, add CORS headers but continue to next handler
-            (req_clone, None) // Continue to next middleware/handler
+            (req_clone, None) 
         })
     }
 }

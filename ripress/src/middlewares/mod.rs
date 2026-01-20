@@ -1244,7 +1244,7 @@ pub mod shield;
 
 use crate::{
     context::{HttpRequest, HttpResponse},
-    types::FutMiddleware,
+    types::MiddlewareOutput,
 };
 use std::sync::Arc;
 
@@ -1275,7 +1275,7 @@ pub(crate) struct Middleware {
     /// This is an `Arc`-wrapped closure or function pointer that takes an [`HttpRequest`]
     /// and [`HttpResponse`], and returns a boxed future resolving to a tuple of the
     /// (possibly modified) request and an optional response.
-    pub func: Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>,
+    pub func: Arc<dyn Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static>,
 
     /// The path or route prefix this middleware applies to.
     ///

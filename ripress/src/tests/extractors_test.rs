@@ -11,7 +11,6 @@ mod extractor_tests {
     use hyper::header::HeaderName;
     use serde_json::json;
 
-    // Test structures
     #[derive(Debug, PartialEq)]
     struct UserId {
         id: u32,
@@ -41,7 +40,6 @@ mod extractor_tests {
         }
     }
 
-    // Helper functions
     fn create_request_with_json(json_value: serde_json::Value) -> HttpRequest {
         let mut req = HttpRequest::default();
         req.body = RequestBody {
@@ -74,7 +72,6 @@ mod extractor_tests {
         req
     }
 
-    // JsonBody extractor tests
     #[test]
     fn test_json_body_extractor_success() {
         let json = json!({
@@ -95,7 +92,6 @@ mod extractor_tests {
     fn test_json_body_extractor_invalid_json() {
         let json = json!({
             "name": "Bob"
-            // age is missing
         });
         let req = create_request_with_json(json);
 
@@ -113,12 +109,10 @@ mod extractor_tests {
 
         let body = JsonBody::<UserData>::from_request(&req).unwrap();
 
-        // Test Deref access
         assert_eq!(body.name, "Charlie");
         assert_eq!(body.age, 25);
     }
 
-    // Params extractor tests
     #[test]
     fn test_params_extractor_success() {
         let req = create_request_with_params(vec![("id", "42")]);
@@ -152,7 +146,6 @@ mod extractor_tests {
         assert!(error.contains("Invalid id format"));
     }
 
-    // QueryParam extractor tests
     #[test]
     fn test_query_param_string_success() {
         let req = create_request_with_query("search=rust");
@@ -185,7 +178,6 @@ mod extractor_tests {
         }
     }
 
-    // Headers extractor tests
     #[test]
     fn test_headers_extractor_success() {
         let req = create_request_with_headers(vec![
@@ -209,7 +201,6 @@ mod extractor_tests {
         assert!(result.is_ok());
     }
 
-    // Tuple extractor tests (ExtractFromOwned)
     #[test]
     fn test_tuple_two_extractors() {
         let mut req = create_request_with_json(json!({
@@ -247,7 +238,6 @@ mod extractor_tests {
     #[test]
     fn test_tuple_extractor_first_fails() {
         let req = create_request_with_params(vec![("id", "789")]);
-        // JSON body is missing
 
         let result = <(JsonBody<UserData>, Params<UserId>)>::extract_from_owned(req);
         assert!(result.is_err());
@@ -259,7 +249,6 @@ mod extractor_tests {
             "name": "Frank",
             "age": 40
         }));
-        // id param is missing
 
         let result = <(JsonBody<UserData>, Params<UserId>)>::extract_from_owned(req);
         assert!(result.is_err());

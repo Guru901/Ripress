@@ -2,101 +2,22 @@
 use crate::helpers::{box_future, ExtractFromOwned};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
+#[cfg(feature = "with-wynd")]
 use bytes::Bytes;
 #[cfg(feature = "with-wynd")]
 use http_body_util::Full;
 use hyper::Method;
-use mime_guess::MimeGuess;
-use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum ResponseContentBody {
-    TEXT(String),
-    HTML(String),
-    JSON(serde_json::Value),
-    BINARY(Bytes),
-}
+pub(crate) type RouteHandlerReturnType =
+    Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
 
-impl ResponseContentBody {
-    /// Returns the content length in bytes for the current variant.
-    /// Note:
-    /// - TEXT/HTML: returns `String::len()` (UTF-8 byte length)
-    /// - JSON: returns the length of the compact serialized form
-    /// - BINARY: returns `Bytes::len()`
-
-    #[cfg(feature = "logger")]
-    pub fn len(&self) -> usize {
-        match self {
-            ResponseContentBody::TEXT(text) => text.len(),
-            ResponseContentBody::HTML(html) => html.len(),
-            ResponseContentBody::JSON(json) => {
-                serde_json::to_vec(json).map(|v| v.len()).unwrap_or(0)
-            }
-            ResponseContentBody::BINARY(bytes) => bytes.len(),
-        }
-    }
-
-    pub(crate) fn new_text<T: Into<String>>(text: T) -> Self {
-        ResponseContentBody::TEXT(text.into())
-    }
-
-    pub(crate) fn new_json<T: Serialize>(json: T) -> Self {
-        Self::try_new_json(json).expect("Failed to serialize to JSON")
-    }
-
-    pub(crate) fn try_new_json<T: Serialize>(json: T) -> Result<Self, serde_json::Error> {
-        serde_json::to_value(json).map(ResponseContentBody::JSON)
-    }
-
-    pub(crate) fn new_html<T: Into<String>>(html: T) -> Self {
-        ResponseContentBody::HTML(html.into())
-    }
-
-    pub(crate) fn new_binary<T: Into<Bytes>>(bytes: T) -> Self {
-        ResponseContentBody::BINARY(bytes.into())
-    }
-}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub(crate) enum ResponseBodyType {
-    TEXT,
-    JSON,
-    HTML,
-    BINARY,
-}
-
-impl From<MimeGuess> for ResponseBodyType {
-    fn from(guess: MimeGuess) -> Self {
-        let mime = guess.first_or_octet_stream();
-
-        match (mime.type_(), mime.subtype()) {
-            (mime::TEXT, mime::HTML) => ResponseBodyType::HTML,
-            (mime::TEXT, _) => ResponseBodyType::TEXT,
-            (mime::APPLICATION, mime::JSON) => ResponseBodyType::JSON,
-            _ => ResponseBodyType::BINARY,
-        }
-    }
-}
-
-impl ResponseBodyType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ResponseBodyType::TEXT => "text/plain",
-            ResponseBodyType::JSON => "application/json",
-            ResponseBodyType::HTML => "text/html",
-            ResponseBodyType::BINARY => "application/octet-stream",
-        }
-    }
-}
-
-pub(crate) type Fut = Pin<Box<dyn Future<Output = HttpResponse> + Send + 'static>>;
-
-pub(crate) type Handler = Arc<dyn Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static>;
+pub(crate) type RouteHandler =
+    Arc<dyn Fn(HttpRequest, HttpResponse) -> RouteHandlerReturnType + Send + Sync + 'static>;
 
 /// Represents the supported HTTP methods for routing and request handling.
 ///
@@ -156,65 +77,13 @@ impl Display for HttpMethods {
     }
 }
 
-pub(crate) type Routes = HashMap<String, HashMap<HttpMethods, Handler>>;
+pub(crate) type Routes = HashMap<String, HashMap<HttpMethods, RouteHandler>>;
 
-/// Represents possible errors that can occur when handling an HTTP request.
-#[derive(Debug, PartialEq)]
-pub enum HttpRequestError {
-    /// Indicates that a required cookie is missing.
-    /// The associated `String` is the name of the missing cookie.
-    MissingCookie(String),
-    /// Indicates that a required URL parameter is missing.
-    /// The associated `String` is the name of the missing parameter.
-    MissingParam(String),
-    /// Indicates that a required HTTP header is missing.
-    /// The associated `String` is the name of the missing header.
-    MissingHeader(String),
-    /// Indicates that a required query parameter is missing.
-    /// The associated `String` is the name of the missing query parameter.
-    MissingQuery(String),
-    /// Indicates that the request body contains invalid JSON.
-    /// The associated `String` provides details about the JSON error.
-    InvalidJson(String),
-}
-
-impl std::fmt::Display for HttpRequestError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            HttpRequestError::MissingCookie(cookie) => write!(f, "Cookie {} doesn't exist", cookie),
-            HttpRequestError::MissingParam(param) => write!(f, "Param {} doesn't exist", param),
-            HttpRequestError::MissingHeader(header) => write!(f, "Header {} doesn't exist", header),
-            HttpRequestError::MissingQuery(query) => write!(f, "Query {} doesn't exist", query),
-            HttpRequestError::InvalidJson(json) => write!(f, "JSON is invalid: {}", json),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub(crate) enum _HttpResponseError {
-    MissingHeader(String),
-}
-
-impl std::fmt::Display for _HttpResponseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            _HttpResponseError::MissingHeader(header) => {
-                write!(f, "Header {} doesn't exist", header)
-            }
-        }
-    }
-}
-
-#[cfg(feature = "with-wynd")]
-pub type FutMiddleware =
+pub(crate) type MiddlewareOutput =
     Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
 
-#[cfg(not(feature = "with-wynd"))]
-pub(crate) type FutMiddleware =
-    Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
-
-pub(crate) type HandlerMiddleware =
-    Arc<dyn Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static>;
+pub(crate) type MiddlewareHandler =
+    Arc<dyn Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static>;
 
 #[cfg(feature = "with-wynd")]
 pub(crate) type WyndMiddlewareHandler = Arc<
@@ -263,7 +132,7 @@ pub trait RouterFns {
     {
         let routes = self.routes();
         let wrapped_handler =
-            Arc::new(move |req: HttpRequest, res| box_future(handler(req, res))) as Handler;
+            Arc::new(move |req: HttpRequest, res| box_future(handler(req, res))) as RouteHandler;
         use std::collections::hash_map::Entry;
         match routes.entry(path.to_string()) {
             Entry::Occupied(mut e) => {
@@ -369,7 +238,7 @@ pub trait RouterFns {
     /// Retrieve the route handler for a given path/method, if one is registered.
     ///
     /// Returns `Some(&Handler)` if a matching handler exists, else `None`.
-    fn get_routes(&mut self, path: &str, method: HttpMethods) -> Option<&Handler> {
+    fn get_routes(&mut self, path: &str, method: HttpMethods) -> Option<&RouteHandler> {
         let routes = self.routes();
         routes.get(path).and_then(|handlers| handlers.get(&method))
     }
@@ -401,22 +270,6 @@ pub trait RouterFns {
         };
 
         self.add_route(method, path, wrapped);
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::types::ResponseContentBody;
-
-    impl ResponseContentBody {
-        pub(crate) fn get_content_as_bytes(&self) -> Vec<u8> {
-            match self {
-                ResponseContentBody::TEXT(text) => text.as_bytes().to_vec(),
-                ResponseContentBody::HTML(html) => html.as_bytes().to_vec(),
-                ResponseContentBody::JSON(json) => serde_json::to_vec(json).unwrap_or_default(),
-                ResponseContentBody::BINARY(bytes) => bytes.to_vec(),
-            }
-        }
     }
 }
 

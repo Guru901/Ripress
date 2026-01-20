@@ -95,12 +95,14 @@
 #![warn(missing_docs)]
 
 use crate::res::response_status::StatusCode;
-use crate::types::{ResponseBodyType, ResponseContentBody};
 use bytes::Bytes;
 use futures::{stream, Stream, StreamExt};
 use mime_guess::from_ext;
 use serde::Serialize;
 use std::pin::Pin;
+
+mod response_body;
+pub(crate) use response_body::{ResponseBodyContent, ResponseBodyType};
 
 /// Contains the response headers struct and its methods.
 pub mod response_headers;
@@ -111,10 +113,8 @@ pub mod response_status;
 /// Contains cookie types used by HttpResponse (options, enums).
 pub mod response_cookie;
 
-// Re-export for backward compatibility: crate::res::CookieOptions / CookieSameSiteOptions
-pub use response_cookie::{CookieOptions, CookieSameSiteOptions};
-// Cookie stays crate-private
 use response_cookie::Cookie;
+pub use response_cookie::{CookieOptions, CookieSameSiteOptions};
 
 use response_headers::ResponseHeaders;
 
@@ -122,7 +122,7 @@ use response_headers::ResponseHeaders;
 pub mod conversions;
 
 mod response_error;
-pub use response_error::ResponseError;
+pub use response_error::HttpResponseError;
 
 /// Represents an HTTP response being sent to the client.
 ///
@@ -159,27 +159,23 @@ pub use response_error::ResponseError;
 /// - `headers` - Response headers
 /// - `remove_cookies` - Cookies to be removed
 pub struct HttpResponse {
-    // Response body content
-    pub(crate) body: ResponseContentBody,
+    pub(crate) body: ResponseBodyContent,
 
-    // Content type of the response
     pub(crate) content_type: ResponseBodyType,
 
-    // Status code specified by the developer
     pub(crate) status_code: StatusCode,
 
     /// Sets response headers
     pub headers: ResponseHeaders,
 
-    // Sets response cookies
     pub(crate) cookies: Vec<Cookie>,
 
-    // Cookies to be removed
     pub(crate) remove_cookies: Vec<&'static str>,
 
     pub(crate) is_stream: bool,
 
-    pub(crate) stream: Pin<Box<dyn Stream<Item = Result<Bytes, ResponseError>> + Send + 'static>>,
+    pub(crate) stream:
+        Pin<Box<dyn Stream<Item = Result<Bytes, HttpResponseError>> + Send + 'static>>,
 }
 
 impl std::fmt::Debug for HttpResponse {
@@ -233,13 +229,13 @@ impl HttpResponse {
     pub fn new() -> Self {
         Self {
             status_code: StatusCode::Ok,
-            body: ResponseContentBody::TEXT(String::new()),
+            body: ResponseBodyContent::TEXT(String::new()),
             content_type: ResponseBodyType::TEXT,
             headers: ResponseHeaders::new(),
             cookies: Vec::new(),
             remove_cookies: Vec::new(),
             is_stream: false,
-            stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
+            stream: Box::pin(stream::empty::<Result<Bytes, HttpResponseError>>()),
         }
     }
 
@@ -363,7 +359,7 @@ impl HttpResponse {
     /// ```
 
     pub fn text<T: Into<String>>(mut self, text: T) -> Self {
-        self.body = ResponseContentBody::new_text(text);
+        self.body = ResponseBodyContent::new_text(text);
         self.content_type = ResponseBodyType::TEXT;
         return self;
     }
@@ -400,7 +396,7 @@ impl HttpResponse {
     /// ```
 
     pub fn json<T: Serialize>(mut self, json: T) -> Self {
-        self.body = ResponseContentBody::new_json(json);
+        self.body = ResponseBodyContent::new_json(json);
         self.content_type = ResponseBodyType::JSON;
         return self;
     }
@@ -433,7 +429,7 @@ impl HttpResponse {
     /// ```
 
     pub fn bytes<T: Into<Bytes>>(mut self, bytes: T) -> Self {
-        self.body = ResponseContentBody::new_binary(bytes.into());
+        self.body = ResponseBodyContent::new_binary(bytes.into());
         self.content_type = ResponseBodyType::BINARY;
         return self;
     }
@@ -593,7 +589,7 @@ impl HttpResponse {
     /// ```
 
     pub fn html(mut self, html: &str) -> Self {
-        self.body = ResponseContentBody::new_html(html);
+        self.body = ResponseBodyContent::new_html(html);
         self.content_type = ResponseBodyType::HTML;
         self
     }
@@ -632,7 +628,7 @@ impl HttpResponse {
 
                 let mime_type = from_ext(file_extension);
                 self.content_type = ResponseBodyType::from(mime_type);
-                self.body = ResponseContentBody::new_binary(file);
+                self.body = ResponseBodyContent::new_binary(file);
             }
             Err(e) => {
                 eprintln!("Error reading file: {}", e);
@@ -668,7 +664,7 @@ impl HttpResponse {
     pub fn write<S, E>(mut self, stream: S) -> Self
     where
         S: Stream<Item = Result<Bytes, E>> + Send + 'static,
-        E: Into<ResponseError> + Send + 'static,
+        E: Into<HttpResponseError> + Send + 'static,
     {
         self.is_stream = true;
         self.headers.insert("transfer-encoding", "chunked");

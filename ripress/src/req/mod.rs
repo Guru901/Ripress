@@ -299,7 +299,16 @@
 /// Module providing type conversions from and to hyper structs into the custom structs of this lib.
 pub mod conversions;
 
+/// Module containing error types and helpers for request handling.
+///
+/// The `request_error` module defines errors which can occur while processing or validating
+/// HTTP requests, such as body parsing errors, missing fields, malformed data, and more.
+/// These errors can be used to return appropriate responses to the client or to drive
+/// custom error handling logic within route handlers or middleware.
+pub mod request_error;
+
 #[cfg(feature = "with-wynd")]
+/// Module providing implementations necessary for using with-wynd feature
 pub mod with_wynd;
 
 use crate::{
@@ -710,7 +719,6 @@ impl HttpRequest {
                 }
             }
             RequestBodyType::BINARY => {
-                // Check if this binary content also contains form fields
                 if let RequestBodyContent::BinaryWithFields(_, form_data) = &body.content {
                     Ok(form_data)
                 } else {
@@ -728,7 +736,6 @@ impl HttpRequest {
     /// This is useful for middlewares that wish to expose computed values through
     /// the `form_data()` API, such as attaching file upload metadata.
     pub fn insert_form_field(&mut self, key: &str, value: &str) {
-        // Ensure body is of FORM type and contains a FormData map
         if self.body.content_type != RequestBodyType::FORM {
             self.body.content_type = RequestBodyType::FORM;
             self.body.content = RequestBodyContent::FORM(FormData::new());

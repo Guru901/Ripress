@@ -187,15 +187,12 @@ mod form_data_tests {
     fn test_form_data_multiple_operations() {
         let mut form = FormData::new();
 
-        // Insert multiple fields
         form.insert("field1", "value1");
         form.insert("field2", "value2");
         form.insert("field3", "value3");
 
-        // Update one
         form.insert("field2", "updated");
 
-        // Remove one
         form.remove("field3");
 
         assert_eq!(form.len(), 2);

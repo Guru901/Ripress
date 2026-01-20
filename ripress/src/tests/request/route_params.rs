@@ -97,7 +97,6 @@ mod tests {
         assert_eq!(params.get("name"), Some("test"));
     }
 
-    // Example of using the extract_params macro
     #[test]
     fn test_extract_macro() {
         let mut params = RouteParams::new();
@@ -164,10 +163,8 @@ mod tests {
         let params = make_route_params(vec![("user_id", "42"), ("format", "json")]);
         let output = format!("{}", params);
 
-        // Order not guaranteed, so check both substrings
         assert!(output.contains("user_id=42"));
         assert!(output.contains("format=json"));
-        // Ensure they are separated by comma+space
         assert!(output.contains(", "));
     }
 
@@ -181,7 +178,7 @@ mod tests {
     #[should_panic(expected = "Route parameter 'missing' not found")]
     fn test_index_missing_param_panics() {
         let params = make_route_params(vec![("user_id", "42")]);
-        let _ = &params["missing"]; // should panic
+        let _ = &params["missing"]; 
     }
 
     #[test]
@@ -191,7 +188,6 @@ mod tests {
         map.insert("format".to_string(), "json".to_string());
 
         let params: RouteParams = map.clone().into();
-        // Should contain the same keys/values
         assert_eq!(&params["user_id"], "42");
         assert_eq!(&params["format"], "json");
     }

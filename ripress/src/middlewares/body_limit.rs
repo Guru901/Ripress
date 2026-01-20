@@ -1,6 +1,7 @@
 #![warn(missing_docs)]
 use crate::{
-    context::HttpResponse, req::HttpRequest, res::response_status::StatusCode, types::FutMiddleware,
+    context::HttpResponse, req::HttpRequest, res::response_status::StatusCode,
+    types::MiddlewareOutput,
 };
 
 /// Middleware for limiting the maximum allowed size of the HTTP request body.
@@ -43,12 +44,12 @@ use crate::{
 ///   "received": 2097152
 /// }
 /// ```
-const DEFAULT_BODY_LIMIT: usize = 1024 * 1024; // 1 MB
+const DEFAULT_BODY_LIMIT: usize = 1024 * 1024;
 
 pub(crate) fn body_limit(
     config: Option<usize>,
-) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
-    let config = config.unwrap_or(DEFAULT_BODY_LIMIT); // 1 MB default
+) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static {
+    let config = config.unwrap_or(DEFAULT_BODY_LIMIT);
     move |req: HttpRequest, res| {
         Box::pin(async move {
             let body = req.clone().body.content;

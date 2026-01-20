@@ -4,13 +4,13 @@ use std::{fmt::Display, future::Future, sync::Arc};
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
 use crate::req::body::RequestBodyType;
-use crate::types::ResponseBodyType;
+use crate::res::ResponseBodyType;
 use crate::{
     app::api_error::ApiError,
     middlewares::Middleware,
     req::{query_params::QueryParams, HttpRequest},
     res::HttpResponse,
-    types::{Fut, FutMiddleware},
+    types::RouteHandlerReturnType,
 };
 use http_body_util::Full;
 use hyper::{body::Bytes, Request, Response};
@@ -27,7 +27,6 @@ pub(crate) async fn exec_pre_middleware(
     if path_matches(middleware.path.as_str(), req.uri().path()) {
         let our_res = HttpResponse::new();
 
-        // Work with the original Incoming request directly
         let our_req = HttpRequest::from_hyper_request(&mut req)
             .await
             .map_err(ApiError::from)?;
@@ -78,7 +77,6 @@ pub(crate) async fn exec_post_middleware(
     match maybe_res {
         None => Ok(res),
         Some(res) => {
-            // Infallible means this can never fail, so unwrap is safe
             let hyper_res = res.to_hyper_response().await.unwrap();
             return Ok(hyper_res);
         }
@@ -88,16 +86,14 @@ pub(crate) async fn exec_post_middleware(
 #[cfg(feature = "with-wynd")]
 pub(crate) async fn exec_wynd_middleware(
     req: Request<Full<Bytes>>,
-    middleware: WyndMiddleware,
+    middleware: Arc<WyndMiddleware>,
 ) -> Result<Request<Full<Bytes>>, ApiError> {
     if path_matches(middleware.path.as_str(), req.uri().path()) {
-        let mw_func = middleware.func;
+        let mw_func = &middleware.func;
         let response = mw_func(req).await;
 
         match response {
             Err(_e) => {
-                // If the handler returns an error, we can't continue with the original request
-                // since it may have been consumed. Return an error response.
                 return Err(ApiError::Generic(
                     HttpResponse::new()
                         .internal_server_error()
@@ -105,14 +101,10 @@ pub(crate) async fn exec_wynd_middleware(
                 ));
             }
             Ok(res) => {
-                // Check if this is a WebSocket upgrade response (status 101)
                 if res.status() == hyper::StatusCode::SWITCHING_PROTOCOLS {
-                    // For WebSocket upgrades, we need to return the response directly
-                    // WITHOUT converting it, to preserve hyper's upgrade mechanism
                     return Err(ApiError::WebSocketUpgrade(res));
                 }
 
-                // For normal responses, do the conversion as before
                 let mut res = res;
                 return Err(ApiError::Generic(
                     HttpResponse::from_hyper_response(&mut res).await?,
@@ -143,10 +135,7 @@ pub(crate) fn get_all_query(queries: &QueryParams) -> String {
     ser.finish()
 }
 
-// Helper functions that need to be added to the file:
-
 pub(crate) fn extract_boundary(content_type: &str) -> Option<String> {
-    // Prefer robust parsing via the `mime` crate; handles quoting and spacing.
     if let Ok(m) = content_type.parse::<mime::Mime>() {
         if m.type_() == mime::MULTIPART {
             if let Some(b) = m.get_param("boundary") {
@@ -158,7 +147,6 @@ pub(crate) fn extract_boundary(content_type: &str) -> Option<String> {
         }
     }
 
-    // Fallback: best-effort manual parse for non-standard content types
     for part in content_type.split(';').map(|s| s.trim()) {
         let (k, v) = match part.split_once('=') {
             Some((k, v)) => (k.trim(), v.trim()),
@@ -184,8 +172,6 @@ pub(crate) fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> 
         .position(|window| window == needle)
 }
 
-// Updated multipart parser that extracts text fields and ALL file parts
-// Returns (fields, file_parts) where file_parts is Vec<(bytes, field_name)>
 pub(crate) fn parse_multipart_form<'a>(
     body: &'a [u8],
     boundary: &String,
@@ -197,13 +183,11 @@ pub(crate) fn parse_multipart_form<'a>(
     let boundary_close = format!("--{}--", boundary);
     let boundary_close_bytes = boundary_close.as_bytes();
 
-    // Find the first boundary
     let mut pos = match find_subsequence(body, boundary_start_bytes) {
         Some(p) => p + boundary_start_bytes.len(),
         None => return (Vec::new(), Vec::new()),
     };
 
-    // Skip optional CRLF after the first boundary
     if body.get(pos..pos + 2) == Some(b"\r\n") {
         pos += 2;
     }
@@ -212,34 +196,27 @@ pub(crate) fn parse_multipart_form<'a>(
     let mut file_parts: Vec<(Vec<u8>, Option<&'a str>)> = Vec::new();
 
     loop {
-        // Find end of headers (CRLFCRLF)
         let header_end_rel = match find_subsequence(&body[pos..], b"\r\n\r\n") {
             Some(i) => i,
             None => return (fields, file_parts),
         };
         let headers_bytes = &body[pos..pos + header_end_rel];
-        // SAFETY: headers_bytes is ASCII and safe as UTF-8
         let headers_str = match std::str::from_utf8(headers_bytes) {
             Ok(s) => s,
             Err(_) => return (fields, file_parts),
         };
         let content_start = pos + header_end_rel + 4;
 
-        // Locate the next boundary (start of next part or closing)
         let next_boundary_rel = match find_subsequence(&body[content_start..], boundary_next_bytes)
         {
             Some(i) => i,
-            None => {
-                // Try close boundary without preceding CRLF (edge case)
-                match find_subsequence(&body[content_start..], boundary_close_bytes) {
-                    Some(i2) => i2,
-                    None => return (fields, file_parts),
-                }
-            }
+            None => match find_subsequence(&body[content_start..], boundary_close_bytes) {
+                Some(i2) => i2,
+                None => return (fields, file_parts),
+            },
         };
         let content_end = content_start + next_boundary_rel;
 
-        // Parse Content-Disposition to determine field name and if this is a file part
         let mut is_file_part = false;
         let mut field_name: Option<&'a str> = None;
         for line in headers_str.lines() {
@@ -255,7 +232,6 @@ pub(crate) fn parse_multipart_form<'a>(
                     let key = k.to_ascii_lowercase();
                     let val = extract_quoted_or_token(v);
 
-                    // get &str out of v slice using header_str lifetime
                     let v_offset = v.as_ptr() as usize - headers_str.as_ptr() as usize;
                     let val_offset = if let Some(start) = v.find('"') {
                         let val2 = &v[start + 1..];
@@ -271,7 +247,6 @@ pub(crate) fn parse_multipart_form<'a>(
 
                     let val_str: &'a str =
                         if val_len > 0 && val_offset + val_len <= headers_str.len() {
-                            // SAFETY: valid substring
                             unsafe {
                                 std::str::from_utf8_unchecked(
                                     &headers_str.as_bytes()[val_offset..val_offset + val_len],
@@ -302,23 +277,18 @@ pub(crate) fn parse_multipart_form<'a>(
             }
         }
 
-        // Move to the next part
         pos = content_end;
-        // Step to the boundary marker and beyond
         if body.get(pos..pos + boundary_next_bytes.len()) == Some(boundary_next_bytes) {
             pos += boundary_next_bytes.len();
         } else if body.get(pos..pos + boundary_close_bytes.len()) == Some(boundary_close_bytes) {
-            // End reached
             return (fields, file_parts);
         } else {
-            // Try to realign to the next boundary start
             match find_subsequence(&body[pos..], boundary_next_bytes) {
                 Some(rel) => pos += rel + boundary_next_bytes.len(),
                 None => return (fields, file_parts),
             }
         }
 
-        // Skip CRLF after boundary if present
         if body.get(pos..pos + 2) == Some(b"\r\n") {
             pos += 2;
         }
@@ -347,16 +317,9 @@ pub(crate) fn extract_quoted_or_token(input: &str) -> &str {
     }
 }
 
-pub(crate) fn box_future<F>(future: F) -> Fut
+pub(crate) fn box_future<F>(future: F) -> RouteHandlerReturnType
 where
     F: Future<Output = HttpResponse> + Send + 'static,
-{
-    Box::pin(future)
-}
-
-pub(crate) fn box_future_middleware<F>(future: F) -> FutMiddleware
-where
-    F: Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
 {
     Box::pin(future)
 }
@@ -428,7 +391,6 @@ pub trait ExtractFromOwned: Sized {
     fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error>;
 }
 
-// Implementation for HttpRequest: just move it, no clone needed
 impl ExtractFromOwned for HttpRequest {
     type Error = std::convert::Infallible;
 
@@ -437,7 +399,6 @@ impl ExtractFromOwned for HttpRequest {
     }
 }
 
-// Implementation for all types that implement FromRequest
 impl<T> ExtractFromOwned for T
 where
     T: FromRequest,
@@ -460,8 +421,6 @@ macro_rules! impl_extract_from_owned_tuples {
                 type Error = String;
 
                 fn extract_from_owned(req: HttpRequest) -> Result<Self, Self::Error> {
-                    // Clone the request for each extraction
-                    // This is necessary since each extractor needs its own copy
                     $(
                         #[allow(non_snake_case)]
                         let $T = {
@@ -510,10 +469,8 @@ pub(crate) fn determine_content_type_request(content_type: &str) -> RequestBodyT
             (mime::APPLICATION, subtype) if subtype == "x-www-form-urlencoded" => {
                 RequestBodyType::FORM
             }
-            // Remove the incorrect line that was matching application/form-data as multipart
             (mime::MULTIPART, subtype) if subtype == "form-data" => RequestBodyType::MultipartForm,
             (mime::TEXT, _) => RequestBodyType::TEXT,
-            // Handle JSON variants
             (mime::APPLICATION, subtype) if subtype.as_str().ends_with("+json") => {
                 RequestBodyType::JSON
             }
@@ -524,7 +481,7 @@ pub(crate) fn determine_content_type_request(content_type: &str) -> RequestBodyT
             }
             _ => RequestBodyType::BINARY,
         },
-        Err(_) => RequestBodyType::BINARY, // Fallback for invalid MIME types
+        Err(_) => RequestBodyType::BINARY,
     }
 }
 
@@ -551,6 +508,6 @@ pub(crate) fn determine_content_type_response(content_type: &str) -> ResponseBod
             }
             _ => ResponseBodyType::BINARY,
         },
-        Err(_) => ResponseBodyType::BINARY, // Fallback for invalid MIME types
+        Err(_) => ResponseBodyType::BINARY,
     }
 }
