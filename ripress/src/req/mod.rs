@@ -299,6 +299,12 @@
 /// Module providing type conversions from and to hyper structs into the custom structs of this lib.
 pub mod conversions;
 
+/// Module containing error types and helpers for request handling.
+///
+/// The `request_error` module defines errors which can occur while processing or validating
+/// HTTP requests, such as body parsing errors, missing fields, malformed data, and more.
+/// These errors can be used to return appropriate responses to the client or to drive
+/// custom error handling logic within route handlers or middleware.
 pub mod request_error;
 
 #[cfg(feature = "with-wynd")]
