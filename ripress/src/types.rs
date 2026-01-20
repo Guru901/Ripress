@@ -3,6 +3,8 @@ use crate::helpers::{box_future, ExtractFromOwned};
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 #[cfg(feature = "with-wynd")]
+use bytes::Bytes;
+#[cfg(feature = "with-wynd")]
 use http_body_util::Full;
 use hyper::Method;
 use std::collections::HashMap;

@@ -37,12 +37,6 @@
 
 use crate::app::api_error::ApiError;
 
-#[cfg(feature = "compression")]
-use crate::middlewares::compression::{compression, CompressionConfig};
-
-#[cfg(feature = "logger")]
-use crate::middlewares::logger::{logger, LoggerConfig};
-
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
 

@@ -1,15 +1,9 @@
 #![warn(missing_docs)]
-#[cfg(feature = "file-upload")]
 use crate::helpers::{extract_boundary, parse_multipart_form};
-#[cfg(feature = "file-upload")]
 use crate::req::body::FormData;
-#[cfg(feature = "file-upload")]
-use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
-#[cfg(feature = "file-upload")]
-use tokio::fs::{File, create_dir_all};
-#[cfg(feature = "file-upload")]
+use crate::{context::HttpResponse, req::HttpRequest, types::MiddlewareOutput};
+use tokio::fs::{create_dir_all, File};
 use tokio::io::AsyncWriteExt;
-#[cfg(feature = "file-upload")]
 use uuid::Uuid;
 
 /// Builtin File Upload Middleware
@@ -235,7 +229,7 @@ impl Default for FileUploadConfiguration {
     fn default() -> Self {
         Self {
             upload_dir: "uploads".to_string(),
-            max_file_size: 1024 * 1024 * 10, 
+            max_file_size: 1024 * 1024 * 10,
             max_files: 100,
             allowed_file_types: Vec::new(),
         }
@@ -265,10 +259,9 @@ impl Default for FileUploadConfiguration {
 ///
 /// The returned middleware is `Send + Sync + Clone` and can be safely used
 /// across multiple threads and cloned for multiple routes.
-#[cfg(feature = "file-upload")]
 pub fn file_upload(
     config: Option<FileUploadConfiguration>,
-) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + Clone + 'static {
+) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + Clone + 'static {
     let config = config.unwrap_or_default();
     move |mut req, _res| {
         let config = config.clone();
@@ -296,24 +289,22 @@ pub fn file_upload(
             } else {
                 match req.bytes() {
                     Ok(bytes) => bytes.to_vec(),
-                    Err(_) => {
-                        match req.form_data() {
-                            Ok(form_data) => {
-                                let form_string = form_data_to_string(form_data);
-                                if form_string.is_empty() {
-                                    eprintln!("File upload middleware: No form data available");
-                                    return (req, None);
-                                }
-                                form_string.into_bytes()
-                            }
-                            Err(_) => {
-                                eprintln!(
-                                    "File upload middleware: Both bytes() and form_data() failed"
-                                );
+                    Err(_) => match req.form_data() {
+                        Ok(form_data) => {
+                            let form_string = form_data_to_string(form_data);
+                            if form_string.is_empty() {
+                                eprintln!("File upload middleware: No form data available");
                                 return (req, None);
                             }
+                            form_string.into_bytes()
                         }
-                    }
+                        Err(_) => {
+                            eprintln!(
+                                "File upload middleware: Both bytes() and form_data() failed"
+                            );
+                            return (req, None);
+                        }
+                    },
                 }
             };
 
@@ -362,9 +353,7 @@ pub fn file_upload(
                 }
 
                 let (file_bytes, _original_filename, field_name) = match field_name_opt {
-                    Some(field) => {
-                        (file_bytes, None::<String>, Some(field))
-                    }
+                    Some(field) => (file_bytes, None::<String>, Some(field)),
                     None => (file_bytes, None::<String>, None),
                 };
                 let extension = infer::get(&file_bytes)
@@ -399,7 +388,7 @@ pub fn file_upload(
                     Ok(mut file) => {
                         if let Err(e) = file.write_all(&file_bytes).await {
                             eprintln!("Failed to write file '{}': {}", filename_with_path, e);
-                            continue; 
+                            continue;
                         }
 
                         uploaded_files.push(filename.clone());
@@ -410,7 +399,7 @@ pub fn file_upload(
                     }
                     Err(e) => {
                         eprintln!("Failed to create file '{}': {}", filename_with_path, e);
-                        continue; 
+                        continue;
                     }
                 }
             }

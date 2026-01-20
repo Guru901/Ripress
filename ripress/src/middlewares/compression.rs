@@ -1,10 +1,8 @@
 #![warn(missing_docs)]
 use crate::{
-    context::HttpResponse,
-    req::HttpRequest,
-    types::{FutMiddleware, ResponseContentBody},
+    context::HttpResponse, req::HttpRequest, res::ResponseBodyContent, types::MiddlewareOutput,
 };
-use flate2::{Compression, write::GzEncoder};
+use flate2::{write::GzEncoder, Compression};
 use std::io::Write;
 
 /// Configuration for the compression middleware
@@ -19,7 +17,7 @@ pub struct CompressionConfig {
 impl Default for CompressionConfig {
     fn default() -> Self {
         Self {
-            threshold: 1024, 
+            threshold: 1024,
             level: 6,
         }
     }
@@ -37,7 +35,7 @@ impl Default for CompressionConfig {
 /// A middleware function that compresses HTTP responses
 pub(crate) fn compression(
     config: Option<CompressionConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
+) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static {
     let config = config.unwrap_or_default();
     move |req: HttpRequest, mut res| {
         let config = config.clone();
@@ -70,7 +68,6 @@ pub(crate) fn compression(
 
             let content_type = res.content_type.as_str();
 
-
             if !should_compress_content_type(content_type) {
                 return (req, None);
             }
@@ -89,9 +86,7 @@ pub(crate) fn compression(
 
                     (req, Some(res))
                 }
-                Err(_) => {
-                    (req, None)
-                }
+                Err(_) => (req, None),
             }
         })
     }
@@ -125,10 +120,10 @@ pub(crate) fn compress_data(data: &[u8], level: u8) -> Result<Vec<u8>, std::io::
 /// Extracts body bytes from HttpResponse for size checking
 pub(crate) fn get_response_body_bytes(response: &HttpResponse) -> Option<Vec<u8>> {
     match &response.body {
-        ResponseContentBody::TEXT(text) => Some(text.as_bytes().to_vec()),
-        ResponseContentBody::JSON(json) => serde_json::to_vec(json).ok(),
-        ResponseContentBody::HTML(html) => Some(html.as_bytes().to_vec()),
-        ResponseContentBody::BINARY(bytes) => Some(bytes.to_vec()),
+        ResponseBodyContent::TEXT(text) => Some(text.as_bytes().to_vec()),
+        ResponseBodyContent::JSON(json) => serde_json::to_vec(json).ok(),
+        ResponseBodyContent::HTML(html) => Some(html.as_bytes().to_vec()),
+        ResponseBodyContent::BINARY(bytes) => Some(bytes.to_vec()),
     }
 }
 
@@ -140,7 +135,7 @@ pub(crate) fn set_response_body(
     response: &mut HttpResponse,
     compressed_body: Vec<u8>,
 ) -> Result<(), ()> {
-    response.body = ResponseContentBody::BINARY(compressed_body.into());
+    response.body = ResponseBodyContent::BINARY(compressed_body.into());
     Ok(())
 }
 
