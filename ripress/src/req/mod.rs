@@ -300,6 +300,7 @@
 pub mod conversions;
 
 #[cfg(feature = "with-wynd")]
+/// Module providing implementations necessary for using with-wynd feature
 pub mod with_wynd;
 
 use crate::{
