@@ -4,7 +4,6 @@ use std::sync::Arc;
 use http_body_util::Full;
 
 use crate::app::App;
-use crate::helpers::box_future_middleware;
 #[cfg(feature = "compression")]
 use crate::middlewares::compression::CompressionConfig;
 #[cfg(feature = "logger")]
@@ -656,7 +655,7 @@ impl App {
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
-        Arc::new(move |req: HttpRequest, res| box_future_middleware(f(req, res)))
+        Arc::new(move |req: HttpRequest, res| Box::pin(f(req, res)))
     }
 
     #[cfg(feature = "with-wynd")]

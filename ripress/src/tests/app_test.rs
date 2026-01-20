@@ -1,11 +1,6 @@
-use crate::context::{HttpRequest, HttpResponse};
-
-async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    return res.ok();
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::res::ResponseBodyContent;
     use crate::{
         app::{api_error::ApiError, App, Http2Config},
         context::HttpResponse,
@@ -28,6 +23,21 @@ mod tests {
     use tempfile::tempdir;
     use tokio::task;
     use tokio::time::sleep;
+
+    async fn _test_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
+        return res.ok();
+    }
+
+    impl ResponseBodyContent {
+        pub(crate) fn get_content_as_bytes(&self) -> Vec<u8> {
+            match self {
+                ResponseBodyContent::TEXT(text) => text.as_bytes().to_vec(),
+                ResponseBodyContent::HTML(html) => html.as_bytes().to_vec(),
+                ResponseBodyContent::JSON(json) => serde_json::to_vec(json).unwrap_or_default(),
+                ResponseBodyContent::BINARY(bytes) => bytes.to_vec(),
+            }
+        }
+    }
 
     #[tokio::test]
     async fn test_box_future() {
@@ -94,7 +104,6 @@ mod tests {
 
         let route_err: RouteError = RouteError::from(api_err);
 
-
         let result: Response<Full<Bytes>> = crate::app::App::error_handler(route_err).await;
 
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
@@ -130,7 +139,6 @@ mod tests {
         let result: Response<Full<Bytes>> = crate::app::App::error_handler(route_err).await;
 
         assert_eq!(result.status(), StatusCode::INTERNAL_SERVER_ERROR);
-
     }
 
     #[tokio::test]
@@ -253,7 +261,7 @@ mod tests {
         );
         assert_eq!(app.middlewares[0].middleware_type, MiddlewareType::Pre);
         assert_eq!(app.middlewares[1].middleware_type, MiddlewareType::Pre);
-        drop(req); 
+        drop(req);
     }
 
     #[tokio::test]
@@ -299,7 +307,7 @@ mod tests {
             crate::res::response_status::StatusCode::Ok
         );
         assert_eq!(app.middlewares[0].middleware_type, MiddlewareType::Post);
-        drop(req); 
+        drop(req);
     }
 
     #[tokio::test]
@@ -346,8 +354,8 @@ mod tests {
             ("GET", "/hello") => 200,
             ("POST", "/submit") => 201,
             ("PUT", "/update") => 202,
-            ("DELETE", "/update") => 204, 
-            ("PATCH", "/update") => 200,  
+            ("DELETE", "/update") => 204,
+            ("PATCH", "/update") => 200,
             ("HEAD", "/ping") => 200,
             ("OPTIONS", "/opt") => 200,
             ("GET", "/fail") => 500,

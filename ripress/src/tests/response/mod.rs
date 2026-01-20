@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::{
     res::HttpResponse,
-    types::{ResponseBodyContent, ResponseBodyType},
+    res::{ResponseBodyContent, ResponseBodyType},
 };
 
 mod cookies_test;
@@ -312,10 +312,10 @@ mod tests {
 
         HttpResponse {
             status_code: StatusCode::Ok,
-            body: crate::types::ResponseBodyContent::new_binary(bytes::Bytes::from_static(
+            body: crate::res::ResponseBodyContent::new_binary(bytes::Bytes::from_static(
                 b"hello world",
             )),
-            content_type: crate::types::ResponseBodyType::BINARY,
+            content_type: crate::res::ResponseBodyType::BINARY,
             cookies: vec![cookies],
             headers,
             remove_cookies: vec!["old_cookie".into()],

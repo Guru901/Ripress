@@ -95,12 +95,14 @@
 #![warn(missing_docs)]
 
 use crate::res::response_status::StatusCode;
-use crate::types::{ResponseBodyContent, ResponseBodyType};
 use bytes::Bytes;
 use futures::{stream, Stream, StreamExt};
 use mime_guess::from_ext;
 use serde::Serialize;
 use std::pin::Pin;
+
+mod response_body;
+pub(crate) use response_body::{ResponseBodyContent, ResponseBodyType};
 
 /// Contains the response headers struct and its methods.
 pub mod response_headers;
@@ -172,7 +174,8 @@ pub struct HttpResponse {
 
     pub(crate) is_stream: bool,
 
-    pub(crate) stream: Pin<Box<dyn Stream<Item = Result<Bytes, HttpResponseError>> + Send + 'static>>,
+    pub(crate) stream:
+        Pin<Box<dyn Stream<Item = Result<Bytes, HttpResponseError>> + Send + 'static>>,
 }
 
 impl std::fmt::Debug for HttpResponse {

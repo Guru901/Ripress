@@ -90,7 +90,7 @@ mod tests {
         helpers::determine_content_type_response,
         req::origin_url::Url,
         res::{response_cookie::CookieOptions, HttpResponse, HttpResponseError},
-        types::{ResponseBodyContent, ResponseBodyType},
+        res::{ResponseBodyContent, ResponseBodyType},
     };
     use serde_json::json;
 

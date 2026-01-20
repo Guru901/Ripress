@@ -5,17 +5,13 @@ use hyper::Response;
 
 #[cfg(not(feature = "with-wynd"))]
 use crate::app::api_error::ApiError;
-use crate::{
-    res::{HttpResponse, HttpResponseError},
-    types::ResponseBodyContent,
-};
+use crate::res::{HttpResponse, HttpResponseError, ResponseBodyContent};
 
 #[cfg(feature = "with-wynd")]
 use crate::app::api_error::ApiError;
 use crate::helpers::determine_content_type_response;
-use crate::{
-    res::{response_headers::ResponseHeaders, response_status::StatusCode},
-    types::ResponseBodyType,
+use crate::res::{
+    response_headers::ResponseHeaders, response_status::StatusCode, ResponseBodyType,
 };
 use futures::{stream, StreamExt};
 use http_body_util::BodyExt;
