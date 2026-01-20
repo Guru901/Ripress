@@ -86,10 +86,10 @@ pub(crate) async fn exec_post_middleware(
 #[cfg(feature = "with-wynd")]
 pub(crate) async fn exec_wynd_middleware(
     req: Request<Full<Bytes>>,
-    middleware: WyndMiddleware,
+    middleware: Arc<WyndMiddleware>,
 ) -> Result<Request<Full<Bytes>>, ApiError> {
     if path_matches(middleware.path.as_str(), req.uri().path()) {
-        let mw_func = middleware.func;
+        let mw_func = &middleware.func;
         let response = mw_func(req).await;
 
         match response {
@@ -134,7 +134,6 @@ pub(crate) fn get_all_query(queries: &QueryParams) -> String {
     }
     ser.finish()
 }
-
 
 pub(crate) fn extract_boundary(content_type: &str) -> Option<String> {
     if let Ok(m) = content_type.parse::<mime::Mime>() {
@@ -211,12 +210,10 @@ pub(crate) fn parse_multipart_form<'a>(
         let next_boundary_rel = match find_subsequence(&body[content_start..], boundary_next_bytes)
         {
             Some(i) => i,
-            None => {
-                match find_subsequence(&body[content_start..], boundary_close_bytes) {
-                    Some(i2) => i2,
-                    None => return (fields, file_parts),
-                }
-            }
+            None => match find_subsequence(&body[content_start..], boundary_close_bytes) {
+                Some(i2) => i2,
+                None => return (fields, file_parts),
+            },
         };
         let content_end = content_start + next_boundary_rel;
 
@@ -491,7 +488,7 @@ pub(crate) fn determine_content_type_request(content_type: &str) -> RequestBodyT
             }
             _ => RequestBodyType::BINARY,
         },
-        Err(_) => RequestBodyType::BINARY, 
+        Err(_) => RequestBodyType::BINARY,
     }
 }
 
@@ -518,6 +515,6 @@ pub(crate) fn determine_content_type_response(content_type: &str) -> ResponseBod
             }
             _ => ResponseBodyType::BINARY,
         },
-        Err(_) => ResponseBodyType::BINARY, 
+        Err(_) => ResponseBodyType::BINARY,
     }
 }

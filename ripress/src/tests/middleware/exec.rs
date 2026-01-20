@@ -88,11 +88,10 @@ mod tests {
 
         let req = make_request("/wynd");
 
-        let mw = WyndMiddleware {
+        let mw = Arc::new(WyndMiddleware {
             path: "/wynd".to_string(),
             func: Arc::new(|_req| {
                 Box::pin(async move {
-
                     use hyper::Response;
                     Ok(Response::builder()
                         .status(400)
@@ -100,10 +99,10 @@ mod tests {
                         .unwrap())
                 })
             }),
-        };
+        });
 
         let res = exec_wynd_middleware(req, mw).await;
-        assert!(!res.is_ok()); 
+        assert!(!res.is_ok());
     }
 
     #[cfg(feature = "with-wynd")]
@@ -111,7 +110,7 @@ mod tests {
     async fn test_exec_wynd_middleware_success_blocks() {
         let req = make_request("/wynd");
 
-        let mw = WyndMiddleware {
+        let mw = Arc::new(WyndMiddleware {
             path: "/wynd".to_string(),
             func: Arc::new(|_req| {
                 Box::pin(async move {
@@ -119,9 +118,9 @@ mod tests {
                     Ok(Response::new(Full::new(Bytes::from("stopped"))))
                 })
             }),
-        };
+        });
 
         let res = exec_wynd_middleware(req, mw).await;
-        assert!(res.is_err()); 
+        assert!(res.is_err());
     }
 }

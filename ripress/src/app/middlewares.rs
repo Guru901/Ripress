@@ -465,10 +465,10 @@ impl App {
             + Send
             + 'static,
     {
-        self.wynd_middleware = Some(WyndMiddleware {
+        self.wynd_middleware = Some(Arc::new(WyndMiddleware {
             func: Self::wynd_middleware_from_closure(handler),
             path: path.to_string(),
-        });
+        }));
         self
     }
 
