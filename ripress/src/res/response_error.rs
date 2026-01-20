@@ -10,26 +10,29 @@
 ///   to read from or write to a stream.
 /// - `_Other(&'static str)`: Represents a generic or custom error with a static string message.
 #[derive(Debug)]
-pub enum ResponseError {
-    /// An IO error occurred.
+pub enum HttpResponseError {
+    /// An IO error occurred, typically when reading from or writing to a stream.
     IoError(std::io::Error),
+    /// An expected HTTP header is missing. Contains the name of the missing header.
+    MissingHeader(String),
     /// A generic or custom error with a static string message.
     _Other(&'static str),
 }
 
-impl From<std::io::Error> for ResponseError {
+impl From<std::io::Error> for HttpResponseError {
     fn from(err: std::io::Error) -> Self {
-        ResponseError::IoError(err)
+        HttpResponseError::IoError(err)
     }
 }
 
-impl std::error::Error for ResponseError {}
+impl std::error::Error for HttpResponseError {}
 
-impl std::fmt::Display for ResponseError {
+impl std::fmt::Display for HttpResponseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ResponseError::IoError(e) => write!(f, "IO error: {}", e),
-            ResponseError::_Other(e) => write!(f, "Error: {}", e),
+            HttpResponseError::IoError(e) => write!(f, "IO error: {}", e),
+            HttpResponseError::_Other(e) => write!(f, "Error: {}", e),
+            HttpResponseError::MissingHeader(h) => write!(f, "Missing header: {}", h),
         }
     }
 }

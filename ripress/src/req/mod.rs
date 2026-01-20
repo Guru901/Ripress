@@ -299,6 +299,8 @@
 /// Module providing type conversions from and to hyper structs into the custom structs of this lib.
 pub mod conversions;
 
+pub mod request_error;
+
 #[cfg(feature = "with-wynd")]
 /// Module providing implementations necessary for using with-wynd feature
 pub mod with_wynd;

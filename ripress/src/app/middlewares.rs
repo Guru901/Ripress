@@ -20,7 +20,7 @@ use crate::middlewares::{
 };
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
-use crate::types::HandlerMiddleware;
+use crate::types::MiddlewareHandler;
 
 #[cfg(feature = "with-wynd")]
 use crate::types::WyndMiddlewareHandler;
@@ -651,7 +651,7 @@ impl App {
     ///
     /// This is an internal helper method that wraps user-provided middleware functions
     /// into the expected format for the middleware system.
-    fn middleware_from_closure<F, Fut>(f: F) -> HandlerMiddleware
+    fn middleware_from_closure<F, Fut>(f: F) -> MiddlewareHandler
     where
         F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,

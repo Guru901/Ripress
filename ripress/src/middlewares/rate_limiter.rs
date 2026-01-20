@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
+use crate::{context::HttpResponse, req::HttpRequest, types::MiddlewareOutput};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{collections::HashMap, time::Instant};
@@ -394,7 +394,7 @@ impl Default for RateLimiterConfig {
     fn default() -> Self {
         RateLimiterConfig {
             max_requests: 10,
-            window_ms: Duration::from_millis(10_000), 
+            window_ms: Duration::from_millis(10_000),
             proxy: false,
             message: String::from("Too many requests"),
         }
@@ -489,7 +489,7 @@ struct RateLimiterStruct {
 /// * **Retry-After**: Seconds to wait before retrying (429 responses only)
 pub(crate) fn rate_limiter(
     config: Option<RateLimiterConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
+) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static {
     let client_map: Arc<Mutex<HashMap<String, RateLimiterStruct>>> =
         Arc::new(Mutex::new(HashMap::new()));
     let cfg = config.unwrap_or_default();
@@ -497,7 +497,7 @@ pub(crate) fn rate_limiter(
     let cleanup_map = client_map.clone();
     let cleanup_window = cfg.window_ms;
     tokio::spawn(async move {
-        let mut ticker = interval(Duration::from_secs(300)); 
+        let mut ticker = interval(Duration::from_secs(300));
         loop {
             ticker.tick().await;
             let now = Instant::now();
@@ -561,7 +561,7 @@ pub(crate) fn rate_limiter(
                 );
             }
 
-            let client_data = map.get(&client_ip).unwrap(); 
+            let client_data = map.get(&client_ip).unwrap();
             let remaining_requests = cfg.max_requests.saturating_sub(client_data.requests);
             let window_remaining = cfg
                 .window_ms

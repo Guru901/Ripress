@@ -56,7 +56,7 @@ criterion = "0.7.0"
 readme = "README.md"
 
 [features]
-default = ['with-wynd']
+default = []
 with-wynd = []
 compression = ["flate2"]
 file-upload = ["uuid"]

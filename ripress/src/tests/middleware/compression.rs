@@ -10,7 +10,7 @@ mod test {
     #[cfg(feature = "compression")]
     use crate::req::HttpRequest;
     #[cfg(feature = "compression")]
-    use crate::types::{ResponseBodyType, ResponseContentBody};
+    use crate::types::{ResponseBodyContent, ResponseBodyType};
 
     #[cfg(feature = "compression")]
     fn make_response_with_body(body: ResponseContentBody, content_type: &str) -> HttpResponse {

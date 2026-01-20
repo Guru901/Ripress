@@ -1,6 +1,6 @@
 #![warn(missing_docs)]
 
-use crate::{context::HttpResponse, req::HttpRequest, types::FutMiddleware};
+use crate::{context::HttpResponse, req::HttpRequest, types::MiddlewareOutput};
 
 pub use crate::middlewares::shield::config::{
     ContentSecurityPolicy, CrossDomainPolicy, CrossOriginEmbedderPolicy, CrossOriginOpenerPolicy,
@@ -295,7 +295,7 @@ pub mod config;
 /// ```
 pub(crate) fn shield(
     config: Option<ShieldConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> FutMiddleware + Send + Sync + 'static {
+) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static {
     let config = std::sync::Arc::new(config.unwrap_or_default());
     move |req: HttpRequest, mut res| {
         let config = std::sync::Arc::clone(&config);
@@ -383,10 +383,10 @@ pub(crate) fn set_frameguard(res: &mut HttpResponse, frameguard: &Frameguard) {
             if let Some(domain) = &frameguard.domain {
                 format!("ALLOW-FROM {}", domain)
             } else {
-                "DENY".to_string() 
+                "DENY".to_string()
             }
         }
-        _ => "DENY".to_string(), 
+        _ => "DENY".to_string(),
     };
 
     res.headers.insert("x-frame-options", value);

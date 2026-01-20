@@ -6,8 +6,8 @@ use hyper::Response;
 #[cfg(not(feature = "with-wynd"))]
 use crate::app::api_error::ApiError;
 use crate::{
-    res::{HttpResponse, ResponseError},
-    types::ResponseContentBody,
+    res::{HttpResponse, HttpResponseError},
+    types::ResponseBodyContent,
 };
 
 #[cfg(feature = "with-wynd")]
@@ -41,21 +41,21 @@ impl HttpResponse {
             .unwrap_or(ResponseBodyType::BINARY);
 
         let body = match content_type {
-            ResponseBodyType::BINARY => ResponseContentBody::new_binary(body_bytes),
+            ResponseBodyType::BINARY => ResponseBodyContent::new_binary(body_bytes),
             ResponseBodyType::TEXT => {
                 let text = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
-                ResponseContentBody::new_text(text)
+                ResponseBodyContent::new_text(text)
             }
             ResponseBodyType::JSON => {
                 let json_value =
                     serde_json::from_slice(&body_bytes).unwrap_or(serde_json::Value::Null);
-                ResponseContentBody::new_json(json_value)
+                ResponseBodyContent::new_json(json_value)
             }
             ResponseBodyType::HTML => {
                 let html = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
-                ResponseContentBody::new_html(html)
+                ResponseBodyContent::new_html(html)
             }
         };
 
@@ -92,7 +92,7 @@ impl HttpResponse {
             cookies: Vec::new(),
             remove_cookies: Vec::new(),
             is_stream,
-            stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
+            stream: Box::pin(stream::empty::<Result<Bytes, HttpResponseError>>()),
         })
     }
     #[cfg(not(feature = "with-wynd"))]
@@ -111,21 +111,21 @@ impl HttpResponse {
             .unwrap_or(ResponseBodyType::BINARY);
 
         let body = match content_type {
-            ResponseBodyType::BINARY => ResponseContentBody::new_binary(body_bytes),
+            ResponseBodyType::BINARY => ResponseBodyContent::new_binary(body_bytes),
             ResponseBodyType::TEXT => {
                 let text = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
-                ResponseContentBody::new_text(text)
+                ResponseBodyContent::new_text(text)
             }
             ResponseBodyType::JSON => {
                 let json_value =
                     serde_json::from_slice(&body_bytes).unwrap_or(serde_json::Value::Null);
-                ResponseContentBody::new_json(json_value)
+                ResponseBodyContent::new_json(json_value)
             }
             ResponseBodyType::HTML => {
                 let html = String::from_utf8(body_bytes.to_vec())
                     .unwrap_or_else(|_| String::from_utf8_lossy(&body_bytes).into_owned());
-                ResponseContentBody::new_html(html)
+                ResponseBodyContent::new_html(html)
             }
         };
 
@@ -154,7 +154,7 @@ impl HttpResponse {
             cookies: Vec::new(),
             remove_cookies: Vec::new(),
             is_stream,
-            stream: Box::pin(stream::empty::<Result<Bytes, ResponseError>>()),
+            stream: Box::pin(stream::empty::<Result<Bytes, HttpResponseError>>()),
         })
     }
 
@@ -217,7 +217,8 @@ impl HttpResponse {
                 }
             }
 
-            let collected_results: Vec<Result<Bytes, ResponseError>> = self.stream.collect().await;
+            let collected_results: Vec<Result<Bytes, HttpResponseError>> =
+                self.stream.collect().await;
 
             let bytes = collected_results
                 .into_iter()
@@ -238,7 +239,7 @@ impl HttpResponse {
             return Ok(hyper_response);
         } else {
             let mut response = match body {
-                ResponseContentBody::JSON(json) => {
+                ResponseBodyContent::JSON(json) => {
                     let json_bytes = serde_json::to_vec(&json).unwrap_or_else(|e| {
                         println!("JSON serialization error: {:?}", e);
                         Vec::from(b"{}")
@@ -249,15 +250,15 @@ impl HttpResponse {
                         .header("Content-Type", self.content_type.as_str())
                         .body(Full::from(Bytes::from(json_bytes)))
                 }
-                ResponseContentBody::TEXT(text) => Response::builder()
+                ResponseBodyContent::TEXT(text) => Response::builder()
                     .status(self.status_code.as_u16())
                     .header("Content-Type", self.content_type.as_str())
                     .body(Full::from(Bytes::from(text))),
-                ResponseContentBody::HTML(html) => Response::builder()
+                ResponseBodyContent::HTML(html) => Response::builder()
                     .status(self.status_code.as_u16())
                     .header("Content-Type", self.content_type.as_str())
                     .body(Full::from(Bytes::from(html))),
-                ResponseContentBody::BINARY(bytes) => Response::builder()
+                ResponseBodyContent::BINARY(bytes) => Response::builder()
                     .status(self.status_code.as_u16())
                     .header("Content-Type", self.content_type.as_str())
                     .body(Full::from(Bytes::from(bytes))),

@@ -10,7 +10,7 @@ use crate::{
     middlewares::Middleware,
     req::{query_params::QueryParams, HttpRequest},
     res::HttpResponse,
-    types::{Fut, FutMiddleware},
+    types::{MiddlewareOutput, RouteHandlerReturnType},
 };
 use http_body_util::Full;
 use hyper::{body::Bytes, Request, Response};
@@ -317,14 +317,14 @@ pub(crate) fn extract_quoted_or_token(input: &str) -> &str {
     }
 }
 
-pub(crate) fn box_future<F>(future: F) -> Fut
+pub(crate) fn box_future<F>(future: F) -> RouteHandlerReturnType
 where
     F: Future<Output = HttpResponse> + Send + 'static,
 {
     Box::pin(future)
 }
 
-pub(crate) fn box_future_middleware<F>(future: F) -> FutMiddleware
+pub(crate) fn box_future_middleware<F>(future: F) -> MiddlewareOutput
 where
     F: Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
 {

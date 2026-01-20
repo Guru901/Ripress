@@ -89,8 +89,8 @@ mod tests {
     use crate::{
         helpers::determine_content_type_response,
         req::origin_url::Url,
-        res::{response_cookie::CookieOptions, HttpResponse},
-        types::{ResponseBodyType, ResponseContentBody, _HttpResponseError},
+        res::{response_cookie::CookieOptions, HttpResponse, HttpResponseError},
+        types::{ResponseBodyContent, ResponseBodyType},
     };
     use serde_json::json;
 
@@ -102,7 +102,7 @@ mod tests {
             crate::res::response_status::StatusCode::Ok
         );
 
-        if let ResponseContentBody::TEXT(body) = response.get_body() {
+        if let ResponseBodyContent::TEXT(body) = response.get_body() {
             assert_eq!(body, "");
         } else {
             panic!("Expected TEXT body");
@@ -141,7 +141,7 @@ mod tests {
         let json_body = json!({"key": "value"});
         let response = HttpResponse::new().json(json_body.clone());
         assert_eq!(response.get_content_type(), &ResponseBodyType::JSON);
-        if let ResponseContentBody::JSON(body) = response.get_body() {
+        if let ResponseBodyContent::JSON(body) = response.get_body() {
             assert_eq!(body, json_body);
         } else {
             panic!("Expected JSON body");
@@ -149,7 +149,7 @@ mod tests {
 
         let empty_json = json!({});
         let response = HttpResponse::new().json(empty_json.clone());
-        if let ResponseContentBody::JSON(body) = response.get_body() {
+        if let ResponseBodyContent::JSON(body) = response.get_body() {
             assert_eq!(body, empty_json);
         } else {
             panic!("Expected JSON body");
@@ -181,7 +181,7 @@ mod tests {
         let bytes = vec![1, 2, 3, 4, 5];
         let response = HttpResponse::new().bytes(bytes.clone());
         assert_eq!(response.get_content_type(), &ResponseBodyType::BINARY);
-        if let ResponseContentBody::BINARY(body) = response.get_body() {
+        if let ResponseBodyContent::BINARY(body) = response.get_body() {
             assert_eq!(body, bytes);
         } else {
             panic!("Expected BINARY body");
@@ -189,7 +189,7 @@ mod tests {
 
         let empty_bytes = vec![];
         let response = HttpResponse::new().bytes(empty_bytes.clone());
-        if let ResponseContentBody::BINARY(body) = response.get_body() {
+        if let ResponseBodyContent::BINARY(body) = response.get_body() {
             assert_eq!(body, empty_bytes);
         } else {
             panic!("Expected BINARY body");
@@ -224,7 +224,7 @@ mod tests {
         assert_eq!(response.get_content_type(), &ResponseBodyType::TEXT);
         let response_2 = HttpResponse::new().text(text_body);
 
-        if let ResponseContentBody::TEXT(body) = response_2.get_body() {
+        if let ResponseBodyContent::TEXT(body) = response_2.get_body() {
             assert_eq!(body, text_body);
         } else {
             panic!("Expected TEXT body");
@@ -234,7 +234,7 @@ mod tests {
         assert_eq!(response.get_content_type(), &ResponseBodyType::TEXT);
 
         let response = HttpResponse::new().text("");
-        if let ResponseContentBody::TEXT(body) = response.get_body() {
+        if let ResponseBodyContent::TEXT(body) = response.get_body() {
             assert_eq!(body, "");
         } else {
             panic!("Expected TEXT body");
@@ -246,14 +246,14 @@ mod tests {
         let text_body = "<h1>Hello, World!</h1>";
         let response = HttpResponse::new().html(text_body);
         assert_eq!(response.get_content_type(), &ResponseBodyType::HTML);
-        if let ResponseContentBody::HTML(body) = response.get_body() {
+        if let ResponseBodyContent::HTML(body) = response.get_body() {
             assert_eq!(body, text_body);
         } else {
             panic!("Expected TEXT body");
         }
 
         let response = HttpResponse::new().html("");
-        if let ResponseContentBody::HTML(body) = response.get_body() {
+        if let ResponseBodyContent::HTML(body) = response.get_body() {
             assert_eq!(body, "");
         } else {
             panic!("Expected TEXT body");
@@ -338,8 +338,8 @@ mod tests {
 
     #[test]
     fn test_response_error() {
-        let err_1 = _HttpResponseError::MissingHeader("id".to_string());
-        assert_eq!(err_1.to_string(), "Header id doesn't exist");
+        let err_1 = HttpResponseError::MissingHeader("id".to_string());
+        assert_eq!(err_1.to_string(), "Missing header: id");
     }
 
     #[test]
