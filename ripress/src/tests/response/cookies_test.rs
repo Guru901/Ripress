@@ -67,7 +67,7 @@ mod response_cookies_tests {
     #[tokio::test]
     async fn test_set_cookie_with_max_age() {
         let options = CookieOptions {
-            max_age: Some(3600), // 1 hour
+            max_age: Some(3600), 
             ..Default::default()
         };
 
@@ -82,7 +82,7 @@ mod response_cookies_tests {
     #[tokio::test]
     async fn test_set_cookie_with_expires() {
         let options = CookieOptions {
-            expires: Some(1735689600), // Some future timestamp
+            expires: Some(1735689600), 
             ..Default::default()
         };
 

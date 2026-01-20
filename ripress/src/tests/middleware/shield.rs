@@ -32,7 +32,6 @@ mod tests {
         };
         set_content_security_policy(&mut res, &csp);
         let val = res.headers.get("content-security-policy").unwrap();
-        // Order is sorted by key
         assert_eq!(val, "default-src 'self'; script-src 'self'");
     }
 
@@ -310,7 +309,6 @@ mod tests {
         };
         set_permissions_policy(&mut res, &pp);
         let val = res.headers.get("permissions-policy").unwrap();
-        // Order is not guaranteed, so check both substrings
         assert!(val.contains("camera=()"));
         assert!(
             val.contains("geolocation=(self \"https://foo.com\")")

@@ -137,7 +137,6 @@ impl TextData {
     /// assert!(TextData::from_bytes(invalid_bytes).is_err());
     /// ```
     pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, RipressError> {
-        // Validate UTF-8
         std::str::from_utf8(&bytes).map_err(TextDataError::InvalidUtf8)?;
 
         Ok(Self {
@@ -623,7 +622,6 @@ impl TextData {
     pub fn truncate_bytes(&mut self, max_len: usize) {
         if self.inner.len() > max_len {
             self.inner.truncate(max_len);
-            // Ensure we don't cut in the middle of a UTF-8 character
             while !self.inner.is_empty() && !std::str::from_utf8(&self.inner).is_ok() {
                 self.inner.pop();
             }
@@ -670,7 +668,6 @@ impl Display for TextData {
         match self.as_str() {
             Ok(s) => write!(f, "{}", s),
             Err(_) => {
-                // Fallback to lossy conversion for display
                 write!(f, "{}", self.as_str_lossy())
             }
         }

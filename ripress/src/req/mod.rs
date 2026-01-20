@@ -710,7 +710,6 @@ impl HttpRequest {
                 }
             }
             RequestBodyType::BINARY => {
-                // Check if this binary content also contains form fields
                 if let RequestBodyContent::BinaryWithFields(_, form_data) = &body.content {
                     Ok(form_data)
                 } else {
@@ -728,7 +727,6 @@ impl HttpRequest {
     /// This is useful for middlewares that wish to expose computed values through
     /// the `form_data()` API, such as attaching file upload metadata.
     pub fn insert_form_field(&mut self, key: &str, value: &str) {
-        // Ensure body is of FORM type and contains a FormData map
         if self.body.content_type != RequestBodyType::FORM {
             self.body.content_type = RequestBodyType::FORM;
             self.body.content = RequestBodyContent::FORM(FormData::new());

@@ -73,7 +73,6 @@ mod tests {
 
     #[test]
     fn test_json_body() {
-        // Test 1 - Everything Is Correct
         #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
         struct User {
             id: u32,
@@ -98,7 +97,6 @@ mod tests {
             }
         );
 
-        // Test 2 - Invalid Body Type
 
         req.set_json(
             User {
@@ -110,7 +108,6 @@ mod tests {
 
         assert!(req.json::<User>().is_err());
 
-        // Test 3 - Invalid JSON Content
 
         req.set_text(
             TextData::new("{invalid json}".to_string()),
@@ -122,7 +119,6 @@ mod tests {
 
     #[test]
     fn test_binary_body() {
-        // Test 1 - Everything Is Correct
 
         let mut req = HttpRequest::new();
 
@@ -130,13 +126,11 @@ mod tests {
 
         assert_eq!(req.bytes().unwrap(), vec![1, 2, 3, 4, 5]);
 
-        // Test 2 - Invalid Body Type
 
         req.set_binary(vec![1, 2, 3, 4, 5], RequestBodyType::FORM);
 
         assert!(req.bytes().is_err());
 
-        // Test 3 - Invalid Text Content
 
         req.set_binary(vec![1, 2, 3, 4, 5], RequestBodyType::TEXT);
         assert!(req.bytes().is_err());
@@ -144,7 +138,6 @@ mod tests {
 
     #[test]
     fn test_text_body() {
-        // Test 1 - Everything Is Correct
 
         let mut req = HttpRequest::new();
 
@@ -152,13 +145,11 @@ mod tests {
 
         assert_eq!(req.text().unwrap().to_string(), "Ripress".to_string());
 
-        // Test 2 - Invalid Body Type
 
         req.set_text(TextData::new("".to_string()), RequestBodyType::JSON);
 
         assert!(req.text().is_err());
 
-        // Test 3 - Invalid Text Content
 
         req.set_json(json!({"key": "value"}), RequestBodyType::TEXT);
 
@@ -167,7 +158,6 @@ mod tests {
 
     #[test]
     fn test_form_data() {
-        // Test 1 - Everything Is Correct
 
         let mut req = HttpRequest::new();
         req.set_form("key", "value", RequestBodyType::FORM);
@@ -175,12 +165,10 @@ mod tests {
         assert_eq!(req.form_data().unwrap().get("key").unwrap(), "value");
         assert_eq!(req.form_data().unwrap().get("nonexistent"), None);
 
-        // Test 2 - Invalid Body Type
 
         req.set_form("another_key", "another_value", RequestBodyType::JSON);
         assert!(req.form_data().is_err());
 
-        // // Test 3 - Invalid Form Content
 
         req.set_json(json!({"key": "value"}), RequestBodyType::FORM);
         assert!(req.form_data().is_err());
@@ -256,7 +244,6 @@ mod tests {
         let content_type = determine_content_type_request("application/xml");
         assert_eq!(content_type, RequestBodyType::TEXT);
 
-        // Test multipart form detection
         let content_type = determine_content_type_request(
             "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW",
         );
@@ -321,7 +308,6 @@ mod tests {
         let io_err = std::io::Error::new(std::io::ErrorKind::Other, "low-level failure");
         let resp_err: ResponseError = io_err.into();
 
-        // std::error::Error gives us a source() method
         assert!(resp_err.source().is_none(), "Expected no source error");
     }
 
@@ -354,7 +340,6 @@ mod tests {
         let resp = sample_response();
         let debug_str = format!("{:?}", resp);
 
-        // Stream should be displayed as "<stream>"
         assert!(debug_str.contains("HttpResponse"));
         assert!(debug_str.contains("status_code: Ok"));
         assert!(debug_str.contains("body: BINARY(b\"hello world\")"));
@@ -379,8 +364,6 @@ mod tests {
         assert_eq!(resp.remove_cookies, cloned.remove_cookies);
         assert_eq!(resp.is_stream, cloned.is_stream);
 
-        // Ensure cloned stream is not the same allocation as original
-        // (both are empty, but new clone should have a fresh Box::pin(stream::empty()))
         let orig_debug = format!("{:?}", resp);
         let cloned_debug = format!("{:?}", cloned);
         assert_eq!(orig_debug, cloned_debug);

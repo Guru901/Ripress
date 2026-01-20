@@ -111,9 +111,7 @@ pub mod response_status;
 /// Contains cookie types used by HttpResponse (options, enums).
 pub mod response_cookie;
 
-// Re-export for backward compatibility: crate::res::CookieOptions / CookieSameSiteOptions
 pub use response_cookie::{CookieOptions, CookieSameSiteOptions};
-// Cookie stays crate-private
 use response_cookie::Cookie;
 
 use response_headers::ResponseHeaders;
@@ -159,22 +157,17 @@ pub use response_error::ResponseError;
 /// - `headers` - Response headers
 /// - `remove_cookies` - Cookies to be removed
 pub struct HttpResponse {
-    // Response body content
     pub(crate) body: ResponseContentBody,
 
-    // Content type of the response
     pub(crate) content_type: ResponseBodyType,
 
-    // Status code specified by the developer
     pub(crate) status_code: StatusCode,
 
     /// Sets response headers
     pub headers: ResponseHeaders,
 
-    // Sets response cookies
     pub(crate) cookies: Vec<Cookie>,
 
-    // Cookies to be removed
     pub(crate) remove_cookies: Vec<&'static str>,
 
     pub(crate) is_stream: bool,

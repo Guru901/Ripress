@@ -9,7 +9,7 @@ mod test {
         res::{HttpResponse, response_status::StatusCode},
     };
 
-    const DEFAULT_BODY_LIMIT: usize = 1024 * 1024; // 1 MB
+    const DEFAULT_BODY_LIMIT: usize = 1024 * 1024; 
 
     fn make_req_with_body(body: Vec<u8>) -> HttpRequest {
         HttpRequest {

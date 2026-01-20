@@ -41,7 +41,6 @@ impl From<hyper::Error> for ApiError {
             500
         };
 
-        // Log the error for debugging
         eprintln!("hyper error: {}", err);
 
         ApiError::Generic(HttpResponse::new().status(status).text(message))
@@ -56,7 +55,6 @@ impl From<ApiError> for Box<dyn std::error::Error + Send> {
 
 impl From<Box<dyn std::error::Error>> for ApiError {
     fn from(error: Box<dyn std::error::Error>) -> Self {
-        // Log the internal error and return a generic 500
         eprintln!("internal error: {}", error);
 
         ApiError::Generic(

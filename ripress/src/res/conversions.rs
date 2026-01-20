@@ -48,7 +48,6 @@ impl HttpResponse {
                 ResponseContentBody::new_text(text)
             }
             ResponseBodyType::JSON => {
-                // Avoid panic: if JSON parsing fails, fallback to empty object
                 let json_value =
                     serde_json::from_slice(&body_bytes).unwrap_or(serde_json::Value::Null);
                 ResponseContentBody::new_json(json_value)
@@ -60,7 +59,6 @@ impl HttpResponse {
             }
         };
 
-        // Heuristic for SSE streams: text/event-stream + keep-alive
         let is_event_stream = content_type_hdr
             .map(|ct| ct.eq_ignore_ascii_case("text/event-stream"))
             .unwrap_or(false);
@@ -103,7 +101,6 @@ impl HttpResponse {
         let collected = res.body_mut().collect().await?;
         let body_bytes = collected.to_bytes();
 
-        // Extract what we need BEFORE taking the HeaderMap
         let content_type_hdr = res
             .headers()
             .get(hyper::header::CONTENT_TYPE)
@@ -132,7 +129,6 @@ impl HttpResponse {
             }
         };
 
-        // Check for SSE stream
         let is_event_stream = content_type_hdr
             .map(|ct| ct.eq_ignore_ascii_case("text/event-stream"))
             .unwrap_or(false);
@@ -148,7 +144,6 @@ impl HttpResponse {
 
         let status_code = StatusCode::from_u16(res.status().as_u16());
 
-        // OPTIMIZATION: Take the HeaderMap directly - ZERO parsing!
         let headers = ResponseHeaders::from(std::mem::take(res.headers_mut()));
 
         Ok(HttpResponse {
@@ -210,7 +205,6 @@ impl HttpResponse {
                 }
             }
 
-            // Remove cookies
             for cookie_name in self.remove_cookies {
                 let expired_cookie = cookie::Cookie::build((cookie_name, ""))
                     .path("/")
@@ -223,7 +217,6 @@ impl HttpResponse {
                 }
             }
 
-            // Collect the stream into a single Bytes value (async)
             let collected_results: Vec<Result<Bytes, ResponseError>> = self.stream.collect().await;
 
             let bytes = collected_results
@@ -234,10 +227,8 @@ impl HttpResponse {
 
             let mut hyper_response = response.body(Full::from(bytes)).unwrap();
 
-            // Merge our header map into the response
             hyper_response.headers_mut().extend(header_map);
 
-            // Remove Content-Length and set transfer-encoding for streaming
             hyper_response.headers_mut().remove(CONTENT_LENGTH);
             let header_value = HeaderValue::from_static("chunked");
             hyper_response
@@ -246,7 +237,6 @@ impl HttpResponse {
 
             return Ok(hyper_response);
         } else {
-            // Build the base response with content-type
             let mut response = match body {
                 ResponseContentBody::JSON(json) => {
                     let json_bytes = serde_json::to_vec(&json).unwrap_or_else(|e| {
@@ -274,13 +264,10 @@ impl HttpResponse {
             }
             .unwrap();
 
-            // OPTIMIZATION: Take the HeaderMap directly and merge it
             let mut header_map = self.headers.into_header_map();
 
-            // Remove content-type from our headers if it exists (already set above)
             header_map.remove(hyper::header::CONTENT_TYPE);
 
-            // Add cookies to the header map
             for c in self.cookies {
                 let mut cookie_builder = cookie::Cookie::build((c.name, c.value))
                     .http_only(c.options.http_only)
@@ -313,8 +300,6 @@ impl HttpResponse {
                 }
             }
 
-            // Remove cookies
-            // Remove cookies by sending expired Set-Cookie headers
             for cookie_name in self.remove_cookies {
                 let expired_cookie = cookie::Cookie::build((cookie_name, ""))
                     .path("/")
@@ -326,7 +311,6 @@ impl HttpResponse {
                     header_map.append(SET_COOKIE, cookie_value);
                 }
             }
-            // Merge all headers at once
             response.headers_mut().extend(header_map);
 
             return Ok(response);

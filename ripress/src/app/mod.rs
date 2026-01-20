@@ -441,7 +441,6 @@ impl App {
         path: &'static str,
         file: &'static str,
     ) -> Result<(), &'static str> {
-        // Validate inputs
         if file == "/" {
             return Err("Serving from filesystem root '/' is not allowed for security reasons");
         }
@@ -451,7 +450,6 @@ impl App {
         if file.is_empty() {
             return Err("File path cannot be empty");
         }
-        // Require paths to start with '/'
         if !path.starts_with('/') {
             return Err("Mount path must start with '/'");
         }
@@ -550,7 +548,6 @@ impl App {
             }));
         }
 
-        // Apply middlewares first
         for middleware in &self.middlewares {
             match middleware.middleware_type {
                 MiddlewareType::Post => {
@@ -568,8 +565,6 @@ impl App {
             }
         }
 
-        // Register API routes FIRST (before static files)
-        // This ensures API routes take precedence over static file serving
         for (path, methods) in &self.routes {
             for (method, handler) in methods {
                 let handler = Arc::clone(handler);
@@ -604,7 +599,6 @@ impl App {
                         let response = handler(our_req, HttpResponse::new()).await;
 
                         let hyper_response = response.to_hyper_response().await;
-                        // Infallible means this can never fail, so unwrap is safe
                         Ok(hyper_response.unwrap())
                     }
                 });
@@ -692,7 +686,6 @@ impl App {
                     eprintln!("Error accepting connection: {}", e);
                 }
                 None => {
-                    // Shutdown signal received
                     break;
                 }
             }
@@ -714,11 +707,8 @@ impl App {
             ));
         });
 
-        // For WebSocket upgrades, we need to take ownership to avoid breaking the upgrade mechanism
-        // Cloning the response breaks the upgrade connection, so we must move it
         match *api_err {
             ApiError::WebSocketUpgrade(response) => {
-                // Return the response directly without cloning to preserve the upgrade mechanism
                 response
             }
             ApiError::Generic(res) => {
@@ -760,9 +750,6 @@ impl App {
         B: hyper::body::Body<Data = hyper::body::Bytes> + Send + 'static,
         B::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     {
-        // Rewrite the request URI by stripping the mount_root prefix so that
-        // "/static/index.html" maps to "fs_root/index.html" rather than
-        // "fs_root/static/index.html".
         let (mut parts, body) = req.into_parts();
         let original_uri = parts.uri.clone();
         let original_path = original_uri.path();
@@ -773,10 +760,8 @@ impl App {
             .map(|s| s.to_string());
 
         let trimmed_path = if mount_root == "/" {
-            // If mounting at root, serve the path as-is
             original_path
         } else if original_path.starts_with(&mount_root) {
-            // Strip the mount root prefix, but ensure we don't create an empty path
             let remaining = &original_path[mount_root.len()..];
             if remaining.is_empty() {
                 "/"
@@ -784,7 +769,6 @@ impl App {
                 remaining
             }
         } else {
-            // Path doesn't match mount root - this shouldn't happen in normal routing
             original_path
         };
 
@@ -826,8 +810,6 @@ impl App {
                 response
                     .headers_mut()
                     .insert("X-Served-By", "hyper-staticfile".parse().unwrap());
-                // Handle conditional request with If-None-Match since hyper-staticfile 0.9
-                // does not evaluate it. If ETag matches, return 304 with empty body.
                 if let Some(if_none_match_value) = if_none_match {
                     if let Some(etag) = response.headers().get(header::ETAG) {
                         if let Ok(etag_value) = etag.to_str() {
@@ -835,7 +817,6 @@ impl App {
                                 let mut builder =
                                     Response::builder().status(StatusCode::NOT_MODIFIED);
                                 if let Some(h) = builder.headers_mut() {
-                                    // carry forward ETag, Cache-Control, Last-Modified, etc.
                                     for (k, v) in response.headers().iter() {
                                         h.insert(k.clone(), v.clone());
                                     }
@@ -846,7 +827,6 @@ impl App {
                         }
                     }
                 }
-                // Convert hyper_staticfile::Body to Full<Bytes>
                 let (parts, body) = response.into_parts();
                 let collected = body.collect().await.map_err(|e| {
                     std::io::Error::new(

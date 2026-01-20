@@ -118,7 +118,7 @@ impl Display for ByteKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match std::str::from_utf8(&self.0) {
             Ok(s) => write!(f, "{}", s),
-            Err(_) => write!(f, "{:?}", self.0), // Show as byte array if not valid UTF-8
+            Err(_) => write!(f, "{:?}", self.0), 
         }
     }
 }
@@ -178,7 +178,6 @@ impl Display for RequestData {
                 write!(f, ", ")?;
             }
             write!(f, "{}: ", k)?;
-            // Try to display value as string, fallback to byte array
             match std::str::from_utf8(v) {
                 Ok(s) => write!(f, "{}", s)?,
                 Err(_) => write!(f, "{:?}", v)?,

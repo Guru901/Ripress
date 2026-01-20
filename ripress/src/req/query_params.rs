@@ -164,7 +164,6 @@ impl QueryParams {
 
                 params.entry(key).or_insert_with(Vec::new).push(value);
             } else if !pair.is_empty() {
-                // Handle parameters without values (e.g., "?debug&verbose")
                 let key = urlencoding::decode(pair)
                     .unwrap_or_else(|_| pair.into())
                     .into_owned();
@@ -350,7 +349,6 @@ impl QueryParams {
         self.inner.remove(name)
     }
 
-    // Common query parameter patterns
 
     /// Get 'page' parameter (pagination)
     pub fn page(&self) -> i32 {
@@ -460,7 +458,6 @@ impl fmt::Display for QueryParams {
     }
 }
 
-// Convenient indexing syntax: query["page"]
 impl std::ops::Index<&str> for QueryParams {
     type Output = str;
 
@@ -470,7 +467,6 @@ impl std::ops::Index<&str> for QueryParams {
     }
 }
 
-// Convert from single-value HashMap for backward compatibility
 impl From<AHashMap<String, String>> for QueryParams {
     fn from(map: AHashMap<String, String>) -> Self {
         Self::from_ahashmap(map)

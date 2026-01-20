@@ -67,7 +67,6 @@ impl ResponseHeaders {
     {
         let key_str = key.as_ref();
 
-        // Fast path: use static constants for common headers
         let name = match key_str.to_lowercase().as_str() {
             "content-type" => hyper::header::CONTENT_TYPE,
             "content-length" => hyper::header::CONTENT_LENGTH,
@@ -85,7 +84,6 @@ impl ResponseHeaders {
             "strict-transport-security" => hyper::header::STRICT_TRANSPORT_SECURITY,
             "content-security-policy" => hyper::header::CONTENT_SECURITY_POLICY,
             _ => {
-                // Slow path: parse custom header
                 if let Ok(n) = HeaderName::from_bytes(key_str.as_bytes()) {
                     n
                 } else {
@@ -183,7 +181,6 @@ impl ResponseHeaders {
         self.inner.remove(&name)?.to_str().ok().map(String::from)
     }
 
-    // === Content Headers ===
 
     /// Sets the Content-Type header.
     ///
@@ -430,7 +427,6 @@ impl ResponseHeaders {
         self.inner.remove(&name);
     }
 
-    // === CORS Headers ===
 
     /// Sets the Access-Control-Allow-Origin header.
     ///
@@ -568,7 +564,6 @@ impl ResponseHeaders {
             .insert(hyper::header::ACCESS_CONTROL_ALLOW_HEADERS, val);
     }
 
-    // === Security Headers ===
 
     /// Sets the X-Frame-Options header to prevent clickjacking.
     ///
@@ -723,7 +718,6 @@ impl ResponseHeaders {
         self.remove_powered_by();
     }
 
-    // === Content Type Shortcuts ===
 
     /// Sets content type to JSON (application/json).
     ///
@@ -851,7 +845,6 @@ impl ResponseHeaders {
         self.inner.insert(hyper::header::CONTENT_DISPOSITION, val);
     }
 
-    // === Utility Methods ===
 
     /// Returns an iterator over all header names.
     ///

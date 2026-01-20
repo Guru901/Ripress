@@ -67,7 +67,6 @@ mod validation_tests {
         }
     }
 
-    // Helper to create a request with JSON body
     fn create_json_request(json_value: serde_json::Value) -> HttpRequest {
         let mut req = HttpRequest::default();
         req.body = RequestBody {
@@ -77,7 +76,6 @@ mod validation_tests {
         req
     }
 
-    // Helper to create a request with text body
     fn create_text_request(text: &str) -> HttpRequest {
         let mut req = HttpRequest::default();
         req.body = RequestBody {
@@ -197,7 +195,6 @@ mod validation_tests {
         let result = JsonBodyValidated::<User>::from_request(&req);
         assert!(result.is_err());
 
-        // Should contain errors for multiple fields
         let error = result.err().unwrap();
         assert!(error.contains("username") || error.contains("email") || error.contains("age"));
     }
@@ -207,7 +204,6 @@ mod validation_tests {
         let json = json!({
             "username": "john_doe",
             "email": "john@example.com"
-            // age is missing
         });
         let req = create_json_request(json);
 
@@ -358,7 +354,6 @@ mod validation_tests {
 
         let validated = JsonBodyValidated::<User>::from_request(&req).unwrap();
 
-        // Test Deref implementation
         assert_eq!(validated.username, "jane_doe");
         assert_eq!(validated.email, "jane@example.com");
         assert_eq!(validated.age, 30);

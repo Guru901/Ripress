@@ -720,7 +720,6 @@ impl RouteParams {
         extractor(self)
     }
 
-    // --- Convenience Methods ---
 
     /// Retrieves the `id` parameter as an integer.
     ///
@@ -846,14 +845,12 @@ impl std::ops::Index<&str> for RouteParams {
     }
 }
 
-// Convert from HashMap for easy migration
 impl From<HashMap<String, String>> for RouteParams {
     fn from(map: HashMap<String, String>) -> Self {
         Self::from_map(map)
     }
 }
 
-// Convert to HashMap for backward compatibility
 impl From<RouteParams> for HashMap<String, String> {
     fn from(params: RouteParams) -> Self {
         params.params

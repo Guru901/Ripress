@@ -53,7 +53,6 @@ mod tests {
         qp.insert("tag", "web");
 
         let output = qp.to_string();
-        // order is not guaranteed, so just check both substrings
         assert!(output.contains("tag=rust"));
         assert!(output.contains("tag=web"));
     }
@@ -151,7 +150,7 @@ mod tests {
         assert_eq!(query.get_bool("debug").unwrap(), true);
         assert_eq!(query.get_bool("verbose").unwrap(), true);
         assert_eq!(query.get_bool("disabled").unwrap(), false);
-        assert!(query.is_truthy("feature")); // Parameter exists without value
+        assert!(query.is_truthy("feature")); 
     }
 
     #[test]
@@ -172,7 +171,7 @@ mod tests {
 
         assert_eq!(query.get_or_default("existing", 0), 42);
         assert_eq!(query.get_or_default("missing", 100), 100);
-        assert_eq!(query.page(), 1); // Default page
-        assert_eq!(query.limit(), 20); // Default limit
+        assert_eq!(query.page(), 1); 
+        assert_eq!(query.limit(), 20); 
     }
 }

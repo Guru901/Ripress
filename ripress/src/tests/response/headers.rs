@@ -58,7 +58,7 @@ mod test {
         headers.insert("X-Custom", "test-value");
 
         assert_eq!(headers.get("content-type"), Some("application/json"));
-        assert_eq!(headers.get("CONTENT-TYPE"), Some("application/json")); // case insensitive
+        assert_eq!(headers.get("CONTENT-TYPE"), Some("application/json")); 
         assert_eq!(headers.get("x-custom"), Some("test-value"));
         assert!(headers.contains_key("Content-Type"));
     }

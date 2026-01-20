@@ -102,7 +102,6 @@ mod tests {
             crate::res::response_status::StatusCode::Ok
         );
 
-        // Edge case: Check default body content
         if let ResponseContentBody::TEXT(body) = response.get_body() {
             assert_eq!(body, "");
         } else {
@@ -148,7 +147,6 @@ mod tests {
             panic!("Expected JSON body");
         }
 
-        // Edge case: Empty JSON object
         let empty_json = json!({});
         let response = HttpResponse::new().json(empty_json.clone());
         if let ResponseContentBody::JSON(body) = response.get_body() {
@@ -189,7 +187,6 @@ mod tests {
             panic!("Expected BINARY body");
         }
 
-        // Edge case: Empty BINARY object
         let empty_bytes = vec![];
         let response = HttpResponse::new().bytes(empty_bytes.clone());
         if let ResponseContentBody::BINARY(body) = response.get_body() {
@@ -236,7 +233,6 @@ mod tests {
         assert_eq!(response.get_status_code(), 200);
         assert_eq!(response.get_content_type(), &ResponseBodyType::TEXT);
 
-        // Edge case: Empty text body
         let response = HttpResponse::new().text("");
         if let ResponseContentBody::TEXT(body) = response.get_body() {
             assert_eq!(body, "");
@@ -256,7 +252,6 @@ mod tests {
             panic!("Expected TEXT body");
         }
 
-        // Edge case: Empty text body
         let response = HttpResponse::new().html("");
         if let ResponseContentBody::HTML(body) = response.get_body() {
             assert_eq!(body, "");
@@ -330,7 +325,6 @@ mod tests {
         let response = response.set_cookie("session", "abc123", None);
         let response = response.clear_cookie("session");
 
-        // Verify cookie is removed
         assert_eq!(response.get_cookie("session"), None);
 
         let response = HttpResponse::new();

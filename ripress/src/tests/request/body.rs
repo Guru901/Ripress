@@ -55,7 +55,6 @@ mod tests {
     fn test_truncation() {
         let text = TextData::new("Hello, 世界!".to_string());
         let truncated = text.truncated_bytes(8);
-        // Should truncate at valid UTF-8 boundary
         assert!(truncated.as_str().is_ok());
     }
 
@@ -91,14 +90,11 @@ mod tests {
         let mut form = FormData::new();
         form.insert("invalid", "%%form%data");
 
-        // Raw data should be preserved in get()
         assert_eq!(form.get("invalid"), Some("%%form%data"));
 
-        // But should be URL-encoded when converted to query string
         let query = form.to_query_string();
         assert!(query.contains("invalid=%25%25form%25data"));
 
-        // And should decode back correctly
         let parsed = FormData::from_query_string(&query).unwrap();
         assert_eq!(parsed.get("invalid"), Some("%%form%data"));
     }
@@ -232,7 +228,7 @@ mod tests {
 
     #[test]
     fn test_new_binary() {
-        let test_bytes = vec![0x48, 0x65, 0x6c, 0x6c, 0x6f]; // "Hello" in bytes
+        let test_bytes = vec![0x48, 0x65, 0x6c, 0x6c, 0x6f]; 
         let bytes = Bytes::from(test_bytes.clone());
         let body = RequestBody::new_binary(bytes.clone());
 
@@ -425,7 +421,6 @@ mod tests {
         }
     }
 
-    // RequestBodyType ToString tests
 
     #[test]
     fn test_request_body_type_to_string_json() {
@@ -475,7 +470,6 @@ mod tests {
         }
     }
 
-    // Integration tests combining new_* methods with content type checking
 
     #[test]
     fn test_content_type_consistency_text() {
@@ -487,7 +481,7 @@ mod tests {
         assert_eq!(body.content_type.to_string(), "text/plain");
 
         match body.content {
-            RequestBodyContent::TEXT(_) => {} // Expected
+            RequestBodyContent::TEXT(_) => {} 
             _ => panic!("Content type and content variant mismatch"),
         }
     }
@@ -501,7 +495,7 @@ mod tests {
         assert_eq!(body.content_type.to_string(), "application/octet-stream");
 
         match body.content {
-            RequestBodyContent::BINARY(_) => {} // Expected
+            RequestBodyContent::BINARY(_) => {} 
             _ => panic!("Content type and content variant mismatch"),
         }
     }
@@ -521,7 +515,7 @@ mod tests {
         assert_eq!(body.content.len(), 9);
 
         match body.content {
-            RequestBodyContent::FORM(_) => {} // Expected
+            RequestBodyContent::FORM(_) => {} 
             _ => panic!("Content type and content variant mismatch"),
         }
     }
@@ -535,12 +529,11 @@ mod tests {
         assert_eq!(body.content_type.to_string(), "application/json");
 
         match body.content {
-            RequestBodyContent::JSON(_) => {} // Expected
+            RequestBodyContent::JSON(_) => {} 
             _ => panic!("Content type and content variant mismatch"),
         }
     }
 
-    // Clone and Debug trait tests
 
     #[test]
     fn test_request_body_clone() {
@@ -560,8 +553,8 @@ mod tests {
     #[test]
     fn test_request_body_type_clone_and_copy() {
         let original = RequestBodyType::JSON;
-        let copied = original; // Copy
-        let cloned = original.clone(); // Clone
+        let copied = original; 
+        let cloned = original.clone(); 
 
         assert_eq!(original, copied);
         assert_eq!(original, cloned);
@@ -586,13 +579,11 @@ mod tests {
         let body = RequestBody::new_json(json!({"debug": "test"}));
         let debug_str = format!("{:?}", body);
 
-        // Just verify it doesn't panic and contains expected parts
         assert!(debug_str.contains("RequestBody"));
         assert!(debug_str.contains("content_type"));
         assert!(debug_str.contains("content"));
     }
 
-    // Edge case tests
 
     #[test]
     fn test_json_with_special_characters() {
@@ -640,8 +631,7 @@ mod tests {
 
     #[test]
     fn test_text_data_error_display_invalid_utf8() {
-        // Create a FromUtf8Error artificially
-        let bytes = vec![0, 159]; // invalid UTF-8 sequence
+        let bytes = vec![0, 159]; 
         let err = String::from_utf8(bytes).unwrap_err().utf8_error();
 
         let error = TextDataError::InvalidUtf8(err);
@@ -706,7 +696,7 @@ mod tests {
 
     #[test]
     fn test_try_from_vec_u8_invalid_utf8() {
-        let bytes = vec![0xff, 0xfe, 0xfd]; // invalid UTF-8
+        let bytes = vec![0xff, 0xfe, 0xfd]; 
         let err = TextData::try_from(bytes).unwrap_err();
         assert_eq!(err.kind, RipressErrorKind::ParseError)
     }
@@ -720,7 +710,6 @@ mod tests {
 
     #[test]
     fn test_try_from_textdata_to_string_invalid() {
-        // Construct TextData from invalid bytes (simulate via from_bytes)
         let bytes = vec![0xff, 0xfe];
         let text = TextData::try_from(bytes.clone()).unwrap_err();
         assert!(matches!(
@@ -735,7 +724,7 @@ mod tests {
     #[test]
     fn test_deref_to_bytes() {
         let text = TextData::from("hello");
-        let bytes: &[u8] = &*text; // deref coercion
+        let bytes: &[u8] = &*text; 
         assert_eq!(bytes, b"hello");
     }
 

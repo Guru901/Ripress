@@ -44,7 +44,6 @@ mod tests {
 
     #[test]
     fn test_from_utf8_error() {
-        // Invalid UTF-8: [0xff, 0xff] is not valid
         let bad = vec![0xff, 0xff];
         let result = String::from_utf8(bad.clone());
         if let Err(e) = result {
@@ -105,7 +104,6 @@ mod tests {
 
     #[test]
     fn test_from_text_data_error_invalid_utf8() {
-        // build a dummy error
         use std::str::from_utf8;
         let bytes = &[0xff, 0xff];
         #[allow(invalid_from_utf8)]

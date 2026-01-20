@@ -23,7 +23,6 @@ mod test {
         assert!(req.data.contains_key("data_key"));
 
         req.data.shrink_to_fit();
-        // It was 162 when it was working correctly so anything other than that would be wrong
         assert_eq!(req.data.byte_size(), 162);
 
         req.data.remove("data_key");
@@ -63,7 +62,6 @@ mod test {
 
     #[test]
     fn test_display_non_utf8_value() {
-        // Invalid UTF-8 sequence
         let data = make_request_data(vec![("bin", vec![0xff, 0xfe, 0xfd])]);
         let output = format!("{}", data);
         assert!(output.contains("bin: [255, 254, 253]"));
@@ -74,7 +72,6 @@ mod test {
         let data = make_request_data(vec![("a", b"1".to_vec()), ("b", b"2".to_vec())]);
         let output = format!("{}", data);
 
-        // Order in HashMap is not guaranteed, so check substrings
         assert!(output.contains("a: 1"));
         assert!(output.contains("b: 2"));
         assert!(output.starts_with("RequestData {"));

@@ -272,7 +272,7 @@ pub struct LoggerConfig {
     ///
     /// Headers not present in the request will show as "<missing>" in the log output.
     /// Common headers to log: "content-type", "x-request-id", "authorization"
-    pub headers: Vec<String>, // Specific headers to log
+    pub headers: Vec<String>, 
     /// Whether to log the response body size
     ///
     /// Shows actual byte count for regular responses, "stream" for streaming responses.
@@ -285,7 +285,7 @@ pub struct LoggerConfig {
     ///
     /// Uses prefix matching: "/health" excludes "/health", "/health/live", etc.
     /// Useful for excluding health checks, metrics endpoints, and other high-frequency requests.
-    pub exclude_paths: Vec<String>, // Don't log health checks, etc.
+    pub exclude_paths: Vec<String>, 
 }
 
 impl Default for LoggerConfig {
@@ -365,7 +365,6 @@ pub(crate) fn logger(
     move |req: HttpRequest, res| {
         let config = std::sync::Arc::clone(&cfg);
 
-        // Treat entries as prefixes; excludes "/health" will also exclude "/health/live".
         if config
             .exclude_paths
             .iter()

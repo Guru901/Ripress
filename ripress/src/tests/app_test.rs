@@ -44,7 +44,6 @@ mod tests {
         );
     }
 
-    // Dummy handler for testing
     async fn dummy_handler(_req: HttpRequest, res: HttpResponse) -> HttpResponse {
         res.text("Hello, world!")
     }
@@ -58,15 +57,12 @@ mod tests {
     #[tokio::test]
     #[ignore = "For now"]
     async fn test_listen_starts_server_and_responds() {
-        // Pick a random port in a high range to avoid conflicts
         let port = 34567;
         let app = build_test_app();
 
-        // Use an Arc<Mutex<>> to signal when the callback is called
         let cb_called = Arc::new(Mutex::new(false));
         let cb_called_clone = cb_called.clone();
 
-        // Spawn the server in a background task
         let server_handle = task::spawn({
             let app = app;
             async move {
@@ -78,37 +74,29 @@ mod tests {
             }
         });
 
-        // Wait a bit for the server to start
         sleep(Duration::from_millis(300)).await;
 
-        // Check that the callback was called
         assert!(*cb_called.lock().unwrap());
 
-        // Make a request to the server
         let url = format!("http://127.0.0.1:{}/", port);
         let resp = reqwest::get(&url).await.unwrap();
         assert_eq!(resp.status(), 200);
         let body = resp.text().await.unwrap();
         assert_eq!(body, "Hello, world!");
 
-        // Shutdown the server task
         server_handle.abort();
     }
 
     #[tokio::test]
     async fn test_error_handler_with_generic_api_error() {
-        // Arrange: create a custom HttpResponse inside ApiError
         let response = HttpResponse::new().bad_request().text("Bad request test");
         let api_err = ApiError::Generic(response.clone());
 
-        // Wrap ApiError into RouteError
         let route_err: RouteError = RouteError::from(api_err);
 
-        // Act
 
         let result: Response<Full<Bytes>> = crate::app::App::error_handler(route_err).await;
 
-        // Assert
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
         let body_bytes = result.into_body().collect().await.unwrap().to_bytes();
@@ -118,7 +106,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_error_handler_ws_error() {
-        // Arrange: create a custom HttpResponse inside ApiError
         let response = Response::builder()
             .status(StatusCode::UPGRADE_REQUIRED)
             .body(Full::new(Bytes::from("WS UPGRADE")))
@@ -138,23 +125,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_error_handler_with_non_api_error() {
-        // Arrange: create a plain error (not ApiError)
         let route_err: RouteError = "some random error".into();
 
-        // Act
         let result: Response<Full<Bytes>> = crate::app::App::error_handler(route_err).await;
 
-        // Assert
         assert_eq!(result.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
-        // let body_bytes = result.into_body().bytes().await.unwrap();
-        // let body_str = String::from_utf8(body_bytes.to_vec()).unwrap();
-        // assert_eq!(body_str, "Unhandled error");
     }
 
     #[tokio::test]
     async fn test_serve_static_with_headers_basic() {
-        // Setup a temp directory and file
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("hello.txt");
         let mut file = File::create(&file_path).unwrap();
@@ -163,7 +143,6 @@ mod tests {
         let mount_root = "/static".to_string();
         let fs_root = dir.path().to_str().unwrap().to_string();
 
-        // Request to /static/hello.txt
         let req = Request::builder()
             .uri("/static/hello.txt")
             .body(Full::from(Bytes::new()))
@@ -182,14 +161,12 @@ mod tests {
         );
         assert_eq!(headers.get("X-Served-By").unwrap(), "hyper-staticfile");
 
-        // Body should be the file contents
         let body_bytes = resp.into_body().collect().await.unwrap().to_bytes();
         assert_eq!(body_bytes, "Hello, static!");
     }
 
     #[tokio::test]
     async fn test_serve_static_with_headers_if_none_match_304() {
-        // Setup a temp directory and file
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("etag.txt");
         let mut file = std::fs::File::create(&file_path).unwrap();
@@ -198,7 +175,6 @@ mod tests {
         let mount_root = "/static".to_string();
         let fs_root = dir.path().to_str().unwrap().to_string();
 
-        // First, get the ETag by making a request
         let req1 = Request::builder()
             .uri("/static/etag.txt")
             .body(Full::from(Bytes::new()))
@@ -212,7 +188,6 @@ mod tests {
 
         assert!(etag.is_some());
 
-        // Now, make a request with If-None-Match header
         let req2 = Request::builder()
             .uri("/static/etag.txt")
             .header(header::IF_NONE_MATCH, etag.clone().unwrap())
@@ -224,7 +199,6 @@ mod tests {
             .expect("should serve file");
 
         assert_eq!(resp2.status(), StatusCode::NOT_MODIFIED);
-        // Body should be empty
         let body_bytes = resp2.into_body().collect().await.unwrap().to_bytes();
         assert!(body_bytes.is_empty());
     }
@@ -235,7 +209,6 @@ mod tests {
         let mount_root = "/static".to_string();
         let fs_root = dir.path().to_str().unwrap().to_string();
 
-        // Request a non-existent file
         let req = Request::builder()
             .uri("/static/does_not_exist.txt")
             .body(Full::from(Bytes::new()))
@@ -269,7 +242,6 @@ mod tests {
         assert_eq!(app.middlewares[0].path, "/api");
         assert_eq!(app.middlewares[1].path, "/api");
 
-        // Run the middleware closure manually
         let (req, res) = (dummy_request(), dummy_response());
         let mw = app.middlewares[0].func.clone();
         let (req, res) = mw(req, res).await;
@@ -281,7 +253,7 @@ mod tests {
         );
         assert_eq!(app.middlewares[0].middleware_type, MiddlewareType::Pre);
         assert_eq!(app.middlewares[1].middleware_type, MiddlewareType::Pre);
-        drop(req); // suppress unused var warning
+        drop(req); 
     }
 
     #[tokio::test]
@@ -317,7 +289,6 @@ mod tests {
         assert_eq!(app.middlewares.len(), 1);
         assert_eq!(app.middlewares[0].path, "/api");
 
-        // Run the middleware closure manually
         let (req, res) = (dummy_request(), dummy_response());
         let mw = app.middlewares[0].func.clone();
         let (req, res) = mw(req, res).await;
@@ -328,7 +299,7 @@ mod tests {
             crate::res::response_status::StatusCode::Ok
         );
         assert_eq!(app.middlewares[0].middleware_type, MiddlewareType::Post);
-        drop(req); // suppress unused var warning
+        drop(req); 
     }
 
     #[tokio::test]
@@ -367,20 +338,16 @@ mod tests {
         HttpResponse::new().status(status).text("ok")
     }
 
-    // Alternative approach: Direct testing without RouterService complexity
     async fn call_route(_router: routerify_ng::Router<ApiError>, req: Request<Full<Bytes>>) -> u16 {
-        // For testing purposes, we can simulate the routing logic
-        // This is a simplified approach that works around RouterService complexity
         let method = req.method().as_str();
         let path = req.uri().path();
 
-        // Match the routes based on your test cases
         match (method, path) {
             ("GET", "/hello") => 200,
             ("POST", "/submit") => 201,
             ("PUT", "/update") => 202,
-            ("DELETE", "/update") => 204, // Fixed: was "/remove" in test but route is "/update"
-            ("PATCH", "/update") => 200,  // Fixed: was "/modify" in test but route is "/update"
+            ("DELETE", "/update") => 204, 
+            ("PATCH", "/update") => 200,  
             ("HEAD", "/ping") => 200,
             ("OPTIONS", "/opt") => 200,
             ("GET", "/fail") => 500,
@@ -697,7 +664,6 @@ mod tests {
     #[test]
     fn test_use_shield() {
         let mut app = App::new();
-        // Should be able to call without panic, and middleware count increases
         let initial = app.middlewares.len();
         app.use_shield(None);
 

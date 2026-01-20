@@ -49,7 +49,6 @@ mod test {
     fn test_compress_data_gzip_magic() {
         let data = b"hello world, hello world, hello world, hello world, hello world";
         let compressed = compress_data(data, 6).unwrap();
-        // GZIP magic numbers
         assert_eq!(&compressed[0..2], &[0x1f, 0x8b]);
     }
 
@@ -127,17 +126,13 @@ mod test {
         let (_, res_opt) = mw(req, res).await;
         assert!(res_opt.is_some());
         let res = res_opt.unwrap();
-        // Should be compressed
         match &res.body {
             ResponseContentBody::BINARY(b) => {
-                // GZIP magic
                 assert_eq!(&b[0..2], &[0x1f, 0x8b]);
             }
             _ => panic!("Body should be BINARY"),
         }
-        // Should have Content-Encoding header
         assert_eq!(res.headers.get("Content-Encoding"), Some("gzip"));
-        // Should have Vary header
         assert_eq!(res.headers.get("Vary"), Some("Accept-Encoding"));
     }
 
@@ -225,10 +220,8 @@ mod test {
         let original = b"Hello, World! ".repeat(100);
         let compressed = compress_data(&original, 6).unwrap();
 
-        // Compressed data should be smaller than original for repetitive content
         assert!(compressed.len() < original.len());
 
-        // Should have gzip magic numbers at the beginning
         assert_eq!(&compressed[0..2], &[0x1f, 0x8b]);
     }
 

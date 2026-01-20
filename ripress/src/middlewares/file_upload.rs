@@ -235,7 +235,7 @@ impl Default for FileUploadConfiguration {
     fn default() -> Self {
         Self {
             upload_dir: "uploads".to_string(),
-            max_file_size: 1024 * 1024 * 10, // 10 MB
+            max_file_size: 1024 * 1024 * 10, 
             max_files: 100,
             allowed_file_types: Vec::new(),
         }
@@ -274,7 +274,6 @@ pub fn file_upload(
         let config = config.clone();
         let upload_path = config.upload_dir.clone();
         Box::pin(async move {
-            // Determine Content-Type and extract boundary (case-insensitive) first
             let content_type = req.headers.content_type().unwrap_or_default();
             let is_multipart = content_type.to_lowercase().contains("multipart/form-data");
             let boundary = if is_multipart {
@@ -283,7 +282,6 @@ pub fn file_upload(
                 None
             };
 
-            // For multipart forms, we need the raw body bytes
             let bytes_vec = if is_multipart {
                 match req.bytes() {
                     Ok(bytes) => bytes.to_vec(),
@@ -296,11 +294,9 @@ pub fn file_upload(
                     }
                 }
             } else {
-                // For non-multipart requests (including binary uploads), try to get bytes
                 match req.bytes() {
                     Ok(bytes) => bytes.to_vec(),
                     Err(_) => {
-                        // If bytes() fails, try to get form data as fallback
                         match req.form_data() {
                             Ok(form_data) => {
                                 let form_string = form_data_to_string(form_data);
@@ -321,27 +317,21 @@ pub fn file_upload(
                 }
             };
 
-            // Parse multipart/form-data if applicable
             let (fields, file_parts) = if let Some(ref boundary_str) = boundary {
                 parse_multipart_form(&bytes_vec, boundary_str)
             } else {
                 (Vec::new(), Vec::new())
             };
 
-            // Insert any text fields into form_data()
             for (k, v) in fields {
                 req.insert_form_field(&k, &v);
             }
 
-            // Determine what files to process
             let files_to_process = if !file_parts.is_empty() {
                 file_parts
             } else if boundary.is_some() {
-                // This was a multipart request but had no file parts
-                // Don't create a fallback "file" field
                 Vec::new()
             } else {
-                // Single binary upload (backwards compatibility) - use "file" as default field name
                 vec![(bytes_vec, Some("file"))]
             };
 
@@ -354,16 +344,13 @@ pub fn file_upload(
                 return (req, None);
             }
 
-            // Ensure the upload directory exists
             if let Err(e) = create_dir_all(&upload_path).await {
                 eprintln!("Failed to create upload directory '{}': {}", upload_path, e);
-                // Continue without file upload - don't short-circuit the request
                 return (req, None);
             }
 
             let mut uploaded_files = Vec::new();
 
-            // Process all files
             for (file_bytes, field_name_opt) in files_to_process {
                 if file_bytes.len() > config.max_file_size as usize {
                     eprintln!(
@@ -376,8 +363,6 @@ pub fn file_upload(
 
                 let (file_bytes, _original_filename, field_name) = match field_name_opt {
                     Some(field) => {
-                        // If field_name_opt is Some, try to split into original_filename and field_name
-                        // If the tuple is (Vec<u8>, Some("filename")), treat as (file_bytes, None, Some("filename"))
                         (file_bytes, None::<String>, Some(field))
                     }
                     None => (file_bytes, None::<String>, None),
@@ -388,7 +373,6 @@ pub fn file_upload(
 
                 if !config.allowed_file_types.is_empty() {
                     let ext_norm = extension.to_ascii_lowercase();
-                    // Accept both "jpg" and "jpeg"
                     let ext_norm = if ext_norm == "jpg" {
                         "jpeg".to_string()
                     } else {
@@ -415,20 +399,18 @@ pub fn file_upload(
                     Ok(mut file) => {
                         if let Err(e) = file.write_all(&file_bytes).await {
                             eprintln!("Failed to write file '{}': {}", filename_with_path, e);
-                            continue; // Skip this file but continue with others
+                            continue; 
                         }
 
-                        // Track uploaded files for logging
                         uploaded_files.push(filename.clone());
 
-                        // Add the generated filename to the form field
                         if let Some(field_name) = field_name {
                             req.insert_form_field(&field_name, &filename);
                         }
                     }
                     Err(e) => {
                         eprintln!("Failed to create file '{}': {}", filename_with_path, e);
-                        continue; // Skip this file but continue with others
+                        continue; 
                     }
                 }
             }

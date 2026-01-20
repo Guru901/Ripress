@@ -19,7 +19,7 @@ pub struct CompressionConfig {
 impl Default for CompressionConfig {
     fn default() -> Self {
         Self {
-            threshold: 1024, // 1 KB - more reasonable than 1 MB for compression
+            threshold: 1024, 
             level: 6,
         }
     }
@@ -42,7 +42,6 @@ pub(crate) fn compression(
     move |req: HttpRequest, mut res| {
         let config = config.clone();
         Box::pin(async move {
-            // Check if client accepts gzip encoding
             let accepts_gzip = req
                 .headers
                 .get("Accept-Encoding")
@@ -52,7 +51,6 @@ pub(crate) fn compression(
             if !accepts_gzip {
                 return (req, None);
             }
-            // Prevent double-encoding if an upstream already encoded the body
             if res
                 .headers
                 .get("Content-Encoding")
@@ -61,46 +59,37 @@ pub(crate) fn compression(
             {
                 return (req, None);
             }
-            // Get response body content for size check
             let body_bytes = match get_response_body_bytes(&res) {
                 Some(bytes) => bytes,
                 None => return (req, None),
             };
 
-            // Check if body meets minimum size threshold
             if body_bytes.len() < config.threshold {
                 return (req, None);
             }
 
-            // Get content type
             let content_type = res.content_type.as_str();
 
-            // Check if content type should be compressed
 
             if !should_compress_content_type(content_type) {
                 return (req, None);
             }
 
-            // Compress the body
             match compress_data(&body_bytes, config.level) {
                 Ok(compressed_body) => {
-                    // Update response with compressed body
                     if let Err(_) = set_response_body(&mut res, compressed_body) {
                         return (req, None);
                     }
 
-                    // Set compression headers
                     res = res
                         .set_header("Content-Encoding", "gzip")
                         .set_header("Vary", "Accept-Encoding");
 
-                    // Remove original content-length as it's no longer valid
                     res.headers.remove("Content-Length");
 
                     (req, Some(res))
                 }
                 Err(_) => {
-                    // Compression failed, return original response
                     (req, None)
                 }
             }
@@ -169,6 +158,5 @@ pub(crate) fn accepts_gzip_encoding(header: &str) -> bool {
             }
             Some((enc, q))
         })
-        // gzip explicitly allowed with q>0 OR wildcard with q>0
         .any(|(enc, q)| q > 0.0 && (enc == "gzip" || enc == "*"))
 }
