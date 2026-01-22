@@ -4,7 +4,7 @@ use std::{fmt::Display, future::Future, sync::Arc};
 #[cfg(feature = "with-wynd")]
 use crate::middlewares::WyndMiddleware;
 use crate::req::body::RequestBodyType;
-use crate::res::ResponseBodyType;
+use crate::res::{response_headers::ResponseHeaders, ResponseBodyType};
 use crate::{
     app::api_error::ApiError,
     middlewares::Middleware,
@@ -17,6 +17,16 @@ use hyper::{body::Bytes, Request, Response};
 use mime::Mime;
 use routerify_ng::RequestInfo;
 use url::form_urlencoded::Serializer;
+
+/// Stores pre-middleware response headers that need to be merged into the final response.
+///
+/// When a pre-middleware modifies the response but returns `None` (to continue processing),
+/// the modified headers are stored in the request extensions so they can be merged into
+/// the final response from the route handler.
+#[derive(Clone, Debug)]
+pub(crate) struct PreMiddlewareResponseHeaders {
+    pub(crate) headers: ResponseHeaders,
+}
 
 pub(crate) async fn exec_pre_middleware(
     mut req: Request<Full<Bytes>>,
@@ -36,10 +46,22 @@ pub(crate) async fn exec_pre_middleware(
         match maybe_res {
             None => {
                 let hyper_req = modified_req.to_hyper_request()?;
-                return Ok(hyper_req);
+                Ok(hyper_req)
             }
             Some(res) => {
-                return Err(ApiError::Generic(res));
+                if modified_req.method == crate::types::HttpMethods::OPTIONS {
+                    return Err(ApiError::Generic(res));
+                }
+                use crate::helpers::PreMiddlewareResponseHeaders;
+
+                let headers = res.headers.clone();
+                let mut hyper_req = modified_req.to_hyper_request()?;
+
+                hyper_req
+                    .extensions_mut()
+                    .insert(PreMiddlewareResponseHeaders { headers });
+
+                Ok(hyper_req)
             }
         }
     } else {
