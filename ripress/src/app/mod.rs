@@ -560,7 +560,26 @@ impl App {
                             our_req.set_param(key, value);
                         });
 
-                        let response = handler(our_req, HttpResponse::new()).await;
+                        // Extract pre-middleware headers before moving req
+                        let pre_headers = req
+                            .extensions()
+                            .get::<crate::helpers::PreMiddlewareResponseHeaders>()
+                            .map(|ph| ph.headers.clone());
+
+                        let mut response = handler(our_req, HttpResponse::new()).await;
+
+                        // Merge pre-middleware response headers into the final response
+                        if let Some(pre_headers) = pre_headers {
+                            // Merge headers from pre-middleware into the final response
+                            // We can directly merge the ResponseHeaders
+                            for (key, value) in pre_headers.iter() {
+                                // Convert to owned strings to avoid lifetime issues
+                                let key_str = key.to_string();
+                                let value_str = value.to_string();
+                                // Use the header map directly to avoid static str requirement
+                                response.headers.insert(&key_str, value_str);
+                            }
+                        }
 
                         let hyper_response = response.to_hyper_response().await;
                         Ok(hyper_response.unwrap())

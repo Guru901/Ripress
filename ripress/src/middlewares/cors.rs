@@ -2,7 +2,7 @@
 use crate::{
     context::HttpResponse,
     req::HttpRequest,
-    types::{MiddlewareOutput, HttpMethods},
+    types::{HttpMethods, MiddlewareOutput},
 };
 
 /// Builtin CORS (Cross-Origin Resource Sharing) Middleware
@@ -419,7 +419,10 @@ pub(crate) fn cors(
             if req_clone.method == HttpMethods::OPTIONS {
                 return (req_clone, Some(res.ok()));
             }
-            (req_clone, None) 
+            // Return the modified response so exec_pre_middleware can capture the headers
+            // and merge them into the final response. We use a special marker to indicate
+            // this is a "continue" response, not a short-circuit.
+            (req_clone, Some(res))
         })
     }
 }
