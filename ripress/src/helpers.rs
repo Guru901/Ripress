@@ -2,7 +2,7 @@
 use std::{fmt::Display, future::Future, sync::Arc};
 
 #[cfg(feature = "with-wynd")]
-use crate::middlewares::WyndMiddleware;
+use crate::app::settings::WyndConfig;
 use crate::req::body::RequestBodyType;
 use crate::res::ResponseBodyType;
 use crate::{
@@ -86,7 +86,7 @@ pub(crate) async fn exec_post_middleware(
 #[cfg(feature = "with-wynd")]
 pub(crate) async fn exec_wynd_middleware(
     req: Request<Full<Bytes>>,
-    middleware: Arc<WyndMiddleware>,
+    middleware: Arc<WyndConfig>,
 ) -> Result<Request<Full<Bytes>>, ApiError> {
     if path_matches(middleware.path.as_str(), req.uri().path()) {
         let mw_func = &middleware.func;
