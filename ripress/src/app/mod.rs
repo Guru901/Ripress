@@ -200,12 +200,11 @@ impl App {
     ///
     /// ```
     /// use std::time::Duration;
-    /// use ripress::app::{App, Http2Config};
+    /// use ripress::app::{App, settings::Http2Config};
     ///
     /// let mut app = App::new();
     ///
-    /// app.enable_http2(true)
-    ///     .http2_config(Http2Config {
+    /// app.http2_config(Http2Config {
     ///         http2_only: false,
     ///         max_concurrent_streams: Some(100),
     ///         keep_alive_interval: Some(Duration::from_secs(30)),
@@ -385,6 +384,25 @@ impl App {
         Ok(())
     }
 
+    /// Disables HTTP/2 support for the application.
+    ///
+    /// This method disables HTTP/2 support for the application.
+    /// HTTP/2 support can be re-enabled by calling [`enable_http2`].
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// use ripress::app::App;
+    ///
+    /// let mut app = App::new();
+    /// app.disable_http2();
+    /// ```
+    #[inline]
+    pub fn disable_http2(&mut self) -> &mut Self {
+        self.settings.http2_config.is_enabled = false;
+        self
+    }
+
     /// Starts the HTTP server and begins listening for incoming requests.
     ///
     /// This method builds the complete router with all configured routes, middleware,
@@ -436,7 +454,7 @@ impl App {
     /// ## Network Configuration
     ///
     /// - **Bind Address**: By default, binds to `0.0.0.0:port` (all interfaces); configurable via [`App::host`]
-    /// - **Protocols**: HTTP/1.1 and HTTP/2 by default; HTTP/2 can be disabled via [`App::enable_http2`]
+    /// - **Protocols**: HTTP/1.1 and HTTP/2 by default; Can be disabled via [`App::disable_http2`]
     /// - **Concurrent Connections**: Handled asynchronously with Tokio
     ///
     /// ## Error Handling
