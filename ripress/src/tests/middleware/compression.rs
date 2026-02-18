@@ -17,7 +17,7 @@ mod test {
         let mut res = HttpResponse::new();
         let content_type = &body.content_type();
         res.body = body;
-        res.headers.insert("Content-type", content_type.as_str());
+        res.headers.insert("Content-type", content_type._as_str());
         res
     }
 

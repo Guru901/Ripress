@@ -78,3 +78,14 @@ impl From<MimeGuess> for ResponseBodyType {
         }
     }
 }
+
+impl ResponseBodyType {
+    pub fn _as_str(&self) -> &'static str {
+        match self {
+            ResponseBodyType::TEXT => "text/plain",
+            ResponseBodyType::JSON => "application/json",
+            ResponseBodyType::HTML => "text/html",
+            ResponseBodyType::BINARY => "application/octet-stream",
+        }
+    }
+}
