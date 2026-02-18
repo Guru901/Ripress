@@ -24,8 +24,8 @@ struct UserV1 {
 }
 
 impl ripress::req::body::json_data::FromJson for UserV1 {
-    fn from_json(data: &ripress::req::body::RequestBodyContent) -> Result<Self, String> {
-        if let ripress::req::body::RequestBodyContent::JSON(json_val) = data {
+    fn from_json(data: &ripress::req::body::RequestBody) -> Result<Self, String> {
+        if let ripress::req::body::RequestBody::JSON(json_val) = data {
             serde_json::from_value(json_val.clone()).map_err(|e| e.to_string())
         } else {
             Err("Expected JSON body".to_string())
@@ -45,8 +45,8 @@ struct UserV2 {
 }
 
 impl ripress::req::body::json_data::FromJson for UserV2 {
-    fn from_json(data: &ripress::req::body::RequestBodyContent) -> Result<Self, String> {
-        if let ripress::req::body::RequestBodyContent::JSON(json_val) = data {
+    fn from_json(data: &ripress::req::body::RequestBody) -> Result<Self, String> {
+        if let ripress::req::body::RequestBody::JSON(json_val) = data {
             serde_json::from_value(json_val.clone()).map_err(|e| e.to_string())
         } else {
             Err("Expected JSON body".to_string())
@@ -86,8 +86,8 @@ struct Metadata {
 }
 
 impl ripress::req::body::json_data::FromJson for UserV3 {
-    fn from_json(data: &ripress::req::body::RequestBodyContent) -> Result<Self, String> {
-        if let ripress::req::body::RequestBodyContent::JSON(json_val) = data {
+    fn from_json(data: &ripress::req::body::RequestBody) -> Result<Self, String> {
+        if let ripress::req::body::RequestBody::JSON(json_val) = data {
             serde_json::from_value(json_val.clone()).map_err(|e| e.to_string())
         } else {
             Err("Expected JSON body".to_string())

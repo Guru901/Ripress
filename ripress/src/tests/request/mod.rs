@@ -1,6 +1,6 @@
 use crate::req::body::FormData;
+use crate::req::body::RequestBody;
 use crate::req::body::TextData;
-use crate::req::body::{RequestBodyContent, RequestBodyType};
 #[cfg(test)]
 use crate::req::origin_url::Url;
 use crate::req::HttpRequest;
@@ -23,52 +23,41 @@ impl HttpRequest {
         self.headers.insert(key.to_string(), value.to_string());
     }
 
-    pub(crate) fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)
+    pub(crate) fn set_json<J>(&mut self, json: J)
     where
         J: serde::de::DeserializeOwned + serde::Serialize,
     {
-        self.body.content_type = content_type;
-        self.body.content = RequestBodyContent::JSON(serde_json::to_value(json).unwrap());
+        self.body = RequestBody::JSON(serde_json::to_value(json).unwrap());
     }
 
-    pub(crate) fn set_text(&mut self, text: TextData, content_type: RequestBodyType) {
-        self.body.content_type = content_type;
-        self.body.content = RequestBodyContent::TEXT(text)
+    pub(crate) fn set_text(&mut self, text: TextData) {
+        self.body = RequestBody::TEXT(text)
     }
 
-    pub(crate) fn set_binary(&mut self, bytes: Vec<u8>, content_type: RequestBodyType) {
-        self.body.content_type = content_type;
-        self.body.content = RequestBodyContent::BINARY(bytes.into());
+    pub(crate) fn set_binary(&mut self, bytes: Vec<u8>) {
+        self.body = RequestBody::BINARY(bytes.into());
     }
 
-    pub(crate) fn set_form(
-        &mut self,
-        key: &'static str,
-        value: &'static str,
-        content_type: RequestBodyType,
-    ) {
-        self.body.content_type = content_type;
-
-        match &mut self.body.content {
-            RequestBodyContent::FORM(existing) => {
+    pub(crate) fn set_form(&mut self, key: &'static str, value: &'static str) {
+        match &mut self.body {
+            RequestBody::FORM(existing) => {
                 existing.insert(key, value);
             }
             _ => {
                 let mut form_data = FormData::new();
                 form_data.insert(key, value);
 
-                self.body.content = RequestBodyContent::FORM(form_data)
+                self.body = RequestBody::FORM(form_data)
             }
         }
     }
 
-    pub(crate) fn set_content_type(&mut self, content_type: RequestBodyType) {
-        self.body.content_type = content_type;
-    }
+    // pub(crate) fn set_content_type(&mut self, content_type: RequestBodyType) {
+    // self.body = RequestBody;
+    // }
 
     pub(crate) fn _set_binary(&mut self, bytes: Vec<u8>) {
-        self.body.content_type = RequestBodyType::BINARY;
-        self.body.content = RequestBodyContent::BINARY(bytes.into());
+        self.body = RequestBody::BINARY(bytes.into());
     }
 
     pub(crate) fn set_method(&mut self, method: HttpMethods) {

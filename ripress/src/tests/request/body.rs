@@ -8,10 +8,7 @@ mod tests {
 
     use crate::{
         error::{RipressError, RipressErrorKind},
-        req::body::{
-            FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData,
-            text_data::TextDataError,
-        },
+        req::body::{text_data::TextDataError, FormData, RequestBody, RequestBodyType, TextData},
     };
 
     #[test]
@@ -188,9 +185,9 @@ mod tests {
         let text_data = TextData::new(String::from("Hello, world!"));
         let body = RequestBody::new_text(text_data.clone());
 
-        assert_eq!(body.content_type, RequestBodyType::TEXT);
-        match body.content {
-            RequestBodyContent::TEXT(ref data) => {
+        assert_eq!(body.body_type(), RequestBodyType::TEXT);
+        match body {
+            RequestBody::TEXT(ref data) => {
                 assert_eq!(data.as_str().unwrap(), "Hello, world!");
             }
             _ => panic!("Expected TEXT content"),
@@ -202,9 +199,9 @@ mod tests {
         let text_data = TextData::new(String::new());
         let body = RequestBody::new_text(text_data);
 
-        assert_eq!(body.content_type, RequestBodyType::TEXT);
-        match body.content {
-            RequestBodyContent::TEXT(ref data) => {
+        assert_eq!(body.body_type(), RequestBodyType::TEXT);
+        match body {
+            RequestBody::TEXT(ref data) => {
                 assert_eq!(data.as_str().unwrap(), "");
             }
             _ => panic!("Expected TEXT content"),
@@ -217,9 +214,9 @@ mod tests {
         let text_data = TextData::new(String::from(text_content));
         let body = RequestBody::new_text(text_data);
 
-        assert_eq!(body.content_type, RequestBodyType::TEXT);
-        match body.content {
-            RequestBodyContent::TEXT(ref data) => {
+        assert_eq!(body.body_type(), RequestBodyType::TEXT);
+        match body {
+            RequestBody::TEXT(ref data) => {
                 assert_eq!(data.as_str().unwrap(), text_content);
             }
             _ => panic!("Expected TEXT content"),
@@ -228,13 +225,13 @@ mod tests {
 
     #[test]
     fn test_new_binary() {
-        let test_bytes = vec![0x48, 0x65, 0x6c, 0x6c, 0x6f]; 
+        let test_bytes = vec![0x48, 0x65, 0x6c, 0x6c, 0x6f];
         let bytes = Bytes::from(test_bytes.clone());
         let body = RequestBody::new_binary(bytes.clone());
 
-        assert_eq!(body.content_type, RequestBodyType::BINARY);
-        match body.content {
-            RequestBodyContent::BINARY(ref data) => {
+        assert_eq!(body.body_type(), RequestBodyType::BINARY);
+        match body {
+            RequestBody::BINARY(ref data) => {
                 assert_eq!(data.as_ref(), test_bytes.as_slice());
             }
             _ => panic!("Expected BINARY content"),
@@ -246,9 +243,9 @@ mod tests {
         let bytes = Bytes::new();
         let body = RequestBody::new_binary(bytes);
 
-        assert_eq!(body.content_type, RequestBodyType::BINARY);
-        match body.content {
-            RequestBodyContent::BINARY(ref data) => {
+        assert_eq!(body.body_type(), RequestBodyType::BINARY);
+        match body {
+            RequestBody::BINARY(ref data) => {
                 assert!(data.is_empty());
             }
             _ => panic!("Expected BINARY content"),
@@ -264,9 +261,9 @@ mod tests {
 
         let body = RequestBody::new_form(form_data.clone());
 
-        assert_eq!(body.content_type, RequestBodyType::FORM);
-        match body.content {
-            RequestBodyContent::FORM(ref form) => {
+        assert_eq!(body.body_type(), RequestBodyType::FORM);
+        match body {
+            RequestBody::FORM(ref form) => {
                 assert_eq!(form.get("username"), Some("alice"));
                 assert_eq!(form.get("password"), Some("secret123"));
                 assert_eq!(form.get("remember_me"), Some("on"));
@@ -285,11 +282,11 @@ mod tests {
 
         let body = RequestBody::new_binary_with_form_fields(Bytes::new(), form_data.clone());
 
-        assert_eq!(body.content_type, RequestBodyType::BINARY);
-        match body.content {
-            RequestBodyContent::BinaryWithFields(ref bytes, ref form) => {
+        assert_eq!(body.body_type(), RequestBodyType::BINARY);
+        match body {
+            RequestBody::BinaryWithFields(ref bytes, ref form) => {
                 assert_eq!(bytes.len(), 0);
-                assert_eq!(body.content.len(), 0);
+                assert_eq!(body.len(), 0);
                 assert_eq!(form.get("username"), Some("alice"));
                 assert_eq!(form.get("password"), Some("secret123"));
                 assert_eq!(form.get("remember_me"), Some("on"));
@@ -304,9 +301,9 @@ mod tests {
         let form_data = FormData::new();
         let body = RequestBody::new_form(form_data);
 
-        assert_eq!(body.content_type, RequestBodyType::FORM);
-        match body.content {
-            RequestBodyContent::FORM(ref form) => {
+        assert_eq!(body.body_type(), RequestBodyType::FORM);
+        match body {
+            RequestBody::FORM(ref form) => {
                 assert_eq!(form.len(), 0);
             }
             _ => panic!("Expected FORM content"),
@@ -328,9 +325,9 @@ mod tests {
 
         let body = RequestBody::new_json(json_value.clone());
 
-        assert_eq!(body.content_type, RequestBodyType::JSON);
-        match body.content {
-            RequestBodyContent::JSON(ref value) => {
+        assert_eq!(body.body_type(), RequestBodyType::JSON);
+        match body {
+            RequestBody::JSON(ref value) => {
                 assert_eq!(value["username"], "alice");
                 assert_eq!(value["email"], "alice@example.com");
                 assert_eq!(value["age"], 30);
@@ -341,16 +338,16 @@ mod tests {
             _ => panic!("Expected JSON content"),
         }
 
-        assert_eq!(body.content.len(), 123);
+        assert_eq!(body.len(), 123);
     }
 
     #[test]
     fn test_new_json_with_primitive_string() {
         let body = RequestBody::new_json("simple string");
 
-        assert_eq!(body.content_type, RequestBodyType::JSON);
-        match body.content {
-            RequestBodyContent::JSON(ref value) => {
+        assert_eq!(body.body_type(), RequestBodyType::JSON);
+        match body {
+            RequestBody::JSON(ref value) => {
                 assert_eq!(value, "simple string");
             }
             _ => panic!("Expected JSON content"),
@@ -361,9 +358,9 @@ mod tests {
     fn test_new_json_with_number() {
         let body = RequestBody::new_json(42);
 
-        assert_eq!(body.content_type, RequestBodyType::JSON);
-        match body.content {
-            RequestBodyContent::JSON(ref value) => {
+        assert_eq!(body.body_type(), RequestBodyType::JSON);
+        match body {
+            RequestBody::JSON(ref value) => {
                 assert_eq!(value, &json!(42));
             }
             _ => panic!("Expected JSON content"),
@@ -376,9 +373,9 @@ mod tests {
         let json_value = serde_json::to_value(array.clone()).unwrap();
         let body = RequestBody::new_json(json_value);
 
-        assert_eq!(body.content_type, RequestBodyType::JSON);
-        match body.content {
-            RequestBodyContent::JSON(ref value) => {
+        assert_eq!(body.body_type(), RequestBodyType::JSON);
+        match body {
+            RequestBody::JSON(ref value) => {
                 assert_eq!(value, &json!([1, 2, 3, 4, 5]));
             }
             _ => panic!("Expected JSON content"),
@@ -389,9 +386,9 @@ mod tests {
     fn test_new_json_with_null() {
         let body = RequestBody::new_json(serde_json::Value::Null);
 
-        assert_eq!(body.content_type, RequestBodyType::JSON);
-        match body.content {
-            RequestBodyContent::JSON(ref value) => {
+        assert_eq!(body.body_type(), RequestBodyType::JSON);
+        match body {
+            RequestBody::JSON(ref value) => {
                 assert!(value.is_null());
             }
             _ => panic!("Expected JSON content"),
@@ -403,24 +400,23 @@ mod tests {
         let body_true = RequestBody::new_json(true);
         let body_false = RequestBody::new_json(false);
 
-        assert_eq!(body_true.content_type, RequestBodyType::JSON);
-        assert_eq!(body_false.content_type, RequestBodyType::JSON);
+        assert_eq!(body_true.body_type(), RequestBodyType::JSON);
+        assert_eq!(body_false.body_type(), RequestBodyType::JSON);
 
-        match body_true.content {
-            RequestBodyContent::JSON(ref value) => {
+        match body_true {
+            RequestBody::JSON(ref value) => {
                 assert_eq!(value, &json!(true));
             }
             _ => panic!("Expected JSON content"),
         }
 
-        match body_false.content {
-            RequestBodyContent::JSON(ref value) => {
+        match body_false {
+            RequestBody::JSON(ref value) => {
                 assert_eq!(value, &json!(false));
             }
             _ => panic!("Expected JSON content"),
         }
     }
-
 
     #[test]
     fn test_request_body_type_to_string_json() {
@@ -451,7 +447,7 @@ mod tests {
         let body_type = RequestBodyType::EMPTY;
         assert_eq!(body_type.to_string(), "");
         let body = RequestBody::_new_empty();
-        assert_eq!(body.content.len(), 0)
+        assert_eq!(body.len(), 0)
     }
 
     #[test]
@@ -470,18 +466,17 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_content_type_consistency_text() {
         let text_data = TextData::new(String::from("Test content"));
         let body = RequestBody::new_text(text_data);
 
-        assert_eq!(body.content_type, RequestBodyType::TEXT);
-        assert_eq!(body.content.len(), 12);
-        assert_eq!(body.content_type.to_string(), "text/plain");
+        assert_eq!(body.body_type(), RequestBodyType::TEXT);
+        assert_eq!(body.len(), 12);
+        assert_eq!(body.body_type().to_string(), "text/plain");
 
-        match body.content {
-            RequestBodyContent::TEXT(_) => {} 
+        match body {
+            RequestBody::TEXT(_) => {}
             _ => panic!("Content type and content variant mismatch"),
         }
     }
@@ -491,11 +486,11 @@ mod tests {
         let bytes = Bytes::from_static(b"binary data");
         let body = RequestBody::new_binary(bytes);
 
-        assert_eq!(body.content_type, RequestBodyType::BINARY);
-        assert_eq!(body.content_type.to_string(), "application/octet-stream");
+        assert_eq!(body.body_type(), RequestBodyType::BINARY);
+        assert_eq!(body.body_type().to_string(), "application/octet-stream");
 
-        match body.content {
-            RequestBodyContent::BINARY(_) => {} 
+        match body {
+            RequestBody::BINARY(_) => {}
             _ => panic!("Content type and content variant mismatch"),
         }
     }
@@ -506,16 +501,16 @@ mod tests {
         form_data.insert("key", "value");
         let body = RequestBody::new_form(form_data);
 
-        assert_eq!(body.content_type, RequestBodyType::FORM);
+        assert_eq!(body.body_type(), RequestBodyType::FORM);
         assert_eq!(
-            body.content_type.to_string(),
+            body.body_type().to_string(),
             "application/x-www-form-urlencoded"
         );
 
-        assert_eq!(body.content.len(), 9);
+        assert_eq!(body.len(), 9);
 
-        match body.content {
-            RequestBodyContent::FORM(_) => {} 
+        match body {
+            RequestBody::FORM(_) => {}
             _ => panic!("Content type and content variant mismatch"),
         }
     }
@@ -525,40 +520,28 @@ mod tests {
         let json_data = json!({"test": "data"});
         let body = RequestBody::new_json(json_data);
 
-        assert_eq!(body.content_type, RequestBodyType::JSON);
-        assert_eq!(body.content_type.to_string(), "application/json");
+        assert_eq!(body.body_type(), RequestBodyType::JSON);
+        assert_eq!(body.body_type().to_string(), "application/json");
 
-        match body.content {
-            RequestBodyContent::JSON(_) => {} 
+        match body {
+            RequestBody::JSON(_) => {}
             _ => panic!("Content type and content variant mismatch"),
         }
     }
-
 
     #[test]
     fn test_request_body_clone() {
         let original_body = RequestBody::new_json(json!({"key": "value"}));
         let cloned_body = original_body.clone();
 
-        assert_eq!(original_body.content_type, cloned_body.content_type);
+        assert_eq!(original_body.body_type(), cloned_body.body_type());
 
-        match (&original_body.content, &cloned_body.content) {
-            (RequestBodyContent::JSON(orig), RequestBodyContent::JSON(cloned)) => {
+        match (&original_body, &cloned_body) {
+            (RequestBody::JSON(orig), RequestBody::JSON(cloned)) => {
                 assert_eq!(orig, cloned);
             }
             _ => panic!("Clone failed to preserve content"),
         }
-    }
-
-    #[test]
-    fn test_request_body_type_clone_and_copy() {
-        let original = RequestBodyType::JSON;
-        let copied = original; 
-        let cloned = original.clone(); 
-
-        assert_eq!(original, copied);
-        assert_eq!(original, cloned);
-        assert_eq!(copied, cloned);
     }
 
     #[test]
@@ -575,17 +558,6 @@ mod tests {
     }
 
     #[test]
-    fn test_debug_formatting() {
-        let body = RequestBody::new_json(json!({"debug": "test"}));
-        let debug_str = format!("{:?}", body);
-
-        assert!(debug_str.contains("RequestBody"));
-        assert!(debug_str.contains("content_type"));
-        assert!(debug_str.contains("content"));
-    }
-
-
-    #[test]
     fn test_json_with_special_characters() {
         let json_with_unicode = json!({
             "emoji": "🚀",
@@ -596,8 +568,8 @@ mod tests {
 
         let body = RequestBody::new_json(json_with_unicode.clone());
 
-        match body.content {
-            RequestBodyContent::JSON(ref value) => {
+        match body {
+            RequestBody::JSON(ref value) => {
                 assert_eq!(value["emoji"], "🚀");
                 assert_eq!(value["chinese"], "你好");
                 assert_eq!(value["escaped"], "\"quotes\" and \\backslashes\\");
@@ -616,8 +588,8 @@ mod tests {
 
         let body = RequestBody::new_form(form_data);
 
-        match body.content {
-            RequestBodyContent::FORM(ref form) => {
+        match body {
+            RequestBody::FORM(ref form) => {
                 assert_eq!(
                     form.get("special chars"),
                     Some("value with spaces & symbols!")
@@ -631,7 +603,7 @@ mod tests {
 
     #[test]
     fn test_text_data_error_display_invalid_utf8() {
-        let bytes = vec![0, 159]; 
+        let bytes = vec![0, 159];
         let err = String::from_utf8(bytes).unwrap_err().utf8_error();
 
         let error = TextDataError::InvalidUtf8(err);
@@ -696,7 +668,7 @@ mod tests {
 
     #[test]
     fn test_try_from_vec_u8_invalid_utf8() {
-        let bytes = vec![0xff, 0xfe, 0xfd]; 
+        let bytes = vec![0xff, 0xfe, 0xfd];
         let err = TextData::try_from(bytes).unwrap_err();
         assert_eq!(err.kind, RipressErrorKind::ParseError)
     }
@@ -724,7 +696,7 @@ mod tests {
     #[test]
     fn test_deref_to_bytes() {
         let text = TextData::from("hello");
-        let bytes: &[u8] = &*text; 
+        let bytes: &[u8] = &*text;
         assert_eq!(bytes, b"hello");
     }
 

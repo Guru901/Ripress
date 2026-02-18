@@ -149,7 +149,6 @@ mod test {
 
     #[tokio::test]
     async fn test_multipart_with_files_no_middleware() {
-
         let boundary = String::from("----WebKitFormBoundary7MA4YWxkTrZu0gW");
         let multipart_data = format!(
             "--{boundary}\r\n\
@@ -189,25 +188,22 @@ mod test {
         assert_eq!(age_field.map(|(_, v)| v), Some(&"30"));
 
         let file_part = &file_parts[0];
-        assert_eq!(file_part.1.unwrap(), "file"); 
-
+        assert_eq!(file_part.1.unwrap(), "file");
 
         let mut req = HttpRequest::new();
 
-        req.set_form("name", "John Doe", crate::req::body::RequestBodyType::FORM);
-        req.set_form("age", "30", crate::req::body::RequestBodyType::FORM);
+        req.set_form("name", "John Doe");
+        req.set_form("age", "30");
 
         let retrieved_form_data = req.form_data().unwrap();
         assert_eq!(retrieved_form_data.get("name"), Some("John Doe"));
         assert_eq!(retrieved_form_data.get("age"), Some("30"));
 
         assert_eq!(retrieved_form_data.get("file"), None);
-
     }
 
     #[tokio::test]
     async fn test_multipart_with_files_request_building() {
-
         let boundary = String::from("----WebKitFormBoundary7MA4YWxkTrZu0gW");
         let multipart_data = format!(
             "--{boundary}\r\n\
@@ -225,7 +221,6 @@ mod test {
             file content\r\n\
             --{boundary}--\r\n"
         );
-
 
         let content_type = crate::helpers::determine_content_type_request(&format!(
             "multipart/form-data; boundary={}",
@@ -257,19 +252,17 @@ mod test {
         };
 
         assert_eq!(
-            request_body.content_type,
+            request_body.body_type(),
             crate::req::body::RequestBodyType::BINARY
         );
 
-        if let crate::req::body::RequestBodyContent::BinaryWithFields(_, stored_form_data) =
-            &request_body.content
+        if let crate::req::body::RequestBody::BinaryWithFields(_, stored_form_data) = &request_body
         {
             assert_eq!(stored_form_data.get("name"), Some("John Doe"));
             assert_eq!(stored_form_data.get("age"), Some("30"));
-            assert_eq!(stored_form_data.get("file"), None); 
+            assert_eq!(stored_form_data.get("file"), None);
         } else {
             panic!("Expected BinaryWithFields variant");
         }
-
     }
 }

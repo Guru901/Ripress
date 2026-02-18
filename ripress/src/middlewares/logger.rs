@@ -377,7 +377,7 @@ pub(crate) fn logger(
             let path = req.path.clone();
             let method = req.method.clone();
             let user_agent = req.headers.user_agent().unwrap_or("Unknown").to_string();
-            let ip = req.ip;
+            let ip = req.ip();
             let status_code = res.status_code;
             let mut headers = HashMap::new();
 

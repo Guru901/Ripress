@@ -29,7 +29,7 @@ test.describe("Request Tests", () => {
 
   test("Set and check params and query", async ({ request }) => {
     const paramAndQueryResponse = await request.get(
-      "/param-and-query-test/test?query=test-query"
+      "/param-and-query-test/test?query=test-query",
     );
 
     expect(paramAndQueryResponse.status()).toBe(200);
@@ -41,7 +41,7 @@ test.describe("Request Tests", () => {
 
   test("Set and get origin_url and path", async ({ request }) => {
     const originUrlAndPathResponse = await request.get(
-      "/origin-url-and-path/test?q=test"
+      "/origin-url-and-path/test?q=test",
     );
 
     expect(originUrlAndPathResponse.status()).toBe(200);
@@ -49,7 +49,7 @@ test.describe("Request Tests", () => {
     const body = await originUrlAndPathResponse.json();
     expect(
       body.originUrl === "http://localhost:3000" ||
-        body.originUrl === "http://127.0.0.1:3000"
+        body.originUrl === "http://127.0.0.1:3000",
     ).toBe(true);
     expect(body.path).toBe("/origin-url-and-path/test");
   });
@@ -127,7 +127,7 @@ test.describe("Request Tests", () => {
 
   test("Multiple query parameters", async ({ request }) => {
     const response = await request.get(
-      "/multi-query?name=john&age=25&city=NYC"
+      "/multi-query?name=john&age=25&city=NYC",
     );
 
     expect(response.status()).toBe(200);
@@ -333,7 +333,7 @@ test.describe("Request Tests", () => {
 
   test("Special characters in query parameters", async ({ request }) => {
     const response = await request.get(
-      "/special-query-test?name=John%20Doe&symbols=%21%40%23%24&unicode=🌟"
+      "/special-query-test?name=John%20Doe&symbols=%21%40%23%24&unicode=🌟",
     );
 
     expect(response.status()).toBe(200);

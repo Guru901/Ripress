@@ -3,8 +3,8 @@
 use std::ops::Deref;
 
 use crate::helpers::FromRequest;
-use hyper::HeaderMap;
 use hyper::header::{HeaderName, HeaderValue};
+use hyper::HeaderMap;
 
 /// A case-insensitive collection of HTTP request headers.
 ///

@@ -194,7 +194,7 @@ async fn path_and_origin_url_handler(req: HttpRequest, res: HttpResponse) -> Htt
 }
 
 async fn ip_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let ip = req.ip;
+    let ip = req.ip();
 
     res.ok().json(json!({
         "ip": ip
@@ -311,13 +311,13 @@ async fn empty_body_handler(_: HttpRequest, res: HttpResponse) -> HttpResponse {
 }
 
 async fn xhr_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let xhr = req.xhr;
+    let xhr = req.xhr();
     res.ok().json(json!({
         "method": xhr
     }))
 }
 async fn secure_handler(req: HttpRequest, res: HttpResponse) -> HttpResponse {
-    let secure = req.is_secure;
+    let secure = req.is_secure();
     res.ok().json(json!(secure))
 }
 
@@ -544,10 +544,10 @@ done
 
 cd ../tests
 bun install
-bunx playwright install
+npx playwright install
 
 # Run Playwright tests, fail script if tests fail
-bunx playwright test || {
+npx playwright test || {
   echo "Playwright tests failed"
   kill "$SERVER_PID" 2>/dev/null || true
   exit 1

@@ -2,6 +2,7 @@ pub(crate) struct AppSettings {
     pub(crate) http2_config: Http2Config,
     pub(crate) graceful_shutdown: bool,
     pub(crate) static_files: HashMap<&'static str, &'static str>,
+    #[cfg(feature = "with-wynd")]
     pub(crate) wynd_config: Option<WyndConfig>,
     pub(crate) host: String,
 }
@@ -12,6 +13,7 @@ impl Default for AppSettings {
             http2_config: Http2Config::default(),
             graceful_shutdown: true,
             static_files: HashMap::new(),
+            #[cfg(feature = "with-wynd")]
             wynd_config: None,
             host: String::from("0.0.0.0"),
         }
@@ -20,6 +22,7 @@ impl Default for AppSettings {
 
 use std::{collections::HashMap, time::Duration};
 
+#[cfg(feature = "with-wynd")]
 use crate::types::WyndHandler;
 
 /// Advanced configuration options for HTTP/2 behavior.
@@ -54,6 +57,7 @@ pub struct Http2Config {
     pub is_enabled: bool,
 }
 
+#[cfg(feature = "with-wynd")]
 #[derive(Clone)]
 pub(crate) struct WyndConfig {
     pub func: WyndHandler,

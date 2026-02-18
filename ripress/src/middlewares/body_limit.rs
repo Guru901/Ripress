@@ -52,7 +52,7 @@ pub(crate) fn body_limit(
     let config = config.unwrap_or(DEFAULT_BODY_LIMIT);
     move |req: HttpRequest, res| {
         Box::pin(async move {
-            let body = req.clone().body.content;
+            let body = req.clone().body;
 
             if body.len() > config {
                 eprintln!(

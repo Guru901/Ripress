@@ -81,13 +81,10 @@ mod tests {
 
         let mut req = HttpRequest::new();
 
-        req.set_json(
-            User {
-                id: 1,
-                name: "John Doe".to_string(),
-            },
-            RequestBodyType::JSON,
-        );
+        req.set_json(User {
+            id: 1,
+            name: "John Doe".to_string(),
+        });
 
         assert_eq!(
             req.json::<User>().unwrap(),
@@ -97,20 +94,12 @@ mod tests {
             }
         );
 
-        req.set_json(
-            User {
-                id: 1,
-                name: "John Doe".to_string(),
-            },
-            RequestBodyType::FORM,
-        );
+        req.set_json(User {
+            id: 1,
+            name: "John Doe".to_string(),
+        });
 
-        assert!(req.json::<User>().is_err());
-
-        req.set_text(
-            TextData::new("{invalid json}".to_string()),
-            RequestBodyType::JSON,
-        );
+        req.set_text(TextData::new("{invalid json}".to_string()));
 
         assert!(req.json::<User>().is_err());
     }
@@ -119,31 +108,20 @@ mod tests {
     fn test_binary_body() {
         let mut req = HttpRequest::new();
 
-        req.set_binary(vec![1, 2, 3, 4, 5], RequestBodyType::BINARY);
+        req.set_binary(vec![1, 2, 3, 4, 5]);
 
         assert_eq!(req.bytes().unwrap(), vec![1, 2, 3, 4, 5]);
-
-        req.set_binary(vec![1, 2, 3, 4, 5], RequestBodyType::FORM);
-
-        assert!(req.bytes().is_err());
-
-        req.set_binary(vec![1, 2, 3, 4, 5], RequestBodyType::TEXT);
-        assert!(req.bytes().is_err());
     }
 
     #[test]
     fn test_text_body() {
         let mut req = HttpRequest::new();
 
-        req.set_text(TextData::new("Ripress".to_string()), RequestBodyType::TEXT);
+        req.set_text(TextData::new("Ripress".to_string()));
 
         assert_eq!(req.text().unwrap().to_string(), "Ripress".to_string());
 
-        req.set_text(TextData::new("".to_string()), RequestBodyType::JSON);
-
-        assert!(req.text().is_err());
-
-        req.set_json(json!({"key": "value"}), RequestBodyType::TEXT);
+        req.set_json(json!({"key": "value"}));
 
         assert!(req.text().is_err());
     }
@@ -151,15 +129,12 @@ mod tests {
     #[test]
     fn test_form_data() {
         let mut req = HttpRequest::new();
-        req.set_form("key", "value", RequestBodyType::FORM);
+        req.set_form("key", "value");
 
         assert_eq!(req.form_data().unwrap().get("key").unwrap(), "value");
         assert_eq!(req.form_data().unwrap().get("nonexistent"), None);
 
-        req.set_form("another_key", "another_value", RequestBodyType::JSON);
-        assert!(req.form_data().is_err());
-
-        req.set_json(json!({"key": "value"}), RequestBodyType::FORM);
+        req.set_json(json!({"key": "value"}));
         assert!(req.form_data().is_err());
     }
 
@@ -174,23 +149,6 @@ mod tests {
         req.set_cookie("another_key", "another_value");
         let cookie = req.get_cookie("another_key").unwrap();
         assert_eq!(cookie, "another_value");
-    }
-
-    #[test]
-    fn test_is_method() {
-        let mut req = HttpRequest::new();
-
-        req.set_content_type(RequestBodyType::JSON);
-        assert!(req.is(RequestBodyType::JSON));
-
-        req.set_content_type(RequestBodyType::FORM);
-        assert!(req.is(RequestBodyType::FORM));
-
-        req.set_content_type(RequestBodyType::TEXT);
-        assert!(req.is(RequestBodyType::TEXT));
-
-        req.set_content_type(RequestBodyType::TEXT);
-        assert_ne!(req.is(RequestBodyType::FORM), true);
     }
 
     #[test]
@@ -331,8 +289,6 @@ mod tests {
 
         assert!(debug_str.contains("HttpResponse"));
         assert!(debug_str.contains("status_code: Ok"));
-        assert!(debug_str.contains("body: BINARY(b\"hello world\")"));
-        assert!(debug_str.contains("content_type: BINARY"));
         assert!(debug_str.contains("cookies"));
         assert!(debug_str.contains("headers"));
         assert!(debug_str.contains("remove_cookies"));

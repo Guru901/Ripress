@@ -111,31 +111,9 @@ pub mod settings;
 /// }
 /// ```
 pub struct App {
-    /// Stores all registered HTTP route handlers for this application.
     routes: Routes,
-
-    /// The host address or interface the server will bind to (e.g., `"0.0.0.0"` or `"127.0.0.1"`).
-    /// This field determines which IP address or hostname the HTTP server accepts connections on.
-    // pub(crate) host: String,
-
-    // /// Enables or disables HTTP/2 support for the server.
-    // /// By default, HTTP/2 is **enabled**.
-    // pub(crate) http2: bool,
-
-    // /// Optional advanced configuration for HTTP/2 behavior.
-    // pub(crate) http2_config: Option<Http2Config>,
-
-    /// The list of middleware functions to be applied to requests.
     pub(crate) middlewares: Vec<Arc<Middleware>>,
     pub(crate) settings: AppSettings,
-    // /// Static file mappings from mount path to filesystem path.
-    // pub(crate) static_files: HashMap<&'static str, &'static str>,
-
-    // /// Enables or disables graceful shutdown support for the server.
-    // pub(crate) graceful_shutdown: bool,
-    // #[cfg(feature = "with-wynd")]
-    // /// Optional WebSocket middleware (only available with `wynd` feature).
-    // pub(crate) wynd_middleware: Option<Arc<WyndMiddleware>>,
 }
 
 impl RouterFns for App {
