@@ -1,7 +1,5 @@
 #![warn(missing_docs)]
-use crate::{
-    context::HttpResponse, req::HttpRequest, res::ResponseBodyContent, types::MiddlewareOutput,
-};
+use crate::{context::HttpResponse, req::HttpRequest, res::ResponseBody, types::MiddlewareOutput};
 use flate2::{write::GzEncoder, Compression};
 use std::io::Write;
 
@@ -66,7 +64,7 @@ pub(crate) fn compression(
                 return (req, None);
             }
 
-            let content_type = res.content_type.as_str();
+            let content_type = &res.headers.get("Content-Type").unwrap();
 
             if !should_compress_content_type(content_type) {
                 return (req, None);
@@ -120,10 +118,10 @@ pub(crate) fn compress_data(data: &[u8], level: u8) -> Result<Vec<u8>, std::io::
 /// Extracts body bytes from HttpResponse for size checking
 pub(crate) fn get_response_body_bytes(response: &HttpResponse) -> Option<Vec<u8>> {
     match &response.body {
-        ResponseBodyContent::TEXT(text) => Some(text.as_bytes().to_vec()),
-        ResponseBodyContent::JSON(json) => serde_json::to_vec(json).ok(),
-        ResponseBodyContent::HTML(html) => Some(html.as_bytes().to_vec()),
-        ResponseBodyContent::BINARY(bytes) => Some(bytes.to_vec()),
+        ResponseBody::TEXT(text) => Some(text.as_bytes().to_vec()),
+        ResponseBody::JSON(json) => serde_json::to_vec(json).ok(),
+        ResponseBody::HTML(html) => Some(html.as_bytes().to_vec()),
+        ResponseBody::BINARY(bytes) => Some(bytes.to_vec()),
     }
 }
 
@@ -135,7 +133,7 @@ pub(crate) fn set_response_body(
     response: &mut HttpResponse,
     compressed_body: Vec<u8>,
 ) -> Result<(), ()> {
-    response.body = ResponseBodyContent::BINARY(compressed_body.into());
+    response.body = ResponseBody::BINARY(compressed_body.into());
     Ok(())
 }
 

@@ -10,20 +10,14 @@ mod test {
     #[cfg(feature = "compression")]
     use crate::req::HttpRequest;
     #[cfg(feature = "compression")]
-    use crate::res::{ResponseBodyContent, ResponseBodyType};
+    use crate::res::ResponseBody;
 
     #[cfg(feature = "compression")]
-    fn make_response_with_body(body: ResponseBodyContent, content_type: &str) -> HttpResponse {
+    fn make_response_with_body(body: ResponseBody) -> HttpResponse {
         let mut res = HttpResponse::new();
+        let content_type = &body.content_type();
         res.body = body;
-        res.content_type = match content_type {
-            "text/plain" => ResponseBodyType::TEXT,
-            "application/json" => ResponseBodyType::JSON,
-            "text/html" => ResponseBodyType::HTML,
-            "application/javascript" => ResponseBodyType::TEXT,
-            "application/octet-stream" => ResponseBodyType::BINARY,
-            _ => ResponseBodyType::TEXT,
-        };
+        res.headers.insert("Content-type", content_type.as_str());
         res
     }
 
@@ -74,25 +68,25 @@ mod test {
         let bin = vec![1, 2, 3, 4];
 
         let mut res = HttpResponse::new();
-        res.body = ResponseBodyContent::TEXT(text.into());
+        res.body = ResponseBody::TEXT(text.into());
         assert_eq!(
             get_response_body_bytes(&res),
             Some(text.as_bytes().to_vec())
         );
 
-        res.body = ResponseBodyContent::JSON(json.clone());
+        res.body = ResponseBody::JSON(json.clone());
         assert_eq!(
             get_response_body_bytes(&res),
             serde_json::to_vec(&json).ok()
         );
 
-        res.body = ResponseBodyContent::HTML(html.into());
+        res.body = ResponseBody::HTML(html.into());
         assert_eq!(
             get_response_body_bytes(&res),
             Some(html.as_bytes().to_vec())
         );
 
-        res.body = ResponseBodyContent::BINARY(bin.clone().into());
+        res.body = ResponseBody::BINARY(bin.clone().into());
         assert_eq!(get_response_body_bytes(&res), Some(bin));
     }
 
@@ -103,7 +97,7 @@ mod test {
         let compressed = vec![1, 2, 3, 4, 5];
         set_response_body(&mut res, compressed.clone()).unwrap();
         match &res.body {
-            ResponseBodyContent::BINARY(b) => assert_eq!(b.as_ref(), &compressed[..]),
+            ResponseBody::BINARY(b) => assert_eq!(b.as_ref(), &compressed[..]),
             _ => panic!("Body should be BINARY"),
         }
     }
@@ -121,13 +115,14 @@ mod test {
             .insert("Accept-Encoding".to_string(), "gzip".to_string());
 
         let body = "hello hello hello hello hello hello hello hello";
-        let res = make_response_with_body(ResponseBodyContent::TEXT(body.into()), "text/plain");
+        let res = make_response_with_body(ResponseBody::TEXT(body.into()));
 
         let (_, res_opt) = mw(req, res).await;
+        println!("{:?}", res_opt);
         assert!(res_opt.is_some());
         let res = res_opt.unwrap();
         match &res.body {
-            ResponseBodyContent::BINARY(b) => {
+            ResponseBody::BINARY(b) => {
                 assert_eq!(&b[0..2], &[0x1f, 0x8b]);
             }
             _ => panic!("Body should be BINARY"),
@@ -146,7 +141,7 @@ mod test {
 
         let req = HttpRequest::default();
         let body = "hello hello hello hello hello hello hello hello";
-        let res = make_response_with_body(ResponseBodyContent::TEXT(body.into()), "text/plain");
+        let res = make_response_with_body(ResponseBody::TEXT(body.into()));
 
         let (_req_out, res_opt) = mw(req, res).await;
         assert!(res_opt.is_none());
@@ -165,10 +160,7 @@ mod test {
             .insert("Accept-Encoding".to_string(), "gzip".to_string());
 
         let bin = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-        let res = make_response_with_body(
-            ResponseBodyContent::BINARY(bin.into()),
-            "application/octet-stream",
-        );
+        let res = make_response_with_body(ResponseBody::BINARY(bin.into()));
 
         let (_req_out, res_opt) = mw(req, res).await;
         assert!(res_opt.is_none());
@@ -187,7 +179,7 @@ mod test {
             .insert("Accept-Encoding".to_string(), "gzip".to_string());
 
         let body = "short";
-        let res = make_response_with_body(ResponseBodyContent::TEXT(body.into()), "text/plain");
+        let res = make_response_with_body(ResponseBody::TEXT(body.into()));
 
         let (_req_out, res_opt) = mw(req, res).await;
         assert!(res_opt.is_none());
@@ -206,7 +198,7 @@ mod test {
             .insert("Accept-Encoding".to_string(), "gzip".to_string());
 
         let body = "hello hello hello hello hello hello hello hello";
-        let mut res = make_response_with_body(ResponseBodyContent::TEXT(body.into()), "text/plain");
+        let mut res = make_response_with_body(ResponseBody::TEXT(body.into()));
         res.headers
             .insert("Content-Encoding".to_string(), "gzip".to_string());
 

@@ -94,15 +94,14 @@
 
 #![warn(missing_docs)]
 
-use crate::res::response_status::StatusCode;
+use crate::res::{response_cookie::Cookie, response_status::StatusCode};
 use bytes::Bytes;
-use futures::{stream, Stream, StreamExt};
-use mime_guess::from_ext;
+use futures::{Stream, StreamExt};
 use serde::Serialize;
 use std::pin::Pin;
 
 mod response_body;
-pub(crate) use response_body::{ResponseBodyContent, ResponseBodyType};
+pub(crate) use response_body::{ResponseBody, ResponseBodyType};
 
 /// Contains the response headers struct and its methods.
 pub mod response_headers;
@@ -113,7 +112,7 @@ pub mod response_status;
 /// Contains cookie types used by HttpResponse (options, enums).
 pub mod response_cookie;
 
-use response_cookie::Cookie;
+use response_cookie::AddCookie;
 pub use response_cookie::{CookieOptions, CookieSameSiteOptions};
 
 use response_headers::ResponseHeaders;
@@ -159,9 +158,7 @@ pub use response_error::HttpResponseError;
 /// - `headers` - Response headers
 /// - `remove_cookies` - Cookies to be removed
 pub struct HttpResponse {
-    pub(crate) body: ResponseBodyContent,
-
-    pub(crate) content_type: ResponseBodyType,
+    pub(crate) body: ResponseBody,
 
     pub(crate) status_code: StatusCode,
 
@@ -170,12 +167,8 @@ pub struct HttpResponse {
 
     pub(crate) cookies: Vec<Cookie>,
 
-    pub(crate) remove_cookies: Vec<&'static str>,
-
-    pub(crate) is_stream: bool,
-
     pub(crate) stream:
-        Pin<Box<dyn Stream<Item = Result<Bytes, HttpResponseError>> + Send + 'static>>,
+        Option<Pin<Box<dyn Stream<Item = Result<Bytes, HttpResponseError>> + Send + 'static>>>,
 }
 
 impl std::fmt::Debug for HttpResponse {
@@ -183,11 +176,8 @@ impl std::fmt::Debug for HttpResponse {
         f.debug_struct("HttpResponse")
             .field("status_code", &self.status_code)
             .field("body", &self.body)
-            .field("content_type", &self.content_type)
             .field("cookies", &self.cookies)
             .field("headers", &self.headers)
-            .field("remove_cookies", &self.remove_cookies)
-            .field("is_stream", &self.is_stream)
             .field("stream", &"<stream>")
             .finish()
     }
@@ -198,12 +188,9 @@ impl Clone for HttpResponse {
         Self {
             status_code: self.status_code,
             body: self.body.clone(),
-            content_type: self.content_type.clone(),
             cookies: self.cookies.clone(),
             headers: self.headers.clone(),
-            remove_cookies: self.remove_cookies.clone(),
-            is_stream: self.is_stream,
-            stream: Box::pin(stream::empty()),
+            stream: None,
         }
     }
 }
@@ -229,13 +216,10 @@ impl HttpResponse {
     pub fn new() -> Self {
         Self {
             status_code: StatusCode::Ok,
-            body: ResponseBodyContent::TEXT(String::new()),
-            content_type: ResponseBodyType::TEXT,
+            body: ResponseBody::TEXT(String::new()),
             headers: ResponseHeaders::new(),
             cookies: Vec::new(),
-            remove_cookies: Vec::new(),
-            is_stream: false,
-            stream: Box::pin(stream::empty::<Result<Bytes, HttpResponseError>>()),
+            stream: None,
         }
     }
 
@@ -359,8 +343,7 @@ impl HttpResponse {
     /// ```
 
     pub fn text<T: Into<String>>(mut self, text: T) -> Self {
-        self.body = ResponseBodyContent::new_text(text);
-        self.content_type = ResponseBodyType::TEXT;
+        self.body = ResponseBody::new_text(text);
         return self;
     }
 
@@ -396,8 +379,7 @@ impl HttpResponse {
     /// ```
 
     pub fn json<T: Serialize>(mut self, json: T) -> Self {
-        self.body = ResponseBodyContent::new_json(json);
-        self.content_type = ResponseBodyType::JSON;
+        self.body = ResponseBody::new_json(json);
         return self;
     }
 
@@ -429,8 +411,7 @@ impl HttpResponse {
     /// ```
 
     pub fn bytes<T: Into<Bytes>>(mut self, bytes: T) -> Self {
-        self.body = ResponseBodyContent::new_binary(bytes.into());
-        self.content_type = ResponseBodyType::BINARY;
+        self.body = ResponseBody::new_binary(bytes.into());
         return self;
     }
 
@@ -482,11 +463,11 @@ impl HttpResponse {
         cookie_value: &'static str,
         options: Option<CookieOptions>,
     ) -> Self {
-        self.cookies.push(Cookie {
+        self.cookies.push(Cookie::AddCookie(AddCookie {
             name: cookie_name,
             value: cookie_value,
             options: options.unwrap_or_default(),
-        });
+        }));
 
         self
     }
@@ -511,8 +492,13 @@ impl HttpResponse {
     /// ```
 
     pub fn clear_cookie(mut self, key: &'static str) -> Self {
-        self.cookies.retain(|cookie| cookie.name != key);
-        self.remove_cookies.push(key);
+        self.cookies.retain(|cookie| match cookie {
+            Cookie::AddCookie(add_cookie) => add_cookie.name != key,
+            Cookie::RemoveCookie(name) => *name != key,
+        });
+
+        self.cookies.push(Cookie::RemoveCookie(key));
+
         self
     }
 
@@ -589,8 +575,7 @@ impl HttpResponse {
     /// ```
 
     pub fn html(mut self, html: &str) -> Self {
-        self.body = ResponseBodyContent::new_html(html);
-        self.content_type = ResponseBodyType::HTML;
+        self.body = ResponseBody::new_html(html);
         self
     }
 
@@ -622,13 +607,7 @@ impl HttpResponse {
 
         match file {
             Ok(file) => {
-                let file_extension = infer::get(&file)
-                    .map(|info| info.extension())
-                    .unwrap_or("bin");
-
-                let mime_type = from_ext(file_extension);
-                self.content_type = ResponseBodyType::from(mime_type);
-                self.body = ResponseBodyContent::new_binary(file);
+                self.body = ResponseBody::new_binary(file);
             }
             Err(e) => {
                 eprintln!("Error reading file: {}", e);
@@ -666,10 +645,9 @@ impl HttpResponse {
         S: Stream<Item = Result<Bytes, E>> + Send + 'static,
         E: Into<HttpResponseError> + Send + 'static,
     {
-        self.is_stream = true;
         self.headers.insert("transfer-encoding", "chunked");
         self.headers.insert("cache-control", "no-cache");
-        self.stream = Box::pin(stream.map(|result| result.map_err(Into::into)));
+        self.stream = Some(Box::pin(stream.map(|result| result.map_err(Into::into))));
         self
     }
 }

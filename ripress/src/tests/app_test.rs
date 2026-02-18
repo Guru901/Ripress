@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::res::ResponseBodyContent;
+    use crate::res::ResponseBody;
     use crate::{
         app::{api_error::ApiError, settings::Http2Config, App},
         context::HttpResponse,
@@ -28,13 +28,13 @@ mod tests {
         return res.ok();
     }
 
-    impl ResponseBodyContent {
+    impl ResponseBody {
         pub(crate) fn get_content_as_bytes(&self) -> Vec<u8> {
             match self {
-                ResponseBodyContent::TEXT(text) => text.as_bytes().to_vec(),
-                ResponseBodyContent::HTML(html) => html.as_bytes().to_vec(),
-                ResponseBodyContent::JSON(json) => serde_json::to_vec(json).unwrap_or_default(),
-                ResponseBodyContent::BINARY(bytes) => bytes.to_vec(),
+                ResponseBody::TEXT(text) => text.as_bytes().to_vec(),
+                ResponseBody::HTML(html) => html.as_bytes().to_vec(),
+                ResponseBody::JSON(json) => serde_json::to_vec(json).unwrap_or_default(),
+                ResponseBody::BINARY(bytes) => bytes.to_vec(),
             }
         }
     }

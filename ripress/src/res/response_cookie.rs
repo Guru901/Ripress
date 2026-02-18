@@ -50,8 +50,38 @@ impl Default for CookieOptions {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) enum Cookie {
+    AddCookie(AddCookie),
+    RemoveCookie(&'static str),
+}
+
+impl Cookie {
+    pub(crate) fn is_add_cookie(&self) -> bool {
+        matches!(self, Cookie::AddCookie(_))
+    }
+
+    pub(crate) fn is_remove_cookie(&self) -> bool {
+        matches!(self, Cookie::RemoveCookie(_))
+    }
+
+    pub fn value(&self) -> &str {
+        match self {
+            Cookie::AddCookie(add_cookie) => add_cookie.value,
+            Cookie::RemoveCookie(name) => name,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        match self {
+            Cookie::AddCookie(add_cookie) => add_cookie.name,
+            Cookie::RemoveCookie(name) => name,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Cookie {
+pub(crate) struct AddCookie {
     pub name: &'static str,
     pub value: &'static str,
     pub(crate) options: CookieOptions,

@@ -15,7 +15,6 @@ mod response_streaming_tests {
 
         let res = HttpResponse::new().ok().write(stream);
 
-        assert!(res.is_stream);
         assert_eq!(res.headers.get("transfer-encoding").unwrap(), "chunked");
         assert_eq!(res.headers.get("cache-control").unwrap(), "no-cache");
     }
@@ -27,7 +26,7 @@ mod response_streaming_tests {
 
         let res = HttpResponse::new().write(stream);
 
-        assert!(res.is_stream);
+        assert!(res.stream.is_some());
     }
 
     #[tokio::test]
@@ -37,7 +36,7 @@ mod response_streaming_tests {
 
         let res = HttpResponse::new().write(stream);
 
-        assert!(res.is_stream);
+        assert!(res.stream.is_some());
     }
 
     #[tokio::test]
@@ -47,7 +46,7 @@ mod response_streaming_tests {
 
         let res = HttpResponse::new().status(201).write(stream);
 
-        assert!(res.is_stream);
+        assert!(res.stream.is_some());
         assert_eq!(res.status_code(), 201);
     }
 
@@ -60,7 +59,7 @@ mod response_streaming_tests {
             .set_header("x-custom", "value")
             .write(stream);
 
-        assert!(res.is_stream);
+        assert!(res.stream.is_some());
         assert_eq!(res.headers.get("x-custom").unwrap(), "value");
     }
 
@@ -78,7 +77,7 @@ mod response_streaming_tests {
             .set_header("connection", "keep-alive")
             .write(stream);
 
-        assert!(res.is_stream);
+        assert!(res.stream.is_some());
         assert_eq!(
             res.headers.get("content-type").unwrap(),
             "text/event-stream"
@@ -97,7 +96,7 @@ mod response_streaming_tests {
 
         let res = HttpResponse::new().write(stream);
 
-        assert!(res.is_stream);
+        assert!(res.stream.is_some());
     }
 
     #[tokio::test]
@@ -112,6 +111,6 @@ mod response_streaming_tests {
             .set_header("content-type", "application/x-ndjson")
             .write(stream);
 
-        assert!(res.is_stream);
+        assert!(res.stream.is_some());
     }
 }

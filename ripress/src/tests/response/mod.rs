@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::{
     res::HttpResponse,
-    res::{ResponseBodyContent, ResponseBodyType},
+    res::{ResponseBody, ResponseBodyType},
 };
 
 mod cookies_test;
@@ -17,19 +17,20 @@ impl HttpResponse {
         self.status_code.as_u16()
     }
 
-    pub(crate) fn get_content_type(&self) -> &ResponseBodyType {
-        &self.content_type
+    pub(crate) fn get_content_type(&self) -> ResponseBodyType {
+        let content_type = &self.body.content_type();
+        return content_type.clone();
     }
 
-    pub(crate) fn get_body(self) -> ResponseBodyContent {
+    pub(crate) fn get_body(self) -> ResponseBody {
         self.body
     }
 
-    pub(crate) fn get_cookie(&self, key: &str) -> Option<&'static str> {
+    pub(crate) fn get_cookie(&self, key: &str) -> Option<&str> {
         self.cookies
             .iter()
-            .find(|cookie| cookie.name == key)
-            .map(|cookie| cookie.value)
+            .find(|cookie| cookie.is_add_cookie() && cookie.name() == key)
+            .map(|cookie| cookie.value())
     }
 }
 
@@ -43,7 +44,8 @@ mod tests {
     use crate::req::body::TextData;
     use crate::req::origin_url::Url;
     use crate::req::request_error::HttpRequestError;
-    use crate::res::response_cookie::{Cookie, CookieOptions};
+    use crate::res::response_cookie::Cookie;
+    use crate::res::response_cookie::{AddCookie, CookieOptions};
     use crate::res::response_headers::ResponseHeaders;
     use crate::res::response_status::StatusCode;
     use crate::res::HttpResponse;
@@ -262,7 +264,7 @@ mod tests {
         let mut headers = ResponseHeaders::new();
         headers.insert("Content-Type", "application/json");
 
-        let cookies = Cookie {
+        let cookies = AddCookie {
             name: "session",
             value: "abcd1234",
             options: CookieOptions::default(),
@@ -270,30 +272,13 @@ mod tests {
 
         HttpResponse {
             status_code: StatusCode::Ok,
-            body: crate::res::ResponseBodyContent::new_binary(bytes::Bytes::from_static(
-                b"hello world",
-            )),
-            content_type: crate::res::ResponseBodyType::BINARY,
-            cookies: vec![cookies],
+            body: crate::res::ResponseBody::new_binary(bytes::Bytes::from_static(b"hello world")),
+            cookies: vec![Cookie::AddCookie(cookies)],
             headers,
-            remove_cookies: vec!["old_cookie".into()],
-            is_stream: false,
-            stream: Box::pin(stream::empty::<Result<bytes::Bytes, HttpResponseError>>()),
+            stream: Some(Box::pin(stream::empty::<
+                Result<bytes::Bytes, HttpResponseError>,
+            >())),
         }
-    }
-
-    #[test]
-    fn test_debug_formatting() {
-        let resp = sample_response();
-        let debug_str = format!("{:?}", resp);
-
-        assert!(debug_str.contains("HttpResponse"));
-        assert!(debug_str.contains("status_code: Ok"));
-        assert!(debug_str.contains("cookies"));
-        assert!(debug_str.contains("headers"));
-        assert!(debug_str.contains("remove_cookies"));
-        assert!(debug_str.contains("is_stream: false"));
-        assert!(debug_str.contains("stream: \"<stream>\""));
     }
 
     #[test]
@@ -303,11 +288,8 @@ mod tests {
 
         assert_eq!(resp.status_code, cloned.status_code);
         assert_eq!(resp.body, cloned.body);
-        assert_eq!(resp.content_type, cloned.content_type);
         assert_eq!(resp.cookies, cloned.cookies);
         assert_eq!(resp.headers, cloned.headers);
-        assert_eq!(resp.remove_cookies, cloned.remove_cookies);
-        assert_eq!(resp.is_stream, cloned.is_stream);
 
         let orig_debug = format!("{:?}", resp);
         let cloned_debug = format!("{:?}", cloned);

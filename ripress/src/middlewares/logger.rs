@@ -419,7 +419,7 @@ pub(crate) fn logger(
                 msg.push_str(&format!("method: {}, \n", method));
             }
             if config.body_size {
-                if res.is_stream {
+                if res.stream.is_some() {
                     msg.push_str("body_size: stream\n");
                 } else {
                     msg.push_str(&format!("body_size: {}\n", res.body.len()));
