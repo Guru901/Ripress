@@ -1,5 +1,3 @@
-use std::net::{IpAddr, Ipv4Addr};
-
 use ahash::AHashMap;
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
@@ -61,13 +59,6 @@ impl HttpRequest {
             .and_then(|v| v.to_str().ok())
             .map(|s| s.to_string());
 
-        let x_forwarded_for_str = req
-            .headers()
-            .get("x-forwarded-for")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("127.0.0.1")
-            .to_string();
-
         let x_forwarded_proto_str = req
             .headers()
             .get("x-forwarded-proto")
@@ -81,20 +72,7 @@ impl HttpRequest {
             .and_then(|v| v.to_str().ok())
             .map(|s| s.to_string());
 
-        let xhr_header_opt = req
-            .headers()
-            .get("x-requested-with")
-            .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string());
-
         let headers = RequestHeaders::from_header_map(std::mem::take(req.headers_mut()));
-
-        let ip = x_forwarded_for_str
-            .split(',')
-            .next()
-            .map(|s| s.trim())
-            .and_then(|s| s.parse::<IpAddr>().ok())
-            .unwrap_or(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
 
         let mut cookies_map = AHashMap::new();
         if let Some(cookie_str) = &cookie_str_opt {
@@ -261,18 +239,6 @@ impl HttpRequest {
             let (name, value) = (cookie.name(), cookie.value());
             cookies_map.insert(name.to_string(), value.to_string());
         });
-
-        let ip = req_info
-            .headers()
-            .get("X-Forwarded-For")
-            .and_then(|val: &hyper::header::HeaderValue| val.to_str().ok())
-            .map(|s: &str| s.split(',').next().unwrap_or("").trim().to_string())
-            .unwrap_or(String::new());
-
-        let ip = match ip.parse::<IpAddr>() {
-            Ok(ip) => ip,
-            Err(_) => IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-        };
 
         let protocol = req_info
             .headers()

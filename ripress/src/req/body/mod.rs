@@ -22,21 +22,37 @@
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RequestBody {
+    /// Plain text content with `text/plain` content type
     TEXT(TextData),
+    /// JSON structured data with `application/json` content type
     JSON(serde_json::Value),
+    /// URL-encoded form data with `application/x-www-form-urlencoded` content type
     FORM(FormData),
+    /// Raw binary data with `application/octet-stream` content type
     BINARY(Bytes),
+    /// Binary data combined with form fields for multipart form handling
     BinaryWithFields(Bytes, FormData),
+    /// Empty body with no content
     EMPTY,
 }
 
+/// Represents the content type of a request body.
+///
+/// This enum categorizes the different types of content that can be sent in an HTTP request body,
+/// each corresponding to a specific MIME type and serialization format.
 #[derive(PartialEq, Debug, Clone)]
 pub enum RequestBodyType {
+    /// Plain text content with `text/plain` content type
     TEXT,
+    /// JSON structured data with `application/json` content type
     JSON,
+    /// URL-encoded form data with `application/x-www-form-urlencoded` content type
     FORM,
+    /// Raw binary data with `application/octet-stream` content type
     BINARY,
+    /// Empty body with no content
     EMPTY,
+    /// Multipart form data with `multipart/form-data` content type
     MultipartForm,
 }
 
@@ -74,6 +90,14 @@ impl RequestBody {
         }
     }
 
+    /// Returns the content type of the request body.
+    ///
+    /// This method returns an enum value indicating the content type of the request body,
+    /// which is useful for determining how to process or serialize the body data.
+    ///
+    /// # Returns
+    ///
+    /// A `RequestBodyType` enum value indicating the content type of this request body
     pub fn body_type(&self) -> RequestBodyType {
         match self {
             RequestBody::TEXT(_) => RequestBodyType::TEXT,

@@ -61,6 +61,7 @@ mod h2;
 pub mod handler;
 /// Middleware support for the App struct, including common and user-defined middleware functionality.
 pub mod middlewares;
+/// Module for defining the settings of the App Struct.
 pub mod settings;
 
 /// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests.

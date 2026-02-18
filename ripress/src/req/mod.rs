@@ -318,10 +318,7 @@ use crate::{
 use ahash::AHashMap;
 use cookie::Cookie;
 use routerify_ng::RequestInfo;
-use std::{
-    mem::discriminant,
-    net::{IpAddr, Ipv4Addr},
-};
+use std::net::{IpAddr, Ipv4Addr};
 
 /// A struct that represents the request headers.
 /// And it's methods.
@@ -486,14 +483,17 @@ impl HttpRequest {
         self.cookies.get(name)
     }
 
+    /// Returns true if the request is an XMLHttpRequest.
     pub fn xhr(&self) -> bool {
         self.headers.get("x-requested-with").is_some()
     }
 
+    /// Returns true if the request is secure.
     pub fn is_secure(&self) -> bool {
         self.headers.get("x-forwarded-proto").is_some()
     }
 
+    /// Returns the client's IP address.
     pub fn ip(&self) -> IpAddr {
         self.headers
             .get("x-forwarded-for")

@@ -47,7 +47,8 @@ impl ResponseBody {
         ResponseBody::BINARY(bytes.into())
     }
 
-    pub fn content_type(&self) -> ResponseBodyType {
+    #[cfg(test)]
+    pub(crate) fn content_type(&self) -> ResponseBodyType {
         match self {
             ResponseBody::TEXT(_) => ResponseBodyType::TEXT,
             ResponseBody::JSON(_) => ResponseBodyType::JSON,
@@ -74,17 +75,6 @@ impl From<MimeGuess> for ResponseBodyType {
             (mime::TEXT, _) => ResponseBodyType::TEXT,
             (mime::APPLICATION, mime::JSON) => ResponseBodyType::JSON,
             _ => ResponseBodyType::BINARY,
-        }
-    }
-}
-
-impl ResponseBodyType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ResponseBodyType::TEXT => "text/plain",
-            ResponseBodyType::JSON => "application/json",
-            ResponseBodyType::HTML => "text/html",
-            ResponseBodyType::BINARY => "application/octet-stream",
         }
     }
 }

@@ -2,7 +2,7 @@
 mod extractor_tests {
     use crate::helpers::{ExtractFromOwned, FromRequest};
     use crate::req::body::json_data::JsonBody;
-    use crate::req::body::{RequestBody, RequestBodyType};
+    use crate::req::body::RequestBody;
     use crate::req::origin_url::Url;
     use crate::req::query_params::{FromQueryParam, QueryParam};
     use crate::req::request_headers::Headers;

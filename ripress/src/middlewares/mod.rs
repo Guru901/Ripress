@@ -1239,15 +1239,10 @@ pub mod compression;
 /// ```
 ///
 /// ### Security Headers Validation
-/// Use tools like securityheaders.com or Mozilla Observatory to validate your configuration.
+/// Use tools like security headers.com or Mozilla Observatory to validate your configuration.
 pub mod shield;
 
-use crate::{
-    context::{HttpRequest, HttpResponse},
-    types::{MiddlewareHandler, MiddlewareOutput},
-};
-use std::sync::Arc;
-
+use crate::types::MiddlewareHandler;
 #[cfg(feature = "with-wynd")]
 use crate::types::WyndHandler;
 
@@ -1295,16 +1290,3 @@ pub(crate) enum MiddlewareType {
     /// Middleware executed after the route handler.
     Post,
 }
-
-// #[cfg(feature = "with-wynd")]
-// /// WebSocket middleware container for the Wynd WebSocket implementation.
-// ///
-// /// This struct holds the WebSocket handler and the path it should be mounted on.
-// /// Only available when the `with-wynd` feature is enabled.
-// #[derive(Clone)]
-// pub(crate) struct WyndMiddleware {
-//     /// The WebSocket handler function.
-//     pub func: WyndHandler,
-//     /// The path where WebSocket connections should be accepted.
-//     pub path: String,
-// }
