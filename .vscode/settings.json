@@ -1,7 +1,12 @@
 {
   "cSpell.words": [
+    "ahash",
+    "flate",
     "MULTIPARTFORM",
+    "reqwest",
     "ripress",
-    "routerify"
+    "routerify",
+    "serde",
+    "urlencoding"
   ]
 }
