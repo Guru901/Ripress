@@ -27,7 +27,7 @@ mod test {
         pub fn value(&self) -> &str {
             match self {
                 Cookie::AddCookie(add_cookie) => add_cookie.value,
-                Cookie::RemoveCookie(name) => name,
+                Cookie::RemoveCookie(_) => "",
             }
         }
 
