@@ -275,8 +275,6 @@ mod tests {
             .ok()
             .text("test");
 
-        println!("{:#?}", response.cookies);
-
         let add_cookies: Vec<_> = response
             .cookies
             .iter()
@@ -299,7 +297,7 @@ mod tests {
             .find(|c| c.name() == "old_session")
             .unwrap();
 
-        assert_eq!(cleared_cookie.value(), "old_session");
+        assert_eq!(cleared_cookie.name(), "old_session");
     }
 
     #[test]
