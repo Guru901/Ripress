@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.4.0] - 2026-01-20
+
+- Refactored the entire codebase
+- Redid the response and request cycles to make it efficient and faster.
+
 ## [2.3.3] - 2026-01-20
 
 - Internal Refactor
@@ -19,7 +24,7 @@
 
   - Performance & Maintainability
     - Enhanced error handling in request parsing and response building
-    - Inhanced performance in binary body type when using wynd
+    - Enhanced performance in binary body type when using wynd
 
 - Bug fixes
   - Fixed shield middleware from being a pre middleware to being a post middleware.
@@ -29,17 +34,14 @@
 ## [2.3.0] - 2025-12-20
 
 - Added
-
   - Type-Based Extraction System
   - New derive macros via ripress-derive procedural macro crate:
-
     - #[derive(FromParams)] - Extract route parameters into structs
     - #[derive(FromJson)] - Deserialize JSON bodies into structs
     - #[derive(FromData)] - Extract request data into structs
     - #[derive(FromQueryParam)] - Extract query parameters into structs
 
   - New traits for request extraction:
-
     - FromRequest - Extract values from &HttpRequest with custom error types
     - ExtractFromOwned - Extract values from owned HttpRequest
     - FromParams - Extract route parameters with custom parsing
@@ -48,7 +50,6 @@
     - FromQueryParam - Extract query parameters with custom parsing
 
   - New extractor wrapper types:
-
     - JsonBody<T> - Type-safe JSON body extraction with automatic deserialization
     - Headers - Extract request headers
     - Params<T> - Extract route parameters into custom types
@@ -97,21 +98,16 @@
 ## [2.0.2] - 2025-11-17
 
 - Performance Improvements
-
   - Request Handling
-
     - Optimized header parsing with pre-allocated capacity and single-pass construction (#133)
-
       - Headers are now built in a single pass with no intermediate HashMap allocations
       - Added RequestHeaders::with_capacity() for efficient pre-allocation
 
     - Optimized cookie extraction with inline parsing
-
       - Replaced private cookie extraction function with inline parsing directly from headers
       - Eliminates unnecessary function calls and intermediate allocations
 
     - Improved IP address extraction
-
       - More robust single-pass parsing of X-Forwarded-For header
       - Better fallback handling to 127.0.0.1
 
@@ -121,18 +117,14 @@
       - Reuses pre-serialized strings where applicable
 
   - Response Handling
-
     - Optimized JSON response serialization
-
       - JSON is now serialized once and reused, reducing duplicate serialization overhead
 
     - Improved Set-Cookie header handling
-
       - Set-Cookie headers are now processed separately and aggregated efficiently
       - Prevents header overwrites and ensures all cookies are preserved
 
     - Fixed streaming response handling
-
       - Properly sets transfer-encoding: chunked header
       - Removes Content-Length header for streamed responses
       - Safe concatenation of stream chunks
@@ -149,11 +141,9 @@
 ## [2.0.0] - 2025-11-15
 
 - Feature-gated middleware: use_logger() and use_compression() now require their respective features to be enabled
-
   - Enable with ripress = { version = "2.0.0", features = ["logger", "compression"] }
 
 - Added three new optional features for modular compilation:
-
   - compression - Enables compression middleware (requires flate2)
   - file-upload - Enables file upload middleware (requires uuid)
   - logger - Enables logging middleware (requires tracing)
@@ -204,7 +194,6 @@ Docs improved
 ### Added
 
 - Extended cookie attributes:
-
   - domain (optional domain for cookies)
   - max_age (optional max age for cookie expiration)
   - expires (optional explicit expiration timestamp)
@@ -375,7 +364,7 @@ Docs improved
 
 ## [1.1.1] - 2025-08-20
 
-- Fixed multipart formdata parsing with no files
+- Fixed multipart form-data parsing with no files
 - Added more tests
 
 ## [1.1.0] - 2025-08-19
@@ -503,7 +492,6 @@ Readme fixed
 ### Added
 
 - Response Methods
-
   - Added res.html method
 
 - Increased Code Coverage
@@ -514,12 +502,10 @@ Readme fixed
 ### Added
 
 - Request Methods
-
   - Added req.is_secure method
   - Added req.get_protocol method
 
 - Response Methods
-
   - Added res.set_cookie method
   - Added res.clear_cookie method
   - Added res.set_header method
@@ -527,7 +513,6 @@ Readme fixed
   - Added res.set_content_type method
 
 - App Methods
-
   - Added app.patch method
   - Added app.all method
 
@@ -545,7 +530,6 @@ Readme fixed
 ### Added
 
 - Request Methods
-
   - Added req.is method
   - Added req.get_method method
   - Added req.get_origin_url method
@@ -555,7 +539,6 @@ Readme fixed
   - Added req.get_header method
 
 - Response Methods
-
   - Added various helpers for status codes
     - res.ok()
     - res.bad_request()
