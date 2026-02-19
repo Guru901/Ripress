@@ -3,7 +3,7 @@
 mod validation_tests {
     use crate::helpers::FromRequest;
     use crate::req::body::json_data::{FromJson, JsonBodyValidated};
-    use crate::req::body::{RequestBody, RequestBodyContent, RequestBodyType, TextData};
+    use crate::req::body::{RequestBody, RequestBodyType, TextData};
     use crate::req::HttpRequest;
     use serde::{Deserialize, Serialize};
     use serde_json::json;
@@ -20,8 +20,8 @@ mod validation_tests {
     }
 
     impl FromJson for User {
-        fn from_json(data: &RequestBodyContent) -> Result<Self, String> {
-            if let RequestBodyContent::JSON(json_val) = data {
+        fn from_json(data: &RequestBody) -> Result<Self, String> {
+            if let RequestBody::JSON(json_val) = data {
                 serde_json::from_value::<Self>(json_val.clone()).map_err(|e| e.to_string())
             } else {
                 Err("Expected JSON body".to_string())
@@ -40,8 +40,8 @@ mod validation_tests {
     }
 
     impl FromJson for Product {
-        fn from_json(data: &RequestBodyContent) -> Result<Self, String> {
-            if let RequestBodyContent::JSON(json_val) = data {
+        fn from_json(data: &RequestBody) -> Result<Self, String> {
+            if let RequestBody::JSON(json_val) = data {
                 serde_json::from_value::<Self>(json_val.clone()).map_err(|e| e.to_string())
             } else {
                 Err("Expected JSON body".to_string())
@@ -58,8 +58,8 @@ mod validation_tests {
     }
 
     impl FromJson for LoginRequest {
-        fn from_json(data: &RequestBodyContent) -> Result<Self, String> {
-            if let RequestBodyContent::JSON(json_val) = data {
+        fn from_json(data: &RequestBody) -> Result<Self, String> {
+            if let RequestBody::JSON(json_val) = data {
                 serde_json::from_value::<Self>(json_val.clone()).map_err(|e| e.to_string())
             } else {
                 Err("Expected JSON body".to_string())
@@ -69,19 +69,13 @@ mod validation_tests {
 
     fn create_json_request(json_value: serde_json::Value) -> HttpRequest {
         let mut req = HttpRequest::default();
-        req.body = RequestBody {
-            content: RequestBodyContent::JSON(json_value),
-            content_type: RequestBodyType::JSON,
-        };
+        req.body = RequestBody::JSON(json_value);
         req
     }
 
     fn create_text_request(text: &str) -> HttpRequest {
         let mut req = HttpRequest::default();
-        req.body = RequestBody {
-            content: RequestBodyContent::TEXT(TextData::new(text.to_string())),
-            content_type: RequestBodyType::TEXT,
-        };
+        req.body = RequestBody::TEXT(TextData::new(text.to_string()));
         req
     }
 

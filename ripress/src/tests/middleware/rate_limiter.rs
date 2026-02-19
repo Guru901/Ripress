@@ -1,18 +1,17 @@
 #[cfg(test)]
 mod test {
-    use std::{net::IpAddr, str::FromStr, time::Duration};
+    use std::time::Duration;
 
     use tokio::time::sleep;
 
     use crate::{
-        middlewares::rate_limiter::{RateLimiterConfig, rate_limiter},
-        req::{HttpRequest, request_headers::RequestHeaders},
+        middlewares::rate_limiter::{rate_limiter, RateLimiterConfig},
+        req::{request_headers::RequestHeaders, HttpRequest},
         res::HttpResponse,
     };
 
-    fn mock_req(ip: &str) -> HttpRequest {
+    fn mock_req() -> HttpRequest {
         HttpRequest {
-            ip: IpAddr::from_str(ip).unwrap(),
             headers: RequestHeaders::new(),
             ..Default::default()
         }
@@ -30,7 +29,7 @@ mod test {
             ..Default::default()
         }));
 
-        let req = mock_req("127.0.0.1");
+        let req = mock_req();
         let res = mock_res();
 
         let (_req, resp) = mw(req.clone(), res.clone()).await;
@@ -52,7 +51,7 @@ mod test {
             ..Default::default()
         }));
 
-        let req = mock_req("127.0.0.2");
+        let req = mock_req();
         let res = mock_res();
 
         let (_req, resp) = mw(req.clone(), res.clone()).await;
@@ -88,7 +87,7 @@ mod test {
             ..Default::default()
         }));
 
-        let req = mock_req("127.0.0.3");
+        let req = mock_req();
         let res = mock_res();
 
         let (_req, resp) = mw(req.clone(), res.clone()).await;
@@ -112,7 +111,7 @@ mod test {
             ..Default::default()
         }));
 
-        let mut req = mock_req("127.0.0.4");
+        let mut req = mock_req();
         req.headers.insert("X-Forwarded-For", "8.8.8.8");
         let res = mock_res();
 
@@ -131,7 +130,7 @@ mod test {
             ..Default::default()
         }));
 
-        let req = mock_req("127.0.0.5");
+        let req = mock_req();
         let res = mock_res();
 
         let (_req, resp) = mw(req.clone(), res.clone()).await;

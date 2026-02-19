@@ -8,8 +8,6 @@ use crate::app::App;
 use crate::middlewares::compression::CompressionConfig;
 #[cfg(feature = "logger")]
 use crate::middlewares::logger::LoggerConfig;
-#[cfg(feature = "with-wynd")]
-use crate::middlewares::WyndMiddleware;
 use crate::middlewares::{
     body_limit::body_limit,
     cors::{cors, CorsConfig},
@@ -22,7 +20,7 @@ use crate::res::HttpResponse;
 use crate::types::MiddlewareHandler;
 
 #[cfg(feature = "with-wynd")]
-use crate::types::WyndMiddlewareHandler;
+use crate::types::WyndHandler;
 #[cfg(feature = "with-wynd")]
 use bytes::Bytes;
 
@@ -464,10 +462,12 @@ impl App {
             + Send
             + 'static,
     {
-        self.wynd_middleware = Some(Arc::new(WyndMiddleware {
+        use crate::app::settings::WyndConfig;
+
+        self.settings.wynd_config = Some(WyndConfig {
             func: Self::wynd_middleware_from_closure(handler),
             path: path.to_string(),
-        }));
+        });
         self
     }
 
@@ -662,7 +662,7 @@ impl App {
     /// Converts a WebSocket handler closure into a Wynd middleware handler.
     ///
     /// This is an internal helper method for the WebSocket functionality.
-    fn wynd_middleware_from_closure<F, Fut>(f: F) -> WyndMiddlewareHandler
+    fn wynd_middleware_from_closure<F, Fut>(f: F) -> WyndHandler
     where
         F: Fn(hyper::Request<Full<Bytes>>) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = hyper::Result<hyper::Response<Full<hyper::body::Bytes>>>>

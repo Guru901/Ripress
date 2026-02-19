@@ -86,7 +86,7 @@ pub(crate) type MiddlewareHandler =
     Arc<dyn Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static>;
 
 #[cfg(feature = "with-wynd")]
-pub(crate) type WyndMiddlewareHandler = Arc<
+pub(crate) type WyndHandler = Arc<
     dyn Fn(
             hyper::Request<Full<Bytes>>,
         ) -> Pin<

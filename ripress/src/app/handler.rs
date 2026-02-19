@@ -15,7 +15,7 @@ impl App {
         stream: tokio::net::TcpStream,
         service: Arc<RouterService<ApiError>>,
         http2_enabled: bool,
-        http2_config: Option<Http2Config>,
+        http2_config: Http2Config,
     ) {
         let request_service = match service.call(&stream).await {
             Ok(svc) => svc,
@@ -28,49 +28,41 @@ impl App {
         let io = TokioIo::new(stream);
 
         if http2_enabled {
-            if let Some(cfg) = http2_config {
-                if cfg.http2_only {
-                    Self::serve_http2_only(io, request_service, &cfg).await;
-                } else {
-                    Self::serve_http1_and_http2(io, request_service, &cfg).await;
-                }
+            if http2_config.http2_only {
+                Self::serve_http2_only(io, request_service, &http2_config).await;
             } else {
-                Self::serve_http1_and_http2_default(io, request_service).await;
+                Self::serve_http1_and_http2(io, request_service, &http2_config).await;
             }
         } else {
-            Self::serve_http1_only(io, request_service).await;
+            Self::serve_http1_and_http2_default(io, request_service).await;
         }
     }
 
     async fn serve_http2_only<I, S>(io: I, service: S, cfg: &Http2Config)
     where
-        I: hyper::rt::Read + hyper::rt::Write + Unpin + 'static,
-        S: hyper::service::Service<
-                hyper::Request<hyper::body::Incoming>,
-                Response = hyper::Response<Full<Bytes>>,
-            > + Send
+        I: hyper::rt::Read + hyper::rt::Write + Unpin + Send + 'static,
+        S: Service<hyper::Request<hyper::body::Incoming>, Response = hyper::Response<Full<Bytes>>>
+            + Send
             + 'static,
         S::Future: Send + 'static,
         S::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     {
         let mut builder = Builder::new(TokioExecutor::new());
-        let mut h2: Http2Builder<'_, TokioExecutor> = builder.http2();
+        let mut h2 = builder.http2();
 
         Self::apply_http2_config(&mut h2, cfg);
         h2.enable_connect_protocol();
 
         if let Err(err) = h2.serve_connection(io, service).await {
-            eprintln!("Error serving connection: {:?}", err);
+            eprintln!("Error serving HTTP/2-only connection: {:?}", err);
         }
     }
 
     async fn serve_http1_and_http2<I, S>(io: I, service: S, cfg: &Http2Config)
     where
-        I: hyper::rt::Read + hyper::rt::Write + Unpin + 'static + Send,
-        S: hyper::service::Service<
-                hyper::Request<hyper::body::Incoming>,
-                Response = hyper::Response<Full<Bytes>>,
-            > + Send
+        I: hyper::rt::Read + hyper::rt::Write + Unpin + Send + 'static,
+        S: Service<hyper::Request<hyper::body::Incoming>, Response = hyper::Response<Full<Bytes>>>
+            + Send
             + 'static,
         S::Future: Send + 'static,
         S::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
@@ -79,24 +71,20 @@ impl App {
 
         builder.http1().keep_alive(true);
 
-        let mut h2: Http2Builder<'_, TokioExecutor> = builder.http2();
-
+        let mut h2 = builder.http2();
         Self::apply_http2_config(&mut h2, cfg);
-
         h2.enable_connect_protocol();
 
         if let Err(err) = builder.serve_connection_with_upgrades(io, service).await {
-            eprintln!("Error serving connection: {:?}", err);
+            eprintln!("Error serving HTTP/1 + HTTP/2 connection: {:?}", err);
         }
     }
 
     async fn serve_http1_and_http2_default<I, S>(io: I, service: S)
     where
-        I: hyper::rt::Read + hyper::rt::Write + Unpin + 'static + Send,
-        S: hyper::service::Service<
-                hyper::Request<hyper::body::Incoming>,
-                Response = hyper::Response<Full<Bytes>>,
-            > + Send
+        I: hyper::rt::Read + hyper::rt::Write + Unpin + Send + 'static,
+        S: Service<hyper::Request<hyper::body::Incoming>, Response = hyper::Response<Full<Bytes>>>
+            + Send
             + 'static,
         S::Future: Send + 'static,
         S::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
@@ -105,17 +93,16 @@ impl App {
         builder.http1().keep_alive(true);
 
         if let Err(err) = builder.serve_connection_with_upgrades(io, service).await {
-            eprintln!("Error serving connection: {:?}", err);
+            eprintln!("Error serving default connection: {:?}", err);
         }
     }
 
+    #[allow(dead_code)]
     async fn serve_http1_only<I, S>(io: I, service: S)
     where
-        I: hyper::rt::Read + hyper::rt::Write + Unpin + 'static + Send,
-        S: hyper::service::Service<
-                hyper::Request<hyper::body::Incoming>,
-                Response = hyper::Response<Full<Bytes>>,
-            > + Send
+        I: hyper::rt::Read + hyper::rt::Write + Unpin + Send + 'static,
+        S: Service<hyper::Request<hyper::body::Incoming>, Response = hyper::Response<Full<Bytes>>>
+            + Send
             + 'static,
         S::Future: Send + 'static,
         S::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
@@ -124,7 +111,7 @@ impl App {
         builder.keep_alive(true);
 
         if let Err(err) = builder.serve_connection(io, service).with_upgrades().await {
-            eprintln!("Error serving connection: {:?}", err);
+            eprintln!("Error serving HTTP/1-only connection: {:?}", err);
         }
     }
 

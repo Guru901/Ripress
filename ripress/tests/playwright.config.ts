@@ -7,4 +7,5 @@ export default defineConfig({
       "User-Agent": "Playwright-Test",
     },
   },
+  testDir: "./src",
 });

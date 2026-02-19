@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::res::ResponseBodyContent;
+    use crate::res::ResponseBody;
     use crate::{
-        app::{api_error::ApiError, App, Http2Config},
+        app::{api_error::ApiError, settings::Http2Config, App},
         context::HttpResponse,
         helpers::box_future,
         middlewares::MiddlewareType,
@@ -28,13 +28,13 @@ mod tests {
         return res.ok();
     }
 
-    impl ResponseBodyContent {
+    impl ResponseBody {
         pub(crate) fn get_content_as_bytes(&self) -> Vec<u8> {
             match self {
-                ResponseBodyContent::TEXT(text) => text.as_bytes().to_vec(),
-                ResponseBodyContent::HTML(html) => html.as_bytes().to_vec(),
-                ResponseBodyContent::JSON(json) => serde_json::to_vec(json).unwrap_or_default(),
-                ResponseBodyContent::BINARY(bytes) => bytes.to_vec(),
+                ResponseBody::TEXT(text) => text.as_bytes().to_vec(),
+                ResponseBody::HTML(html) => html.as_bytes().to_vec(),
+                ResponseBody::JSON(json) => serde_json::to_vec(json).unwrap_or_default(),
+                ResponseBody::BINARY(bytes) => bytes.to_vec(),
             }
         }
     }
@@ -566,8 +566,8 @@ mod tests {
             ),
         );
 
-        assert!(app.wynd_middleware.is_some());
-        assert!(app.wynd_middleware.unwrap().path == "/ws");
+        assert!(app.settings.wynd_config.is_some());
+        assert!(app.settings.wynd_config.unwrap().path == "/ws");
     }
 
     #[test]
@@ -575,7 +575,7 @@ mod tests {
         let mut app = App::new();
         let result = app.static_files("/assets", "public");
         assert!(result.is_ok());
-        assert_eq!(app.static_files.get("/assets"), Some(&"public"));
+        assert_eq!(app.settings.static_files.get("/assets"), Some(&"public"));
     }
 
     #[test]
@@ -619,27 +619,19 @@ mod tests {
     #[test]
     fn test_host_set_and_get() {
         let mut app = App::new();
-        assert_eq!(app.host, "0.0.0.0");
+        assert_eq!(app.settings.host, "0.0.0.0");
         app.host("127.0.0.1");
-        assert_eq!(app.host, "127.0.0.1");
+        assert_eq!(app.settings.host, "127.0.0.1");
         app.host("::1");
-        assert_eq!(app.host, "::1");
+        assert_eq!(app.settings.host, "::1");
         app.host("");
-        assert_eq!(app.host, "");
-    }
-
-    #[test]
-    fn test_http2() {
-        let mut app = App::new();
-        assert_eq!(app.http2, true);
-        app.enable_http2(false);
-        assert_eq!(app.http2, false);
+        assert_eq!(app.settings.host, "");
     }
 
     #[test]
     fn test_http2_config() {
         let mut app = App::new();
-        assert_eq!(app.http2_config, None);
+        assert_eq!(app.settings.http2_config, Http2Config::default());
         app.http2_config(Http2Config {
             http2_only: false,
             max_concurrent_streams: None,
@@ -653,8 +645,8 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(
-            app.http2_config,
-            Some(Http2Config {
+            app.settings.http2_config,
+            Http2Config {
                 http2_only: false,
                 max_concurrent_streams: None,
                 initial_stream_window_size: None,
@@ -665,7 +657,7 @@ mod tests {
                 keep_alive_interval: None,
                 keep_alive_timeout: None,
                 ..Default::default()
-            })
+            }
         );
     }
 

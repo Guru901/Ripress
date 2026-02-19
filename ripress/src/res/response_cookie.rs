@@ -50,8 +50,14 @@ impl Default for CookieOptions {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) enum Cookie {
+    AddCookie(AddCookie),
+    RemoveCookie(&'static str),
+}
+
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Cookie {
+pub(crate) struct AddCookie {
     pub name: &'static str,
     pub value: &'static str,
     pub(crate) options: CookieOptions,

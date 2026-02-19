@@ -35,10 +35,7 @@
 
 #![warn(missing_docs)]
 
-use crate::app::api_error::ApiError;
-
-#[cfg(feature = "with-wynd")]
-use crate::middlewares::WyndMiddleware;
+use crate::app::{api_error::ApiError, settings::Http2Config};
 
 use crate::{
     helpers::{exec_post_middleware, exec_pre_middleware},
@@ -53,17 +50,19 @@ use http_body_util::{BodyExt, Full};
 use hyper::{header, http::StatusCode, Method, Request, Response};
 use hyper_staticfile::Static;
 use routerify_ng::{ext::RequestExt, RouterService};
+use settings::AppSettings;
 use std::{collections::HashMap, net::SocketAddr, path::Path, sync::Arc};
 use tokio::net::TcpListener;
 
 pub(crate) mod api_error;
 
 mod h2;
-pub use h2::Http2Config;
 /// Handler module for managing server connections, HTTP/2/1 serving logic, and connection-level configuration.
 pub mod handler;
 /// Middleware support for the App struct, including common and user-defined middleware functionality.
 pub mod middlewares;
+/// Module for defining the settings of the App Struct.
+pub mod settings;
 
 /// The App struct is the core of Ripress, providing a simple interface for creating HTTP servers and handling requests.
 ///
@@ -113,32 +112,9 @@ pub mod middlewares;
 /// }
 /// ```
 pub struct App {
-    /// Stores all registered HTTP route handlers for this application.
     routes: Routes,
-
-    /// The host address or interface the server will bind to (e.g., `"0.0.0.0"` or `"127.0.0.1"`).
-    /// This field determines which IP address or hostname the HTTP server accepts connections on.
-    pub(crate) host: String,
-
-    /// Enables or disables HTTP/2 support for the server.
-    /// By default, HTTP/2 is **enabled**.
-    pub(crate) http2: bool,
-
-    /// Optional advanced configuration for HTTP/2 behavior.
-    pub(crate) http2_config: Option<Http2Config>,
-
-    /// The list of middleware functions to be applied to requests.
     pub(crate) middlewares: Vec<Arc<Middleware>>,
-
-    /// Static file mappings from mount path to filesystem path.
-    pub(crate) static_files: HashMap<&'static str, &'static str>,
-
-    /// Enables or disables graceful shutdown support for the server.
-    pub(crate) graceful_shutdown: bool,
-
-    #[cfg(feature = "with-wynd")]
-    /// Optional WebSocket middleware (only available with `wynd` feature).
-    pub(crate) wynd_middleware: Option<Arc<WyndMiddleware>>,
+    pub(crate) settings: AppSettings,
 }
 
 impl RouterFns for App {
@@ -163,14 +139,8 @@ impl App {
     pub fn new() -> Self {
         App {
             routes: HashMap::new(),
-            http2: true,
-            http2_config: None,
             middlewares: Vec::new(),
-            static_files: HashMap::new(),
-            graceful_shutdown: false,
-            host: String::from("0.0.0.0"),
-            #[cfg(feature = "with-wynd")]
-            wynd_middleware: None,
+            settings: AppSettings::default(),
         }
     }
 
@@ -193,35 +163,8 @@ impl App {
     /// let app = App::new().host("127.0.0.1");
     /// ```
     pub fn host(&mut self, host: &str) -> &mut Self {
-        self.host = host.to_string();
-        self
-    }
-
-    /// Enables or disables HTTP/2 support for the application.
-    ///
-    /// By default, HTTP/2 is enabled so that compatible clients can negotiate
-    /// HTTP/2 with the server transparently via Hyper. Disabling HTTP/2 forces
-    /// all connections to use HTTP/1.1 only.
-    ///
-    /// This setting only affects the underlying protocol negotiation; your
-    /// route handlers, middleware, and response APIs remain unchanged.
-    ///
-    /// # Arguments
-    ///
-    /// * `enabled` - Set to `true` to enable HTTP/2, or `false` to disable it.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use ripress::app::App;
-    ///
-    /// let mut app = App::new();
-    ///
-    /// // Disable HTTP/2 and serve only HTTP/1.1
-    /// app.enable_http2(false);
-    /// ```
-    pub fn enable_http2(&mut self, enabled: bool) -> &mut Self {
-        self.http2 = enabled;
+        // self.host = host.to_string();
+        self.settings.host = host.to_string();
         self
     }
 
@@ -236,12 +179,11 @@ impl App {
     ///
     /// ```
     /// use std::time::Duration;
-    /// use ripress::app::{App, Http2Config};
+    /// use ripress::app::{App, settings::Http2Config};
     ///
     /// let mut app = App::new();
     ///
-    /// app.enable_http2(true)
-    ///     .http2_config(Http2Config {
+    /// app.http2_config(Http2Config {
     ///         http2_only: false,
     ///         max_concurrent_streams: Some(100),
     ///         keep_alive_interval: Some(Duration::from_secs(30)),
@@ -250,7 +192,7 @@ impl App {
     ///     });
     /// ```
     pub fn http2_config(&mut self, config: Http2Config) -> &mut Self {
-        self.http2_config = Some(config);
+        self.settings.http2_config = config;
         self
     }
 
@@ -270,7 +212,7 @@ impl App {
     /// app.with_graceful_shutdown();
     /// ```
     pub fn with_graceful_shutdown(&mut self) {
-        self.graceful_shutdown = true
+        self.settings.graceful_shutdown = true
     }
 
     /// Mounts a [`Router`] at a specific base path, registering all of its routes onto the application.
@@ -417,8 +359,27 @@ impl App {
         if !path.starts_with('/') {
             return Err("Mount path must start with '/'");
         }
-        self.static_files.insert(path, file);
+        self.settings.static_files.insert(path, file);
         Ok(())
+    }
+
+    /// Disables HTTP/2 support for the application.
+    ///
+    /// This method disables HTTP/2 support for the application.
+    /// HTTP/2 support can be re-enabled by calling [`enable_http2`].
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// use ripress::app::App;
+    ///
+    /// let mut app = App::new();
+    /// app.disable_http2();
+    /// ```
+    #[inline]
+    pub fn disable_http2(&mut self) -> &mut Self {
+        self.settings.http2_config.is_enabled = false;
+        self
     }
 
     /// Starts the HTTP server and begins listening for incoming requests.
@@ -472,7 +433,7 @@ impl App {
     /// ## Network Configuration
     ///
     /// - **Bind Address**: By default, binds to `0.0.0.0:port` (all interfaces); configurable via [`App::host`]
-    /// - **Protocols**: HTTP/1.1 and HTTP/2 by default; HTTP/2 can be disabled via [`App::enable_http2`]
+    /// - **Protocols**: HTTP/1.1 and HTTP/2 by default; Can be disabled via [`App::disable_http2`]
     /// - **Concurrent Connections**: Handled asynchronously with Tokio
     ///
     /// ## Error Handling
@@ -503,11 +464,11 @@ impl App {
         let mut router = routerify_ng::Router::<ApiError>::builder();
 
         #[cfg(feature = "with-wynd")]
-        if let Some(middleware) = &self.wynd_middleware {
+        if let Some(middleware) = self.settings.wynd_config.clone() {
             router = router.middleware(routerify_ng::Middleware::pre({
                 use crate::helpers::exec_wynd_middleware;
 
-                let middleware = Arc::clone(middleware);
+                let middleware = Arc::new(middleware);
                 move |req| exec_wynd_middleware(req, Arc::clone(&middleware))
             }));
         }
@@ -569,7 +530,7 @@ impl App {
             }
         }
 
-        for (mount_path, serve_from) in self.static_files.iter() {
+        for (mount_path, serve_from) in self.settings.static_files.iter() {
             let serve_from = (*serve_from).to_string();
             let mount_root = (*mount_path).to_string();
 
@@ -602,7 +563,7 @@ impl App {
         let router = router.build().unwrap();
         cb();
 
-        let addr = format!("{}:{}", self.host, port)
+        let addr = format!("{}:{}", self.settings.host, port)
             .parse::<SocketAddr>()
             .unwrap();
 
@@ -617,10 +578,10 @@ impl App {
 
         let router_service = Arc::new(RouterService::new(router).unwrap());
 
-        let http2_enabled = self.http2;
-        let http2_config = self.http2_config.clone();
+        let http2_enabled = self.settings.http2_config.is_enabled;
+        let http2_config = self.settings.http2_config.clone();
 
-        let mut shutdown = if self.graceful_shutdown {
+        let mut shutdown = if self.settings.graceful_shutdown {
             Some(Box::pin(tokio::signal::ctrl_c()))
         } else {
             None

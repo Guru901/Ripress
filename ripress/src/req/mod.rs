@@ -190,17 +190,17 @@
 //!
 //! app.get("/info", |req: HttpRequest, res| async move {
 //!     // Client IP address (considers X-Forwarded-For for proxies)
-//!     println!("Client IP: {}", req.ip);
+//!     println!("Client IP: {}", req.ip());
 //!     
 //!     // Protocol detection
-//!     if req.is_secure {
+//!     if req.is_secure() {
 //!         println!("Secure HTTPS connection");
 //!     } else {
 //!         println!("HTTP connection");
 //!     }
 //!     
 //!     // AJAX request detection
-//!     if req.xhr {
+//!     if req.xhr() {
 //!         println!("AJAX request detected");
 //!     }
 //!     
@@ -312,7 +312,7 @@ pub mod request_error;
 pub mod with_wynd;
 
 use crate::{
-    req::body::{FormData, RequestBody, RequestBodyContent, RequestBodyType},
+    req::body::{FormData, RequestBody, RequestBodyType},
     types::HttpMethods,
 };
 use ahash::AHashMap;
@@ -366,7 +366,7 @@ use route_params::RouteParams;
 /// let req = HttpRequest::new();
 /// println!("Method: {:?}", req.method);
 /// println!("Path: {}", req.path);
-/// println!("Client IP: {:?}", req.ip);
+/// println!("Client IP: {:?}", req.ip());
 /// ```
 ///
 /// Working with JSON body:
@@ -401,20 +401,11 @@ pub struct HttpRequest {
     /// The HTTP method used for the request (e.g., GET, POST, PUT, DELETE).
     pub method: HttpMethods,
 
-    /// The IP address of the client making the request.
-    pub ip: IpAddr,
-
     /// The requested endpoint path.
     pub path: String,
 
     /// Protocol of the request (HTTP or HTTPs)
     pub protocol: String,
-
-    /// Boolean indicating if the request was made with AJAX (XMLHttpRequest).
-    pub xhr: bool,
-
-    /// Boolean indicating if the request was made with Https
-    pub is_secure: bool,
 
     /// The request's headers
     pub headers: RequestHeaders,
@@ -457,18 +448,12 @@ impl HttpRequest {
             params: RouteParams::new(),
             query: QueryParams::new(),
             method: HttpMethods::GET,
-            ip: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             path: String::new(),
             protocol: String::new(),
             headers: RequestHeaders::new(),
             data: RequestData::new(),
-            body: RequestBody {
-                content: RequestBodyContent::EMPTY,
-                content_type: RequestBodyType::EMPTY,
-            },
+            body: RequestBody::EMPTY,
             cookies: AHashMap::new(),
-            xhr: false,
-            is_secure: false,
         }
     }
 
@@ -496,6 +481,29 @@ impl HttpRequest {
 
     pub fn get_cookie(&self, name: &str) -> Option<&String> {
         self.cookies.get(name)
+    }
+
+    /// Returns true if the request is an XMLHttpRequest.
+    pub fn xhr(&self) -> bool {
+        self.headers.get("x-requested-with").is_some()
+    }
+
+    /// Returns true if the request is secure.
+    pub fn is_secure(&self) -> bool {
+        self.headers.get("x-forwarded-proto").is_some()
+    }
+
+    /// Returns the client's IP address.
+    pub fn ip(&self) -> IpAddr {
+        self.headers
+            .get("x-forwarded-for")
+            .and_then(|v| {
+                v.split(',')
+                    .next()
+                    .map(|v| v.trim())
+                    .and_then(|v| v.parse().ok())
+            })
+            .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)))
     }
 
     /// Adds data from the middleware into the request.
@@ -579,7 +587,7 @@ impl HttpRequest {
     /// ```
 
     pub fn is(&self, content_type: RequestBodyType) -> bool {
-        self.body.content_type == content_type
+        return self.body.body_type() == content_type;
     }
 
     /// Returns a read-only view of the raw request body when it is binary.
@@ -600,16 +608,16 @@ impl HttpRequest {
     pub fn bytes(&self) -> Result<&[u8], String> {
         let body = &self.body;
 
-        if body.content_type == RequestBodyType::BINARY {
-            match &body.content {
-                RequestBodyContent::BINARY(bytes) => Ok(bytes.as_ref()),
-                RequestBodyContent::BinaryWithFields(bytes, _) => Ok(bytes.as_ref()),
+        if body.body_type() == RequestBodyType::BINARY {
+            match &body {
+                RequestBody::BINARY(bytes) => Ok(bytes.as_ref()),
+                RequestBody::BinaryWithFields(bytes, _) => Ok(bytes.as_ref()),
                 _ => Err(String::from("Invalid Binary Content")),
             }
         } else {
             Err(format!(
                 "Wrong body type, expected binary and found {}",
-                body.content_type.to_string(),
+                body.body_type().to_string(),
             ))
         }
     }
@@ -649,8 +657,8 @@ impl HttpRequest {
     {
         let body = &self.body;
 
-        if body.content_type == RequestBodyType::JSON {
-            if let RequestBodyContent::JSON(ref json_value) = body.content {
+        if body.body_type() == RequestBodyType::JSON {
+            if let RequestBody::JSON(ref json_value) = body {
                 match serde_json::from_value::<J>(json_value.clone()) {
                     Ok(serialized) => Ok(serialized),
                     Err(e) => Err(format!("Failed to deserialize JSON: {}", e)),
@@ -678,8 +686,8 @@ impl HttpRequest {
     pub fn text(&self) -> Result<&str, String> {
         let body = &self.body;
 
-        if body.content_type == RequestBodyType::TEXT {
-            if let RequestBodyContent::TEXT(ref text_value) = body.content {
+        if body.body_type() == RequestBodyType::TEXT {
+            if let RequestBody::TEXT(ref text_value) = body {
                 let value = text_value.as_str();
                 match value {
                     Ok(value) => Ok(value),
@@ -710,16 +718,16 @@ impl HttpRequest {
     pub fn form_data(&self) -> Result<&FormData, String> {
         let body = &self.body;
 
-        match body.content_type {
+        match body.body_type() {
             RequestBodyType::FORM => {
-                if let RequestBodyContent::FORM(form_data) = &body.content {
+                if let RequestBody::FORM(form_data) = body {
                     Ok(form_data)
                 } else {
                     Err(String::from("Invalid form content"))
                 }
             }
             RequestBodyType::BINARY => {
-                if let RequestBodyContent::BinaryWithFields(_, form_data) = &body.content {
+                if let RequestBody::BinaryWithFields(_, form_data) = body {
                     Ok(form_data)
                 } else {
                     Err(String::from("Binary content without form fields"))
@@ -736,12 +744,11 @@ impl HttpRequest {
     /// This is useful for middlewares that wish to expose computed values through
     /// the `form_data()` API, such as attaching file upload metadata.
     pub fn insert_form_field(&mut self, key: &str, value: &str) {
-        if self.body.content_type != RequestBodyType::FORM {
-            self.body.content_type = RequestBodyType::FORM;
-            self.body.content = RequestBodyContent::FORM(FormData::new());
+        if self.body.body_type() != RequestBodyType::FORM {
+            self.body = RequestBody::FORM(FormData::new());
         }
 
-        if let RequestBodyContent::FORM(ref mut form_data) = self.body.content {
+        if let RequestBody::FORM(ref mut form_data) = self.body {
             form_data.insert(key.to_string(), value.to_string());
         }
     }

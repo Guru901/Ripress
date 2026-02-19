@@ -1,5 +1,3 @@
-use std::net::{IpAddr, Ipv4Addr};
-
 use ahash::AHashMap;
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
@@ -13,7 +11,7 @@ use crate::{
         determine_content_type_request, extract_boundary, get_all_query, parse_multipart_form,
     },
     req::{
-        body::{FormData, RequestBody, RequestBodyContent, RequestBodyType, TextData},
+        body::{FormData, RequestBody, RequestBodyType, TextData},
         origin_url::Url,
         query_params::QueryParams,
         request_data::RequestData,
@@ -59,42 +57,22 @@ impl HttpRequest {
             .headers()
             .get(hyper::header::COOKIE)
             .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string()); 
-
-        let x_forwarded_for_str = req
-            .headers()
-            .get("x-forwarded-for")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("127.0.0.1")
-            .to_string(); 
+            .map(|s| s.to_string());
 
         let x_forwarded_proto_str = req
             .headers()
             .get("x-forwarded-proto")
             .and_then(|v| v.to_str().ok())
             .unwrap_or("http")
-            .to_string(); 
+            .to_string();
 
         let content_type_str_opt = req
             .headers()
             .get(hyper::header::CONTENT_TYPE)
             .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string()); 
-
-        let xhr_header_opt = req
-            .headers()
-            .get("x-requested-with")
-            .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string()); 
+            .map(|s| s.to_string());
 
         let headers = RequestHeaders::from_header_map(std::mem::take(req.headers_mut()));
-
-        let ip = x_forwarded_for_str
-            .split(',')
-            .next()
-            .map(|s| s.trim())
-            .and_then(|s| s.parse::<IpAddr>().ok())
-            .unwrap_or(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
 
         let mut cookies_map = AHashMap::new();
         if let Some(cookie_str) = &cookie_str_opt {
@@ -199,31 +177,20 @@ impl HttpRequest {
                 let body_bytes = collected.to_bytes();
                 RequestBody::new_binary(body_bytes)
             }
-            RequestBodyType::EMPTY => RequestBody {
-                content: RequestBodyContent::EMPTY,
-                content_type: RequestBodyType::EMPTY,
-            },
+            RequestBodyType::EMPTY => RequestBody::EMPTY,
         };
-
-        let is_secure = x_forwarded_proto_str == "https";
-        let xhr = xhr_header_opt
-            .as_deref()
-            .map_or(false, |h| h == "XMLHttpRequest");
 
         Ok(HttpRequest {
             params: RouteParams::new(),
             query,
             origin_url,
             method,
-            ip,
             path,
             protocol: x_forwarded_proto_str,
             headers,
             data,
             body: request_body,
             cookies: cookies_map,
-            xhr,
-            is_secure,
         })
     }
     pub(crate) fn from_request_info(req_info: &RequestInfo) -> Self {
@@ -247,7 +214,7 @@ impl HttpRequest {
                     .get(HOST)
                     .and_then(|host: &hyper::header::HeaderValue| host.to_str().ok())
                     .map(|host| {
-                        let scheme = "http"; 
+                        let scheme = "http";
                         format!("{}://{}", scheme, host)
                     })
                     .unwrap_or(String::new());
@@ -273,18 +240,6 @@ impl HttpRequest {
             cookies_map.insert(name.to_string(), value.to_string());
         });
 
-        let ip = req_info
-            .headers()
-            .get("X-Forwarded-For")
-            .and_then(|val: &hyper::header::HeaderValue| val.to_str().ok())
-            .map(|s: &str| s.split(',').next().unwrap_or("").trim().to_string())
-            .unwrap_or(String::new());
-
-        let ip = match ip.parse::<IpAddr>() {
-            Ok(ip) => ip,
-            Err(_) => IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-        };
-
         let protocol = req_info
             .headers()
             .get("x-forwarded-proto")
@@ -292,32 +247,21 @@ impl HttpRequest {
             .unwrap_or("http")
             .to_string();
 
-        let is_secure = protocol == String::from("https");
-
-        let xhr_header = headers.get("x-requested-with").unwrap_or("");
-        let xhr = xhr_header == "XMLHttpRequest";
-
         let mut data = RequestData::new();
         if let Some(ext_data) = req_info.data::<RequestData>() {
             data = ext_data.clone();
         }
 
         Self {
-            body: RequestBody {
-                content: RequestBodyContent::EMPTY,
-                content_type: RequestBodyType::EMPTY,
-            },
+            body: RequestBody::EMPTY,
             cookies: cookies_map,
             headers,
-            is_secure,
             method,
             origin_url,
             params,
             path: req_info.uri().path().to_string(),
             query,
-            xhr,
             data,
-            ip,
             protocol,
         }
     }
@@ -377,8 +321,8 @@ impl HttpRequest {
         if let Some(ext) = builder.extensions_mut() {
             ext.insert(data.clone());
         }
-        let body = match &self.body.content {
-            RequestBodyContent::JSON(json) => {
+        let body = match &self.body {
+            RequestBody::JSON(json) => {
                 let json_str = serde_json::to_string(json)?;
                 builder
                     .headers_mut()
@@ -386,14 +330,14 @@ impl HttpRequest {
                     .insert(hyper::header::CONTENT_TYPE, "application/json".parse()?);
                 Full::from(hyper::body::Bytes::from(json_str))
             }
-            RequestBodyContent::TEXT(text) => {
+            RequestBody::TEXT(text) => {
                 builder
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "text/plain".parse()?);
                 Full::from(hyper::body::Bytes::from(text.as_bytes().to_vec()))
             }
-            RequestBodyContent::FORM(form) => {
+            RequestBody::FORM(form) => {
                 let form_str = form.to_string();
                 builder.headers_mut().unwrap().insert(
                     hyper::header::CONTENT_TYPE,
@@ -401,21 +345,21 @@ impl HttpRequest {
                 );
                 Full::from(hyper::body::Bytes::from(form_str))
             }
-            RequestBodyContent::BINARY(bytes) => {
+            RequestBody::BINARY(bytes) => {
                 builder.headers_mut().unwrap().insert(
                     hyper::header::CONTENT_TYPE,
                     "application/octet-stream".parse()?,
                 );
                 Full::from(bytes.clone())
             }
-            RequestBodyContent::BinaryWithFields(bytes, _form_data) => {
+            RequestBody::BinaryWithFields(bytes, _form_data) => {
                 builder
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "multipart/form-data".parse()?);
                 Full::from(bytes.clone())
             }
-            RequestBodyContent::EMPTY => Full::from(Bytes::new()),
+            RequestBody::EMPTY => Full::from(Bytes::new()),
         };
         let request = builder.body(body)?;
         Ok(request)
@@ -489,8 +433,8 @@ impl HttpRequest {
         if let Some(ext) = builder.extensions_mut() {
             ext.insert(data.clone());
         }
-        let body = match &self.body.content {
-            RequestBodyContent::JSON(json) => {
+        let body = match &self.body {
+            RequestBody::JSON(json) => {
                 let json_str = serde_json::to_string(json)?;
 
                 builder
@@ -499,35 +443,35 @@ impl HttpRequest {
                     .insert(hyper::header::CONTENT_TYPE, "application/json".parse()?);
                 Full::from(Bytes::from(json_str))
             }
-            RequestBodyContent::TEXT(text) => {
+            RequestBody::TEXT(text) => {
                 builder
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "text/plain".parse()?);
                 Full::from(Bytes::from(text.as_bytes().to_vec()))
             }
-            RequestBodyContent::FORM(form) => {
+            RequestBody::FORM(form) => {
                 builder.headers_mut().unwrap().insert(
                     hyper::header::CONTENT_TYPE,
                     "application/x-www-form-urlencoded".parse()?,
                 );
                 Full::from(Bytes::from(form.to_string()))
             }
-            RequestBodyContent::BINARY(bytes) => {
+            RequestBody::BINARY(bytes) => {
                 builder.headers_mut().unwrap().insert(
                     hyper::header::CONTENT_TYPE,
                     "application/octet-stream".parse()?,
                 );
                 Full::from(bytes.clone())
             }
-            RequestBodyContent::BinaryWithFields(bytes, _form_data) => {
+            RequestBody::BinaryWithFields(bytes, _form_data) => {
                 builder
                     .headers_mut()
                     .unwrap()
                     .insert(hyper::header::CONTENT_TYPE, "multipart/form-data".parse()?);
                 Full::from(bytes.clone())
             }
-            RequestBodyContent::EMPTY => Full::from(Bytes::new()),
+            RequestBody::EMPTY => Full::from(Bytes::new()),
         };
         let request = builder.body(body)?;
 

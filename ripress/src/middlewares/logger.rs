@@ -377,7 +377,7 @@ pub(crate) fn logger(
             let path = req.path.clone();
             let method = req.method.clone();
             let user_agent = req.headers.user_agent().unwrap_or("Unknown").to_string();
-            let ip = req.ip;
+            let ip = req.ip();
             let status_code = res.status_code;
             let mut headers = HashMap::new();
 
@@ -419,7 +419,7 @@ pub(crate) fn logger(
                 msg.push_str(&format!("method: {}, \n", method));
             }
             if config.body_size {
-                if res.is_stream {
+                if res.stream.is_some() {
                     msg.push_str("body_size: stream\n");
                 } else {
                     msg.push_str(&format!("body_size: {}\n", res.body.len()));

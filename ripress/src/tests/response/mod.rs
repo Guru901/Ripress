@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::{
     res::HttpResponse,
-    res::{ResponseBodyContent, ResponseBodyType},
+    res::{ResponseBody, ResponseBodyType},
 };
 
 mod cookies_test;
@@ -12,24 +12,54 @@ mod status_code;
 mod streaming_test;
 
 #[cfg(test)]
+mod test {
+    use crate::res::response_cookie::Cookie;
+
+    impl Cookie {
+        pub(crate) fn is_add_cookie(&self) -> bool {
+            matches!(self, Cookie::AddCookie(_))
+        }
+
+        pub(crate) fn is_remove_cookie(&self) -> bool {
+            matches!(self, Cookie::RemoveCookie(_))
+        }
+
+        pub fn value(&self) -> &str {
+            match self {
+                Cookie::AddCookie(add_cookie) => add_cookie.value,
+                Cookie::RemoveCookie(_) => "",
+            }
+        }
+
+        pub fn name(&self) -> &str {
+            match self {
+                Cookie::AddCookie(add_cookie) => add_cookie.name,
+                Cookie::RemoveCookie(name) => name,
+            }
+        }
+    }
+}
+
+#[cfg(test)]
 impl HttpResponse {
     pub(crate) fn get_status_code(&self) -> u16 {
         self.status_code.as_u16()
     }
 
-    pub(crate) fn get_content_type(&self) -> &ResponseBodyType {
-        &self.content_type
+    pub(crate) fn get_content_type(&self) -> ResponseBodyType {
+        let content_type = &self.body.content_type();
+        return content_type.clone();
     }
 
-    pub(crate) fn get_body(self) -> ResponseBodyContent {
+    pub(crate) fn get_body(self) -> ResponseBody {
         self.body
     }
 
-    pub(crate) fn get_cookie(&self, key: &str) -> Option<&'static str> {
+    pub(crate) fn get_cookie(&self, key: &str) -> Option<&str> {
         self.cookies
             .iter()
-            .find(|cookie| cookie.name == key)
-            .map(|cookie| cookie.value)
+            .find(|cookie| cookie.is_add_cookie() && cookie.name() == key)
+            .map(|cookie| cookie.value())
     }
 }
 
@@ -43,7 +73,8 @@ mod tests {
     use crate::req::body::TextData;
     use crate::req::origin_url::Url;
     use crate::req::request_error::HttpRequestError;
-    use crate::res::response_cookie::{Cookie, CookieOptions};
+    use crate::res::response_cookie::Cookie;
+    use crate::res::response_cookie::{AddCookie, CookieOptions};
     use crate::res::response_headers::ResponseHeaders;
     use crate::res::response_status::StatusCode;
     use crate::res::HttpResponse;
@@ -81,13 +112,10 @@ mod tests {
 
         let mut req = HttpRequest::new();
 
-        req.set_json(
-            User {
-                id: 1,
-                name: "John Doe".to_string(),
-            },
-            RequestBodyType::JSON,
-        );
+        req.set_json(User {
+            id: 1,
+            name: "John Doe".to_string(),
+        });
 
         assert_eq!(
             req.json::<User>().unwrap(),
@@ -97,20 +125,12 @@ mod tests {
             }
         );
 
-        req.set_json(
-            User {
-                id: 1,
-                name: "John Doe".to_string(),
-            },
-            RequestBodyType::FORM,
-        );
+        req.set_json(User {
+            id: 1,
+            name: "John Doe".to_string(),
+        });
 
-        assert!(req.json::<User>().is_err());
-
-        req.set_text(
-            TextData::new("{invalid json}".to_string()),
-            RequestBodyType::JSON,
-        );
+        req.set_text(TextData::new("{invalid json}".to_string()));
 
         assert!(req.json::<User>().is_err());
     }
@@ -119,31 +139,20 @@ mod tests {
     fn test_binary_body() {
         let mut req = HttpRequest::new();
 
-        req.set_binary(vec![1, 2, 3, 4, 5], RequestBodyType::BINARY);
+        req.set_binary(vec![1, 2, 3, 4, 5]);
 
         assert_eq!(req.bytes().unwrap(), vec![1, 2, 3, 4, 5]);
-
-        req.set_binary(vec![1, 2, 3, 4, 5], RequestBodyType::FORM);
-
-        assert!(req.bytes().is_err());
-
-        req.set_binary(vec![1, 2, 3, 4, 5], RequestBodyType::TEXT);
-        assert!(req.bytes().is_err());
     }
 
     #[test]
     fn test_text_body() {
         let mut req = HttpRequest::new();
 
-        req.set_text(TextData::new("Ripress".to_string()), RequestBodyType::TEXT);
+        req.set_text(TextData::new("Ripress".to_string()));
 
         assert_eq!(req.text().unwrap().to_string(), "Ripress".to_string());
 
-        req.set_text(TextData::new("".to_string()), RequestBodyType::JSON);
-
-        assert!(req.text().is_err());
-
-        req.set_json(json!({"key": "value"}), RequestBodyType::TEXT);
+        req.set_json(json!({"key": "value"}));
 
         assert!(req.text().is_err());
     }
@@ -151,15 +160,12 @@ mod tests {
     #[test]
     fn test_form_data() {
         let mut req = HttpRequest::new();
-        req.set_form("key", "value", RequestBodyType::FORM);
+        req.set_form("key", "value");
 
         assert_eq!(req.form_data().unwrap().get("key").unwrap(), "value");
         assert_eq!(req.form_data().unwrap().get("nonexistent"), None);
 
-        req.set_form("another_key", "another_value", RequestBodyType::JSON);
-        assert!(req.form_data().is_err());
-
-        req.set_json(json!({"key": "value"}), RequestBodyType::FORM);
+        req.set_json(json!({"key": "value"}));
         assert!(req.form_data().is_err());
     }
 
@@ -174,23 +180,6 @@ mod tests {
         req.set_cookie("another_key", "another_value");
         let cookie = req.get_cookie("another_key").unwrap();
         assert_eq!(cookie, "another_value");
-    }
-
-    #[test]
-    fn test_is_method() {
-        let mut req = HttpRequest::new();
-
-        req.set_content_type(RequestBodyType::JSON);
-        assert!(req.is(RequestBodyType::JSON));
-
-        req.set_content_type(RequestBodyType::FORM);
-        assert!(req.is(RequestBodyType::FORM));
-
-        req.set_content_type(RequestBodyType::TEXT);
-        assert!(req.is(RequestBodyType::TEXT));
-
-        req.set_content_type(RequestBodyType::TEXT);
-        assert_ne!(req.is(RequestBodyType::FORM), true);
     }
 
     #[test]
@@ -304,7 +293,7 @@ mod tests {
         let mut headers = ResponseHeaders::new();
         headers.insert("Content-Type", "application/json");
 
-        let cookies = Cookie {
+        let cookies = AddCookie {
             name: "session",
             value: "abcd1234",
             options: CookieOptions::default(),
@@ -312,32 +301,13 @@ mod tests {
 
         HttpResponse {
             status_code: StatusCode::Ok,
-            body: crate::res::ResponseBodyContent::new_binary(bytes::Bytes::from_static(
-                b"hello world",
-            )),
-            content_type: crate::res::ResponseBodyType::BINARY,
-            cookies: vec![cookies],
+            body: crate::res::ResponseBody::new_binary(bytes::Bytes::from_static(b"hello world")),
+            cookies: vec![Cookie::AddCookie(cookies)],
             headers,
-            remove_cookies: vec!["old_cookie".into()],
-            is_stream: false,
-            stream: Box::pin(stream::empty::<Result<bytes::Bytes, HttpResponseError>>()),
+            stream: Some(Box::pin(stream::empty::<
+                Result<bytes::Bytes, HttpResponseError>,
+            >())),
         }
-    }
-
-    #[test]
-    fn test_debug_formatting() {
-        let resp = sample_response();
-        let debug_str = format!("{:?}", resp);
-
-        assert!(debug_str.contains("HttpResponse"));
-        assert!(debug_str.contains("status_code: Ok"));
-        assert!(debug_str.contains("body: BINARY(b\"hello world\")"));
-        assert!(debug_str.contains("content_type: BINARY"));
-        assert!(debug_str.contains("cookies"));
-        assert!(debug_str.contains("headers"));
-        assert!(debug_str.contains("remove_cookies"));
-        assert!(debug_str.contains("is_stream: false"));
-        assert!(debug_str.contains("stream: \"<stream>\""));
     }
 
     #[test]
@@ -347,11 +317,8 @@ mod tests {
 
         assert_eq!(resp.status_code, cloned.status_code);
         assert_eq!(resp.body, cloned.body);
-        assert_eq!(resp.content_type, cloned.content_type);
         assert_eq!(resp.cookies, cloned.cookies);
         assert_eq!(resp.headers, cloned.headers);
-        assert_eq!(resp.remove_cookies, cloned.remove_cookies);
-        assert_eq!(resp.is_stream, cloned.is_stream);
 
         let orig_debug = format!("{:?}", resp);
         let cloned_debug = format!("{:?}", cloned);

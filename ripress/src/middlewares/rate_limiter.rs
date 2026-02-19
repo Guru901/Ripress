@@ -517,9 +517,9 @@ pub(crate) fn rate_limiter(
                     .get("X-Forwarded-For")
                     .and_then(|h| h.split(',').next())
                     .map(|ip| ip.trim().to_string())
-                    .unwrap_or_else(|| req.ip.to_string())
+                    .unwrap_or_else(|| req.ip().to_string())
             } else {
-                req.ip.to_string()
+                req.ip().to_string()
             };
 
             let mut map = client_map.lock().await;

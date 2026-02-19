@@ -3,13 +3,13 @@ mod test {
     use crate::{
         middlewares::body_limit::body_limit,
         req::{
+            body::{RequestBody, RequestBodyType},
             HttpRequest,
-            body::{RequestBody, RequestBodyContent},
         },
-        res::{HttpResponse, response_status::StatusCode},
+        res::{response_status::StatusCode, HttpResponse},
     };
 
-    const DEFAULT_BODY_LIMIT: usize = 1024 * 1024; 
+    const DEFAULT_BODY_LIMIT: usize = 1024 * 1024;
 
     fn make_req_with_body(body: Vec<u8>) -> HttpRequest {
         HttpRequest {
@@ -32,10 +32,7 @@ mod test {
         let middleware = body_limit(Some(limit));
         let (req_out, resp_opt) = middleware(req, res).await;
 
-        assert_eq!(
-            req_out.body.content,
-            RequestBodyContent::BINARY(body.into())
-        );
+        assert_eq!(req_out.body.body_type(), RequestBodyType::BINARY);
         assert!(resp_opt.is_none());
     }
 
@@ -49,10 +46,7 @@ mod test {
         let middleware = body_limit(Some(limit));
         let (req_out, resp_opt) = middleware(req, res).await;
 
-        assert_eq!(
-            req_out.body.content,
-            RequestBodyContent::BINARY(body.into())
-        );
+        assert_eq!(req_out.body.body_type(), RequestBodyType::BINARY);
         assert!(resp_opt.is_some());
         let resp = resp_opt.unwrap();
         assert_eq!(resp.status_code, StatusCode::PayloadTooLarge);
@@ -68,7 +62,7 @@ mod test {
         let middleware = body_limit(None);
         let (req_out, resp_opt) = middleware(req, res).await;
 
-        assert_eq!(req_out.body.content.len(), default_limit + 1);
+        assert_eq!(req_out.body.len(), default_limit + 1);
         assert!(resp_opt.is_some());
         let resp = resp_opt.unwrap();
         assert_eq!(resp.status_code, StatusCode::PayloadTooLarge);
@@ -84,10 +78,7 @@ mod test {
         let middleware = body_limit(Some(limit));
         let (req_out, resp_opt) = middleware(req, res).await;
 
-        assert_eq!(
-            req_out.body.content,
-            RequestBodyContent::BINARY(body.into())
-        );
+        assert_eq!(req_out.body.body_type(), RequestBodyType::BINARY);
         assert!(resp_opt.is_none());
     }
 }

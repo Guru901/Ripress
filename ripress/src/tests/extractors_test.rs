@@ -2,7 +2,7 @@
 mod extractor_tests {
     use crate::helpers::{ExtractFromOwned, FromRequest};
     use crate::req::body::json_data::JsonBody;
-    use crate::req::body::{RequestBody, RequestBodyContent, RequestBodyType};
+    use crate::req::body::RequestBody;
     use crate::req::origin_url::Url;
     use crate::req::query_params::{FromQueryParam, QueryParam};
     use crate::req::request_headers::Headers;
@@ -31,8 +31,8 @@ mod extractor_tests {
     }
 
     impl crate::req::body::json_data::FromJson for UserData {
-        fn from_json(data: &crate::req::body::RequestBodyContent) -> Result<Self, String> {
-            if let RequestBodyContent::JSON(json_val) = data {
+        fn from_json(data: &crate::req::body::RequestBody) -> Result<Self, String> {
+            if let RequestBody::JSON(json_val) = data {
                 serde_json::from_value(json_val.clone()).map_err(|e| e.to_string())
             } else {
                 Err("Expected JSON body".to_string())
@@ -42,10 +42,7 @@ mod extractor_tests {
 
     fn create_request_with_json(json_value: serde_json::Value) -> HttpRequest {
         let mut req = HttpRequest::default();
-        req.body = RequestBody {
-            content: RequestBodyContent::JSON(json_value),
-            content_type: RequestBodyType::JSON,
-        };
+        req.body = RequestBody::new_json(json_value);
         req
     }
 

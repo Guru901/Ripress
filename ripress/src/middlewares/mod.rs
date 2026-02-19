@@ -1239,17 +1239,12 @@ pub mod compression;
 /// ```
 ///
 /// ### Security Headers Validation
-/// Use tools like securityheaders.com or Mozilla Observatory to validate your configuration.
+/// Use tools like security headers.com or Mozilla Observatory to validate your configuration.
 pub mod shield;
 
-use crate::{
-    context::{HttpRequest, HttpResponse},
-    types::MiddlewareOutput,
-};
-use std::sync::Arc;
-
+use crate::types::MiddlewareHandler;
 #[cfg(feature = "with-wynd")]
-use crate::types::WyndMiddlewareHandler;
+use crate::types::WyndHandler;
 
 /// Represents a middleware in the Ripress application.
 ///
@@ -1275,7 +1270,7 @@ pub(crate) struct Middleware {
     /// This is an `Arc`-wrapped closure or function pointer that takes an [`HttpRequest`]
     /// and [`HttpResponse`], and returns a boxed future resolving to a tuple of the
     /// (possibly modified) request and an optional response.
-    pub func: Arc<dyn Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static>,
+    pub func: MiddlewareHandler,
 
     /// The path or route prefix this middleware applies to.
     ///
@@ -1294,17 +1289,4 @@ pub(crate) enum MiddlewareType {
     Pre,
     /// Middleware executed after the route handler.
     Post,
-}
-
-#[cfg(feature = "with-wynd")]
-/// WebSocket middleware container for the Wynd WebSocket implementation.
-///
-/// This struct holds the WebSocket handler and the path it should be mounted on.
-/// Only available when the `with-wynd` feature is enabled.
-#[derive(Clone)]
-pub(crate) struct WyndMiddleware {
-    /// The WebSocket handler function.
-    pub func: WyndMiddlewareHandler,
-    /// The path where WebSocket connections should be accepted.
-    pub path: String,
 }

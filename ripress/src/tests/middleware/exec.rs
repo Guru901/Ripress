@@ -11,9 +11,9 @@ mod tests {
     };
 
     #[cfg(feature = "with-wynd")]
-    use crate::helpers::exec_wynd_middleware;
+    use crate::app::settings::WyndConfig;
     #[cfg(feature = "with-wynd")]
-    use crate::middlewares::WyndMiddleware;
+    use crate::helpers::exec_wynd_middleware;
     use bytes::Bytes;
     use http_body_util::Full;
     use hyper::Request;
@@ -88,7 +88,7 @@ mod tests {
 
         let req = make_request("/wynd");
 
-        let mw = Arc::new(WyndMiddleware {
+        let mw = Arc::new(WyndConfig {
             path: "/wynd".to_string(),
             func: Arc::new(|_req| {
                 Box::pin(async move {
@@ -110,7 +110,7 @@ mod tests {
     async fn test_exec_wynd_middleware_success_blocks() {
         let req = make_request("/wynd");
 
-        let mw = Arc::new(WyndMiddleware {
+        let mw = Arc::new(WyndConfig {
             path: "/wynd".to_string(),
             func: Arc::new(|_req| {
                 Box::pin(async move {

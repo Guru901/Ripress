@@ -3,14 +3,14 @@ use mime_guess::MimeGuess;
 use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum ResponseBodyContent {
+pub(crate) enum ResponseBody {
     TEXT(String),
     HTML(String),
     JSON(serde_json::Value),
     BINARY(Bytes),
 }
 
-impl ResponseBodyContent {
+impl ResponseBody {
     /// Returns the content length in bytes for the current variant.
     /// Note:
     /// - TEXT/HTML: returns `String::len()` (UTF-8 byte length)
@@ -20,17 +20,15 @@ impl ResponseBodyContent {
     #[cfg(feature = "logger")]
     pub fn len(&self) -> usize {
         match self {
-            ResponseBodyContent::TEXT(text) => text.len(),
-            ResponseBodyContent::HTML(html) => html.len(),
-            ResponseBodyContent::JSON(json) => {
-                serde_json::to_vec(json).map(|v| v.len()).unwrap_or(0)
-            }
-            ResponseBodyContent::BINARY(bytes) => bytes.len(),
+            ResponseBody::TEXT(text) => text.len(),
+            ResponseBody::HTML(html) => html.len(),
+            ResponseBody::JSON(json) => serde_json::to_vec(json).map(|v| v.len()).unwrap_or(0),
+            ResponseBody::BINARY(bytes) => bytes.len(),
         }
     }
 
     pub(crate) fn new_text<T: Into<String>>(text: T) -> Self {
-        ResponseBodyContent::TEXT(text.into())
+        ResponseBody::TEXT(text.into())
     }
 
     pub(crate) fn new_json<T: Serialize>(json: T) -> Self {
@@ -38,15 +36,25 @@ impl ResponseBodyContent {
     }
 
     pub(crate) fn try_new_json<T: Serialize>(json: T) -> Result<Self, serde_json::Error> {
-        serde_json::to_value(json).map(ResponseBodyContent::JSON)
+        serde_json::to_value(json).map(ResponseBody::JSON)
     }
 
     pub(crate) fn new_html<T: Into<String>>(html: T) -> Self {
-        ResponseBodyContent::HTML(html.into())
+        ResponseBody::HTML(html.into())
     }
 
     pub(crate) fn new_binary<T: Into<Bytes>>(bytes: T) -> Self {
-        ResponseBodyContent::BINARY(bytes.into())
+        ResponseBody::BINARY(bytes.into())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn content_type(&self) -> ResponseBodyType {
+        match self {
+            ResponseBody::TEXT(_) => ResponseBodyType::TEXT,
+            ResponseBody::JSON(_) => ResponseBodyType::JSON,
+            ResponseBody::HTML(_) => ResponseBodyType::HTML,
+            ResponseBody::BINARY(_) => ResponseBodyType::BINARY,
+        }
     }
 }
 
@@ -72,7 +80,7 @@ impl From<MimeGuess> for ResponseBodyType {
 }
 
 impl ResponseBodyType {
-    pub fn as_str(&self) -> &'static str {
+    pub fn _as_str(&self) -> &'static str {
         match self {
             ResponseBodyType::TEXT => "text/plain",
             ResponseBodyType::JSON => "application/json",

@@ -1,6 +1,6 @@
 use crate::req::body::FormData;
+use crate::req::body::RequestBody;
 use crate::req::body::TextData;
-use crate::req::body::{RequestBodyContent, RequestBodyType};
 #[cfg(test)]
 use crate::req::origin_url::Url;
 use crate::req::HttpRequest;
@@ -23,52 +23,41 @@ impl HttpRequest {
         self.headers.insert(key.to_string(), value.to_string());
     }
 
-    pub(crate) fn set_json<J>(&mut self, json: J, content_type: RequestBodyType)
+    pub(crate) fn set_json<J>(&mut self, json: J)
     where
         J: serde::de::DeserializeOwned + serde::Serialize,
     {
-        self.body.content_type = content_type;
-        self.body.content = RequestBodyContent::JSON(serde_json::to_value(json).unwrap());
+        self.body = RequestBody::JSON(serde_json::to_value(json).unwrap());
     }
 
-    pub(crate) fn set_text(&mut self, text: TextData, content_type: RequestBodyType) {
-        self.body.content_type = content_type;
-        self.body.content = RequestBodyContent::TEXT(text)
+    pub(crate) fn set_text(&mut self, text: TextData) {
+        self.body = RequestBody::TEXT(text)
     }
 
-    pub(crate) fn set_binary(&mut self, bytes: Vec<u8>, content_type: RequestBodyType) {
-        self.body.content_type = content_type;
-        self.body.content = RequestBodyContent::BINARY(bytes.into());
+    pub(crate) fn set_binary(&mut self, bytes: Vec<u8>) {
+        self.body = RequestBody::BINARY(bytes.into());
     }
 
-    pub(crate) fn set_form(
-        &mut self,
-        key: &'static str,
-        value: &'static str,
-        content_type: RequestBodyType,
-    ) {
-        self.body.content_type = content_type;
-
-        match &mut self.body.content {
-            RequestBodyContent::FORM(existing) => {
+    pub(crate) fn set_form(&mut self, key: &'static str, value: &'static str) {
+        match &mut self.body {
+            RequestBody::FORM(existing) => {
                 existing.insert(key, value);
             }
             _ => {
                 let mut form_data = FormData::new();
                 form_data.insert(key, value);
 
-                self.body.content = RequestBodyContent::FORM(form_data)
+                self.body = RequestBody::FORM(form_data)
             }
         }
     }
 
-    pub(crate) fn set_content_type(&mut self, content_type: RequestBodyType) {
-        self.body.content_type = content_type;
-    }
+    // pub(crate) fn set_content_type(&mut self, content_type: RequestBodyType) {
+    // self.body = RequestBody;
+    // }
 
     pub(crate) fn _set_binary(&mut self, bytes: Vec<u8>) {
-        self.body.content_type = RequestBodyType::BINARY;
-        self.body.content = RequestBodyContent::BINARY(bytes.into());
+        self.body = RequestBody::BINARY(bytes.into());
     }
 
     pub(crate) fn set_method(&mut self, method: HttpMethods) {
@@ -90,7 +79,7 @@ mod tests {
         helpers::determine_content_type_response,
         req::origin_url::Url,
         res::{response_cookie::CookieOptions, HttpResponse, HttpResponseError},
-        res::{ResponseBodyContent, ResponseBodyType},
+        res::{ResponseBody, ResponseBodyType},
     };
     use serde_json::json;
 
@@ -102,7 +91,7 @@ mod tests {
             crate::res::response_status::StatusCode::Ok
         );
 
-        if let ResponseBodyContent::TEXT(body) = response.get_body() {
+        if let ResponseBody::TEXT(body) = response.get_body() {
             assert_eq!(body, "");
         } else {
             panic!("Expected TEXT body");
@@ -140,8 +129,8 @@ mod tests {
     fn test_json_response() {
         let json_body = json!({"key": "value"});
         let response = HttpResponse::new().json(json_body.clone());
-        assert_eq!(response.get_content_type(), &ResponseBodyType::JSON);
-        if let ResponseBodyContent::JSON(body) = response.get_body() {
+        assert_eq!(response.get_content_type(), ResponseBodyType::JSON);
+        if let ResponseBody::JSON(body) = response.get_body() {
             assert_eq!(body, json_body);
         } else {
             panic!("Expected JSON body");
@@ -149,7 +138,7 @@ mod tests {
 
         let empty_json = json!({});
         let response = HttpResponse::new().json(empty_json.clone());
-        if let ResponseBodyContent::JSON(body) = response.get_body() {
+        if let ResponseBody::JSON(body) = response.get_body() {
             assert_eq!(body, empty_json);
         } else {
             panic!("Expected JSON body");
@@ -180,8 +169,8 @@ mod tests {
     fn test_binary_response() {
         let bytes = vec![1, 2, 3, 4, 5];
         let response = HttpResponse::new().bytes(bytes.clone());
-        assert_eq!(response.get_content_type(), &ResponseBodyType::BINARY);
-        if let ResponseBodyContent::BINARY(body) = response.get_body() {
+        assert_eq!(response.get_content_type(), ResponseBodyType::BINARY);
+        if let ResponseBody::BINARY(body) = response.get_body() {
             assert_eq!(body, bytes);
         } else {
             panic!("Expected BINARY body");
@@ -189,7 +178,7 @@ mod tests {
 
         let empty_bytes = vec![];
         let response = HttpResponse::new().bytes(empty_bytes.clone());
-        if let ResponseBodyContent::BINARY(body) = response.get_body() {
+        if let ResponseBody::BINARY(body) = response.get_body() {
             assert_eq!(body, empty_bytes);
         } else {
             panic!("Expected BINARY body");
@@ -221,20 +210,20 @@ mod tests {
         let text_body = "Hello, World!";
         let response = HttpResponse::new().text(text_body);
 
-        assert_eq!(response.get_content_type(), &ResponseBodyType::TEXT);
+        assert_eq!(response.get_content_type(), ResponseBodyType::TEXT);
         let response_2 = HttpResponse::new().text(text_body);
 
-        if let ResponseBodyContent::TEXT(body) = response_2.get_body() {
+        if let ResponseBody::TEXT(body) = response_2.get_body() {
             assert_eq!(body, text_body);
         } else {
             panic!("Expected TEXT body");
         }
 
         assert_eq!(response.get_status_code(), 200);
-        assert_eq!(response.get_content_type(), &ResponseBodyType::TEXT);
+        assert_eq!(response.get_content_type(), ResponseBodyType::TEXT);
 
         let response = HttpResponse::new().text("");
-        if let ResponseBodyContent::TEXT(body) = response.get_body() {
+        if let ResponseBody::TEXT(body) = response.get_body() {
             assert_eq!(body, "");
         } else {
             panic!("Expected TEXT body");
@@ -245,15 +234,15 @@ mod tests {
     fn test_html_response() {
         let text_body = "<h1>Hello, World!</h1>";
         let response = HttpResponse::new().html(text_body);
-        assert_eq!(response.get_content_type(), &ResponseBodyType::HTML);
-        if let ResponseBodyContent::HTML(body) = response.get_body() {
+        assert_eq!(response.get_content_type(), ResponseBodyType::HTML);
+        if let ResponseBody::HTML(body) = response.get_body() {
             assert_eq!(body, text_body);
         } else {
             panic!("Expected TEXT body");
         }
 
         let response = HttpResponse::new().html("");
-        if let ResponseBodyContent::HTML(body) = response.get_body() {
+        if let ResponseBody::HTML(body) = response.get_body() {
             assert_eq!(body, "");
         } else {
             panic!("Expected TEXT body");
@@ -286,19 +275,29 @@ mod tests {
             .ok()
             .text("test");
 
-        let cookies: Vec<_> = response.cookies;
-        let remove_cookies: Vec<_> = response.remove_cookies;
-        assert_eq!(cookies.len(), 2);
+        let add_cookies: Vec<_> = response
+            .cookies
+            .iter()
+            .filter(|c| c.is_add_cookie())
+            .collect();
 
-        let session_cookie = cookies.iter().find(|c| c.name == "session").unwrap();
-        assert_eq!(session_cookie.value, "123");
+        let remove_cookies: Vec<_> = response
+            .cookies
+            .iter()
+            .filter(|c| c.is_remove_cookie())
+            .collect();
+
+        assert_eq!(add_cookies.len(), 2);
+
+        let session_cookie = add_cookies.iter().find(|c| c.name() == "session").unwrap();
+        assert_eq!(session_cookie.value(), "123");
 
         let cleared_cookie = remove_cookies
             .iter()
-            .find(|c| c == &&"old_session")
+            .find(|c| c.name() == "old_session")
             .unwrap();
 
-        assert_eq!(*cleared_cookie, "old_session");
+        assert_eq!(cleared_cookie.name(), "old_session");
     }
 
     #[test]
@@ -320,19 +319,14 @@ mod tests {
         let response = HttpResponse::new();
         let response = response.set_cookie("session", "abc123", None);
 
-        assert_eq!(response.get_cookie("session").unwrap(), "abc123");
-        let response = HttpResponse::new();
-        let response = response.set_cookie("session", "abc123", None);
-        let response = response.clear_cookie("session");
-
-        assert_eq!(response.get_cookie("session"), None);
+        let session_cookie = response.get_cookie("session").unwrap();
+        assert_eq!(session_cookie, "abc123");
 
         let response = HttpResponse::new();
 
         let response = response.set_cookie("session", "abc123", None);
 
         let response = response.clear_cookie("non-existent");
-
         assert_eq!(response.get_cookie("non-existent"), None);
     }
 

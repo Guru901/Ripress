@@ -720,7 +720,6 @@ impl RouteParams {
         extractor(self)
     }
 
-
     /// Retrieves the `id` parameter as an integer.
     ///
     /// This is a convenience method for the very common case of having an `id`

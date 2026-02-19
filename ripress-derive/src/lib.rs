@@ -116,8 +116,8 @@ pub fn from_json_derive(input: TokenStream) -> TokenStream {
 
     let expanded = quote::quote! {
         impl ::ripress::req::body::json_data::FromJson for #struct_name {
-            fn from_json(data: &::ripress::req::body::RequestBodyContent) -> Result<Self, String> {
-                if let ::ripress::req::body::RequestBodyContent::JSON(json_value) = data {
+            fn from_json(data: &::ripress::req::body::RequestBody) -> Result<Self, String> {
+                if let ::ripress::req::body::RequestBody::JSON(json_value) = data {
                     serde_json::from_value::<Self>(json_value.to_owned())
                         .map_err(|e| format!("Failed to deserialize JSON: {}", e))
                 } else {
