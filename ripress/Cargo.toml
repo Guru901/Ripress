@@ -61,9 +61,6 @@ file-upload = ["uuid"]
 logger = ["tracing"]
 validation = ["validator"]
 
-[profile.release]
-debug = true
-
 [[bench]]
 name = "ripress_benches"
 harness = false
