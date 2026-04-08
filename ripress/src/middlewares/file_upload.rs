@@ -1,6 +1,7 @@
 #![warn(missing_docs)]
 use crate::helpers::{extract_boundary, parse_multipart_form};
 use crate::req::body::FormData;
+use crate::url::encode;
 use crate::{context::HttpResponse, req::HttpRequest, types::MiddlewareOutput};
 use tokio::fs::{create_dir_all, File};
 use tokio::io::AsyncWriteExt;
@@ -166,8 +167,6 @@ use uuid::Uuid;
 /// This middleware requires the following crates:
 /// * `tokio` - For async file operations and directory creation
 /// * `uuid` - For generating unique filenames
-/// * `infer` - For detecting file types and extensions
-/// * `urlencoding` - For encoding form data (internal use)
 ///
 /// ## Logging
 ///
@@ -430,13 +429,7 @@ fn form_data_to_string(form_data: &FormData) -> String {
 
     form_data
         .iter()
-        .map(|(key, value)| {
-            format!(
-                "{}={}",
-                urlencoding::encode(key),
-                urlencoding::encode(value)
-            )
-        })
+        .map(|(key, value)| format!("{}={}", encode(key), encode(value)))
         .collect::<Vec<_>>()
         .join("&")
 }

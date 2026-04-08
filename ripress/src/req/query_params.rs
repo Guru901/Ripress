@@ -8,6 +8,7 @@ use ahash::AHashMap;
 
 use crate::error::RipressError;
 use crate::helpers::FromRequest;
+use crate::url::decode;
 
 /// Query parameters from URL query string with support for multiple values
 /// Handles URLs like: `/search?q=rust&tags=web&tags=backend&page=1&active=true`
@@ -155,18 +156,12 @@ impl QueryParams {
 
         for pair in query_string.split('&') {
             if let Some((key, value)) = pair.split_once('=') {
-                let key = urlencoding::decode(key)
-                    .unwrap_or_else(|_| key.into())
-                    .into_owned();
-                let value = urlencoding::decode(value)
-                    .unwrap_or_else(|_| value.into())
-                    .into_owned();
+                let key = decode(key).unwrap_or_else(|_| key.into()).into_owned();
+                let value = decode(value).unwrap_or_else(|_| value.into()).into_owned();
 
                 params.entry(key).or_insert_with(Vec::new).push(value);
             } else if !pair.is_empty() {
-                let key = urlencoding::decode(pair)
-                    .unwrap_or_else(|_| pair.into())
-                    .into_owned();
+                let key = decode(pair).unwrap_or_else(|_| pair.into()).into_owned();
                 params
                     .entry(key)
                     .or_insert_with(Vec::new)
@@ -348,7 +343,6 @@ impl QueryParams {
     pub fn remove(&mut self, name: &str) -> Option<Vec<String>> {
         self.inner.remove(name)
     }
-
 
     /// Get 'page' parameter (pagination)
     pub fn page(&self) -> i32 {

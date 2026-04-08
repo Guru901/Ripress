@@ -1,7 +1,8 @@
 #![warn(missing_docs)]
 use ahash::AHashMap;
 use std::fmt::Display;
-use urlencoding::decode;
+
+use crate::url::{decode, encode};
 
 /// A convenient wrapper around `HashMap<String, String>` for handling form data.
 ///
@@ -406,7 +407,7 @@ impl FormData {
     pub fn to_query_string(&self) -> String {
         self.inner
             .iter()
-            .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v)))
+            .map(|(k, v)| format!("{}={}", encode(k), encode(v)))
             .collect::<Vec<_>>()
             .join("&")
     }
@@ -497,7 +498,7 @@ impl FormData {
         let separator = if query.contains(", ") { ", " } else { "&" };
 
         for pair in query.split(separator) {
-            let pair = pair.trim(); 
+            let pair = pair.trim();
             if let Some((key, value)) = pair.split_once('=') {
                 let decoded_key = decode(key.trim())
                     .map_err(|e| format!("Failed to decode key '{}': {}", key, e))?;

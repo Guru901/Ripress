@@ -99,7 +99,7 @@ impl Default for Hsts {
     fn default() -> Self {
         Self {
             enabled: true,
-            max_age: 31536000, 
+            max_age: 31536000,
             include_subdomains: true,
             preload: false,
         }
@@ -321,7 +321,7 @@ impl Default for DnsPrefetchControl {
     fn default() -> Self {
         Self {
             enabled: true,
-            allow: false, 
+            allow: false,
         }
     }
 }
@@ -470,10 +470,10 @@ pub struct PermissionsPolicy {
 impl Default for PermissionsPolicy {
     fn default() -> Self {
         let mut features = HashMap::new();
-        features.insert("camera".to_string(), vec![]); 
-        features.insert("microphone".to_string(), vec![]); 
-        features.insert("geolocation".to_string(), vec!["self".to_string()]); 
-        features.insert("payment".to_string(), vec![]); 
+        features.insert("camera".to_string(), vec![]);
+        features.insert("microphone".to_string(), vec![]);
+        features.insert("geolocation".to_string(), vec!["self".to_string()]);
+        features.insert("payment".to_string(), vec![]);
 
         Self {
             enabled: true,
@@ -525,7 +525,7 @@ pub enum CrossOriginOpenerPolicy {
 
 impl Default for CrossOriginOpenerPolicy {
     fn default() -> Self {
-        Self::SameOrigin 
+        Self::SameOrigin
     }
 }
 
@@ -573,7 +573,7 @@ pub enum CrossOriginResourcePolicy {
 
 impl Default for CrossOriginResourcePolicy {
     fn default() -> Self {
-        Self::SameOrigin 
+        Self::SameOrigin
     }
 }
 
@@ -721,7 +721,7 @@ pub enum CrossOriginEmbedderPolicy {
 
 impl Default for CrossOriginEmbedderPolicy {
     fn default() -> Self {
-        Self::UnsafeNone 
+        Self::UnsafeNone
     }
 }
 
@@ -770,7 +770,7 @@ pub struct OriginAgentCluster {
 
 impl Default for OriginAgentCluster {
     fn default() -> Self {
-        Self { enabled: true } 
+        Self { enabled: true }
     }
 }
 
@@ -825,7 +825,7 @@ impl Default for CrossDomainPolicy {
     fn default() -> Self {
         Self {
             enabled: true,
-            policy: "none".to_string(), 
+            policy: "none".to_string(),
         }
     }
 }

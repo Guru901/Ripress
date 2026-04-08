@@ -475,3 +475,5 @@ pub mod error;
 ///
 /// See the documentation for individual macros for usage examples and detailed information.
 pub mod macros;
+
+pub(crate) mod url;

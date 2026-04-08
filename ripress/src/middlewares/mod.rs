@@ -295,7 +295,6 @@ pub mod logger;
 /// ## Features
 ///
 /// - **Multiple Upload Types**: Handles both raw binary uploads and `multipart/form-data`
-/// - **Automatic Type Detection**: Uses the `infer` crate to detect file types from content
 /// - **Unique Filename Generation**: UUID-based filenames prevent conflicts and improve security
 /// - **Configurable Storage**: Customizable upload directory with automatic creation
 /// - **Form Field Extraction**: Extracts both files and text fields from multipart forms
