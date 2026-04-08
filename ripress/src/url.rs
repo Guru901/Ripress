@@ -164,8 +164,10 @@ fn encode_into<E>(
 
 #[inline]
 fn to_hex_digit(digit: u8) -> u8 {
+    debug_assert!(digit < 16, "to_hex_digit only accepts 0-15");
     match digit {
         0..=9 => b'0' + digit,
-        10..=255 => b'A' - 10 + digit,
+        10..=15 => b'A' - 10 + digit,
+        _ => unreachable!(),
     }
 }
