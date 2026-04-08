@@ -1,5 +1,4 @@
 use bytes::Bytes;
-use mime_guess::MimeGuess;
 use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -64,19 +63,6 @@ pub(crate) enum ResponseBodyType {
     JSON,
     HTML,
     BINARY,
-}
-
-impl From<MimeGuess> for ResponseBodyType {
-    fn from(guess: MimeGuess) -> Self {
-        let mime = guess.first_or_octet_stream();
-
-        match (mime.type_(), mime.subtype()) {
-            (mime::TEXT, mime::HTML) => ResponseBodyType::HTML,
-            (mime::TEXT, _) => ResponseBodyType::TEXT,
-            (mime::APPLICATION, mime::JSON) => ResponseBodyType::JSON,
-            _ => ResponseBodyType::BINARY,
-        }
-    }
 }
 
 impl ResponseBodyType {

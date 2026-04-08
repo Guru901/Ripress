@@ -1315,7 +1315,6 @@ dependencies = [
  "hyper-util",
  "infer",
  "mime",
- "mime_guess",
  "reqwest",
  "ripress-derive 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "routerify_ng",
