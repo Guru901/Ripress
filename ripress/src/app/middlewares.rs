@@ -46,7 +46,7 @@ impl App {
     /// let mut app = App::new();
     ///
     /// // This is deprecated - use use_pre_middleware instead
-    /// app.use_middleware(Some("/api"), |req: HttpRequest, res| async move {
+    /// app.use_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
     ///     println!("Processing API request");
     ///     (req, None)
     /// });
@@ -88,7 +88,7 @@ impl App {
     /// let mut app = App::new();
     ///
     /// // Authentication middleware for API routes
-    /// app.use_pre_middleware(Some("/api"), |req: HttpRequest, res| async move {
+    /// app.use_pre_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
     ///     if req.headers.get("authorization").is_none() {
     ///         return (req, Some(res.unauthorized().text("Missing authorization header")));
     ///     }
@@ -96,7 +96,7 @@ impl App {
     /// });
     ///
     /// // Logging middleware for all routes
-    /// app.use_pre_middleware(None, |req: HttpRequest, res| async move {
+    /// app.use_pre_middleware(None, |req: HttpRequest, res, next| async move {
     ///     println!("Request: {} {}", req.method, req.path);
     ///     (req, None)
     /// });
@@ -134,8 +134,8 @@ impl App {
     /// let mut app = App::new();
     ///
     /// let pre: Middlewares = vec![
-    ///     ("/", Box::new(|req: HttpRequest, res| Box::pin(async move { (req, None) }))),
-    ///     ("/admin", Box::new(|req: HttpRequest, res| Box::pin(async move {
+    ///     ("/", Box::new(|req: HttpRequest, res, next| Box::pin(async move { (req, None) }))),
+    ///     ("/admin", Box::new(|req: HttpRequest, res, next| Box::pin(async move {
     ///         // admin check logic
     ///         (req, None)
     ///     }))),
@@ -172,8 +172,8 @@ impl App {
     /// let mut app = App::new();
     ///
     /// let post: Middlewares = vec![
-    ///     ("/", Box::new(|req: HttpRequest, res| Box::pin(async move { (req, Some(res)) }))),
-    ///     ("/api", Box::new(|req: HttpRequest, res| Box::pin(async move {
+    ///     ("/", Box::new(|req: HttpRequest, res, next| Box::pin(async move { (req, Some(res)) }))),
+    ///     ("/api", Box::new(|req: HttpRequest, res, next| Box::pin(async move {
     ///         // response logging
     ///         (req, Some(res))
     ///     }))),
@@ -214,14 +214,14 @@ impl App {
     /// let mut app = App::new();
     ///
     /// // Add security headers to all responses
-    /// app.use_post_middleware(None, |req: HttpRequest, mut res| async move {
+    /// app.use_post_middleware(None, |req: HttpRequest, mut res, next| async move {
     ///     res = res.set_header("X-Frame-Options", "DENY")
     ///         .set_header("X-Content-Type-Options", "nosniff");
     ///     (req, Some(res))
     /// });
     ///
     /// // Log response status for API routes
-    /// app.use_post_middleware(Some("/api"), |req: HttpRequest, res| async move {
+    /// app.use_post_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
     ///     println!("API Response: {}", req.path);
     ///     (req, Some(res))
     /// });

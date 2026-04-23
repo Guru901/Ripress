@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-use crate::{context::HttpResponse, req::HttpRequest, types::MiddlewareOutput};
+use crate::{context::HttpResponse, next::Next, req::HttpRequest, types::MiddlewareOutput};
 use std::collections::HashMap;
 use tracing::info;
 
@@ -360,9 +360,9 @@ impl Default for LoggerConfig {
 /// ```
 pub(crate) fn logger(
     config: Option<LoggerConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static {
+) -> impl Fn(HttpRequest, HttpResponse, Next) -> MiddlewareOutput + Send + Sync + 'static {
     let cfg = std::sync::Arc::new(config.unwrap_or_default());
-    move |req: HttpRequest, res| {
+    move |req: HttpRequest, res, next| {
         let config = std::sync::Arc::clone(&cfg);
 
         if config

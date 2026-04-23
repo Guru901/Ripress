@@ -50,7 +50,7 @@ mod tests {
             func: Arc::new(|req: HttpRequest, _res: HttpResponse, next| {
                 Box::pin(async move {
                     let res = HttpResponse::new().ok().text("blocked!");
-                    return next.call(req, res).await;
+                    return (req, Some(res));
                 })
             }),
             middleware_type: MiddlewareType::Pre,

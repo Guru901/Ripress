@@ -240,7 +240,7 @@ mod tests {
         let mut app = App::new();
 
         app.use_pre_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
-            next.call(req, res).await
+            (req, Some(res))
         });
         #[allow(deprecated)]
         app.use_middleware(Some("/api"), |req: HttpRequest, res, next| async move {

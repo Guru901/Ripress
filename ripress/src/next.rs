@@ -14,6 +14,6 @@ impl Next {
         req: HttpRequest,
         res: HttpResponse,
     ) -> (HttpRequest, Option<HttpResponse>) {
-        return (req, Some(res));
+        return (req, None);
     }
 }

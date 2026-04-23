@@ -293,6 +293,7 @@ pub type Middlewares = Vec<(
         dyn Fn(
                 HttpRequest,
                 HttpResponse,
+                Next
             )
                 -> Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send>>
             + Send

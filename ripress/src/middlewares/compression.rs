@@ -1,5 +1,7 @@
 #![warn(missing_docs)]
-use crate::{context::HttpResponse, req::HttpRequest, res::ResponseBody, types::MiddlewareOutput};
+use crate::{
+    context::HttpResponse, next::Next, req::HttpRequest, res::ResponseBody, types::MiddlewareOutput,
+};
 use flate2::{write::GzEncoder, Compression};
 use std::io::Write;
 
@@ -33,9 +35,9 @@ impl Default for CompressionConfig {
 /// A middleware function that compresses HTTP responses
 pub(crate) fn compression(
     config: Option<CompressionConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static {
+) -> impl Fn(HttpRequest, HttpResponse, Next) -> MiddlewareOutput + Send + Sync + 'static {
     let config = config.unwrap_or_default();
-    move |req: HttpRequest, mut res| {
+    move |req: HttpRequest, mut res, next| {
         let config = config.clone();
         Box::pin(async move {
             let accepts_gzip = req

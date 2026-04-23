@@ -1,5 +1,6 @@
 #![warn(missing_docs)]
 use crate::helpers::{extract_boundary, parse_multipart_form};
+use crate::next::Next;
 use crate::req::body::FormData;
 use crate::url::encode;
 use crate::{context::HttpResponse, req::HttpRequest, types::MiddlewareOutput};
@@ -260,9 +261,9 @@ impl Default for FileUploadConfiguration {
 /// across multiple threads and cloned for multiple routes.
 pub fn file_upload(
     config: Option<FileUploadConfiguration>,
-) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + Clone + 'static {
+) -> impl Fn(HttpRequest, HttpResponse, Next) -> MiddlewareOutput + Send + Sync + Clone + 'static {
     let config = config.unwrap_or_default();
-    move |mut req, _res| {
+    move |mut req, _res, next| {
         let config = config.clone();
         let upload_path = config.upload_dir.clone();
         Box::pin(async move {
