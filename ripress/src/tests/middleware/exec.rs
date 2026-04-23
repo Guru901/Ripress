@@ -34,8 +34,10 @@ mod tests {
     fn passthrough_pre_middleware() -> Arc<Middleware> {
         Arc::new(Middleware {
             path: "/".to_string(),
-            func: Arc::new(|req: HttpRequest, _: HttpResponse| {
-                Box::pin(async move { (req, None) })
+            func: Arc::new(|req: HttpRequest, _, _| {
+                Box::pin(async move {
+                    return (req, None);
+                })
             }),
             middleware_type: MiddlewareType::Pre,
         })
@@ -44,10 +46,10 @@ mod tests {
     fn blocking_pre_middleware() -> Arc<Middleware> {
         Arc::new(Middleware {
             path: "/block".to_string(),
-            func: Arc::new(|req: HttpRequest, _res: HttpResponse| {
+            func: Arc::new(|req: HttpRequest, _, _| {
                 Box::pin(async move {
                     let res = HttpResponse::new().ok().text("blocked!");
-                    (req, Some(res))
+                    return (req, Some(res));
                 })
             }),
             middleware_type: MiddlewareType::Pre,

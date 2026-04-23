@@ -2,11 +2,16 @@
 #[cfg(feature = "logger")]
 mod test {
     use crate::{
-        middlewares::logger::{LoggerConfig, logger},
+        middlewares::logger::{logger, LoggerConfig},
+        next::Next,
         req::HttpRequest,
         res::HttpResponse,
         types::HttpMethods,
     };
+
+    fn make_next() -> Next {
+        Next {}
+    }
 
     #[tokio::test]
     async fn test_logger_default_config() {
@@ -15,8 +20,9 @@ mod test {
         req.path = "/test".to_string();
         req.method = HttpMethods::POST;
         let res = HttpResponse::new();
+        let next = make_next();
 
-        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone()).await;
+        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone(), next).await;
 
         assert_eq!(returned_req.path, "/test");
         assert_eq!(returned_req.method, HttpMethods::POST);
@@ -35,8 +41,9 @@ mod test {
         req.path = "/foo".to_string();
         req.method = HttpMethods::PUT;
         let res = HttpResponse::new();
+        let next = make_next();
 
-        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone()).await;
+        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone(), next).await;
 
         assert_eq!(returned_req.path, "/foo");
         assert_eq!(returned_req.method, HttpMethods::PUT);
@@ -50,8 +57,9 @@ mod test {
         req.path = "/api/users".to_string();
         req.method = HttpMethods::GET;
         let res = HttpResponse::new();
+        let next = make_next();
 
-        let (returned_req, _) = logger_mw(req.clone(), res.clone()).await;
+        let (returned_req, _) = logger_mw(req.clone(), res.clone(), next).await;
 
         assert_eq!(returned_req.path, req.path);
         assert_eq!(returned_req.method, req.method);
@@ -69,8 +77,9 @@ mod test {
         req.path = "/disabled".to_string();
         req.method = HttpMethods::DELETE;
         let res = HttpResponse::new();
+        let next = make_next();
 
-        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone()).await;
+        let (returned_req, maybe_res) = logger_mw(req.clone(), res.clone(), next).await;
 
         assert_eq!(returned_req.path, "/disabled");
         assert_eq!(returned_req.method, HttpMethods::DELETE);

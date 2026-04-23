@@ -1,8 +1,9 @@
 #![warn(missing_docs)]
 use crate::{
     context::HttpResponse,
+    next::Next,
     req::HttpRequest,
-    types::{MiddlewareOutput, HttpMethods},
+    types::{HttpMethods, MiddlewareOutput},
 };
 
 /// Builtin CORS (Cross-Origin Resource Sharing) Middleware
@@ -387,8 +388,8 @@ impl Default for CorsConfig {
 /// * **Configuration cloning**: Lightweight operation due to `&'static str` usage
 pub(crate) fn cors(
     config: Option<CorsConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + Clone + 'static {
-    move |req: HttpRequest, mut res| {
+) -> impl Fn(HttpRequest, HttpResponse, Next) -> MiddlewareOutput + Send + Sync + Clone + 'static {
+    move |req: HttpRequest, mut res, next| {
         let config = config.clone().unwrap_or_default();
         let req_clone = req.clone();
         Box::pin(async move {
@@ -419,7 +420,8 @@ pub(crate) fn cors(
             if req_clone.method == HttpMethods::OPTIONS {
                 return (req_clone, Some(res.ok()));
             }
-            (req_clone, None) 
+
+            return next.call(req_clone, res).await;
         })
     }
 }

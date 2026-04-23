@@ -3,7 +3,6 @@ use std::sync::Arc;
 #[cfg(feature = "with-wynd")]
 use http_body_util::Full;
 
-use crate::app::App;
 #[cfg(feature = "compression")]
 use crate::middlewares::compression::CompressionConfig;
 #[cfg(feature = "logger")]
@@ -18,6 +17,7 @@ use crate::middlewares::{
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::types::MiddlewareHandler;
+use crate::{app::App, next::Next};
 
 #[cfg(feature = "with-wynd")]
 use crate::types::WyndHandler;
@@ -46,16 +46,16 @@ impl App {
     /// let mut app = App::new();
     ///
     /// // This is deprecated - use use_pre_middleware instead
-    /// app.use_middleware(Some("/api"), |req: HttpRequest, res| async move {
+    /// app.use_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
     ///     println!("Processing API request");
-    ///     (req, None)
+    ///     return next.call(req, res).await;
     /// });
     /// ```
     #[deprecated(since = "1.9.0", note = "Use `use_pre_middleware` instead")]
     pub fn use_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
@@ -88,23 +88,23 @@ impl App {
     /// let mut app = App::new();
     ///
     /// // Authentication middleware for API routes
-    /// app.use_pre_middleware(Some("/api"), |req: HttpRequest, res| async move {
+    /// app.use_pre_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
     ///     if req.headers.get("authorization").is_none() {
     ///         return (req, Some(res.unauthorized().text("Missing authorization header")));
     ///     }
-    ///     (req, None) // Continue processing
+    ///     return next.call(req, res).await; // Continue processing
     /// });
     ///
     /// // Logging middleware for all routes
-    /// app.use_pre_middleware(None, |req: HttpRequest, res| async move {
+    /// app.use_pre_middleware(None, |req: HttpRequest, res, next| async move {
     ///     println!("Request: {} {}", req.method, req.path);
-    ///     (req, None)
+    ///     return next.call(req, res).await;
     /// });
     /// ```
     pub fn use_pre_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
@@ -134,10 +134,10 @@ impl App {
     /// let mut app = App::new();
     ///
     /// let pre: Middlewares = vec![
-    ///     ("/", Box::new(|req: HttpRequest, res| Box::pin(async move { (req, None) }))),
-    ///     ("/admin", Box::new(|req: HttpRequest, res| Box::pin(async move {
+    ///     ("/", Box::new(|req: HttpRequest, res, next| Box::pin(async move { return next.call(req, res).await; }))),
+    ///     ("/admin", Box::new(|req: HttpRequest, res, next| Box::pin(async move {
     ///         // admin check logic
-    ///         (req, None)
+    ///         return next.call(req, res).await;
     ///     }))),
     /// ];
     ///
@@ -146,7 +146,7 @@ impl App {
     pub fn use_pre_middlewares<F, Fut, P>(&mut self, middlewares: Vec<(P, F)>) -> &mut Self
     where
         P: Into<Option<&'static str>> + Copy,
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         for (path, middleware) in middlewares {
@@ -172,8 +172,8 @@ impl App {
     /// let mut app = App::new();
     ///
     /// let post: Middlewares = vec![
-    ///     ("/", Box::new(|req: HttpRequest, res| Box::pin(async move { (req, Some(res)) }))),
-    ///     ("/api", Box::new(|req: HttpRequest, res| Box::pin(async move {
+    ///     ("/", Box::new(|req: HttpRequest, res, next| Box::pin(async move { (req, Some(res)) }))),
+    ///     ("/api", Box::new(|req: HttpRequest, res, next| Box::pin(async move {
     ///         // response logging
     ///         (req, Some(res))
     ///     }))),
@@ -184,7 +184,7 @@ impl App {
     pub fn use_post_middlewares<F, Fut, P>(&mut self, middlewares: Vec<(P, F)>) -> &mut Self
     where
         P: Into<Option<&'static str>> + Copy,
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         for (path, middleware) in middlewares {
@@ -214,14 +214,14 @@ impl App {
     /// let mut app = App::new();
     ///
     /// // Add security headers to all responses
-    /// app.use_post_middleware(None, |req: HttpRequest, mut res| async move {
+    /// app.use_post_middleware(None, |req: HttpRequest, mut res, next| async move {
     ///     res = res.set_header("X-Frame-Options", "DENY")
     ///         .set_header("X-Content-Type-Options", "nosniff");
     ///     (req, Some(res))
     /// });
     ///
     /// // Log response status for API routes
-    /// app.use_post_middleware(Some("/api"), |req: HttpRequest, res| async move {
+    /// app.use_post_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
     ///     println!("API Response: {}", req.path);
     ///     (req, Some(res))
     /// });
@@ -229,7 +229,7 @@ impl App {
     pub fn use_post_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
@@ -652,10 +652,10 @@ impl App {
     /// into the expected format for the middleware system.
     fn middleware_from_closure<F, Fut>(f: F) -> MiddlewareHandler
     where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
-        Arc::new(move |req: HttpRequest, res| Box::pin(f(req, res)))
+        Arc::new(move |req: HttpRequest, res, next| Box::pin(f(req, res, next)))
     }
 
     #[cfg(feature = "with-wynd")]

@@ -1,5 +1,7 @@
 #![warn(missing_docs)]
-use crate::{context::HttpResponse, req::HttpRequest, res::ResponseBody, types::MiddlewareOutput};
+use crate::{
+    context::HttpResponse, next::Next, req::HttpRequest, res::ResponseBody, types::MiddlewareOutput,
+};
 use flate2::{write::GzEncoder, Compression};
 use std::io::Write;
 
@@ -33,9 +35,9 @@ impl Default for CompressionConfig {
 /// A middleware function that compresses HTTP responses
 pub(crate) fn compression(
     config: Option<CompressionConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static {
+) -> impl Fn(HttpRequest, HttpResponse, Next) -> MiddlewareOutput + Send + Sync + 'static {
     let config = config.unwrap_or_default();
-    move |req: HttpRequest, mut res| {
+    move |req: HttpRequest, mut res, next| {
         let config = config.clone();
         Box::pin(async move {
             let accepts_gzip = req
@@ -45,7 +47,7 @@ pub(crate) fn compression(
                 .unwrap_or(false);
 
             if !accepts_gzip {
-                return (req, None);
+                return next.call(req, res).await;
             }
             if res
                 .headers
@@ -53,27 +55,27 @@ pub(crate) fn compression(
                 .or_else(|| res.headers.get("content-encoding"))
                 .is_some()
             {
-                return (req, None);
+                return next.call(req, res).await;
             }
             let body_bytes = match get_response_body_bytes(&res) {
                 Some(bytes) => bytes,
-                None => return (req, None),
+                None => return next.call(req, res).await,
             };
 
             if body_bytes.len() < config.threshold {
-                return (req, None);
+                return next.call(req, res).await;
             }
 
             let content_type = &res.headers.get("Content-Type").unwrap();
 
             if !should_compress_content_type(content_type) {
-                return (req, None);
+                return next.call(req, res).await;
             }
 
             match compress_data(&body_bytes, config.level) {
                 Ok(compressed_body) => {
                     if let Err(_) = set_response_body(&mut res, compressed_body) {
-                        return (req, None);
+                        return next.call(req, res).await;
                     }
 
                     res = res
@@ -84,7 +86,9 @@ pub(crate) fn compression(
 
                     (req, Some(res))
                 }
-                Err(_) => (req, None),
+                Err(_) => {
+                    return next.call(req, res).await;
+                }
             }
         })
     }

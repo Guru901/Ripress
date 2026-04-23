@@ -5,9 +5,14 @@ mod test {
 
     use crate::{
         middlewares::file_upload::{file_upload, FileUploadConfiguration},
+        next::Next,
         req::HttpRequest,
         res::HttpResponse,
     };
+
+    fn make_next() -> Next {
+        Next {}
+    }
 
     #[tokio::test]
     #[ignore = "abhi ke liye"]
@@ -25,7 +30,8 @@ mod test {
         req.set_header("content-type", "application/octet-stream");
 
         let res = HttpResponse::new();
-        let (req, _) = upload_mw(req, res).await;
+        let next = make_next();
+        let (req, _) = upload_mw(req, res, next).await;
 
         let uploaded_file = req.get_data("uploaded_file").unwrap();
         let uploaded_path = req.get_data("uploaded_file_path").unwrap();
@@ -77,7 +83,8 @@ mod test {
         );
 
         let res = HttpResponse::new();
-        let (req, _) = upload_mw(req, res).await;
+        let next = make_next();
+        let (req, _) = upload_mw(req, res, next).await;
 
         let form_data = req.form_data().unwrap();
         assert_eq!(form_data.get("name"), Some("John Doe"));
@@ -111,7 +118,8 @@ mod test {
         req.set_header("content-type", "multipart/form-data; boundary=invalid");
 
         let res = HttpResponse::new();
-        let (req, _) = upload_mw(req, res).await;
+        let next = make_next();
+        let (req, _) = upload_mw(req, res, next).await;
 
         assert!(
             req.get_data("uploaded_file_count").is_some()
@@ -139,7 +147,8 @@ mod test {
         );
 
         let res = HttpResponse::new();
-        let (req, _) = upload_mw(req, res).await;
+        let next = make_next();
+        let (req, _) = upload_mw(req, res, next).await;
 
         assert!(
             req.get_data("uploaded_file_count").is_some()

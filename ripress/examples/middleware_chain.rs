@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = App::new();
 
     // Global middlewares (apply to all routes)
-    app.use_pre_middleware(None, |mut req, _| async move {
+    app.use_pre_middleware(None, |mut req, res, next| async move {
         use std::time::{SystemTime, UNIX_EPOCH};
         let since_epoch = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         let timestamp = since_epoch.as_nanos();
@@ -32,9 +32,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("🔖 Request ID: {}", request_id);
 
-        (req, None)
+        return next.call(req, res).await;
     });
-    app.use_post_middleware(None, |req, res| async move {
+
+    app.use_post_middleware(None, |req, res, _| async move {
         let method = req.method.clone();
         let path = req.origin_url.to_string();
 
@@ -79,13 +80,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }))
     });
 
-    app.use_pre_middleware("/api", |req, _| async move {
+    app.use_pre_middleware("/api", |req, res, next| async move {
         let auth_header = req.headers.get("authorization");
 
         match auth_header {
             Some(_) => {
                 println!("✅ Authentication successful");
-                return (req, None);
+                return next.call(req, res).await;
             }
             None => {
                 println!("❌ No token provided");

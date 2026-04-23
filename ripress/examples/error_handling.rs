@@ -155,13 +155,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = App::new();
 
     // Global error handling middleware
-    app.use_post_middleware(None, move |req: HttpRequest, res| {
+    app.use_post_middleware(None, move |req: HttpRequest, res, next| {
         Box::pin(async move {
             if res.status_code() >= 400 {
                 println!("❌ Error Response: {}", res.status_code());
             }
 
-            (req, Some(res))
+            return next.call(req, res).await;
         })
     });
 

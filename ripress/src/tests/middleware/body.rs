@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod test {
+
     use crate::{
         middlewares::body_limit::body_limit,
+        next::Next,
         req::{
             body::{RequestBody, RequestBodyType},
             HttpRequest,
@@ -22,15 +24,20 @@ mod test {
         HttpResponse::new()
     }
 
+    fn make_next() -> Next {
+        Next {}
+    }
+
     #[tokio::test]
     async fn test_body_within_limit() {
         let limit = 10;
         let body = vec![1, 2, 3, 4, 5];
         let req = make_req_with_body(body.clone());
         let res = make_res();
+        let next = make_next();
 
         let middleware = body_limit(Some(limit));
-        let (req_out, resp_opt) = middleware(req, res).await;
+        let (req_out, resp_opt) = middleware(req, res, next).await;
 
         assert_eq!(req_out.body.body_type(), RequestBodyType::BINARY);
         assert!(resp_opt.is_none());
@@ -42,9 +49,10 @@ mod test {
         let body = vec![1, 2, 3, 4, 5, 6, 7];
         let req = make_req_with_body(body.clone());
         let res = make_res();
+        let next = make_next();
 
         let middleware = body_limit(Some(limit));
-        let (req_out, resp_opt) = middleware(req, res).await;
+        let (req_out, resp_opt) = middleware(req, res, next).await;
 
         assert_eq!(req_out.body.body_type(), RequestBodyType::BINARY);
         assert!(resp_opt.is_some());
@@ -58,9 +66,10 @@ mod test {
         let body = vec![0u8; default_limit + 1];
         let req = make_req_with_body(body.clone());
         let res = make_res();
+        let next = make_next();
 
         let middleware = body_limit(None);
-        let (req_out, resp_opt) = middleware(req, res).await;
+        let (req_out, resp_opt) = middleware(req, res, next).await;
 
         assert_eq!(req_out.body.len(), default_limit + 1);
         assert!(resp_opt.is_some());
@@ -74,9 +83,10 @@ mod test {
         let body = vec![1u8; limit];
         let req = make_req_with_body(body.clone());
         let res = make_res();
+        let next = make_next();
 
         let middleware = body_limit(Some(limit));
-        let (req_out, resp_opt) = middleware(req, res).await;
+        let (req_out, resp_opt) = middleware(req, res, next).await;
 
         assert_eq!(req_out.body.body_type(), RequestBodyType::BINARY);
         assert!(resp_opt.is_none());

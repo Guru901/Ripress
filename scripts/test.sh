@@ -122,7 +122,7 @@ async fn main() {
     app.post("/multipart-text-test", multipart_text_test);
     app.post("/multipart-file-test", multipart_file_test);
 
-    app.use_pre_middleware("/auth", |req, res| {
+    app.use_pre_middleware("/auth", |req, res, next| {
         let has_token = req.get_cookie("token").is_some();
         let req_cloned = req.clone(); // owned
         Box::pin(async move {

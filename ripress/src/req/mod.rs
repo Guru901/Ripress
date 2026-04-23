@@ -224,11 +224,11 @@
 //! let mut app = App::new();
 //!
 //! // In middleware
-//! app.use_pre_middleware(None, |mut req, res| async move {
+//! app.use_pre_middleware(None, |mut req, res, next| async move {
 //!     // Add authentication data
 //!     req.set_data("user_id", "12345");
 //!     req.set_data("user_role", "admin");
-//!     (req, None)
+//!     return next.call(req, res).await;
 //! });
 //!
 //! // In route handler

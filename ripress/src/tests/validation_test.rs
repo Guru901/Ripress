@@ -3,7 +3,7 @@
 mod validation_tests {
     use crate::helpers::FromRequest;
     use crate::req::body::json_data::{FromJson, JsonBodyValidated};
-    use crate::req::body::{RequestBody, RequestBodyType, TextData};
+    use crate::req::body::{RequestBody, TextData};
     use crate::req::HttpRequest;
     use serde::{Deserialize, Serialize};
     use serde_json::json;

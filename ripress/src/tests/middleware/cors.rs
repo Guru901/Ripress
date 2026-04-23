@@ -1,11 +1,16 @@
 #[cfg(test)]
 mod test {
     use crate::{
-        middlewares::cors::{CorsConfig, cors},
+        middlewares::cors::{cors, CorsConfig},
+        next::Next,
         req::HttpRequest,
         res::HttpResponse,
         types::HttpMethods,
     };
+
+    fn make_next() -> Next {
+        Next {}
+    }
 
     fn run_cors_middleware(
         method: HttpMethods,
@@ -14,8 +19,9 @@ mod test {
         let mut req = HttpRequest::new();
         req.method = method;
         let res = HttpResponse::new();
+        let next = make_next();
         let mw = cors(config);
-        futures::executor::block_on(mw(req, res))
+        futures::executor::block_on(mw(req, res, next))
     }
 
     #[test]

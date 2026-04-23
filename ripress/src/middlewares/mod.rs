@@ -91,15 +91,15 @@
 //! let mut app = App::new();
 //!
 //! // Custom authentication middleware
-//! app.use_pre_middleware(Some("/api"), |req: HttpRequest, res| async move {
+//! app.use_pre_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
 //!     if req.headers.get("authorization").is_none() {
 //!         return (req, Some(res.unauthorized().text("Missing auth header")));
 //!     }
-//!     (req, None) // Continue processing
+//!     return next.call(req, res).await; // Continue processing
 //! });
 //!
 //! // Custom response timing middleware
-//! app.use_post_middleware(None, |req: HttpRequest, mut res| async move {
+//! app.use_post_middleware(None, |req: HttpRequest, mut res, next| async move {
 //!     res = res.set_header("X-Response-Time", "42ms");
 //!     (req, Some(res))
 //! });
@@ -679,7 +679,7 @@ pub mod rate_limiter;
 /// let mut app = App::new();
 ///
 /// // Custom body limit with better error handling
-/// app.use_pre_middleware(None, |req: HttpRequest, res| async move {
+/// app.use_pre_middleware(None, |req: HttpRequest, res, next| async move {
 ///     const MAX_SIZE: usize = 1024 * 1024; // 1 MB
 ///     
 ///     if let Some(content_length) = req.headers.get("content-length") {
@@ -696,7 +696,7 @@ pub mod rate_limiter;
 ///         }
 ///     }
 ///     
-///     (req, None) // Continue processing
+///     return next.call(req, res).await; // Continue processing
 /// });
 /// ```
 ///
@@ -918,7 +918,7 @@ pub mod body_limit;
 /// app.use_compression(Some(CompressionConfig { level: 6, threshold: 1024 }));
 ///
 /// // Route-specific skip example (identity)
-/// app.use_post_middleware(Some("/files"), |req: HttpRequest, res| async move {
+/// app.use_post_middleware(Some("/files"), |req: HttpRequest, res, next| async move {
 ///     (req, Some(res.set_header("Content-Encoding", "identity")))
 /// });
 /// ```
@@ -1242,8 +1242,6 @@ pub mod compression;
 pub mod shield;
 
 use crate::types::MiddlewareHandler;
-#[cfg(feature = "with-wynd")]
-use crate::types::WyndHandler;
 
 /// Represents a middleware in the Ripress application.
 ///
