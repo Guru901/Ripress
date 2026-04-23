@@ -50,7 +50,7 @@ pub(crate) fn body_limit(
     config: Option<usize>,
 ) -> impl Fn(HttpRequest, HttpResponse, Next) -> MiddlewareOutput + Send + Sync + 'static {
     let config = config.unwrap_or(DEFAULT_BODY_LIMIT);
-    move |req: HttpRequest, res, next| {
+    move |req: HttpRequest, res, _| {
         Box::pin(async move {
             let body = req.clone().body;
 
@@ -69,7 +69,7 @@ pub(crate) fn body_limit(
                 }))));
             }
 
-            return next.call(req, res).await;
+            return (req, None);
         })
     }
 }

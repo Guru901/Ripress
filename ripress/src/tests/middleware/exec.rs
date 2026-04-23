@@ -36,7 +36,7 @@ mod tests {
             path: "/".to_string(),
             func: Arc::new(|req: HttpRequest, res: HttpResponse, next| {
                 Box::pin(async move {
-                    return next.call(req, res).await;
+                    return (req, None);
                 })
             }),
             middleware_type: MiddlewareType::Pre,
