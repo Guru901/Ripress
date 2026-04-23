@@ -93,23 +93,23 @@ impl Next {
 
         // Store all pending headers from the response in task-local storage
         // for later application to the final response
-        PENDING_HEADERS.try_with(|pending| {
+        let _ = PENDING_HEADERS.try_with(|pending| {
             let mut pending = pending.borrow_mut();
 
             for (k, v) in headers.iter() {
                 pending.push((k.to_string(), v.to_string()));
             }
-        }).expect("Failed to access task-local storage for pending headers");
+        });
 
         // Store all pending cookies from the response in task-local storage
         // for later application to the final response
-        PENDING_COOKIES.try_with(move |pending| {
+        let _ = PENDING_COOKIES.try_with(move |pending| {
             let mut pending = pending.borrow_mut();
 
             for cookie in cookies {
                 pending.push(cookie);
             }
-        }).expect("Failed to access task-local storage for pending cookies");
+        });
 
         // Return the request unchanged and None to allow the next middleware to handle it
         (req, None)
