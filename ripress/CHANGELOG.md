@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.5.0] - 2026-04-23
+
+- Added `Next` struct to allow middleware pass through with headers and cookies from the response.
+
+- Before there was a limitation where if a request isnt short circuited, the modifications applied to the response object would be lost. Now the modifications are stored and applied to the final response.
+
 ## [2.4.1] - 2026-04-08
 
 - Removed `urlencoding` and `mime-guess` crates from dependencies.
