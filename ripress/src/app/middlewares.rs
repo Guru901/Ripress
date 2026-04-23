@@ -3,7 +3,6 @@ use std::sync::Arc;
 #[cfg(feature = "with-wynd")]
 use http_body_util::Full;
 
-use crate::app::App;
 #[cfg(feature = "compression")]
 use crate::middlewares::compression::CompressionConfig;
 #[cfg(feature = "logger")]
@@ -18,6 +17,7 @@ use crate::middlewares::{
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 use crate::types::MiddlewareHandler;
+use crate::{app::App, next::Next};
 
 #[cfg(feature = "with-wynd")]
 use crate::types::WyndHandler;
@@ -55,7 +55,7 @@ impl App {
     pub fn use_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
@@ -104,7 +104,7 @@ impl App {
     pub fn use_pre_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
@@ -146,7 +146,7 @@ impl App {
     pub fn use_pre_middlewares<F, Fut, P>(&mut self, middlewares: Vec<(P, F)>) -> &mut Self
     where
         P: Into<Option<&'static str>> + Copy,
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         for (path, middleware) in middlewares {
@@ -184,7 +184,7 @@ impl App {
     pub fn use_post_middlewares<F, Fut, P>(&mut self, middlewares: Vec<(P, F)>) -> &mut Self
     where
         P: Into<Option<&'static str>> + Copy,
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         for (path, middleware) in middlewares {
@@ -229,7 +229,7 @@ impl App {
     pub fn use_post_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
     where
         P: Into<Option<&'static str>>,
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
         let path = path.into().unwrap_or("/").to_string();
@@ -652,10 +652,10 @@ impl App {
     /// into the expected format for the middleware system.
     fn middleware_from_closure<F, Fut>(f: F) -> MiddlewareHandler
     where
-        F: Fn(HttpRequest, HttpResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(HttpRequest, HttpResponse, Next) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static,
     {
-        Arc::new(move |req: HttpRequest, res| Box::pin(f(req, res)))
+        Arc::new(move |req: HttpRequest, res, next| Box::pin(f(req, res, next)))
     }
 
     #[cfg(feature = "with-wynd")]

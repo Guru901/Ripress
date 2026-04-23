@@ -1,5 +1,6 @@
 #![warn(missing_docs)]
 use crate::helpers::{box_future, ExtractFromOwned};
+use crate::next::Next;
 use crate::req::HttpRequest;
 use crate::res::HttpResponse;
 #[cfg(feature = "with-wynd")]
@@ -83,7 +84,7 @@ pub(crate) type MiddlewareOutput =
     Pin<Box<dyn Future<Output = (HttpRequest, Option<HttpResponse>)> + Send + 'static>>;
 
 pub(crate) type MiddlewareHandler =
-    Arc<dyn Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static>;
+    Arc<dyn Fn(HttpRequest, HttpResponse, Next) -> MiddlewareOutput + Send + Sync + 'static>;
 
 #[cfg(feature = "with-wynd")]
 pub(crate) type WyndHandler = Arc<

@@ -1,6 +1,6 @@
 #![warn(missing_docs)]
 
-use crate::{context::HttpResponse, req::HttpRequest, types::MiddlewareOutput};
+use crate::{context::HttpResponse, next::Next, req::HttpRequest, types::MiddlewareOutput};
 
 pub use crate::middlewares::shield::config::{
     ContentSecurityPolicy, CrossDomainPolicy, CrossOriginEmbedderPolicy, CrossOriginOpenerPolicy,
@@ -295,9 +295,9 @@ pub mod config;
 /// ```
 pub(crate) fn shield(
     config: Option<ShieldConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static {
+) -> impl Fn(HttpRequest, HttpResponse, Next) -> MiddlewareOutput + Send + Sync + 'static {
     let config = std::sync::Arc::new(config.unwrap_or_default());
-    move |req: HttpRequest, mut res| {
+    move |req: HttpRequest, mut res, next| {
         let config = std::sync::Arc::clone(&config);
 
         Box::pin(async move {

@@ -6,6 +6,7 @@ mod test {
 
     use crate::{
         middlewares::rate_limiter::{rate_limiter, RateLimiterConfig},
+        next::Next,
         req::{request_headers::RequestHeaders, HttpRequest},
         res::HttpResponse,
     };
@@ -21,6 +22,10 @@ mod test {
         HttpResponse::new()
     }
 
+    fn make_next() -> Next {
+        Next {}
+    }
+
     #[tokio::test]
     async fn allows_requests_within_limit() {
         let mw = rate_limiter(Some(RateLimiterConfig {
@@ -31,14 +36,15 @@ mod test {
 
         let req = mock_req();
         let res = mock_res();
+        let next = make_next();
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_none());
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_none());
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_none());
     }
 
@@ -53,24 +59,28 @@ mod test {
 
         let req = mock_req();
         let res = mock_res();
+        let next = make_next();
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_none());
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_none());
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_some());
+
         let resp = resp.unwrap();
         assert_eq!(
             resp.status_code,
             crate::res::response_status::StatusCode::TooManyRequests
         );
+
         assert_eq!(
             resp.headers.get("Retry-After").map(|v| v.to_string()),
             Some("0".to_string())
         );
+
         assert_eq!(
             resp.headers
                 .get("X-RateLimit-Remaining")
@@ -89,16 +99,17 @@ mod test {
 
         let req = mock_req();
         let res = mock_res();
+        let next = make_next();
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_none());
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_some());
 
         sleep(Duration::from_millis(120)).await;
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_none());
     }
 
@@ -114,11 +125,12 @@ mod test {
         let mut req = mock_req();
         req.headers.insert("X-Forwarded-For", "8.8.8.8");
         let res = mock_res();
+        let next = make_next();
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_none());
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_some());
     }
 
@@ -132,14 +144,15 @@ mod test {
 
         let req = mock_req();
         let res = mock_res();
+        let next = make_next();
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_none());
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         assert!(resp.is_none());
 
-        let (_req, resp) = mw(req.clone(), res.clone()).await;
+        let (_req, resp) = mw(req.clone(), res.clone(), next.clone()).await;
         let resp = resp.unwrap();
         assert_eq!(
             resp.headers.get("X-RateLimit-Limit").map(|v| v.to_string()),

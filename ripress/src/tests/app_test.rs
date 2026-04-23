@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::next::Next;
     use crate::res::ResponseBody;
     use crate::{
         app::{api_error::ApiError, settings::Http2Config, App},
@@ -238,11 +239,11 @@ mod tests {
     async fn test_use_pre_middleware_with_path() {
         let mut app = App::new();
 
-        app.use_pre_middleware(Some("/api"), |req: HttpRequest, res| async move {
-            (req, Some(res))
+        app.use_pre_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
+            next.call(req, res).await
         });
         #[allow(deprecated)]
-        app.use_middleware(Some("/api"), |req: HttpRequest, res| async move {
+        app.use_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
             (req, Some(res))
         });
 
@@ -252,7 +253,7 @@ mod tests {
 
         let (req, res) = (dummy_request(), dummy_response());
         let mw = app.middlewares[0].func.clone();
-        let (req, res) = mw(req, res).await;
+        let (req, res) = mw(req, res, Next {}).await;
 
         assert!(res.is_some());
         assert_eq!(
@@ -268,15 +269,13 @@ mod tests {
     async fn test_use_pre_middleware_with_default_path() {
         let mut app = App::new();
 
-        app.use_pre_middleware(
-            None,
-            |req: HttpRequest, res| async move { (req, Some(res)) },
-        );
+        app.use_pre_middleware(None, |req: HttpRequest, res, next| async move {
+            next.call(req, res).await
+        });
         #[allow(deprecated)]
-        app.use_middleware(
-            None,
-            |req: HttpRequest, res| async move { (req, Some(res)) },
-        );
+        app.use_middleware(None, |req: HttpRequest, res, next| async move {
+            (req, Some(res))
+        });
 
         assert_eq!(app.middlewares.len(), 2);
         assert_eq!(app.middlewares[0].path, "/");
@@ -290,7 +289,7 @@ mod tests {
     async fn test_use_post_middleware_with_path() {
         let mut app = App::new();
 
-        app.use_post_middleware(Some("/api"), |req: HttpRequest, res| async move {
+        app.use_post_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
             (req, Some(res))
         });
 
@@ -299,7 +298,7 @@ mod tests {
 
         let (req, res) = (dummy_request(), dummy_response());
         let mw = app.middlewares[0].func.clone();
-        let (req, res) = mw(req, res).await;
+        let (req, res) = mw(req, res, Next {}).await;
 
         assert!(res.is_some());
         assert_eq!(
@@ -314,10 +313,9 @@ mod tests {
     async fn test_use_post_middleware_with_default_path() {
         let mut app = App::new();
 
-        app.use_post_middleware(
-            None,
-            |req: HttpRequest, res| async move { (req, Some(res)) },
-        );
+        app.use_post_middleware(None, |req: HttpRequest, res, next| async move {
+            (req, Some(res))
+        });
 
         assert_eq!(app.middlewares.len(), 1);
         assert_eq!(app.middlewares[0].path, "/");
@@ -328,14 +326,14 @@ mod tests {
     async fn test_middleware_modifies_response() {
         let mut app = App::new();
 
-        app.use_pre_middleware(Some("/test"), |req: HttpRequest, mut res| async move {
+        app.use_pre_middleware(Some("/test"), |req: HttpRequest, mut res, _| async move {
             res = res.status(401);
             (req, Some(res))
         });
 
         let (req, res) = (dummy_request(), dummy_response());
         let mw = app.middlewares[0].func.clone();
-        let (_, res) = mw(req, res).await;
+        let (_, res) = mw(req, res, Next {}).await;
 
         assert_eq!(
             res.unwrap().status_code,

@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = App::new();
 
     // Global middlewares (apply to all routes)
-    app.use_pre_middleware(None, |mut req, _| async move {
+    app.use_pre_middleware(None, |mut req, _, _| async move {
         use std::time::{SystemTime, UNIX_EPOCH};
         let since_epoch = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         let timestamp = since_epoch.as_nanos();
@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         (req, None)
     });
-    app.use_post_middleware(None, |req, res| async move {
+    app.use_post_middleware(None, |req, res, _| async move {
         let method = req.method.clone();
         let path = req.origin_url.to_string();
 
@@ -79,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }))
     });
 
-    app.use_pre_middleware("/api", |req, _| async move {
+    app.use_pre_middleware("/api", |req, _, _| async move {
         let auth_header = req.headers.get("authorization");
 
         match auth_header {

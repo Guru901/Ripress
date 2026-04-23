@@ -3,6 +3,7 @@ use std::{fmt::Display, future::Future, sync::Arc};
 
 #[cfg(feature = "with-wynd")]
 use crate::app::settings::WyndConfig;
+use crate::next::Next;
 use crate::req::body::RequestBodyType;
 use crate::res::ResponseBodyType;
 use crate::{
@@ -31,7 +32,7 @@ pub(crate) async fn exec_pre_middleware(
             .await
             .map_err(ApiError::from)?;
 
-        let (modified_req, maybe_res) = mw_func(our_req, our_res).await;
+        let (modified_req, maybe_res) = mw_func(our_req, our_res, Next {}).await;
 
         match maybe_res {
             None => {
@@ -73,7 +74,7 @@ pub(crate) async fn exec_post_middleware(
         }
     };
 
-    let (_, maybe_res) = mw_func(our_req, our_res).await;
+    let (_, maybe_res) = mw_func(our_req, our_res, Next {}).await;
     match maybe_res {
         None => Ok(res),
         Some(res) => {

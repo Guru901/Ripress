@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+use crate::next::Next;
 use crate::{context::HttpResponse, req::HttpRequest, types::MiddlewareOutput};
 use std::sync::Arc;
 use std::time::Duration;
@@ -489,7 +490,7 @@ struct RateLimiterStruct {
 /// * **Retry-After**: Seconds to wait before retrying (429 responses only)
 pub(crate) fn rate_limiter(
     config: Option<RateLimiterConfig>,
-) -> impl Fn(HttpRequest, HttpResponse) -> MiddlewareOutput + Send + Sync + 'static {
+) -> impl Fn(HttpRequest, HttpResponse, Next) -> MiddlewareOutput + Send + Sync + 'static {
     let client_map: Arc<Mutex<HashMap<String, RateLimiterStruct>>> =
         Arc::new(Mutex::new(HashMap::new()));
     let cfg = config.unwrap_or_default();
@@ -506,7 +507,7 @@ pub(crate) fn rate_limiter(
         }
     });
 
-    move |req: HttpRequest, mut res| {
+    move |req: HttpRequest, mut res, next| {
         let client_map = client_map.clone();
         let cfg = cfg.clone();
 
