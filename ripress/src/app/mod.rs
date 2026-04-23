@@ -521,9 +521,25 @@ impl App {
                             our_req.set_param(key, value);
                         });
 
-                        let response = handler(our_req, HttpResponse::new()).await;
+                        let mut response = handler(our_req, HttpResponse::new()).await;
 
-                        let hyper_response = response.to_hyper_response().await;
+                        let mut response = crate::next::PENDING_HEADERS.try_with(|pending| {
+                            for (k, v) in pending.take() {
+                                response = response.set_header(k, v);
+                            }
+
+                            return response;
+                        });
+
+                        let response= crate::next::PENDING_COOKIES.try_with(|pending| {
+                            for cookie in pending.take() {
+                                response = Ok(response.unwrap().set_cookie_raw(cookie));
+                            }
+
+                            return response.unwrap();
+                        });
+
+                        let hyper_response = response.unwrap().to_hyper_response().await;
                         Ok(hyper_response.unwrap())
                     }
                 });

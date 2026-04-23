@@ -428,11 +428,19 @@ impl HttpResponse {
 
     pub fn set_header<T: Into<String>>(
         mut self,
-        header_name: &'static str,
+        header_name: T,
         header_value: T,
     ) -> Self {
-        self.headers.insert(header_name, header_value.into());
+        self.headers.insert(header_name.into(), header_value.into());
         self
+    }
+
+    pub(crate) fn get_headers(&self) -> &ResponseHeaders {
+        return &self.headers;
+    }
+
+    pub(crate) fn get_cookies(&self) -> &Vec<Cookie> {
+        &self.cookies
     }
 
     /// Sets a cookie in the response.
@@ -471,6 +479,12 @@ impl HttpResponse {
 
         self
     }
+
+    pub(crate) fn set_cookie_raw(mut self, cookie: Cookie) -> Self {
+        self.cookies.push(cookie.clone());
+        self
+    }
+
     /// Removes a cookie from the response.
     ///
     /// # Arguments
