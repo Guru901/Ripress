@@ -11,14 +11,10 @@ tokio::task_local! {
     pub(crate) static PENDING_COOKIES: RefCell<Vec<Cookie>>;
 }
 
-#[derive(Clone)]
-pub struct Next {}
+#[derive(Clone, Default)]
+pub struct Next;
 
 impl Next {
-    pub fn new() -> Self {
-        Self {}
-    }
-
     pub async fn call(
         &self,
         req: HttpRequest,
@@ -27,20 +23,20 @@ impl Next {
         let cookies = res.cookies;
         let headers = res.headers;
 
-        let _ = PENDING_HEADERS.try_with(|pending| {
+        PENDING_HEADERS.try_with(|pending| {
             let mut pending = pending.borrow_mut();
 
             for (k, v) in headers.iter() {
                 pending.push((k.to_string(), v.to_string()));
             }
-        });
-        let _ = PENDING_COOKIES.try_with(move |pending| {
+        }).expect("Failed to access task-local storage for pending headers");
+        PENDING_COOKIES.try_with(move |pending| {
             let mut pending = pending.borrow_mut();
 
             for cookie in cookies {
                 pending.push(cookie);
             }
-        });
+        }).expect("Failed to access task-local storage for pending cookies");
         (req, None)
     }
 }

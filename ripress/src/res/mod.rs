@@ -183,6 +183,12 @@ impl std::fmt::Debug for HttpResponse {
     }
 }
 
+impl Default for HttpResponse {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Clone for HttpResponse {
     fn clone(&self) -> Self {
         Self {
@@ -426,11 +432,11 @@ impl HttpResponse {
     /// res.set_header("key", "value"); // Sets the key cookie to value
     /// ```
 
-    pub fn set_header<T: Into<String>>(
+    pub fn set_header<K, V>(
         mut self,
-        header_name: T,
-        header_value: T,
-    ) -> Self {
+        header_name: K,
+        header_value: V,
+    ) -> Self where K: Into<String>, V: Into<String> {
         self.headers.insert(header_name.into(), header_value.into());
         self
     }
