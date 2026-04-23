@@ -11,6 +11,7 @@
 ///
 /// ```rust
 /// use ripress::{app::App, types::Middlewares, middlewares, req::HttpRequest};
+/// let pre_middlewares: Middlewares = middlewares![
 ///     ("/", |req: HttpRequest, res, next| Box::pin(async move { return next.call(req, res).await; })),
 ///     ("/admin", |req: HttpRequest, res, next| Box::pin(async move { return next.call(req, res).await; })),
 /// ];
