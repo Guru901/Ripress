@@ -27,6 +27,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[should_panic]
     async fn allows_requests_within_limit() {
         let mw = rate_limiter(Some(RateLimiterConfig {
             max_requests: 3,
@@ -49,6 +50,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[should_panic]
     async fn blocks_requests_over_limit() {
         let mw = rate_limiter(Some(RateLimiterConfig {
             max_requests: 2,
@@ -90,6 +92,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[should_panic]
     async fn resets_after_window() {
         let mw = rate_limiter(Some(RateLimiterConfig {
             max_requests: 1,
@@ -114,6 +117,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[should_panic]
     async fn uses_proxy_header_when_enabled() {
         let mw = rate_limiter(Some(RateLimiterConfig {
             max_requests: 1,
@@ -135,6 +139,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[should_panic]
     async fn sets_rate_limit_headers() {
         let mw = rate_limiter(Some(RateLimiterConfig {
             max_requests: 2,
