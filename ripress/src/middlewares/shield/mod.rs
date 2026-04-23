@@ -317,7 +317,7 @@ pub(crate) fn shield(
             set_origin_agent_cluster(&mut res, &config.origin_agent_cluster);
             set_cross_domain_policy(&mut res, &config.cross_domain_policy);
 
-            (req, None)
+            return next.call(req, res).await;
         })
     }
 }

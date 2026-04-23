@@ -47,7 +47,7 @@ pub(crate) fn compression(
                 .unwrap_or(false);
 
             if !accepts_gzip {
-                return (req, None);
+                return next.call(req, res).await;
             }
             if res
                 .headers
@@ -55,27 +55,27 @@ pub(crate) fn compression(
                 .or_else(|| res.headers.get("content-encoding"))
                 .is_some()
             {
-                return (req, None);
+                return next.call(req, res).await;
             }
             let body_bytes = match get_response_body_bytes(&res) {
                 Some(bytes) => bytes,
-                None => return (req, None),
+                None => return next.call(req, res).await,
             };
 
             if body_bytes.len() < config.threshold {
-                return (req, None);
+                return next.call(req, res).await;
             }
 
             let content_type = &res.headers.get("Content-Type").unwrap();
 
             if !should_compress_content_type(content_type) {
-                return (req, None);
+                return next.call(req, res).await;
             }
 
             match compress_data(&body_bytes, config.level) {
                 Ok(compressed_body) => {
                     if let Err(_) = set_response_body(&mut res, compressed_body) {
-                        return (req, None);
+                        return next.call(req, res).await;
                     }
 
                     res = res
@@ -86,7 +86,9 @@ pub(crate) fn compression(
 
                     (req, Some(res))
                 }
-                Err(_) => (req, None),
+                Err(_) => {
+                    return next.call(req, res).await;
+                }
             }
         })
     }

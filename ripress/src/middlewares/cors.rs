@@ -1,6 +1,9 @@
 #![warn(missing_docs)]
 use crate::{
-    context::HttpResponse, next::Next, req::HttpRequest, types::{HttpMethods, MiddlewareOutput}
+    context::HttpResponse,
+    next::Next,
+    req::HttpRequest,
+    types::{HttpMethods, MiddlewareOutput},
 };
 
 /// Builtin CORS (Cross-Origin Resource Sharing) Middleware
@@ -417,7 +420,8 @@ pub(crate) fn cors(
             if req_clone.method == HttpMethods::OPTIONS {
                 return (req_clone, Some(res.ok()));
             }
-            (req_clone, None) 
+
+            return next.call(req_clone, res).await;
         })
     }
 }

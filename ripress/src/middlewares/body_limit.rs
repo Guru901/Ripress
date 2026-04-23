@@ -1,6 +1,7 @@
 #![warn(missing_docs)]
 use crate::{
-    context::HttpResponse, next::Next, req::HttpRequest, res::response_status::StatusCode, types::MiddlewareOutput
+    context::HttpResponse, next::Next, req::HttpRequest, res::response_status::StatusCode,
+    types::MiddlewareOutput,
 };
 
 /// Middleware for limiting the maximum allowed size of the HTTP request body.
@@ -68,7 +69,7 @@ pub(crate) fn body_limit(
                 }))));
             }
 
-            (req, None)
+            return next.call(req, res).await;
         })
     }
 }

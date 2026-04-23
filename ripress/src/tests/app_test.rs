@@ -239,11 +239,11 @@ mod tests {
     async fn test_use_pre_middleware_with_path() {
         let mut app = App::new();
 
-        app.use_pre_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
+        app.use_pre_middleware(Some("/api"), |req: HttpRequest, res, _| async move {
             (req, Some(res))
         });
         #[allow(deprecated)]
-        app.use_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
+        app.use_middleware(Some("/api"), |req: HttpRequest, res, _| async move {
             (req, Some(res))
         });
 
@@ -270,10 +270,10 @@ mod tests {
         let mut app = App::new();
 
         app.use_pre_middleware(None, |req: HttpRequest, res, next| async move {
-            next.call(req, res).await
+            return next.call(req, res).await;
         });
         #[allow(deprecated)]
-        app.use_middleware(None, |req: HttpRequest, res, next| async move {
+        app.use_middleware(None, |req: HttpRequest, res, _| async move {
             (req, Some(res))
         });
 
@@ -289,7 +289,7 @@ mod tests {
     async fn test_use_post_middleware_with_path() {
         let mut app = App::new();
 
-        app.use_post_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
+        app.use_post_middleware(Some("/api"), |req: HttpRequest, res, _| async move {
             (req, Some(res))
         });
 
@@ -313,7 +313,7 @@ mod tests {
     async fn test_use_post_middleware_with_default_path() {
         let mut app = App::new();
 
-        app.use_post_middleware(None, |req: HttpRequest, res, next| async move {
+        app.use_post_middleware(None, |req: HttpRequest, res, _| async move {
             (req, Some(res))
         });
 

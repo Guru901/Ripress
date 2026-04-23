@@ -228,7 +228,7 @@
 //!     // Add authentication data
 //!     req.set_data("user_id", "12345");
 //!     req.set_data("user_role", "admin");
-//!     (req, None)
+//!     return next.call(req, res).await;
 //! });
 //!
 //! // In route handler

@@ -95,7 +95,7 @@
 //!     if req.headers.get("authorization").is_none() {
 //!         return (req, Some(res.unauthorized().text("Missing auth header")));
 //!     }
-//!     (req, None) // Continue processing
+//!     return next.call(req, res).await; // Continue processing
 //! });
 //!
 //! // Custom response timing middleware
@@ -696,7 +696,7 @@ pub mod rate_limiter;
 ///         }
 ///     }
 ///     
-///     (req, None) // Continue processing
+///     return next.call(req, res).await; // Continue processing
 /// });
 /// ```
 ///
@@ -1242,8 +1242,6 @@ pub mod compression;
 pub mod shield;
 
 use crate::types::MiddlewareHandler;
-#[cfg(feature = "with-wynd")]
-use crate::types::WyndHandler;
 
 /// Represents a middleware in the Ripress application.
 ///

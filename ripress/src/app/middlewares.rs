@@ -48,7 +48,7 @@ impl App {
     /// // This is deprecated - use use_pre_middleware instead
     /// app.use_middleware(Some("/api"), |req: HttpRequest, res, next| async move {
     ///     println!("Processing API request");
-    ///     (req, None)
+    ///     return next.call(req, res).await;
     /// });
     /// ```
     #[deprecated(since = "1.9.0", note = "Use `use_pre_middleware` instead")]
@@ -92,13 +92,13 @@ impl App {
     ///     if req.headers.get("authorization").is_none() {
     ///         return (req, Some(res.unauthorized().text("Missing authorization header")));
     ///     }
-    ///     (req, None) // Continue processing
+    ///     return next.call(req, res).await; // Continue processing
     /// });
     ///
     /// // Logging middleware for all routes
     /// app.use_pre_middleware(None, |req: HttpRequest, res, next| async move {
     ///     println!("Request: {} {}", req.method, req.path);
-    ///     (req, None)
+    ///     return next.call(req, res).await;
     /// });
     /// ```
     pub fn use_pre_middleware<F, Fut, P>(&mut self, path: P, middleware: F) -> &mut Self
@@ -134,10 +134,10 @@ impl App {
     /// let mut app = App::new();
     ///
     /// let pre: Middlewares = vec![
-    ///     ("/", Box::new(|req: HttpRequest, res, next| Box::pin(async move { (req, None) }))),
+    ///     ("/", Box::new(|req: HttpRequest, res, next| Box::pin(async move { return next.call(req, res).await; }))),
     ///     ("/admin", Box::new(|req: HttpRequest, res, next| Box::pin(async move {
     ///         // admin check logic
-    ///         (req, None)
+    ///         return next.call(req, res).await;
     ///     }))),
     /// ];
     ///

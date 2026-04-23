@@ -441,14 +441,6 @@ impl HttpResponse {
         self
     }
 
-    pub(crate) fn get_headers(&self) -> &ResponseHeaders {
-        return &self.headers;
-    }
-
-    pub(crate) fn get_cookies(&self) -> &Vec<Cookie> {
-        &self.cookies
-    }
-
     /// Sets a cookie in the response.
     ///
     /// # Arguments

@@ -370,7 +370,9 @@ pub(crate) fn logger(
             .iter()
             .any(|prefix| req.path.starts_with(prefix))
         {
-            return Box::pin(async move { (req, None) });
+            return Box::pin(async move {
+                return next.call(req, res).await;
+            });
         }
 
         Box::pin(async move {
@@ -430,7 +432,7 @@ pub(crate) fn logger(
 
             info!("{}", msg);
 
-            (req, None)
+            return next.call(req, res).await;
         })
     }
 }

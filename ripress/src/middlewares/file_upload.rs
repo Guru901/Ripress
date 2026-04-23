@@ -263,7 +263,7 @@ pub fn file_upload(
     config: Option<FileUploadConfiguration>,
 ) -> impl Fn(HttpRequest, HttpResponse, Next) -> MiddlewareOutput + Send + Sync + Clone + 'static {
     let config = config.unwrap_or_default();
-    move |mut req, _res, next| {
+    move |mut req, res, next| {
         let config = config.clone();
         let upload_path = config.upload_dir.clone();
         Box::pin(async move {
@@ -283,7 +283,7 @@ pub fn file_upload(
                             "File upload middleware: multipart/form-data detected but req.bytes() failed error: {}",
                             e
                         );
-                        return (req, None);
+                        return next.call(req, res).await;
                     }
                 }
             } else {
@@ -294,7 +294,7 @@ pub fn file_upload(
                             let form_string = form_data_to_string(form_data);
                             if form_string.is_empty() {
                                 eprintln!("File upload middleware: No form data available");
-                                return (req, None);
+                                return next.call(req, res).await;
                             }
                             form_string.into_bytes()
                         }
@@ -302,7 +302,7 @@ pub fn file_upload(
                             eprintln!(
                                 "File upload middleware: Both bytes() and form_data() failed"
                             );
-                            return (req, None);
+                            return next.call(req, res).await;
                         }
                     },
                 }
@@ -332,12 +332,12 @@ pub fn file_upload(
                     files_to_process.len(),
                     config.max_files
                 );
-                return (req, None);
+                return next.call(req, res).await;
             }
 
             if let Err(e) = create_dir_all(&upload_path).await {
                 eprintln!("Failed to create upload directory '{}': {}", upload_path, e);
-                return (req, None);
+                return next.call(req, res).await;
             }
 
             let mut uploaded_files = Vec::new();
@@ -404,7 +404,7 @@ pub fn file_upload(
                 }
             }
 
-            (req, None)
+            return next.call(req, res).await;
         })
     }
 }

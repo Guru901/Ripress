@@ -576,7 +576,7 @@ pub(crate) fn rate_limiter(
             res.headers
                 .insert("X-RateLimit-Reset", window_remaining.to_string());
 
-            (req, None)
+            return next.call(req, res).await;
         })
     }
 }

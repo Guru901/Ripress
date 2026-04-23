@@ -214,9 +214,9 @@ async fn main() {
     // Add middleware (pre and post)
     app.use_cors(None)                                    // Pre-middleware
         .use_pre_middleware("/upload", file_upload(None)) // Pre-middleware (requires file-upload feature)
-        .use_post_middleware("/api/", |req, res| async {  // Post-middleware
+        .use_post_middleware("/api/", |req, res, next| async {  // Post-middleware
             println!("API response logged: {} {}", req.method, req.path);
-            (req, None)
+            return next.call(req, res).await;
         })
         .use_rate_limiter(None);                          // Pre-middleware
 

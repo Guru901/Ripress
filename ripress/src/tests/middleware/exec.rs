@@ -35,7 +35,6 @@ mod tests {
         Arc::new(Middleware {
             path: "/".to_string(),
             func: Arc::new(|req: HttpRequest, res: HttpResponse, next| {
-                // Box::pin(async move { (req, None) })
                 Box::pin(async move {
                     return next.call(req, res).await;
                 })
@@ -47,7 +46,7 @@ mod tests {
     fn blocking_pre_middleware() -> Arc<Middleware> {
         Arc::new(Middleware {
             path: "/block".to_string(),
-            func: Arc::new(|req: HttpRequest, _res: HttpResponse, next| {
+            func: Arc::new(|req: HttpRequest, _res: HttpResponse, _| {
                 Box::pin(async move {
                     let res = HttpResponse::new().ok().text("blocked!");
                     return (req, Some(res));
