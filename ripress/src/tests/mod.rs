@@ -10,3 +10,4 @@ mod response;
 mod router_test;
 #[cfg(feature = "validation")]
 mod validation_test;
+mod next_test;
