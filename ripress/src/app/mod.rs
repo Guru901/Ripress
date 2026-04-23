@@ -164,7 +164,6 @@ impl App {
     /// let app = App::new().host("127.0.0.1");
     /// ```
     pub fn host(&mut self, host: &str) -> &mut Self {
-        // self.host = host.to_string();
         self.settings.host = host.to_string();
         self
     }
@@ -522,26 +521,20 @@ impl App {
                             our_req.set_param(key, value);
                         });
 
-                        let fut = async move {
-                            let mut response = handler(our_req, HttpResponse::new()).await;
+                        let mut response = handler(our_req, HttpResponse::new()).await;
 
-                            let _ = crate::next::PENDING_HEADERS.try_with(|pending| {
-                                for (k, v) in pending.borrow_mut().drain(..) {
-                                    response = std::mem::take(&mut response).set_header(k, v);
-                                }
-                            });
-                            let _ = crate::next::PENDING_COOKIES.try_with(|pending| {
-                                for cookie in pending.borrow_mut().drain(..) {
-                                    response = std::mem::take(&mut response).set_cookie_raw(cookie);
-                                }
-                            });
+                        let _ = crate::next::PENDING_HEADERS.try_with(|pending| {
+                            for (k, v) in pending.borrow_mut().drain(..) {
+                                response = std::mem::take(&mut response).set_header(k, v);
+                            }
+                        });
+                        let _ = crate::next::PENDING_COOKIES.try_with(|pending| {
+                            for cookie in pending.borrow_mut().drain(..) {
+                                response = std::mem::take(&mut response).set_cookie_raw(cookie);
+                            }
+                        });
 
-                            response.to_hyper_response().await
-                        };
-                        let hyper_response = crate::next::PENDING_HEADERS
-                            .scope(RefCell::new(Vec::new()),
-                                crate::next::PENDING_COOKIES.scope(RefCell::new(Vec::new()), fut))
-                            .await;
+                        let hyper_response = response.to_hyper_response().await;
                         Ok(hyper_response.unwrap())
                     }
                 });
@@ -618,11 +611,17 @@ impl App {
             match accept_result {
                 Some(Ok((stream, _))) => {
                     let service = Arc::clone(&router_service);
-                    let http2_enabled = http2_enabled;
                     let http2_config = http2_config.clone();
 
                     tokio::task::spawn(async move {
-                        Self::handle_connection(stream, service, http2_enabled, http2_config).await;
+                        crate::next::PENDING_HEADERS.scope(
+                            RefCell::new(Vec::new()),
+                            crate::next::PENDING_COOKIES.scope(
+                                RefCell::new(Vec::new()),
+                                Self::handle_connection(stream, service, http2_enabled, http2_config),
+                            ),
+                        )
+                        .await;
                     });
                 }
                 Some(Err(e)) => {

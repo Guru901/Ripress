@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.5.1] - 2026-04-23
+
+- Fixed a bug where the `PENDING_HEADERS` and `PENDING_COOKIES` were not being init.
+
 ## [2.5.0] - 2026-04-23
 
 - Added `Next` struct to allow middleware pass through with headers and cookies from the response.
