@@ -43,7 +43,6 @@ hyper-staticfile = "0.10.1"
 ahash = "0.8.12"
 ripress-derive = { version = "0.0.3" }
 validator = { version = "0.20.0", features = ["derive"], optional = true }
-wynd = { version = "0.12.1", features = ["with-ripress"] }
 
 [dev-dependencies]
 tracing-subscriber = "0.3.20"
