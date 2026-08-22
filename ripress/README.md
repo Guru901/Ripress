@@ -234,13 +234,6 @@ Ready to build something amazing? Jump into our [Installation Guide](./installat
 
 You can also check out the complete API documentation on [Docs.rs](https://docs.rs/ripress/latest/ripress/).
 
-## Documentation
-
-- [Getting Started Guide](./docs/getting-started.md)
-- [Middleware Guide](./docs/guides/middleware.md)
-- [WebSocket Guide](./docs/guides/websocket.md)
-- [API Reference](./docs/api-reference/)
-
 ## Changelog
 
 [View Changelog](./CHANGELOG.md)
